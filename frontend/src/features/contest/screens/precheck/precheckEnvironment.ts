@@ -121,7 +121,6 @@ export interface EnvironmentCheckFilter {
   requireScreenShare: boolean;
   requireSingleMonitor: boolean;
   enableWebcam: boolean;
-  requirePwaMode: boolean;
   skipFullscreen: boolean;
 }
 
@@ -145,7 +144,7 @@ export const createEnvironmentChecks = (
   if (!filter || filter.enableWebcam) {
     checks.push({ id: "webcam", label: t("precheck.environment.checks.webcam", "Webcam"), status: "pending" });
   }
-  if (!filter || !filter.skipFullscreen || filter.requirePwaMode) {
+  if (!filter || !filter.skipFullscreen) {
     checks.push({ id: "fullscreen", label: t("precheck.environment.checks.fullscreen"), status: "pending" });
   }
   checks.push({ id: "interaction", label: t("precheck.environment.checks.interaction"), status: "pending" });
@@ -253,8 +252,6 @@ export const runStartPreflightValidation = async (
     requireSingleMonitor: boolean;
     requireWebcam: boolean;
     enableWebcam?: boolean;
-    requirePwaOnTablet: boolean;
-    isPwaMode: boolean;
     skipFullscreenCheck: boolean;
   }
 ): Promise<PreflightValidationResult> => {
@@ -263,8 +260,6 @@ export const runStartPreflightValidation = async (
     requireSingleMonitor,
     requireWebcam,
     enableWebcam,
-    requirePwaOnTablet,
-    isPwaMode,
     skipFullscreenCheck,
   } = options;
   const observation: PrecheckObservation = { fullscreen: isFullscreen() };
@@ -355,16 +350,6 @@ export const runStartPreflightValidation = async (
     }
   }
 
-  if (requirePwaOnTablet && !isPwaMode) {
-    return fail({
-      checkId: "fullscreen",
-      detail: t(
-        "precheck.environment.errors.tabletRequiresPwa",
-        "iPad 監考需使用 PWA 模式。請先將系統加入主畫面，並從主畫面開啟後重試。"
-      ),
-    });
-  }
-
   observation.fullscreen = isFullscreen();
   if (!skipFullscreenCheck && !observation.fullscreen) {
     return fail({
@@ -383,8 +368,6 @@ interface RunEnvChecksOptions {
   requireSingleMonitor: boolean;
   requireWebcam: boolean;
   enableWebcam: boolean;
-  requirePwaOnTablet: boolean;
-  isPwaMode: boolean;
   skipFullscreenCheck: boolean;
   checkFilter?: EnvironmentCheckFilter;
   requestMonitorScreenShare: () => Promise<{
@@ -410,8 +393,6 @@ export const runEnvChecks = async ({
   requireSingleMonitor,
   requireWebcam,
   enableWebcam,
-  requirePwaOnTablet,
-  isPwaMode,
   skipFullscreenCheck,
   checkFilter,
   requestMonitorScreenShare,
@@ -579,23 +560,6 @@ export const runEnvChecks = async ({
       }
     } else {
       clearPrecheckWebcamHandoff(true);
-    }
-
-    if (requirePwaOnTablet && !isPwaMode) {
-      markRunning("fullscreen", t("precheck.environment.status.checking"));
-      await finalizeCheck(
-        "fullscreen",
-        "fail",
-        t(
-          "precheck.environment.errors.tabletRequiresPwa",
-          "iPad 監考需使用 PWA 模式。請先將系統加入主畫面，並從主畫面開啟後重試。"
-        )
-      );
-      const depMsg = t("precheck.environment.errors.dependencyPrefix", {
-        name: t("precheck.environment.checks.fullscreen"),
-      });
-      markBlocked("interaction", depMsg);
-      return;
     }
 
     if (skipFullscreenCheck) {

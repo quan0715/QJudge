@@ -77,21 +77,13 @@ const ExamPrecheckScreen: React.FC = () => {
   const capability = detectAnticheatCapability();
   const monitoringPlan = resolveDeviceMonitoringPlan(
     capability,
-    anticheatConfig?.integrityRun?.devicePolicy ??
-      anticheatConfig?.devicePolicy ??
-      contest?.anticheatDevicePolicy
+    anticheatConfig?.integrityRun?.webcamRequired ??
+      anticheatConfig?.webcamRequired ??
+      contest?.webcamRequired ??
+      false,
   );
   const entryDeviceMetadata = buildExamEntryDeviceMetadata(capability, monitoringPlan);
   const skipFullscreenCheck = !monitoringPlan.precheck.requireFullscreen;
-  const entryDeviceLabel =
-    entryDeviceMetadata.device_kind === "tablet"
-      ? capability.isIPadLike
-        ? t("precheck.entryDevice.kind.ipad", "平板（iPad）")
-        : t("precheck.entryDevice.kind.tablet", "平板")
-      : t("precheck.entryDevice.kind.desktop", "桌機 / 筆電");
-  const entryModeLabel = capability.isPwaMode
-    ? t("precheck.entryDevice.mode.pwa", "PWA 模式")
-    : t("precheck.entryDevice.mode.browser", "瀏覽器分頁模式");
   const entrySourceLabel = entryDeviceMetadata.active_sources.length
     ? entryDeviceMetadata.active_sources
         .map((source) =>
@@ -115,9 +107,6 @@ const ExamPrecheckScreen: React.FC = () => {
       : []),
     ...(monitoringPlan.precheck.enableWebcam
       ? [t("precheck.environment.requirements.webcam", "請允許瀏覽器使用 Webcam。")]
-      : []),
-    ...(monitoringPlan.precheck.requirePwaMode
-      ? [t("precheck.environment.requirements.pwa", "請從主畫面啟動 PWA 視窗作答。")]
       : []),
   ];
 
@@ -148,7 +137,6 @@ const ExamPrecheckScreen: React.FC = () => {
     requireScreenShare: monitoringPlan.precheck.requireScreenShare,
     requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
     enableWebcam: monitoringPlan.precheck.enableWebcam,
-    requirePwaMode: monitoringPlan.precheck.requirePwaMode,
     skipFullscreen: skipFullscreenCheck,
   };
   const [envChecks, setEnvChecks] = useState<CheckItem[]>(() => createEnvironmentChecks(t, checkFilter));
@@ -166,7 +154,6 @@ const ExamPrecheckScreen: React.FC = () => {
     checkFilter.requireScreenShare,
     checkFilter.requireSingleMonitor,
     checkFilter.enableWebcam,
-    checkFilter.requirePwaMode,
     checkFilter.skipFullscreen,
     t,
   ]);
@@ -361,8 +348,6 @@ const ExamPrecheckScreen: React.FC = () => {
       requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
       requireWebcam: monitoringPlan.precheck.requireWebcam,
       enableWebcam: monitoringPlan.precheck.enableWebcam,
-      requirePwaOnTablet: monitoringPlan.precheck.requirePwaMode,
-      isPwaMode: capability.isPwaMode,
       skipFullscreenCheck,
       checkFilter,
       requestMonitorScreenShare,
@@ -374,12 +359,10 @@ const ExamPrecheckScreen: React.FC = () => {
       setEnvTestRunning,
     });
   }, [
-    capability.isPwaMode,
     envTestRunning,
     monitoringPlan.allowed,
     monitoringPlan.missingEnabledSources,
     monitoringPlan.precheck.enableWebcam,
-    monitoringPlan.precheck.requirePwaMode,
     monitoringPlan.precheck.requireScreenShare,
     monitoringPlan.precheck.requireSingleMonitor,
     monitoringPlan.precheck.requireWebcam,
@@ -417,8 +400,6 @@ const ExamPrecheckScreen: React.FC = () => {
       requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
       requireWebcam: monitoringPlan.precheck.requireWebcam,
       enableWebcam: monitoringPlan.precheck.enableWebcam,
-      requirePwaOnTablet: monitoringPlan.precheck.requirePwaMode,
-      isPwaMode: capability.isPwaMode,
       skipFullscreenCheck,
     });
     if (validationFailure) {
@@ -435,7 +416,6 @@ const ExamPrecheckScreen: React.FC = () => {
     }
     setCountdown(COUNTDOWN_SECONDS);
   }, [
-    capability.isPwaMode,
     contest?.attendanceStatus,
     monitoringPlan.allowed,
     monitoringPlan.missingEnabledSources,
@@ -443,7 +423,6 @@ const ExamPrecheckScreen: React.FC = () => {
     monitoringPlan.precheck.requireSingleMonitor,
     monitoringPlan.precheck.requireWebcam,
     monitoringPlan.precheck.enableWebcam,
-    monitoringPlan.precheck.requirePwaMode,
     skipFullscreenCheck,
     t,
   ]);
@@ -461,8 +440,6 @@ const ExamPrecheckScreen: React.FC = () => {
           requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
           requireWebcam: monitoringPlan.precheck.requireWebcam,
           enableWebcam: monitoringPlan.precheck.enableWebcam,
-          requirePwaOnTablet: monitoringPlan.precheck.requirePwaMode,
-          isPwaMode: capability.isPwaMode,
           skipFullscreenCheck,
         });
       if (validationFailure) {
@@ -483,7 +460,6 @@ const ExamPrecheckScreen: React.FC = () => {
       const started = await startSession({
         precheck: {
           ...observation,
-          pwa_mode: capability.isPwaMode,
           policy_version: anticheatConfig?.integrityRun?.registrySnapshot?.version,
           checks: envChecks.map((item) => ({ id: item.id, status: item.status })),
           device: entryDeviceMetadata,
@@ -503,14 +479,12 @@ const ExamPrecheckScreen: React.FC = () => {
       navigate(getPostPrecheckRoute());
     })();
   }, [
-    capability.isPwaMode,
     countdown,
     contestId,
     monitoringPlan.precheck.enableWebcam,
     monitoringPlan.precheck.requireScreenShare,
     monitoringPlan.precheck.requireSingleMonitor,
     monitoringPlan.precheck.requireWebcam,
-    monitoringPlan.precheck.requirePwaMode,
     getPostPrecheckRoute,
     navigate,
     skipFullscreenCheck,
@@ -615,12 +589,6 @@ const ExamPrecheckScreen: React.FC = () => {
                     {t("precheck.entryDevice.title", "進場資訊")}
                   </div>
                   <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                    <Tag type="blue" size="sm">
-                      {entryDeviceLabel}
-                    </Tag>
-                    <Tag type="cyan" size="sm">
-                      {entryModeLabel}
-                    </Tag>
                     <Tag type="purple" size="sm">
                       {t("precheck.entryDevice.monitoring")}: {entrySourceLabel}
                     </Tag>
@@ -651,32 +619,17 @@ const ExamPrecheckScreen: React.FC = () => {
                   {t("precheck.environment.deviceUnsupported.title", "不支援此裝置")}
                 </h4>
                 <p style={{ color: "var(--cds-text-secondary)", marginBottom: "1rem", lineHeight: 1.6 }}>
-                  {monitoringPlan.missingEnabledSources.length > 0
+                  {monitoringPlan.missingEnabledSources.includes("screen_share")
                     ? t(
-                        "precheck.environment.deviceUnsupported.missingCapabilities",
-                        "本考試需要 {{sources}}，但此裝置或瀏覽器不支援。請換用支援的裝置或瀏覽器後重試。",
-                        {
-                          sources: monitoringPlan.missingEnabledSources
-                            .map((s) =>
-                              s === "screen_share"
-                                ? t("precheck.entryDevice.source.screenShare", "螢幕畫面")
-                                : t("precheck.entryDevice.source.webcam", "Webcam")
-                            )
-                            .join("、"),
-                        }
+                        "precheck.environment.deviceUnsupported.screenShareRequired",
+                        "嚴格考試模式需使用電腦瀏覽器（必須能分享螢幕）。請改用電腦重新進入。",
                       )
                     : t(
-                        "precheck.environment.deviceUnsupported.deviceKindDisabled",
-                        "本考試不允許使用{{device}}作答，請換用允許的裝置重新進入。",
-                        { device: entryDeviceLabel }
+                        "precheck.environment.deviceUnsupported.missingCapabilities",
+                        "本考試需要 {{sources}}，但此裝置或瀏覽器不支援。請換用支援的裝置或瀏覽器後重試。",
+                        { sources: t("precheck.entryDevice.source.webcam", "Webcam") },
                       )}
                 </p>
-                <div style={{ color: "var(--cds-text-secondary)", fontSize: "0.875rem" }}>
-                  {t("precheck.environment.deviceUnsupported.detected", "偵測到的裝置：{{device}}（{{mode}}）", {
-                    device: entryDeviceLabel,
-                    mode: entryModeLabel,
-                  })}
-                </div>
               </Tile>
               <div className={styles.navRow}>
                 <Button
@@ -765,13 +718,7 @@ const ExamPrecheckScreen: React.FC = () => {
               <Tile>
                 <h4 style={{ marginTop: 0, marginBottom: "1rem" }}>{t("precheck.instruction.title")}</h4>
                 <ul style={{ paddingLeft: "1.25rem", lineHeight: 1.8 }}>
-                  <li
-                    dangerouslySetInnerHTML={{
-                      __html: skipFullscreenCheck
-                        ? t("precheck.instruction.keepPwaMode")
-                        : t("precheck.instruction.keepFullscreen"),
-                    }}
-                  />
+                  <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.keepFullscreen") }} />
                   <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.clipboardRecorded") }} />
                   {entryDeviceMetadata.active_sources.length > 0 && (
                     <li

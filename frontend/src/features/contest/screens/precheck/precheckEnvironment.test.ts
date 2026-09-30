@@ -88,8 +88,6 @@ describe("runStartPreflightValidation observation", () => {
     requireSingleMonitor: false,
     requireWebcam: false,
     enableWebcam: false,
-    requirePwaOnTablet: false,
-    isPwaMode: false,
     skipFullscreenCheck: true,
   };
 
@@ -140,8 +138,6 @@ describe("graphics environment admission", () => {
     requireSingleMonitor: false,
     requireWebcam: false,
     enableWebcam: false,
-    requirePwaOnTablet: false,
-    isPwaMode: false,
     skipFullscreenCheck: true,
   };
 

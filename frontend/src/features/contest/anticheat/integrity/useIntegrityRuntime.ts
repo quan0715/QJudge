@@ -95,7 +95,6 @@ const contestIntegrityRawSources = import.meta.glob<string>(
     "../../hooks/useMouseLeaveMonitoring.ts",
     "../../hooks/useMultiDisplayMonitoring.ts",
     "../../hooks/useScreenShareMonitoring.ts",
-    "../../hooks/useViewportMonitoring.ts",
     "../../hooks/useWebcamMonitoring.ts",
     "../../hooks/useExamState.ts",
     "../../hooks/useContestExamActions.ts",

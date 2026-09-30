@@ -973,10 +973,7 @@
       "mouse_leave": "滑鼠離開",
       "multiple_displays": "多螢幕",
       "policy_unavailable": "監控需處理",
-      "pwa_required": "需用 PWA",
       "screen_share": "螢幕分享中斷",
-      "split_view": "分割畫面",
-      "viewport": "視窗異常",
       "webcam": "Webcam 中斷"
     },
     "mouseLeaveRecoveryDesc": "請在 {{seconds}} 秒內將滑鼠移回考試視窗，否則將記錄一次違規。",
@@ -1670,15 +1667,6 @@
       "title": "參賽資格確認"
     },
     "entryDevice": {
-      "kind": {
-        "desktop": "桌機 / 筆電",
-        "ipad": "平板（iPad）",
-        "tablet": "平板"
-      },
-      "mode": {
-        "browser": "瀏覽器分頁模式",
-        "pwa": "PWA 模式"
-      },
       "monitoring": "監考來源",
       "source": {
         "none": "未啟用監考來源",
@@ -1698,6 +1686,9 @@
         "sharing": "螢幕分享授權",
         "webcam": "Webcam 授權"
       },
+      "deviceUnsupported": {
+        "screenShareRequired": "嚴格考試模式需使用電腦瀏覽器（必須能分享螢幕）。請改用電腦重新進入。"
+      },
       "errors": {
         "browserNotSupported": "您的瀏覽器不支援螢幕管理檢測，請改用最新版 Chrome / Edge。",
         "dependencyPrefix": "需先通過「{{name}}」。",
@@ -1711,7 +1702,6 @@
         "sharingFailed": "螢幕分享授權失敗，請重新分享並選擇「整個螢幕」。",
         "sharingInterrupted": "螢幕分享已中斷，請重新完成檢查。",
         "softwareRenderer": "目前使用 llvmpipe 軟體繪圖，無法進入考試。請改用本機桌面並啟用瀏覽器硬體加速，或更換裝置。",
-        "tabletRequiresPwa": "iPad 監考需使用 PWA 模式。請先將系統加入主畫面，並從主畫面開啟後重試。",
         "webcamFailed": "Webcam 無法使用，請重新授權。",
         "webcamUnsupported": "此瀏覽器不支援 Webcam。",
         "webglUnavailable": "無法啟用 WebGL，暫時無法進入考試。請在本機瀏覽器啟用硬體加速，重新啟動瀏覽器後再試；若仍失敗，請更換裝置。"
@@ -1721,7 +1711,6 @@
         "display": "限單一螢幕，請務必拔除外接顯示器。",
         "graphics": "瀏覽器須支援 WebGL；不允許使用 llvmpipe 軟體繪圖環境。",
         "permission": "請授權瀏覽器「管理視窗與顯示器」權限。",
-        "pwa": "請從主畫面啟動 PWA 視窗作答。",
         "sharing": "分享時請務必選擇「整個螢幕 (Entire Screen)」。",
         "title": "環境要求：",
         "webcam": "請允許瀏覽器使用 Webcam。"
@@ -1744,7 +1733,6 @@
       "confirmStart": "我已瞭解並確認開始考試",
       "deadline": "考試截止時間：{{time}}",
       "keepFullscreen": "請<b>全程維持全螢幕</b>，離開全螢幕將被系統<b>靜默記錄</b>為異常行為。",
-      "keepPwaMode": "iPad 請全程使用<b>主畫面啟動的 PWA 視窗</b>作答，離開將被<b>靜默記錄</b>。",
       "randomInspection": "考試期間，監考人員可能<b>隨機抽查</b>{{sources}}，擷取內容將作為<b>證據來源</b>。",
       "title": "作答規範"
     },

@@ -21,7 +21,6 @@ vi.mock("@/features/contest/contexts/ContestContext", () => ({
     contest: {
       id: "contest-1",
       cheatDetectionEnabled: true,
-      anticheatDevicePolicy: undefined,
       examStatus: "in_progress",
     },
     refreshContest: mocks.refreshContest,
@@ -46,17 +45,6 @@ vi.mock("@/features/contest/anticheat/integrity/IntegrityRuntimeContext", () => 
   useIntegritySignalEmitter: () => ({ emit: mocks.emit }),
 }));
 
-vi.mock("@/features/contest/domain/anticheatModulePolicy", () => ({
-  detectAnticheatCapability: vi.fn(),
-  resolveDeviceMonitoringPlan: () => ({
-    primarySourceModule: "screen_share",
-    sources: {
-      screenShare: { role: "primary" },
-      webcam: { role: "secondary" },
-    },
-  }),
-}));
-
 describe("useExamSessionFlow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -74,7 +62,10 @@ describe("useExamSessionFlow", () => {
     });
 
     expect(mocks.emit).toHaveBeenCalledWith(
-      expect.objectContaining({ eventType: "exam_submit_initiated" }),
+      expect.objectContaining({
+        eventType: "exam_submit_initiated",
+        payload: expect.objectContaining({ module: "screen_share", module_role: "primary" }),
+      }),
     );
     expect(mocks.endExam).toHaveBeenCalledWith(
       "contest-1",

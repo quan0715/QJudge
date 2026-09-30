@@ -973,10 +973,7 @@
       "mouse_leave": "마우스 이탈",
       "multiple_displays": "다중 화면",
       "policy_unavailable": "모니터링 확인",
-      "pwa_required": "PWA 필요",
       "screen_share": "화면 공유 끊김",
-      "split_view": "분할 화면",
-      "viewport": "창 크기 이상",
       "webcam": "Webcam 끊김"
     },
     "mouseLeaveRecoveryDesc": "{{seconds}}초 이내에 마우스를 시험 창으로 되돌리지 않으면 위반 1회로 기록됩니다.",
@@ -1670,15 +1667,6 @@
       "title": "참가 자격 확인"
     },
     "entryDevice": {
-      "kind": {
-        "desktop": "데스크톱 / 노트북",
-        "ipad": "태블릿 (iPad)",
-        "tablet": "태블릿"
-      },
-      "mode": {
-        "browser": "브라우저 탭 모드",
-        "pwa": "PWA 모드"
-      },
       "monitoring": "모니터링",
       "source": {
         "none": "모니터링 소스 미사용",
@@ -1698,6 +1686,9 @@
         "sharing": "화면 공유 허가",
         "webcam": "Webcam 권한"
       },
+      "deviceUnsupported": {
+        "screenShareRequired": "엄격 시험 모드는 화면 공유가 가능한 컴퓨터 브라우저가 필요합니다. 컴퓨터로 다시 접속해 주세요."
+      },
       "errors": {
         "browserNotSupported": "사용 중인 브라우저가 디스플레이 관리를 지원하지 않습니다. Chrome 또는 Edge를 사용해 주세요.",
         "dependencyPrefix": "'{{name}}'을(를) 먼저 통과해야 합니다.",
@@ -1711,7 +1702,6 @@
         "sharingFailed": "화면 공유 허가에 실패했습니다. '전체 화면' 공유를 허용해 주세요.",
         "sharingInterrupted": "화면 공유가 중단되었습니다. 다시 체크를 완료해 주세요.",
         "softwareRenderer": "llvmpipe 소프트웨어 렌더링 환경에서는 시험에 입장할 수 없습니다. 로컬 데스크톱에서 브라우저 하드웨어 가속을 켜거나 다른 기기를 사용하세요.",
-        "tabletRequiresPwa": "iPad 감독에는 PWA 모드가 필요합니다. 홈 화면에 추가한 뒤 그곳에서 다시 열고 재시도하세요.",
         "webcamFailed": "Webcam을 사용할 수 없습니다. 권한을 다시 허용해주세요.",
         "webcamUnsupported": "이 브라우저는 Webcam을 지원하지 않습니다.",
         "webglUnavailable": "WebGL을 사용할 수 없어 시험에 입장할 수 없습니다. 로컬 브라우저에서 하드웨어 가속을 켜고 다시 시작하세요. 문제가 계속되면 다른 기기를 사용하세요."
@@ -1721,7 +1711,6 @@
         "display": "단일 모니터만 허용됩니다 (외부 모니터 분리).",
         "graphics": "WebGL을 사용할 수 있어야 합니다. llvmpipe 소프트웨어 렌더링 환경은 허용되지 않습니다.",
         "permission": "'창 및 디스플레이 관리' 권한을 허용해 주세요.",
-        "pwa": "홈 화면에서 PWA 창을 실행하세요.",
         "sharing": "화면 공유 시 반드시 '전체 화면'을 선택해 주세요.",
         "title": "환경 요구 사항:",
         "webcam": "브라우저에서 Webcam 사용을 허용하세요."
@@ -1744,7 +1733,6 @@
       "confirmStart": "이해했습니다. 시험을 시작합니다",
       "deadline": "시험 종료 시각: {{time}}",
       "keepFullscreen": "<b>항상 전체 화면을 유지</b>하세요. 전체 화면 해제 시 <b>자동 기록</b>되어 이상 행위로 간주됩니다.",
-      "keepPwaMode": "iPad에서는 <b>홈 화면에서 실행한 PWA</b>로 응시하세요. 이탈 시 <b>자동 기록</b>됩니다.",
       "randomInspection": "시험 중 감독자가 {{sources}}를 <b>무작위로 확인</b>할 수 있으며, 캡처된 내용은 <b>증거</b>로 사용됩니다.",
       "title": "응시 규정"
     },

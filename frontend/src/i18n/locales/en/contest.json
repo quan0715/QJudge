@@ -973,10 +973,7 @@
       "mouse_leave": "Mouse left",
       "multiple_displays": "Multi-display",
       "policy_unavailable": "Monitoring action",
-      "pwa_required": "PWA required",
       "screen_share": "Screen share lost",
-      "split_view": "Split view",
-      "viewport": "Window issue",
       "webcam": "Webcam lost"
     },
     "mouseLeaveRecoveryDesc": "Move your mouse back into the exam window within {{seconds}} seconds, or this will count as one violation.",
@@ -1670,15 +1667,6 @@
       "title": "Eligibility Confirmation"
     },
     "entryDevice": {
-      "kind": {
-        "desktop": "Desktop / Laptop",
-        "ipad": "Tablet (iPad)",
-        "tablet": "Tablet"
-      },
-      "mode": {
-        "browser": "Browser tab mode",
-        "pwa": "PWA mode"
-      },
       "monitoring": "Monitoring",
       "source": {
         "none": "No source enabled",
@@ -1698,6 +1686,9 @@
         "sharing": "Screen Sharing",
         "webcam": "Webcam Access"
       },
+      "deviceUnsupported": {
+        "screenShareRequired": "Strict exam mode needs a computer browser that can share its screen. Switch to a computer and try again."
+      },
       "errors": {
         "browserNotSupported": "Your browser does not support display management. Please use Chrome or Edge.",
         "dependencyPrefix": "Requires passing \"{{name}}\".",
@@ -1711,7 +1702,6 @@
         "sharingFailed": "Screen sharing failed. Please allow sharing your 'Entire Screen'.",
         "sharingInterrupted": "Screen sharing interrupted. Please complete the check again.",
         "softwareRenderer": "This environment uses llvmpipe software rendering and cannot enter the exam. Use a local desktop with browser hardware acceleration enabled, or switch devices.",
-        "tabletRequiresPwa": "iPad proctoring requires PWA mode. Add QJudge to the home screen, reopen it from there, and try again.",
         "webcamFailed": "Webcam is unavailable. Please grant permission again.",
         "webcamUnsupported": "This browser does not support Webcam.",
         "webglUnavailable": "WebGL is unavailable, so you cannot enter the exam. Enable hardware acceleration in a local browser and restart it. If the check still fails, use another device."
@@ -1721,7 +1711,6 @@
         "display": "Single physical monitor required; disconnect external displays.",
         "graphics": "WebGL must be available. Environments using llvmpipe software rendering are not allowed.",
         "permission": "Grant \"Window and Display Management\" permission when prompted.",
-        "pwa": "Launch the PWA window from the home screen.",
         "sharing": "Please choose \"Entire Screen\" for screen sharing.",
         "title": "Environment Requirements:",
         "webcam": "Allow browser access to Webcam."
@@ -1744,7 +1733,6 @@
       "confirmStart": "I understand, start exam",
       "deadline": "Deadline: {{time}}",
       "keepFullscreen": "Stay in <b>fullscreen at all times</b>; exiting fullscreen will be <b>silently recorded</b> as anomalous behavior.",
-      "keepPwaMode": "On iPad, use the <b>home-screen PWA</b> throughout the exam; leaving will be <b>silently recorded</b>.",
       "randomInspection": "During the exam, proctors may <b>randomly inspect</b> {{sources}}; captured content is used as <b>evidence</b>.",
       "title": "Exam Rules"
     },
