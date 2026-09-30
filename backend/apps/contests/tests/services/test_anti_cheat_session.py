@@ -106,33 +106,7 @@ def test_get_active_sessions_reads_multiple_users(published_exam: Contest) -> No
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize(
-    ("user_agent", "expected_device_kind"),
-    [
-        (
-            "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) "
-            "AppleWebKit/605.1.15 Mobile/15E148",
-            "tablet",
-        ),
-        (
-            "Mozilla/5.0 (Linux; Android 14; Pixel C) "
-            "AppleWebKit/537.36 Safari/537.36",
-            "tablet",
-        ),
-        (
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) "
-            "AppleWebKit/605.1.15 Safari/605.1.15",
-            "desktop",
-        ),
-        ("unrecognized-client", None),
-    ],
-)
-def test_active_session_binds_server_classified_device_kind(
-    published_exam,
-    student,
-    user_agent,
-    expected_device_kind,
-):
+def test_active_session_does_not_classify_the_device(published_exam, student):
     enrol_candidates(published_exam, student)
     participant = ContestParticipant.objects.create(
         contest=published_exam,
@@ -141,16 +115,12 @@ def test_active_session_binds_server_classified_device_kind(
     )
     request = RequestFactory().post(
         "/exam/start",
-        data={"device_kind": "desktop"},
-        HTTP_USER_AGENT=user_agent,
+        data={"device_kind": "tablet"},
+        HTTP_USER_AGENT="Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
     )
 
-    set_active_session(
-        published_exam,
-        participant,
-        request,
-        "device-a",
-    )
+    set_active_session(published_exam, participant, request, "device-a")
 
     active = get_active_session(published_exam.id, student.id)
-    assert active["device_kind"] == expected_device_kind
+    assert active["device_id"] == "device-a"
+    assert "device_kind" not in active

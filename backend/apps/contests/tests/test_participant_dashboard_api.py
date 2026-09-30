@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.contests.models import (
     Contest,
     ContestActivity,
@@ -53,7 +54,14 @@ class ParticipantDashboardApiTests(APITestCase):
             contest_type=contest_type,
             cheat_detection_enabled=(contest_type == "paper_exam"),
         )
-        contest.admins.add(self.teacher)
+        classroom = Classroom.objects.create(
+            name=f"{contest_type} dashboard classroom",
+            owner=self.owner,
+            invite_code=uuid4().hex[:8].upper(),
+        )
+        ClassroomMember.objects.create(classroom=classroom, user=self.teacher, role="ta")
+        ClassroomMember.objects.create(classroom=classroom, user=self.student, role="student")
+        ClassroomContest.objects.create(classroom=classroom, contest=contest)
         return contest
 
     def _create_participant(self, contest: Contest) -> ContestParticipant:

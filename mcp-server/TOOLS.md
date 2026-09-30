@@ -106,7 +106,7 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 | `start_time` / `end_time` | string? (ISO 8601) | update |
 | `attendance_check_enabled` / `cheat_detection_enabled` / `scoreboard_visible_during_contest` / `allow_multiple_joins` | bool? | update |
 | `attendance_photo_policy` | string? (`room` / `room_and_selfie`) | update |
-| `anticheat_device_policy` | object? (`{"desktop": {...}, "tablet": {...}}`) | update |
+| `webcam_required` | bool?（嚴格考試模式是否也要求 webcam） | update |
 | `clear_fields` | list? (`start_time` / `end_time`) | update：把列出的欄位設為 null；未傳的參數一律不送出 |
 
 ### Actions

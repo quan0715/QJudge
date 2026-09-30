@@ -145,16 +145,6 @@ class DraftContestAccessTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['name'], 'Draft Contest')
 
-    def test_contest_admin_can_access_draft_contest(self):
-        """Contest co-admin should be able to access draft contest."""
-        # Add another_student as contest admin
-        self.draft_contest.admins.add(self.another_student)
-
-        self.client.force_authenticate(user=self.another_student)
-        url = reverse('contests:contest-detail', args=[self.draft_contest.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
     # =========================================================================
     # Test 3: Active contest should be accessible
     # =========================================================================

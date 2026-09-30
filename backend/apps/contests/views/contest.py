@@ -46,7 +46,10 @@ from ..services.participant_state import (
 from ..services.exam_scoring import ExamScoringService
 from ..services.anti_cheat_session import get_active_session
 from ..services.integrity_presence import get_last_checkpoint
-from ..services.integrity_sessions import prepare_integrity_session
+from ..services.integrity_sessions import (
+    apply_webcam_setting_to_prepared_run,
+    prepare_integrity_session,
+)
 from ..services.participant_dashboard import build_participant_dashboard
 from ..services.live_monitoring_presence import (
     current_live_run,
@@ -122,7 +125,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
 
     def _classroom_roster_admin_gate(self, contest: Contest):
         """
-        Co-admin and manual roster endpoints are disabled for classroom-bound contests;
+        Manual roster endpoints are disabled for classroom-bound contests;
         unbound contests are invalid in production — return a dedicated error.
         """
         if not self._is_classroom_managed_contest(contest):
@@ -170,7 +173,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         queryset = super().get_queryset()
 
         if self.action and self.action != "list":
-            return queryset.select_related("owner").prefetch_related("admins")
+            return queryset.select_related("owner")
 
         scope = self.request.query_params.get("scope", "visible")
         return queryset.optimized_for_list().visible_to(user=self.request.user, scope=scope)
@@ -212,6 +215,8 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
                 pending_updates=serializer.validated_data,
             )
             instance = serializer.save()
+            if "webcam_required" in serializer.validated_data:
+                apply_webcam_setting_to_prepared_run(instance.id)
             prepare_integrity_session(instance.id, actor_id=self.request.user.id)
         cache.delete(f"contest_anticheat_config:{instance.id}")
 
@@ -325,33 +330,6 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         )
 
         return Response({'status': 'archived'})
-
-    # ========== Admin Management ==========
-    @action(detail=True, methods=['get'], permission_classes=[IsContestOwnerOrAdmin])
-    def admins(self, request, pk=None):
-        """
-        Get all admins for this contest.
-        """
-        contest = self.get_object()
-        return self._classroom_roster_admin_gate(contest)
-
-    @action(detail=True, methods=['post'], permission_classes=[IsContestLifecycleOwner], url_path='add_admin')
-    def add_admin(self, request, pk=None):
-        """
-        Add a user as co-admin for this contest.
-        Only owner (or platform admin) can add co-admins.
-        """
-        contest = self.get_object()
-        return self._classroom_roster_admin_gate(contest)
-
-    @action(detail=True, methods=['post'], permission_classes=[IsContestLifecycleOwner], url_path='remove_admin')
-    def remove_admin(self, request, pk=None):
-        """
-        Remove a user from co-admins.
-        Only owner (or platform admin) can remove co-admins.
-        """
-        contest = self.get_object()
-        return self._classroom_roster_admin_gate(contest)
 
     def destroy(self, request, *args, **kwargs):
         """

@@ -131,6 +131,7 @@ def _expected_identities(
         ).select_related("user")
     )
     sessions = get_active_sessions(contest.id, [participant.user_id for participant in participants])
+    allowed_sources = _allowed_sources(run)
     expected: dict[str, tuple[ContestParticipant, tuple[str, ...]]] = {}
     for participant in participants:
         session = sessions.get(participant.user_id)
@@ -144,7 +145,6 @@ def _expected_identities(
             or not participant.integrity_attempt_id
         ):
             continue
-        allowed_sources = _allowed_sources(contest, run, session)
         identity = build_live_identity(
             config=config,
             run_id=str(run.pk),

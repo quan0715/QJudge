@@ -150,7 +150,7 @@ class Migration(migrations.Migration):
                 (
                     "anticheat_device_policy",
                     models.JSONField(
-                        default=apps.contests.models.default_anticheat_device_policy,
+                        default=dict,
                         help_text="依裝置定義 sources/detectors 的監考策略",
                         verbose_name="防作弊裝置策略",
                     ),

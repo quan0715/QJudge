@@ -8,8 +8,6 @@ const POINTER_BOUNDARY_DEBOUNCE_MS = 300;
 
 export interface UseMouseLeaveMonitoringConfig {
   enabled: boolean;
-  isTablet?: boolean;
-  supportsFinePointer?: boolean;
   examSubmitted: boolean;
   emitter: IntegritySignalEmitter;
 }
@@ -21,8 +19,6 @@ export interface UseMouseLeaveMonitoringReturn {
 /** Keeps pointer sensor filtering local, but delegates every policy decision. */
 export function useMouseLeaveMonitoring({
   enabled,
-  isTablet = false,
-  supportsFinePointer = false,
   examSubmitted,
   emitter,
 }: UseMouseLeaveMonitoringConfig): UseMouseLeaveMonitoringReturn {
@@ -38,9 +34,8 @@ export function useMouseLeaveMonitoring({
     emitterRef.current = emitter;
   }, [emitter]);
 
-  const effectiveEnabled = enabled && (!isTablet || supportsFinePointer);
   useEffect(() => {
-    if (!effectiveEnabled || examSubmitted) {
+    if (!enabled || examSubmitted) {
       interruptedRef.current = false;
       setInterrupted(false);
       return;
@@ -108,7 +103,7 @@ export function useMouseLeaveMonitoring({
       document.removeEventListener("compositionstart", handleCompositionStart, true);
       document.removeEventListener("compositionend", handleCompositionEnd, true);
     };
-  }, [effectiveEnabled, examSubmitted]);
+  }, [enabled, examSubmitted]);
 
   return { interrupted };
 }

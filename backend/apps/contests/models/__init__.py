@@ -1,7 +1,6 @@
 """Public contest model exports."""
 from __future__ import annotations
 
-from .policies import default_anticheat_device_policy
 from .contest import Contest
 from .questions import (
     ExamQuestion,
@@ -37,5 +36,4 @@ __all__ = [
     "ExamQuestionType",
     "ExamStatus",
     "SourceMode",
-    "default_anticheat_device_policy",
 ]

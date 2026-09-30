@@ -27,7 +27,6 @@ import type {
   ExamQuestionDto,
   ScoreboardDto,
 } from "@/infrastructure/api/dto/contest.dto";
-import { mapAnticheatDevicePolicyDto } from "./contestAnticheat.mapper";
 
 export { mapContestAnticheatConfigDto } from "./contestAnticheat.mapper";
 export {
@@ -92,9 +91,7 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
 
     contestType: dto.contest_type ?? "coding",
     cheatDetectionEnabled: !!dto.cheat_detection_enabled,
-    anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
-      dto.anticheat_device_policy,
-    ),
+    webcamRequired: !!dto.webcam_required,
     scoreboardVisibleDuringContest: !!dto.scoreboard_visible_during_contest,
 
     allowMultipleJoins: !!dto.allow_multiple_joins,
@@ -144,14 +141,6 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
 
     problems: Array.isArray(dto.problems)
       ? dto.problems.map(mapContestProblemSummaryDto)
-      : [],
-
-    // Multi-admin support
-    admins: Array.isArray(dto.admins)
-      ? dto.admins.map((a) => ({
-          id: a.id?.toString() || "",
-          username: a.username || "",
-        }))
       : [],
   };
 }
@@ -455,69 +444,6 @@ export function mapExamPaperDto(dto: ExamPaperDto): ExamPaper {
 export function mapContestUpdateRequestToDto(
   request: ContestUpdateRequest,
 ): any {
-  const anticheatDevicePolicy =
-    request.anticheatDevicePolicy != null
-      ? {
-          desktop: {
-            enabled: !!request.anticheatDevicePolicy.desktop?.enabled,
-            sources: {
-              screen_share: {
-                enabled:
-                  !!request.anticheatDevicePolicy.desktop?.sources?.screenShare
-                    ?.enabled,
-              },
-              webcam: {
-                enabled:
-                  !!request.anticheatDevicePolicy.desktop?.sources?.webcam
-                    ?.enabled,
-              },
-            },
-            detectors: {
-              pwa_mode:
-                !!request.anticheatDevicePolicy.desktop?.detectors?.pwaMode,
-              fullscreen:
-                !!request.anticheatDevicePolicy.desktop?.detectors?.fullscreen,
-              multi_display:
-                !!request.anticheatDevicePolicy.desktop?.detectors
-                  ?.multiDisplay,
-              mouse_leave:
-                !!request.anticheatDevicePolicy.desktop?.detectors?.mouseLeave,
-              viewport_integrity:
-                !!request.anticheatDevicePolicy.desktop?.detectors
-                  ?.viewportIntegrity,
-            },
-          },
-          tablet: {
-            enabled: !!request.anticheatDevicePolicy.tablet?.enabled,
-            sources: {
-              screen_share: {
-                enabled:
-                  !!request.anticheatDevicePolicy.tablet?.sources?.screenShare
-                    ?.enabled,
-              },
-              webcam: {
-                enabled:
-                  !!request.anticheatDevicePolicy.tablet?.sources?.webcam
-                    ?.enabled,
-              },
-            },
-            detectors: {
-              pwa_mode:
-                !!request.anticheatDevicePolicy.tablet?.detectors?.pwaMode,
-              fullscreen:
-                !!request.anticheatDevicePolicy.tablet?.detectors?.fullscreen,
-              multi_display:
-                !!request.anticheatDevicePolicy.tablet?.detectors?.multiDisplay,
-              mouse_leave:
-                !!request.anticheatDevicePolicy.tablet?.detectors?.mouseLeave,
-              viewport_integrity:
-                !!request.anticheatDevicePolicy.tablet?.detectors
-                  ?.viewportIntegrity,
-            },
-          },
-        }
-      : undefined;
-
   const dto: any = {
     name: request.name,
     description: request.description,
@@ -528,7 +454,7 @@ export function mapContestUpdateRequestToDto(
     attendance_check_enabled: request.attendanceCheckEnabled,
     attendance_photo_policy: request.attendancePhotoPolicy,
     cheat_detection_enabled: request.cheatDetectionEnabled,
-    anticheat_device_policy: anticheatDevicePolicy,
+    webcam_required: request.webcamRequired,
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
     allow_multiple_joins: request.allowMultipleJoins,
     results_published: request.resultsPublished,

@@ -212,7 +212,7 @@ def running_integrity_run(contest, owner):
         registry_version=REGISTRY_VERSION,
         registry_snapshot=build_registry_snapshot(),
         policy_snapshot={
-            "version": 1,
+            "webcam_required": False,
             "suspect_after_ms": 15_000,
             "disconnected_after_ms": 60_000,
         },

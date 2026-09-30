@@ -12,7 +12,7 @@ from django.utils import timezone
 #: All roles that can manage contest resources (create/update/delete).
 MANAGER_SCOPE_ROLES = frozenset(('platform_admin', 'owner', 'co_owner'))
 
-#: Roles allowed for irreversible lifecycle operations (toggle status, archive, delete, manage admins).
+#: Roles allowed for irreversible lifecycle operations (toggle status, archive, delete).
 #: co_owner is intentionally excluded.
 LIFECYCLE_OWNER_ROLES = frozenset(('platform_admin', 'owner'))
 
@@ -48,13 +48,11 @@ def _max_contest_scope(a: str, b: str) -> str:
 
 def _native_contest_scope(user, contest) -> str:
     """
-    Scope derived only from the contest record (owner, co-admins, registration).
+    Scope derived only from the contest record (owner, registration).
     Used together with classroom-derived scope so binding never strips contest owners.
     """
     if contest.owner_id == user.id:
         return 'owner'
-    if contest.admins.filter(pk=user.pk).exists():
-        return 'co_owner'
     from .models import ContestParticipant  # local import avoids cycles
 
     if ContestParticipant.objects.filter(contest=contest, user=user).exists():
@@ -77,7 +75,7 @@ def get_contest_scope_role(user, contest) -> str:
     Roles (most → least privileged):
       platform_admin  – system staff / superuser
       owner           – contest creator
-      co_owner        – co-admin added via admins M2M
+      co_owner        – classroom manager or TA
       participant     – registered contest participant
       outsider        – authenticated but not registered
       anonymous       – unauthenticated
@@ -159,6 +157,12 @@ def get_contest_permissions(user, contest):
     }
 
 
+def _contest_of(obj):
+    from .models import Contest  # local import avoids cycles
+
+    return obj if isinstance(obj, Contest) else getattr(obj, 'contest', None)
+
+
 class IsContestOwnerOrAdmin(permissions.BasePermission):
     """
     Object-level permission: only platform_admin, owner, or co_owner can access.
@@ -167,7 +171,7 @@ class IsContestOwnerOrAdmin(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:
             return False
-        contest = obj if hasattr(obj, 'admins') else getattr(obj, 'contest', None)
+        contest = _contest_of(obj)
         if contest is None:
             return False
         return can_manage_contest(request.user, contest)
@@ -178,13 +182,12 @@ class IsContestLifecycleOwner(permissions.BasePermission):
     Stricter object-level permission: only platform_admin and owner.
     co_owner is intentionally excluded.
 
-    Use for irreversible lifecycle operations: toggle status, archive, delete,
-    manage admins.
+    Use for irreversible lifecycle operations: toggle status, archive, delete.
     """
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:
             return False
-        contest = obj if hasattr(obj, 'admins') else getattr(obj, 'contest', None)
+        contest = _contest_of(obj)
         if contest is None:
             return False
         return get_contest_scope_role(request.user, contest) in LIFECYCLE_OWNER_ROLES

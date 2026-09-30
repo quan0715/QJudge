@@ -17,36 +17,7 @@ export const createMockContest = (
   participantCount: 30,
   contestType: "paper_exam",
   cheatDetectionEnabled: true,
-  anticheatDevicePolicy: {
-    desktop: {
-      enabled: true,
-      sources: {
-        screenShare: { enabled: true },
-        webcam: { enabled: false },
-      },
-      detectors: {
-        pwaMode: false,
-        fullscreen: true,
-        multiDisplay: true,
-        mouseLeave: true,
-        viewportIntegrity: false,
-      },
-    },
-    tablet: {
-      enabled: true,
-      sources: {
-        screenShare: { enabled: false },
-        webcam: { enabled: true },
-      },
-      detectors: {
-        pwaMode: true,
-        fullscreen: false,
-        multiDisplay: false,
-        mouseLeave: true,
-        viewportIntegrity: true,
-      },
-    },
-  },
+  webcamRequired: false,
   scoreboardVisibleDuringContest: false,
   allowMultipleJoins: false,
   resultsPublished: false,

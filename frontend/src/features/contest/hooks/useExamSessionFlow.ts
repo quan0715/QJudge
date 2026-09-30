@@ -19,10 +19,6 @@ import {
 } from "@/features/contest/anticheat/orchestrator";
 import { useIntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 import { emitIntegritySignalBestEffort } from "@/features/contest/anticheat/integrity/emitIntegritySignalBestEffort";
-import {
-  detectAnticheatCapability,
-  resolveDeviceMonitoringPlan,
-} from "@/features/contest/domain/anticheatModulePolicy";
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error instanceof Error && error.message) return error.message;
@@ -72,14 +68,6 @@ export const useExamSessionFlow = () => {
 
   const submitExam = async (uploadSessionId?: string) => {
     const id = guardContestId();
-    const monitoringPlan = resolveDeviceMonitoringPlan(
-      detectAnticheatCapability(),
-      contest?.anticheatDevicePolicy
-    );
-    const sourceModule = monitoringPlan.primarySourceModule;
-    const moduleRole = sourceModule === "screen_share"
-      ? monitoringPlan.sources.screenShare.role ?? "primary"
-      : monitoringPlan.sources.webcam.role ?? "primary";
     setLoading(true);
     setError(null);
     try {
@@ -89,8 +77,8 @@ export const useExamSessionFlow = () => {
           clientOccurredAtMs: Date.now(),
           payload: {
             source: "paper_exam:submit",
-            module: sourceModule,
-            module_role: moduleRole,
+            module: "screen_share",
+            module_role: "primary",
             ...(uploadSessionId || getExamCaptureSessionId(id)
               ? { upload_session_id: uploadSessionId || getExamCaptureSessionId(id)! }
               : {}),
@@ -100,7 +88,7 @@ export const useExamSessionFlow = () => {
       }
       const response = await endExam(id, {
         upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
-        source_module: sourceModule,
+        source_module: "screen_share",
       });
       if (!isSubmittedExamSessionResponse(response)) {
         throw new Error("Exam submission did not complete");

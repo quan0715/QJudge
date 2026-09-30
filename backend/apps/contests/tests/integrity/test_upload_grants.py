@@ -178,7 +178,7 @@ def resident(running_integrity_run):
     run = running_integrity_run
     run.session_state = "active"
     run.accept_until = timezone.now() + timedelta(hours=1)
-    run.policy_snapshot = {"device_policy": {}}
+    run.policy_snapshot = {"webcam_required": False}
     run.save()
     return run
 

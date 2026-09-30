@@ -88,7 +88,13 @@ def contest(owner: User, co_owner: User) -> Contest:
         start_time=timezone.now() - timedelta(hours=1),
         end_time=timezone.now() + timedelta(hours=1),
     )
-    c.admins.add(co_owner)
+    classroom = Classroom.objects.create(
+        name="Scope Role Classroom",
+        owner=owner,
+        invite_code=uuid4().hex[:8].upper(),
+    )
+    ClassroomMember.objects.create(classroom=classroom, user=co_owner, role="ta")
+    ClassroomContest.objects.create(classroom=classroom, contest=c)
     return c
 
 
@@ -271,3 +277,25 @@ def test_base_permissions_outsider_minimal() -> None:
 def test_base_permissions_anonymous_minimal() -> None:
     perms = BASE_ROLE_PERMISSIONS['anonymous']
     assert perms == set()
+
+
+@pytest.mark.django_db
+def test_object_permissions_resolve_the_contest_from_either_shape(
+    owner: User, co_owner: User, outsider: User, contest: Contest
+) -> None:
+    from types import SimpleNamespace
+
+    from apps.contests.permissions import IsContestLifecycleOwner, IsContestOwnerOrAdmin
+
+    def request_for(user):
+        return SimpleNamespace(user=user)
+
+    related = SimpleNamespace(contest=contest)
+    manage = IsContestOwnerOrAdmin()
+    lifecycle = IsContestLifecycleOwner()
+
+    assert manage.has_object_permission(request_for(co_owner), None, contest) is True
+    assert manage.has_object_permission(request_for(co_owner), None, related) is True
+    assert manage.has_object_permission(request_for(outsider), None, contest) is False
+    assert lifecycle.has_object_permission(request_for(owner), None, contest) is True
+    assert lifecycle.has_object_permission(request_for(co_owner), None, related) is False

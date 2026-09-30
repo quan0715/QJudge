@@ -41,10 +41,6 @@ import { clearRuntimeScreenShareReauth } from "@/features/contest/anticheat/runt
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
 import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
 import {
-  detectAnticheatCapability,
-  resolveDeviceMonitoringPlan,
-} from "@/features/contest/domain/anticheatModulePolicy";
-import {
   getClassroomContestDashboardPath,
   getClassroomContestPrecheckPath,
 } from "@/features/contest/domain/contestRoutePolicy";
@@ -78,16 +74,6 @@ export const useContestExamActions = ({
   const submissionProgress = useExamSubmissionProgress();
   const integrity = useIntegritySignalEmitter();
   const uploadOwner = useIntegrityUploadOwner();
-  const resolveMonitoringModules = useCallback((): {
-    primarySourceModule: "screen_share" | "webcam";
-  } => {
-    const plan = resolveDeviceMonitoringPlan(
-      detectAnticheatCapability(),
-      contest?.anticheatDevicePolicy
-    );
-    return { primarySourceModule: plan.primarySourceModule };
-  }, [contest?.anticheatDevicePolicy]);
-
   const cleanupExamArtifacts = useCallback((
     id: string,
     stopReason: "manual" | "submitted" = "manual",
@@ -136,7 +122,7 @@ export const useContestExamActions = ({
   const handleEndExam = useCallback(async () => {
     if (!contest) return;
     const uploadSessionId = getExamCaptureSessionId(contest.id);
-    const { primarySourceModule: sourceModule } = resolveMonitoringModules();
+    const sourceModule = "screen_share" as const;
 
     const success = await submissionProgress.run({
       handlers: {
@@ -189,7 +175,6 @@ export const useContestExamActions = ({
     submissionProgress,
     integrity,
     uploadOwner,
-    resolveMonitoringModules,
   ]);
 
   const handleExit = useCallback(async () => {
@@ -198,7 +183,7 @@ export const useContestExamActions = ({
     try {
       const shouldEndExam = shouldForceEndExamOnExit(contest, hasEnded);
       const uploadSessionId = getExamCaptureSessionId(contest.id);
-      const { primarySourceModule: sourceModule } = resolveMonitoringModules();
+      const sourceModule = "screen_share" as const;
       let navigateTo = contest.boundClassroomId
         ? getClassroomContestDashboardPath(contest.boundClassroomId, contest.id)
         : "/dashboard";
@@ -271,7 +256,6 @@ export const useContestExamActions = ({
     onError,
     submissionProgress,
     integrity,
-    resolveMonitoringModules,
   ]);
 
   const toggleFullscreen = useCallback(async () => {
