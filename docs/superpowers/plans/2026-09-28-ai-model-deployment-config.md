@@ -2358,7 +2358,7 @@ git commit -m "feat(frontend): explain AI model availability and use the catalog
 **Files:**
 - Rewrite: `.codex/skills/qjudge-ai-model-registry/SKILL.md`
 - Modify: `.codex/skills/qjudge-ai-model-registry/references/touch-points.md`
-- Modify: `docs/operations/production-configuration.md`（AI provider 段落，含第 102 行附近與 `force-recreate ai-worker` 範例）
+- Modify: `frontend/public/docs/zh-TW/deployment-options.md`（AI provider 設定與服務重啟指引）
 
 **Interfaces:**
 - Consumes: Task 1–8 的檔案與指令名稱
@@ -2387,7 +2387,7 @@ git commit -m "feat(frontend): explain AI model availability and use the catalog
 
 - [ ] **Step 2: 更新維運文件**
 
-`docs/operations/production-configuration.md`：
+`frontend/public/docs/zh-TW/deployment-options.md`：
 - AI provider 相關描述改為指向 `deploy/ai/models.yml` 與 `deploy/ai/keys.env`，連到 spec 第 7 節的轉換步驟。
 - 「To apply changed AI provider variables」段落改為：改完 `deploy/ai/` 後重啟兩個服務
 
@@ -2397,8 +2397,6 @@ git commit -m "feat(frontend): explain AI model availability and use the catalog
 ```
 
   並說明可先執行 `qjudge-dc.sh main run --rm --no-deps ai-service python -m infrastructure.agent.model_config` 驗證。
-
-注意：`docs/operations/production-configuration.md` 目前是使用者未追蹤的檔案（`git status` 顯示 `??`）。修改前先確認使用者是否要把它納入這個分支；若不納入，只修改內容、不要 `git add` 它，並在交付時告知。
 
 - [ ] **Step 3: Commit**
 
