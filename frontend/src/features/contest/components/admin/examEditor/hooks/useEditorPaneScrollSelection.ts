@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
 /**
  * Scrollable admin content pane: keep sidebar selection in sync with the card nearest the pane's
- * vertical center. Skips updates during programmatic scroll-into-view and Reorder drag sessions.
+ * vertical center, and remember the item the user picked from the list.
+ * Skips updates during programmatic scroll-into-view and Reorder drag sessions.
  */
 export function useEditorPaneScrollSelection(
   selectedId: string | null,
@@ -13,6 +14,9 @@ export function useEditorPaneScrollSelection(
   const editorPaneRef = useRef<HTMLDivElement>(null);
   const programmaticScrollRef = useRef(false);
   const reorderPointerDepthRef = useRef(0);
+  const [explicitId, setExplicitId] = useState<string | null>(null);
+  const explicitSelectedId =
+    explicitId !== null && itemsKey.split(",").includes(explicitId) ? explicitId : null;
 
   const onReorderPointerSessionChange = useCallback((delta: 1 | -1) => {
     reorderPointerDepthRef.current = Math.max(0, reorderPointerDepthRef.current + delta);
@@ -64,6 +68,7 @@ export function useEditorPaneScrollSelection(
 
   const handleSelect = useCallback(
     (id: string) => {
+      setExplicitId(id);
       setSelectedId(id);
       const el = cardRefs.current.get(id);
       if (el) {
@@ -85,5 +90,6 @@ export function useEditorPaneScrollSelection(
     onReorderPointerSessionChange,
     handleSelect,
     onCardRoot,
+    explicitSelectedId,
   };
 }

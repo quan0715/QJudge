@@ -32,6 +32,8 @@ import {
   type ExistingGradesAction,
 } from "@/infrastructure/api/repositories";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
+import { usePublishPageContext } from "@/shared/contexts/PageContextProvider";
+import { examBlockPageContext } from "./editorPageContext";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
 import { useToast } from "@/shared/contexts";
@@ -247,7 +249,19 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
     onReorderPointerSessionChange,
     handleSelect,
     onCardRoot,
+    explicitSelectedId,
   } = useEditorPaneScrollSelection(selectedId, setSelectedId, blocksKey);
+
+  const explicitBlockIndex = blocks.findIndex((block) => block.id === explicitSelectedId);
+  usePublishPageContext(
+    explicitBlockIndex >= 0
+      ? examBlockPageContext(
+          blocks[explicitBlockIndex],
+          explicitBlockIndex,
+          t("examEditor.groupBlock", "題組"),
+        )
+      : null,
+  );
 
   useEffect(() => {
     if (isCompactScreen) setSidebarExpanded(false);

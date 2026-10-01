@@ -30,6 +30,7 @@ import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { ExamModeMonitorModal } from "@/features/contest/components/modals/ExamModeMonitorModal";
 import { useExamMonitoringStatus } from "@/features/contest/contexts/ExamMonitoringStatusContext";
 import { TimeDisplay } from "@/shared/components/dashboard";
+import { usePublishPageContext } from "@/shared/contexts/PageContextProvider";
 import styles from "./WorkspaceTopNav.module.scss";
 import refreshStyles from "@/shared/ui/RefreshAnimation.module.scss";
 
@@ -177,6 +178,21 @@ export function WorkspaceTopNav({ showSidebarControl, previewMode = false }: Wor
   const contestData = useOptionalContest();
   const contestNavigationReadOnly =
     isRuntime || shouldLockContestWorkspaceNavigation(contestData?.contest);
+  usePublishPageContext(
+    currentClassroom
+      ? {
+          type: "classroom",
+          label: currentClassroom.name,
+          ids: { classroom_id: currentClassroom.id },
+        }
+      : null,
+  );
+  const contestLabel = contestData?.contest?.name ?? currentContest?.contestName ?? null;
+  usePublishPageContext(
+    contestRouteId && contestLabel
+      ? { type: "contest", label: contestLabel, ids: { contest_id: contestRouteId } }
+      : null,
+  );
   const effectiveOpenMenu = contestNavigationReadOnly ? null : openMenu;
   const toggleMenu = useCallback((kind: Exclude<MenuKind, null>) => {
     if (contestNavigationReadOnly) return;
