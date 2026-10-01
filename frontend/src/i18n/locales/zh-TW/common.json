@@ -539,6 +539,7 @@
   },
   "workspaceTopNav": {
     "adminConsole": "管理後台",
+    "aiAssistant": "AI 助教",
     "backToContest": "返回競賽儀表板",
     "closeInfoPanel": "關閉資訊面板",
     "contestFallback": "競賽",

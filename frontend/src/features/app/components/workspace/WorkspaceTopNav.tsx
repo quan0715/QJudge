@@ -22,6 +22,7 @@ import { shouldLockContestWorkspaceNavigation } from "@/features/contest/domain/
 import { usePageHeaderActionsSlot } from "@/features/app/contexts/PageHeaderActionsContext";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { UserMenu } from "@/features/app/components/UserMenu";
+import { AiAssistantNavButton } from "@/features/app/components/workspace/AiAssistantNavButton";
 import { useContestRuntimeMode } from "@/features/contest/hooks";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useOptionalContest } from "@/features/contest/contexts";
@@ -328,6 +329,7 @@ export function WorkspaceTopNav({ showSidebarControl, previewMode = false }: Wor
         {(previewMode || isPreview) && <Tag type="cool-gray" size="sm">{t("workspaceTopNav.previewMode", "預覽模式")}</Tag>}
         {isRuntime && <RuntimeNavExtras />}
         {pageHeaderActions}
+        <AiAssistantNavButton />
         <UserMenu />
       </div>
     </header>
