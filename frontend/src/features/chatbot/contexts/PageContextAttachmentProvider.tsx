@@ -9,8 +9,8 @@ import {
   type ReactNode,
 } from "react";
 import { useLocation } from "react-router-dom";
-import type { PageContext } from "@/core/types/chatbot.types";
 import { usePageContextSegments } from "@/shared/contexts/PageContextProvider";
+import { buildPageContext } from "../utils/pageContext";
 
 interface PageContextAttachmentValue {
   /** Chip text; null when nothing is attached to the next message. */
@@ -41,22 +41,23 @@ export function PageContextAttachmentProvider({ children }: { children: ReactNod
     setDismissed(false);
   }
 
-  const path = `${location.pathname}${location.search}`;
-  const latest = useRef({ segments, dismissed, path });
+  const { pathname, search } = location;
+  const latest = useRef({ segments, dismissed, pathname, search });
   useEffect(() => {
-    latest.current = { segments, dismissed, path };
-  }, [segments, dismissed, path]);
+    latest.current = { segments, dismissed, pathname, search };
+  }, [segments, dismissed, pathname, search]);
 
   const dismiss = useCallback(() => setDismissed(true), []);
   const takeRunMetadata = useCallback((): Record<string, unknown> => {
     const current = latest.current;
     setDismissed(false);
     if (current.dismissed || current.segments.length === 0) return {};
-    const pageContext: PageContext = {
-      path: current.path,
-      segments: [...current.segments],
+    return {
+      pageContext: buildPageContext(
+        { pathname: current.pathname, search: current.search },
+        current.segments,
+      ),
     };
-    return { pageContext };
   }, []);
 
   const label =

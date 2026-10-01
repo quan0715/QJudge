@@ -86,6 +86,13 @@ describe("PageContextAttachmentProvider", () => {
     });
   });
 
+  it("sends a context the AI service accepts for very long names", () => {
+    render(tree([classroom, { ...midterm, label: "長".repeat(255) }]));
+
+    const metadata = take() as { pageContext: { segments: { label: string }[] } };
+    expect(metadata.pageContext.segments[1].label).toHaveLength(200);
+  });
+
   it("skips one message after dismissal and re-arms after sending", () => {
     render(tree([classroom, midterm]));
 
