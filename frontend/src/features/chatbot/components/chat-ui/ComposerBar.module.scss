@@ -153,6 +153,12 @@
   min-width: 0;
 }
 
+.pageContextRow {
+  display: flex;
+  min-width: 0;
+  margin-bottom: 0.4rem;
+}
+
 .pendingFileTag {
   display: inline-flex;
   align-items: center;

@@ -5,10 +5,11 @@ import {
   Close,
   Document,
   InProgress,
+  Location,
   Warning,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { Callout } from "@carbon/react";
+import { Callout, DismissibleTag } from "@carbon/react";
 import type {
   CopilotMessage,
   CopilotModel,
@@ -42,6 +43,9 @@ interface ComposerBarProps {
   onModelNoticeRetry?: () => void;
   /** Session-scoped messages to feed SessionBadges (todo/artifact). */
   messages?: readonly CopilotMessage[];
+  /** Where the next message will say the user is; null hides the chip. */
+  pageContextLabel?: string | null;
+  onDismissPageContext?: () => void;
 }
 
 export function ComposerBar({
@@ -63,6 +67,8 @@ export function ComposerBar({
   modelNotice,
   onModelNoticeRetry,
   messages,
+  pageContextLabel,
+  onDismissPageContext,
 }: ComposerBarProps) {
   const { t } = useTranslation("chatbot");
   const displayPlaceholder = placeholder || t("ui.inputPlaceholder");
@@ -205,6 +211,21 @@ export function ComposerBar({
               <span className={styles.line} />
             </div>
           )}
+        </div>
+      )}
+
+      {pageContextLabel && onDismissPageContext && (
+        <div className={styles.pageContextRow}>
+          <DismissibleTag
+            size="sm"
+            type="cool-gray"
+            renderIcon={Location}
+            text={pageContextLabel}
+            title={t("ui.pageContextDismiss", "不附帶目前頁面")}
+            dismissTooltipLabel={t("ui.pageContextDismiss", "不附帶目前頁面")}
+            onClose={onDismissPageContext}
+            disabled={disabled}
+          />
         </div>
       )}
 

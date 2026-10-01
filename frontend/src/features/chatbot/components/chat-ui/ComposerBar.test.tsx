@@ -195,3 +195,36 @@ describe("ComposerBar layout state", () => {
     expect(wrapper).not.toHaveClass(styles.inputWrapperExpanded);
   });
 });
+
+describe("ComposerBar page context chip", () => {
+  it("shows the attached page and lets the user drop it", () => {
+    const onDismissPageContext = vi.fn();
+    render(
+      <ComposerBar
+        {...baseProps}
+        attachments={[]}
+        pageContextLabel="資工一甲 / 期中考"
+        onDismissPageContext={onDismissPageContext}
+      />,
+    );
+
+    expect(screen.getByText("資工一甲 / 期中考")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "不附帶目前頁面" }));
+    expect(onDismissPageContext).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides the chip when nothing is attached", () => {
+    render(
+      <ComposerBar
+        {...baseProps}
+        attachments={[]}
+        pageContextLabel={null}
+        onDismissPageContext={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "不附帶目前頁面" }),
+    ).not.toBeInTheDocument();
+  });
+});

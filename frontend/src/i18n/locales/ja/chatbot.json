@@ -37,6 +37,7 @@
     "moreOptions": "チャットのオプション",
     "newTask": "新しいタスク",
     "noTasks": "タスクはまだありません",
+    "pageContextDismiss": "現在のページを含めない",
     "processing": "処理中...",
     "questionPlaceholder": "回答を入力…",
     "reasoning": "推論プロセス",
