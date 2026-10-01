@@ -10,6 +10,7 @@ DATABASE_URL = "postgresql://u:p@pgbouncer:5432/online_judge"
 CLEARED_KEYS = (
     "OBJECT_STORAGE_BUCKET", "ANTICHEAT_RAW_BUCKET", "INTEGRITY_ARCHIVE_BUCKET",
     "MARKDOWN_IMAGE_S3_BUCKET", "OBJECT_STORAGE_REGION", "OBJECT_STORAGE_ENDPOINT_URL",
+    "STORAGE_MODE", "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL",
     "DATABASE_URL", "DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD", "DB_PORT",
     "QJUDGE_PUBLIC_ORIGIN",
     "FRONTEND_URL",
@@ -242,3 +243,25 @@ def test_storage_region_is_constant():
     )
 
     assert values == {"OBJECT_STORAGE_REGION": "us-east-1"}
+
+
+def test_bundled_storage_public_endpoint_defaults_to_main_origin():
+    values = load_settings("base", {
+        "STORAGE_MODE": "bundled", "QJUDGE_PUBLIC_ORIGIN": ORIGIN + ":8443/",
+    }, ["OBJECT_STORAGE_PUBLIC_ENDPOINT_URL"])
+    assert values == {"OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": ORIGIN + ":8443"}
+
+
+def test_external_storage_does_not_default_to_main_origin():
+    values = load_settings("base", {
+        "STORAGE_MODE": "external", "QJUDGE_PUBLIC_ORIGIN": ORIGIN,
+    }, ["OBJECT_STORAGE_PUBLIC_ENDPOINT_URL"])
+    assert values == {"OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": ""}
+
+
+def test_explicit_public_storage_endpoint_is_kept():
+    values = load_settings("base", {
+        "STORAGE_MODE": "bundled", "QJUDGE_PUBLIC_ORIGIN": ORIGIN,
+        "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": "https://files.example.edu",
+    }, ["OBJECT_STORAGE_PUBLIC_ENDPOINT_URL"])
+    assert values == {"OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": "https://files.example.edu"}

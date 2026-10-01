@@ -5,6 +5,25 @@ from qjudge_cli.tests.test_check import VALID
 
 
 class IngressTests(unittest.TestCase):
+    def test_default_bundled_storage_uses_only_main_ingress(self):
+        env = {**VALID, "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": "", "COMPOSE_PROFILES": "tunnel"}
+        text = render_ingress(env)
+        self.assertIn("Storage  https://judge.example.edu/qjudge/", text)
+        self.assertIn("no extra domain or tunnel route", text)
+        self.assertEqual(text.count("  route "), 1)
+        self.assertNotIn("-> http://minio", text)
+        nginx = render_nginx(env)
+        self.assertEqual(nginx.count("server {"), 1)
+        self.assertIn("client_max_body_size 0;", nginx)
+        self.assertIn("proxy_request_buffering off;", nginx)
+        self.assertIn("proxy_set_header Host $http_host;", nginx)
+
+    def test_explicit_main_origin_does_not_duplicate_server_or_tunnel_route(self):
+        env = {**VALID, "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": VALID["QJUDGE_PUBLIC_ORIGIN"],
+               "COMPOSE_PROFILES": "tunnel"}
+        self.assertEqual(render_nginx(env).count("server {"), 1)
+        self.assertEqual(render_ingress(env).count("  route "), 1)
+
     def test_bundled_storage_entry(self):
         text = render_ingress(VALID)
         self.assertIn("https://files.example.edu", text)
@@ -107,7 +126,7 @@ class IngressTests(unittest.TestCase):
         self.assertIn("server_name live.example.edu;", text)
         self.assertIn("proxy_pass http://127.0.0.1:7880;", text)
         self.assertIn("proxy_set_header Upgrade $http_upgrade;", text)
-        self.assertIn('proxy_set_header Connection "upgrade";', text)
+        self.assertIn('proxy_set_header Connection $qjudge_upgrade_connection;', text)
 
     def test_nginx_terminates_turn_tls_to_livekit_tcp_port(self):
         env = {

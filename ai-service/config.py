@@ -4,7 +4,7 @@ import json
 from functools import lru_cache
 from typing import Any
 
-from pydantic import AliasChoices, Field, field_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic.fields import FieldInfo
 from pydantic_settings import (
     BaseSettings,
@@ -140,6 +140,7 @@ class Settings(BaseSettings):
     deepagent_memory_paths: list[str] = ["/app/.deepagents/AGENTS.md"]
 
     # AI Service-owned artifact object storage.
+    storage_mode: str = Field(default="", validation_alias=AliasChoices("STORAGE_MODE"))
     artifact_storage_endpoint_url: str = Field(
         default="",
         validation_alias=AliasChoices("OBJECT_STORAGE_ENDPOINT_URL"),
@@ -165,6 +166,12 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("AI_ARTIFACT_MAX_BYTES"),
     )
     artifact_presigned_url_ttl_seconds: int = 300
+
+    @model_validator(mode="after")
+    def bundled_storage_uses_public_origin(self) -> "Settings":
+        if self.storage_mode == "bundled" and not self.artifact_storage_public_endpoint_url:
+            self.artifact_storage_public_endpoint_url = self.qjudge_public_origin.rstrip("/")
+        return self
 
     # CORS Settings (for development)
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]

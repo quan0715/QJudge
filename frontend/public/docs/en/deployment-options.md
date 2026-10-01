@@ -8,9 +8,10 @@ The `frontend` container is the sole HTTP ingress, binding to `FRONTEND_BIND_ADD
 
 Any reverse proxy placed in front of QJudge must:
 
-- Preserve the original `Host` header.
+- Preserve the original `Host` header (including port) and URI.
 - Append to `X-Forwarded-For` and set `X-Forwarded-Proto`. When the public origin is HTTPS, the backend relies on `X-Forwarded-Proto` to detect encryption; omitting it results in infinite redirect loops.
-- Disable response buffering so that streaming responses (such as AI token streams) arrive without delay.
+- Disable request/response buffering for uploads and streaming responses. When bundled storage uses the main site, the proxy must also allow its upload sizes (the example uses `client_max_body_size 0`).
+- For bundled LiveKit, forward WebSocket `Upgrade`/`Connection` headers and allow long connections.
 
 Run `deploy/qjudge ingress --nginx` to print an Nginx configuration meeting these requirements.
 
@@ -42,7 +43,7 @@ COMPOSE_PROFILES=tunnel
 TUNNEL_TOKEN=<token provided by Cloudflare>
 ```
 
-The `cloudflared` container belongs to the primary Compose project and is started automatically by `upgrade`. Run `deploy/qjudge ingress` to view the public hostnames you need to configure in Cloudflare: point your main site to `http://frontend:80`, bundled MinIO to `http://minio:9000`, and bundled LiveKit to `http://livekit:7880`.
+The `cloudflared` container belongs to the primary Compose project and is started automatically by `upgrade`. Run `deploy/qjudge ingress` to view the public hostnames you need to configure in Cloudflare: point your main site to `http://frontend:80`, which includes bundled MinIO and LiveKit signaling. Additional tunnel routes are needed only when you explicitly configure another storage or LiveKit domain.
 
 Note: Cloudflare Tunnel only proxies HTTP/WebSocket traffic. Media and TURN ports for live monitoring must still be exposed directly; see [Live Monitoring Configuration](deployment-live-monitoring.md).
 

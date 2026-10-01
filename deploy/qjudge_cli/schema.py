@@ -5,9 +5,22 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Union
+from urllib.parse import urlsplit
 
 Env = Mapping[str, str]
 Requirement = Union[bool, Callable[[Env], bool]]
+
+
+def uses_public_origin(env: Env, url: str) -> bool:
+    """HTTP and WebSocket URLs share an origin when host and effective port match."""
+    try:
+        origin, endpoint = urlsplit(env.get("QJUDGE_PUBLIC_ORIGIN", "")), urlsplit(url)
+        return bool(endpoint.hostname) and (
+            endpoint.scheme.replace("ws", "http", 1), endpoint.hostname,
+            endpoint.port or (443 if endpoint.scheme in {"https", "wss"} else 80),
+        ) == (origin.scheme, origin.hostname, origin.port or (443 if origin.scheme == "https" else 80))
+    except ValueError:
+        return False
 
 
 @dataclass(frozen=True)
@@ -111,8 +124,8 @@ KEYS: tuple[Key, ...] = (
         "bundled runs MinIO via `deploy/qjudge addon storage up`; external uses an existing S3-compatible service.",
         required=True),
     Key("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", "storage",
-        "Storage URL reachable from browsers; must be HTTPS when the origin is HTTPS.",
-        required=True),
+        "Browser storage URL. Bundled defaults to QJUDGE_PUBLIC_ORIGIN (no extra domain); external requires an HTTPS URL when the origin is HTTPS.",
+        required=lambda env: env.get("STORAGE_MODE") == "external"),
     Key("OBJECT_STORAGE_ENDPOINT_URL", "storage",
         "Storage URL reachable from containers; http://minio:9000 in bundled mode.",
         required=True),
@@ -129,8 +142,9 @@ KEYS: tuple[Key, ...] = (
     # Live monitoring
     Key("MEDIA_MODE", "media",
         "disabled, bundled (LiveKit addon; run qjudge addon media init then qjudge addon media up) or external (existing LiveKit)."),
-    Key("LIVEKIT_PUBLIC_URL", "media", "LiveKit URL browsers connect to, e.g. wss://live.example.edu.",
-        required=_media_enabled),
+    Key("LIVEKIT_PUBLIC_URL", "media",
+        "Browser LiveKit URL. Bundled defaults to QJUDGE_PUBLIC_ORIGIN + /livekit (ws/wss); required for external mode.",
+        required=lambda env: env.get("MEDIA_MODE") == "external"),
     Key("LIVEKIT_API_KEY", "media", "LiveKit API key.", required=_media_enabled, secret=True),
     Key("LIVEKIT_API_SECRET", "media", "LiveKit API secret.", required=_media_enabled, secret=True),
     Key("LIVEKIT_NODE_IP", "media", "Public IP LiveKit advertises for media (bundled mode).",

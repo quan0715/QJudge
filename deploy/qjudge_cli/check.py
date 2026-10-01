@@ -6,7 +6,7 @@ import ipaddress
 import re
 from urllib.parse import urlsplit
 
-from .schema import KEYS, KEYS_BY_NAME, Env
+from .schema import KEYS, KEYS_BY_NAME, Env, uses_public_origin
 
 ENUMS = {
     "STORAGE_MODE": ("bundled", "external"),
@@ -23,6 +23,16 @@ MOVED_AI_KEYS = {
 }
 URL_SAFE_PASSWORD_KEYS = {"POSTGRES_ADMIN_PASSWORD", "DB_PASSWORD", "AI_DB_PASSWORD"}
 URL_SAFE = re.compile(r"[A-Za-z0-9._~-]+")
+BUCKET_NAME = re.compile(r"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]")
+# The bucket becomes a top-level path on the main site in bundled mode.
+RESERVED_BUCKET_PATHS = {
+    "api", "admin", "django-admin", "static", "media", "mcp", "assets", "livekit",
+    "docs", "dev", "system", "dashboard", "classrooms", "question-banks", "chat",
+    "login", "register", "auth", "onboarding", "invite", "oauth", "error", "not-found",
+    "brand", "fonts", "illustrations", "logos", "videos", "index.html", "robots.txt",
+    "manifest.json", "sitemap.xml", "pwa-192x192.png", "pwa-512x512.png",
+    "example-1.png", "example-2.png",
+}
 
 
 def check_env(env: Env) -> list[str]:
@@ -65,9 +75,20 @@ def _value_problem(name: str, value: str, env: Env) -> str | None:
     if name == "QJUDGE_PUBLIC_ORIGIN":
         return _url_problem(value, ("http", "https"), origin_only=True)
     if name == "LIVEKIT_PUBLIC_URL":
-        return _url_problem(value, ("ws", "wss", "http", "https"))
+        problem = _url_problem(value, ("ws", "wss", "http", "https"))
+        if problem:
+            return problem
+        parts = urlsplit(value)
+        if env.get("MEDIA_MODE") == "bundled" and uses_public_origin(env, value):
+            if parts.path.rstrip("/") != "/livekit" or parts.query or parts.fragment:
+                return "must use /livekit on the main host, or leave unset to use the bundled default"
+        return None
     if name in HTTP_URL_KEYS:
-        problem = _url_problem(value, ("http", "https"))
+        problem = _url_problem(
+            value, ("http", "https"),
+            origin_only=name == "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL"
+            and env.get("STORAGE_MODE") == "bundled",
+        )
         if problem:
             return problem
         if (
@@ -77,6 +98,11 @@ def _value_problem(name: str, value: str, env: Env) -> str | None:
         ):
             return "must use https when QJUDGE_PUBLIC_ORIGIN uses https"
         return None
+    if name == "OBJECT_STORAGE_BUCKET" and env.get("STORAGE_MODE") == "bundled":
+        if not BUCKET_NAME.fullmatch(value) or any(part in value for part in ("..", ".-", "-.")):
+            return "must be a 3-63 character S3 bucket name (lowercase letters, digits, dots and hyphens)"
+        if value in RESERVED_BUCKET_PATHS:
+            return "conflicts with a QJudge route; use qjudge or another bucket name"
     if name == "OBJECT_STORAGE_SECRET_KEY" and env.get("STORAGE_MODE", "").strip() == "bundled" and len(value) < 8:
         return "must be at least 8 characters because it is the MinIO root password"
     if name in URL_SAFE_PASSWORD_KEYS and not URL_SAFE.fullmatch(value):

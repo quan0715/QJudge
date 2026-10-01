@@ -22,6 +22,7 @@ COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY nginx/00-forwarded-proto.conf /etc/nginx/conf.d/00-forwarded-proto.conf
 COPY --chmod=755 nginx/20-qjudge-real-ip.sh /docker-entrypoint.d/20-qjudge-real-ip.sh
+COPY --chmod=755 nginx/30-qjudge-addons.sh /docker-entrypoint.d/30-qjudge-addons.sh
 
 EXPOSE 80
 
