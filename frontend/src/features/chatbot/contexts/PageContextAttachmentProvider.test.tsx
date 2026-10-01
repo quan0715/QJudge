@@ -1,4 +1,5 @@
 import { act, render } from "@testing-library/react";
+import { useEffect } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import type { PageContextSegment } from "@/core/types/chatbot.types";
@@ -43,9 +44,12 @@ function Publish({ segment }: { segment: PageContextSegment }) {
   return null;
 }
 
-let attachment: ReturnType<typeof usePageContextAttachment>;
+const seen = {} as { attachment: ReturnType<typeof usePageContextAttachment> };
 function Probe() {
-  attachment = usePageContextAttachment();
+  const current = usePageContextAttachment();
+  useEffect(() => {
+    seen.attachment = current;
+  });
   return null;
 }
 
@@ -67,7 +71,7 @@ function tree(segments: PageContextSegment[]) {
 function take(): Record<string, unknown> {
   let metadata: Record<string, unknown> = {};
   act(() => {
-    metadata = attachment.takeRunMetadata();
+    metadata = seen.attachment.takeRunMetadata();
   });
   return metadata;
 }
@@ -76,7 +80,7 @@ describe("PageContextAttachmentProvider", () => {
   it("labels and attaches the current page", () => {
     render(tree([problemA, midterm, classroom]));
 
-    expect(attachment.label).toBe("資工一甲 / 期中考 / A. A+B");
+    expect(seen.attachment.label).toBe("資工一甲 / 期中考 / A. A+B");
     expect(take()).toEqual({
       pageContext: { path: PATH, segments: [classroom, midterm, problemA] },
     });
@@ -85,34 +89,34 @@ describe("PageContextAttachmentProvider", () => {
   it("skips one message after dismissal and re-arms after sending", () => {
     render(tree([classroom, midterm]));
 
-    act(() => attachment.dismiss());
-    expect(attachment.label).toBeNull();
+    act(() => seen.attachment.dismiss());
+    expect(seen.attachment.label).toBeNull();
     expect(take()).toEqual({});
-    expect(attachment.label).toBe("資工一甲 / 期中考");
+    expect(seen.attachment.label).toBe("資工一甲 / 期中考");
   });
 
   it("re-arms when the contest changes", () => {
     const view = render(tree([classroom, midterm]));
-    act(() => attachment.dismiss());
+    act(() => seen.attachment.dismiss());
 
     view.rerender(tree([classroom, final]));
 
-    expect(attachment.label).toBe("資工一甲 / 期末考");
+    expect(seen.attachment.label).toBe("資工一甲 / 期末考");
   });
 
   it("stays dismissed when only the problem changes", () => {
     const view = render(tree([classroom, midterm, problemA]));
-    act(() => attachment.dismiss());
+    act(() => seen.attachment.dismiss());
 
     view.rerender(tree([classroom, midterm, problemB]));
 
-    expect(attachment.label).toBeNull();
+    expect(seen.attachment.label).toBeNull();
   });
 
   it("attaches nothing when no page published a segment", () => {
     render(tree([]));
 
-    expect(attachment.label).toBeNull();
+    expect(seen.attachment.label).toBeNull();
     expect(take()).toEqual({});
   });
 });

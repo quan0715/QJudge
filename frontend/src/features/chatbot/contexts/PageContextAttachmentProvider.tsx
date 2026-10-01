@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -40,12 +41,11 @@ export function PageContextAttachmentProvider({ children }: { children: ReactNod
     setDismissed(false);
   }
 
-  const latest = useRef({ segments, dismissed, path: "" });
-  latest.current = {
-    segments,
-    dismissed,
-    path: `${location.pathname}${location.search}`,
-  };
+  const path = `${location.pathname}${location.search}`;
+  const latest = useRef({ segments, dismissed, path });
+  useEffect(() => {
+    latest.current = { segments, dismissed, path };
+  }, [segments, dismissed, path]);
 
   const dismiss = useCallback(() => setDismissed(true), []);
   const takeRunMetadata = useCallback((): Record<string, unknown> => {

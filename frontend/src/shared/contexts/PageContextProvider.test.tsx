@@ -1,4 +1,5 @@
 import { render } from "@testing-library/react";
+import { useEffect } from "react";
 import { describe, expect, it } from "vitest";
 import type { PageContextSegment } from "@/core/types/chatbot.types";
 import {
@@ -28,9 +29,12 @@ function Publish({ segment }: { segment: PageContextSegment | null }) {
   return null;
 }
 
-let segments: readonly PageContextSegment[] = [];
+const seen = { segments: [] as readonly PageContextSegment[] };
 function Probe() {
-  segments = usePageContextSegments();
+  const current = usePageContextSegments();
+  useEffect(() => {
+    seen.segments = current;
+  });
   return null;
 }
 
@@ -45,7 +49,7 @@ describe("PageContextProvider", () => {
       </PageContextProvider>,
     );
 
-    expect(segments).toEqual([classroom, contest, problem]);
+    expect(seen.segments).toEqual([classroom, contest, problem]);
   });
 
   it("removes a segment when its publisher unmounts or publishes null", () => {
@@ -63,7 +67,7 @@ describe("PageContextProvider", () => {
         <Probe />
       </PageContextProvider>,
     );
-    expect(segments).toEqual([classroom]);
+    expect(seen.segments).toEqual([classroom]);
 
     view.rerender(
       <PageContextProvider>
@@ -71,7 +75,7 @@ describe("PageContextProvider", () => {
         <Probe />
       </PageContextProvider>,
     );
-    expect(segments).toEqual([]);
+    expect(seen.segments).toEqual([]);
   });
 
   it("replaces a segment whose content changes and keeps equal re-renders stable", () => {
@@ -81,7 +85,7 @@ describe("PageContextProvider", () => {
         <Probe />
       </PageContextProvider>,
     );
-    const first = segments;
+    const first = seen.segments;
 
     view.rerender(
       <PageContextProvider>
@@ -89,7 +93,7 @@ describe("PageContextProvider", () => {
         <Probe />
       </PageContextProvider>,
     );
-    expect(segments).toBe(first);
+    expect(seen.segments).toBe(first);
 
     view.rerender(
       <PageContextProvider>
@@ -97,7 +101,7 @@ describe("PageContextProvider", () => {
         <Probe />
       </PageContextProvider>,
     );
-    expect(segments).toEqual([{ ...contest, label: "期末考" }]);
+    expect(seen.segments).toEqual([{ ...contest, label: "期末考" }]);
   });
 
   it("is a no-op outside the provider", () => {
@@ -107,6 +111,6 @@ describe("PageContextProvider", () => {
         <Probe />
       </>,
     );
-    expect(segments).toEqual([]);
+    expect(seen.segments).toEqual([]);
   });
 });
