@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 _SEGMENT_NAMES = {"classroom": "教室", "contest": "競賽", "problem": "題目"}
 _UNSAFE = str.maketrans("", "", "<>")
+_WHITESPACE_OR_CONTROL = re.compile(r"[\s\x00-\x1f\x7f]+")
 
 
 def _clean(value: object) -> str:
-    return str(value).translate(_UNSAFE).strip()
+    # Labels come from data other users can author; keep each value on one line
+    # so it cannot forge extra entries inside the system-provided block.
+    return _WHITESPACE_OR_CONTROL.sub(" ", str(value).translate(_UNSAFE)).strip()
 
 
 def _contest(context: dict[str, Any] | None) -> dict[str, Any] | None:
