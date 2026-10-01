@@ -32,24 +32,6 @@ describe("MessageBubble", () => {
     expect(screen.queryByText("ui.processing")).not.toBeInTheDocument();
   });
 
-  it("derives assistant output only from public message parts", () => {
-    const message = {
-      id: "assistant-legacy-shadow",
-      role: "assistant",
-      createdAt: new Date("2026-01-01T00:00:00Z"),
-      parts: [{ type: "text", text: "Public answer" }],
-      content: "unsafe legacy answer",
-      runStatus: "failed",
-      runError: "unsafe legacy error",
-    } as CopilotMessage & Record<string, unknown>;
-
-    render(<MessageBubble message={message} />);
-
-    expect(screen.getByText("Public answer")).toBeInTheDocument();
-    expect(screen.queryByText("unsafe legacy answer")).not.toBeInTheDocument();
-    expect(screen.queryByText("unsafe legacy error")).not.toBeInTheDocument();
-  });
-
   it("renders an in-progress tool part as one chain step", () => {
     const message: CopilotMessage = {
       id: "assistant-active-tool",

@@ -125,14 +125,6 @@ export const ContestAllStates: Story = {
         })}
         onClick={() => {}}
       />
-      <ContestScheduleCard
-        contest={makeContest({
-          contestId: "a",
-          contestName: "已封存的測驗",
-          contestStatus: "archived",
-        })}
-        onClick={() => {}}
-      />
     </>
   ),
 };

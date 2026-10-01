@@ -30,15 +30,8 @@ export default function KpiCards({
   const statusLabel =
     contestStatus === "draft"
       ? t("common:status.draft", "草稿")
-      : contestStatus === "published"
-        ? t("common:status.published", "已發布")
-        : t("common:status.archived", "已封存");
-  const statusColor =
-    contestStatus === "draft"
-      ? "gray"
-      : contestStatus === "published"
-        ? "green"
-        : "cool-gray";
+      : t("common:status.published", "已發布");
+  const statusColor = contestStatus === "draft" ? "gray" : "green";
   const participantCount = contest.participantCount ?? 0;
   const examTypeLabel = t(
     `adminOverview.examType.${contest.contestType}`,

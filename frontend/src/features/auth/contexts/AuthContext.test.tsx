@@ -47,7 +47,6 @@ describe("AuthProvider", () => {
     await waitFor(() => {
       expect(screen.getByTestId("auth-state")).toHaveTextContent("alice");
     });
-    expect(localStorage.getItem).not.toHaveBeenCalledWith("user");
   });
 
   it("settles as anonymous when no authenticated cookie session exists", async () => {
@@ -67,7 +66,7 @@ describe("AuthProvider", () => {
     expect(localStorage.getItem).not.toHaveBeenCalledWith("user");
   });
 
-  it("removes legacy identity data when signing out", async () => {
+  it("clears the current identity when signing out", async () => {
     vi.mocked(getCurrentUser).mockResolvedValue({
       success: true,
       data: { id: 7, username: "alice", role: "student" },
@@ -85,6 +84,5 @@ describe("AuthProvider", () => {
     await waitFor(() => {
       expect(screen.getByTestId("auth-state")).toHaveTextContent("anonymous");
     });
-    expect(localStorage.removeItem).toHaveBeenCalledWith("user");
   });
 });

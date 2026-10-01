@@ -190,7 +190,6 @@
         "unset": "미설정"
       },
       "contestStatus": {
-        "archived": "보관됨",
         "draft": "초안",
         "published": "공개됨"
       },
@@ -376,7 +375,6 @@
       },
       "contestInfoLabel": "競賽資訊",
       "contestStatus": {
-        "archived": "已封存",
         "draft": "草稿",
         "published": "已發布"
       },
@@ -582,11 +580,6 @@
       "unansweredSubtitle": "제출하기 전에 모든 문제에 답할 것을 권장합니다.",
       "unansweredWarning": "아직 답하지 않은 문제가 {{count}}개 있습니다"
     }
-  },
-  "archive": {
-    "confirm": "이 대회를 보관하시겠습니까? 보관 목록으로 이동됩니다.",
-    "error": "보관 실패",
-    "title": "대회 보관"
   },
   "attendance": {
     "badge": "QR 입실",
@@ -1785,7 +1778,6 @@
     "accessControl": "접근 제어",
     "allowMultipleJoins": "여러 번 참가 허용",
     "allowMultipleJoinsDesc": "학생이 나간 뒤에도 시험에 다시 입장해 기존 답안 진행 상황을 이어갈 수 있게 합니다.",
-    "alreadyArchived": "이미 보관됨",
     "anonymousMode": "익명 모드",
     "anonymousModeHelp": "활성화하면 참가자가 닉네임을 설정할 수 있습니다. 점수판과 제출 목록에 닉네임이 표시됩니다",
     "anticheat": {
@@ -1810,10 +1802,6 @@
       "securityDetectors": "부정행위 감지 메커니즘",
       "webcam": "웹캠 모니터링 (Webcam)"
     },
-    "archiveContest": "대회 보관",
-    "archiveDesc": "보관하면 대회가 읽기 전용이 되며 다시 활성화할 수 없습니다.",
-    "archiveFailed": "보관 실패",
-    "archived": "대회가 보관되었습니다",
     "attendanceCheck": {
       "description": "QR 스캔과 현장 사진 제출 후 시험을 시작할 수 있습니다.",
       "label": "QR 입퇴실"
@@ -1825,7 +1813,6 @@
       "roomAndSelfie": "전면: 본인 + 후면: 현장"
     },
     "basicInfo": "기본 정보",
-    "confirmArchive": "이 대회를 보관하시겠습니까?",
     "confirmDelete": "이 대회를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다!",
     "confirmDisableExamMode": "이 시험의 부정행위 방지 감독을 비활성화합니다. 계속하시겠습니까?",
     "confirmEnableExamMode": "응시자는 화면 공유가 가능한 컴퓨터가 필요합니다. 켜시겠습니까?",
@@ -1964,7 +1951,6 @@
       "status": "상태"
     },
     "contestState": {
-      "archived": "보관됨",
       "draft": "초안",
       "ended": "종료됨",
       "running": "진행 중",

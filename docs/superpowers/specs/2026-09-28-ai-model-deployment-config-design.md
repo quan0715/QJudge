@@ -206,7 +206,7 @@ AI 助教輸入框與 AI 批改畫面依模型目錄狀態顯示 Carbon `InlineN
 
 ## 7. 現有部署轉換
 
-dcslab 沿用現有 ID，歷史紀錄不需改寫。自架 endpoint 命名為 `vllm`，key 名稱恰為原本的 `VLLM_API_KEY`。
+既有部署沿用現有 ID，歷史紀錄不需改寫。自架 endpoint 命名為 `vllm`，key 名稱恰為原本的 `VLLM_API_KEY`。
 
 ```yaml
 default: openai-nano
@@ -282,4 +282,4 @@ dev 使用同一份 `deploy/ai/`；缺檔時 AI 功能顯示設定錯誤訊息�
 ## 10. 連帶更新
 
 - `.codex/skills/qjudge-ai-model-registry/`：改寫為「程式碼 adapter／`deploy/ai/models.yml`」的分工與新增 provider 的流程。
-- `docs/operations/production-configuration.md`：AI provider 設定改指向 `deploy/ai/`。
+- `frontend/public/docs/zh-TW/deployment-options.md`：AI provider 設定改指向 `deploy/ai/`。

@@ -52,7 +52,7 @@ export const ContestPanel: React.FC<ContestPanelProps> = ({
       .map(({ contest }) => contest);
       
     const ended = contestsWithState
-      .filter(({ state }) => state === "ended" || state === "archived")
+      .filter(({ state }) => state === "ended")
       .map(({ contest }) => contest);
       
     const draft = sorted.filter((contest) => contest.contestStatus === "draft");

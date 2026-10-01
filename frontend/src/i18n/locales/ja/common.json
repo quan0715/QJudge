@@ -103,7 +103,6 @@
     }
   },
   "button": {
-    "archive": "アーカイブ",
     "back": "戻る",
     "cancel": "キャンセル",
     "clear": "クリア",
@@ -477,7 +476,6 @@
   },
   "status": {
     "active": "有効",
-    "archived": "アーカイブ済み",
     "connected": "接続済み",
     "disabled": "無効",
     "disconnected": "未接続",

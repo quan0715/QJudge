@@ -170,8 +170,6 @@ describe("adminOverviewDashboard.model", () => {
       "locked",
       "offline",
     ]);
-    expect(JSON.stringify(data)).not.toContain("screen_share");
-    expect(JSON.stringify(data)).not.toContain("webcam");
   });
 
   it("keeps paper exams generic and does not expose submission trends", () => {

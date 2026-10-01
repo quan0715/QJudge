@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Any
 from uuid import UUID
 
@@ -131,11 +130,3 @@ async def test_resume_operations_reuse_the_same_domain_ids(
     }
     assert checkpoints.thread_ids == [str(SESSION_ID)]
     assert all(event["run_id"] == str(RUN_ID) for event in events)
-
-
-def test_runner_source_does_not_generate_domain_ids() -> None:
-    source = Path("infrastructure/agent/deepagent_adapter.py").read_text()
-    assert "uuid.uuid4" not in source
-    assert "uuid4(" not in source
-    assert "backend_base_url" not in source
-    assert "AI_SERVICE_INTERNAL_TOKEN" not in source

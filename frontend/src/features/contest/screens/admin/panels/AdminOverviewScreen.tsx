@@ -105,7 +105,6 @@ export default function AdminOverviewScreen({
   const isPreparationPhase = useMemo(() => {
     if (!contest) return false;
     if (contest.status === "draft") return true;
-    if (contest.status === "archived") return false;
     return getContestState(contest, currentTimeMs) === "upcoming";
   }, [contest, currentTimeMs]);
 

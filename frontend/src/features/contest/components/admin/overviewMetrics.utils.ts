@@ -35,7 +35,7 @@ export const formatDuration = (seconds: number) => {
 
 const toExamStatus = (state: string): ContestOverviewExamStatus => {
   if (state === "running") return "running";
-  if (state === "ended" || state === "archived") return "ended";
+  if (state === "ended") return "ended";
   return "upcoming";
 };
 

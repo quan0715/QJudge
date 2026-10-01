@@ -39,7 +39,7 @@ describe("buildClassroomMonthSchedule", () => {
     );
   });
 
-  it("excludes draft contests and keeps published/archived contest events", () => {
+  it("excludes draft contests and keeps published contest events", () => {
     const cells = buildClassroomMonthSchedule(
       [
         baseContest({
@@ -54,12 +54,6 @@ describe("buildClassroomMonthSchedule", () => {
           contestStartTime: new Date(2026, 5, 16, 12).toISOString(),
           contestEndTime: new Date(2026, 5, 16, 13).toISOString(),
         }),
-        baseContest({
-          contestId: "archived",
-          contestStatus: "archived",
-          contestStartTime: new Date(2026, 5, 17, 10).toISOString(),
-          contestEndTime: new Date(2026, 5, 17, 11).toISOString(),
-        }),
       ],
       new Date(2026, 5, 15),
       NOW,
@@ -70,7 +64,6 @@ describe("buildClassroomMonthSchedule", () => {
     );
     expect(ids).not.toContain("draft");
     expect(ids).toContain("published");
-    expect(ids).toContain("archived");
   });
 
   it("sorts same-day events by start time", () => {

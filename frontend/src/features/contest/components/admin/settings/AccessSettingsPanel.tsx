@@ -25,7 +25,6 @@ const SAVE_FIELDS = [
 const STATUS_LABELS: Record<ContestStatus, string> = {
   draft: "Draft",
   published: "Published",
-  archived: "Archived",
 };
 
 interface DangerActionProps {
@@ -63,7 +62,6 @@ const DangerAction = ({
 );
 
 interface AccessSettingsPanelProps extends ContestSettingsPanelProps {
-  onArchive: () => void;
   onDelete: () => void;
 }
 
@@ -76,7 +74,6 @@ export default function AccessSettingsPanel({
   onRetry,
   onChange,
   onConfirmedChange,
-  onArchive,
   onDelete,
 }: AccessSettingsPanelProps) {
   return (
@@ -94,7 +91,7 @@ export default function AccessSettingsPanel({
             labelText={t("settings.statusLabel")}
             hideLabel
             value={(form.status as string) || "draft"}
-            disabled={form.status === "archived" || !contest?.permissions?.canToggleStatus}
+            disabled={!contest?.permissions?.canToggleStatus}
             style={{ minWidth: 160 }}
             onChange={(e) => {
               const next = e.target.value as ContestStatus;
@@ -108,11 +105,6 @@ export default function AccessSettingsPanel({
           >
             <SelectItem value="draft" text={tc("status.draft")} />
             <SelectItem value="published" text={tc("status.published")} />
-            <SelectItem
-              value="archived"
-              text={tc("status.archived")}
-              disabled={form.status !== "archived"}
-            />
           </Select>
         </ActionRow>
 
@@ -182,17 +174,6 @@ export default function AccessSettingsPanel({
       </Section>
 
       <Section title="Danger Zone">
-        <DangerAction
-          title={t("settings.archiveContest")}
-          description={t("settings.archiveDesc")}
-          buttonLabel={
-            contest.status === "archived"
-              ? t("settings.alreadyArchived")
-              : tc("button.archive")
-          }
-          disabled={contest.status === "archived" || !contest.permissions?.canToggleStatus}
-          onClick={onArchive}
-        />
         <DangerAction
           title={t("settings.deleteContest")}
           description={t("settings.deleteDesc")}

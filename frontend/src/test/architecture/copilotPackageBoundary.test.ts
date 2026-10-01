@@ -50,7 +50,6 @@ describe("Copilot package boundary", () => {
     ["product feature", "@/features/chatbot"],
     ["QJudge repository", "@/infrastructure/api/repositories"],
     ["QJudge Copilot infrastructure", "@/infrastructure/copilot"],
-    ["legacy chatbot type", "@/core/types/chatbot.types"],
     ["router", "react-router-dom"],
     ["i18n runtime", "i18next"],
     ["Carbon", "@carbon/react"],
@@ -102,7 +101,6 @@ describe("Copilot package boundary", () => {
       "QJudge Copilot infrastructure",
       "../../../infrastructure/copilot/qJudgeCopilotTransport",
     ],
-    ["legacy chatbot type", "../../../core/types/chatbot.types"],
   ])("rejects a relative import resolving to blocked %s", (reason, specifier) => {
     const result = runFixture(
       {

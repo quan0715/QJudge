@@ -12,7 +12,7 @@ from django.utils import timezone
 #: All roles that can manage contest resources (create/update/delete).
 MANAGER_SCOPE_ROLES = frozenset(('platform_admin', 'owner', 'co_owner'))
 
-#: Roles allowed for irreversible lifecycle operations (toggle status, archive, delete).
+#: Roles allowed to change publication status or delete a contest.
 #: co_owner is intentionally excluded.
 LIFECYCLE_OWNER_ROLES = frozenset(('platform_admin', 'owner'))
 
@@ -182,7 +182,7 @@ class IsContestLifecycleOwner(permissions.BasePermission):
     Stricter object-level permission: only platform_admin and owner.
     co_owner is intentionally excluded.
 
-    Use for irreversible lifecycle operations: toggle status, archive, delete.
+    Use for publication status changes and contest deletion.
     """
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:

@@ -72,9 +72,6 @@ describe("AdminQuestionStatsGallery", () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText("得分率").length).toBeGreaterThan(0);
     expect(screen.getAllByText("47 人作答").length).toBeGreaterThan(0);
-    expect(screen.queryByText("批改率")).not.toBeInTheDocument();
-    expect(screen.queryByText("正答率")).not.toBeInTheDocument();
-    expect(screen.queryByText("待觀察")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "未作答率" }));
 

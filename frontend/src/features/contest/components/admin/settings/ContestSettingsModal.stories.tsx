@@ -113,7 +113,6 @@ export const FullModal: Story = {
           onEndTimeChange={() => {}}
           onStartMeridiemChange={() => {}}
           onEndMeridiemChange={() => {}}
-          onArchive={() => console.log("archive")}
           onDelete={() => console.log("delete")}
         />
       </>
@@ -164,7 +163,7 @@ export const Access: Story = {
   parameters: {
     docs: {
       description: {
-        story: "存取控制與權限 panel：發布狀態、QR 簽到、允許重新登入與接管、Danger Zone（封存/刪除）。",
+        story: "存取控制與權限 panel：發布狀態、QR 簽到、允許重新登入與接管、Danger Zone（刪除）。",
       },
     },
   },
@@ -175,7 +174,6 @@ export const Access: Story = {
       <div style={{ maxWidth: 800, margin: "0 auto" }}>
         <AccessSettingsPanel
           {...sharedProps}
-          onArchive={() => console.log("archive")}
           onDelete={() => console.log("delete")}
         />
       </div>
@@ -267,7 +265,6 @@ export const SectionSaveState: Story = {
           getState={(field) =>
             field === "allowMultipleJoins" ? { status: "saving" } : undefined
           }
-          onArchive={() => {}}
           onDelete={() => {}}
         />
         <DisplaySettingsPanel

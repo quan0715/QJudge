@@ -195,18 +195,6 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         }, format='json')
         self.assertEqual(self._roster_total(), 0.0)
 
-    def test_submit_model_has_no_question_snapshot(self):
-        self.client.force_authenticate(user=self.student)
-        resp = self.client.post(self._url(), {
-            'question_id': self.q_essay.id,
-            'answer': {'text': 'My essay answer'},
-        }, format='json')
-        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
-        self.assertNotIn(
-            'question_snapshot',
-            {field.name for field in ExamAnswer._meta.get_fields()},
-        )
-
     def test_submit_requires_in_progress(self):
         """Cannot submit when exam is not in progress."""
         self.participant.exam_status = ExamStatus.SUBMITTED

@@ -340,10 +340,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         if obj.status == 'draft':
             return []
 
-        # Archived contests are read-only but visible to participants
-        if obj.status == 'archived':
-            return ContestProblemSerializer(_get_coding_bindings(), many=True, context=self.context).data
-
         # Hide problems if contest hasn't started yet
         if obj.start_time and now < obj.start_time:
             return []

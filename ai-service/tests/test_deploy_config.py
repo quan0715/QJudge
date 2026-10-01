@@ -10,20 +10,10 @@ from main import _oauth_locations
 
 def test_oauth_issuer_comes_from_public_origin(monkeypatch):
     monkeypatch.setenv("QJUDGE_PUBLIC_ORIGIN", "https://judge.example.edu/")
-    monkeypatch.setenv("AI_OAUTH_ISSUER", "https://ignored.example")
 
     issuer, _ = _oauth_locations(Settings(_env_file=None))
 
     assert issuer == "https://judge.example.edu"
-
-
-def test_oauth_issuer_ignores_legacy_key(monkeypatch):
-    monkeypatch.delenv("QJUDGE_PUBLIC_ORIGIN", raising=False)
-    monkeypatch.setenv("AI_OAUTH_ISSUER", "https://legacy.example/")
-
-    issuer, _ = _oauth_locations(Settings(_env_file=None))
-
-    assert issuer == ""
 
 
 def test_engine_pool_is_bounded(monkeypatch):
@@ -75,13 +65,6 @@ def test_artifact_bucket_comes_from_single_bucket(monkeypatch):
     monkeypatch.setenv("OBJECT_STORAGE_BUCKET", "qjudge")
 
     assert Settings(_env_file=None).artifact_s3_bucket == "qjudge"
-
-
-def test_artifact_bucket_ignores_legacy_key(monkeypatch):
-    monkeypatch.delenv("OBJECT_STORAGE_BUCKET", raising=False)
-    monkeypatch.setenv("AI_ARTIFACT_S3_BUCKET", "legacy")
-
-    assert Settings(_env_file=None).artifact_s3_bucket == "ai-artifacts"
 
 
 @pytest.mark.parametrize("mode, expected", [

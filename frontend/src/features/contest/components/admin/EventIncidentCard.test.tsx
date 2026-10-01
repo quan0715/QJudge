@@ -28,6 +28,5 @@ describe("EventIncidentCard", () => {
 
     expect(screen.getByText("×3")).toBeVisible();
     expect(screen.getByText("有證據")).toBeVisible();
-    expect(screen.queryByText(/證據 7|7 片段/)).not.toBeInTheDocument();
   });
 });

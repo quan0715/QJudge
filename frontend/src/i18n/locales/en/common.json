@@ -103,7 +103,6 @@
     }
   },
   "button": {
-    "archive": "Archive",
     "back": "Back",
     "cancel": "Cancel",
     "clear": "Clear",
@@ -477,7 +476,6 @@
   },
   "status": {
     "active": "Active",
-    "archived": "Archived",
     "connected": "Connected",
     "disabled": "Disabled",
     "disconnected": "Disconnected",

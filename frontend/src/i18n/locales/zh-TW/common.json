@@ -103,7 +103,6 @@
     }
   },
   "button": {
-    "archive": "封存",
     "back": "返回",
     "cancel": "取消",
     "clear": "清除",
@@ -477,7 +476,6 @@
   },
   "status": {
     "active": "啟用",
-    "archived": "已封存",
     "connected": "已連線",
     "disabled": "已停用",
     "disconnected": "未連線",
