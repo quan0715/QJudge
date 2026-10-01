@@ -205,7 +205,7 @@ export function WorkspaceTopNav({ showSidebarControl, previewMode = false }: Wor
         {showSidebarControl ? (
           <IconButton
             kind="ghost"
-            size="md"
+            size="lg"
             align="bottom"
             label={t("workspaceTopNav.expandSidebar", "展開側欄")}
             onClick={left.open}
@@ -426,7 +426,7 @@ function RuntimeNavExtras() {
       </div>
       <IconButton
         kind="ghost"
-        size="md"
+        size="lg"
         align="bottom"
         label={refreshing ? t("adminOverview.screen.actions.refreshing", "重新整理中") : t("studentDashboard.actions.refresh", "重新整理")}
         onClick={handleRefresh}

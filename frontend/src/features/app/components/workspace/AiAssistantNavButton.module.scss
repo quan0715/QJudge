@@ -1,0 +1,10 @@
+// Matches the open state of other top-nav controls: a selected layer plus an
+// interactive-color underline so "panel is open" reads at a glance.
+.active {
+  background: var(--cds-layer-selected);
+  box-shadow: inset 0 -2px 0 var(--cds-border-interactive);
+
+  svg {
+    fill: var(--cds-icon-primary);
+  }
+}
