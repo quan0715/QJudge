@@ -31,10 +31,20 @@ TRACE = TraceContext(request_id="request-1", traceparent="trace-1")
 
 
 class FakeRuns:
-    def __init__(self, run: Run, owner: Principal, *, prompt: str = "hello") -> None:
+    def __init__(
+        self,
+        run: Run,
+        owner: Principal,
+        *,
+        prompt: str = "hello",
+        page_context: dict | None = None,
+        previous_page_context: dict | None = None,
+    ) -> None:
         self.run = run
         self.owner = owner
         self.prompt = prompt
+        self.page_context = page_context
+        self.previous_page_context = previous_page_context
         self.claims = 0
         self.events: list[dict] = []
         self.heartbeats = 0
@@ -48,7 +58,14 @@ class FakeRuns:
             if self.run.status is RunStatus.QUEUED:
                 self.run = replace(self.run, status=RunStatus.RUNNING)
                 self.claims += 1
-                return RunClaim(ClaimMode.EXECUTE, self.run, self.owner, self.prompt)
+                return RunClaim(
+                    ClaimMode.EXECUTE,
+                    self.run,
+                    self.owner,
+                    self.prompt,
+                    page_context=self.page_context,
+                    previous_page_context=self.previous_page_context,
+                )
             if (
                 self.run.status
                 in {RunStatus.AWAITING_APPROVAL, RunStatus.AWAITING_USER_ANSWER}
@@ -393,3 +410,53 @@ def test_celery_application_uses_ai_queue_and_namespace() -> None:
     assert execute_run.name == "ai.execute_run"
     assert recover_stale_runs.name == "ai.recover_stale_runs"
     assert dispatch_unblocked_sessions.name == "ai.dispatch_unblocked_sessions"
+
+
+@pytest.mark.asyncio
+async def test_chat_command_prefixes_prompt_with_page_context() -> None:
+    run = make_run()
+    runs = FakeRuns(
+        run,
+        Principal("issuer", "subject"),
+        page_context={
+            "path": "/classrooms/1/contest/B",
+            "segments": [
+                {"type": "contest", "label": "期末考", "ids": {"contest_id": "B"}}
+            ],
+        },
+        previous_page_context={
+            "path": "/classrooms/1/contest/A",
+            "segments": [
+                {"type": "contest", "label": "期中考", "ids": {"contest_id": "A"}}
+            ],
+        },
+    )
+    agent = FakeAgent()
+    runtime = WorkerRuntime(runs, FakeCredentials(), agent, FakeCheckpoints())
+
+    await runtime.execute(run.id, "lease:subject", TRACE)
+
+    assert agent.commands[0].prompt == "\n".join(
+        [
+            "<page_context>",
+            "使用者目前所在頁面（系統自動附帶，非使用者輸入）：",
+            "- 競賽：期末考（contest_id=B）",
+            "- 路徑：/classrooms/1/contest/B",
+            "注意：使用者已從〈期中考〉切換到〈期末考〉。",
+            "</page_context>",
+            "",
+            "hello",
+        ]
+    )
+
+
+@pytest.mark.asyncio
+async def test_chat_command_without_page_context_keeps_prompt() -> None:
+    run = make_run()
+    runs = FakeRuns(run, Principal("issuer", "subject"))
+    agent = FakeAgent()
+    runtime = WorkerRuntime(runs, FakeCredentials(), agent, FakeCheckpoints())
+
+    await runtime.execute(run.id, "lease:subject", TRACE)
+
+    assert agent.commands[0].prompt == "hello"

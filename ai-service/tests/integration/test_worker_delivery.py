@@ -19,7 +19,7 @@ from domain.ports import (
     McpAuthFailed,
     TraceContext,
 )
-from infrastructure.database.models import RunEventRow, RunRow
+from infrastructure.database.models import MessageRow, RunEventRow, RunRow
 from infrastructure.database.repositories import SqlAlchemySessionRepository
 from infrastructure.mcp.credential_lease import RedisCredentialLeaseStore
 from worker.runtime import (
@@ -486,3 +486,77 @@ async def test_concurrent_rejected_lease_refresh_is_single_flight() -> None:
     finally:
         await redis.flushdb()
         await redis.aclose()
+
+
+class PromptRecordingAgent(Agent):
+    def __init__(self) -> None:
+        super().__init__()
+        self.prompts = []
+
+    async def execute(self, command):
+        self.prompts.append(command.prompt)
+        async for event in super().execute(command):
+            yield event
+
+
+@pytest.mark.asyncio
+async def test_claim_prefixes_prompt_with_page_context_and_contest_switch(
+    session_factory,
+) -> None:
+    owner = Principal("https://issuer.test", "teacher-1")
+    chat = Session(uuid4(), owner, "Chat", {})
+    earlier_run, run_id = uuid4(), uuid4()
+    midterm = {
+        "path": "/a",
+        "segments": [{"type": "contest", "label": "期中考", "ids": {"contest_id": "A"}}],
+    }
+    final = {
+        "path": "/b",
+        "segments": [{"type": "contest", "label": "期末考", "ids": {"contest_id": "B"}}],
+    }
+    async with session_factory.begin() as db:
+        await SqlAlchemySessionRepository(db).create(chat)
+        for rid, status in (
+            (earlier_run, RunStatus.COMPLETED),
+            (run_id, RunStatus.QUEUED),
+        ):
+            db.add(
+                RunRow(
+                    run_id=rid,
+                    session_id=chat.id,
+                    status=status.value,
+                    kind="chat",
+                    model_id="deepseek-flash",
+                    idempotency_key=str(rid),
+                    cancel_requested=False,
+                    heartbeat_at=datetime.now(UTC),
+                )
+            )
+        await db.flush()
+        db.add_all(
+            [
+                MessageRow(session_id=chat.id, ordinal=1, run_id=earlier_run,
+                           role="user", content="first",
+                           metadata_={"page_context": midterm}),
+                MessageRow(session_id=chat.id, ordinal=2, run_id=earlier_run,
+                           role="assistant", content="ok"),
+                MessageRow(session_id=chat.id, ordinal=3, run_id=run_id,
+                           role="user", content="second",
+                           metadata_={"page_context": final}),
+                MessageRow(session_id=chat.id, ordinal=4, run_id=run_id,
+                           role="assistant", content=""),
+            ]
+        )
+    agent = PromptRecordingAgent()
+    runtime = WorkerRuntime(
+        SqlAlchemyWorkerRunStore(session_factory, Dispatcher()),
+        Credentials(),
+        agent,
+        Checkpoints(),
+    )
+
+    await runtime.execute(run_id, "lease:teacher-1", TraceContext())
+
+    assert agent.prompts[0].startswith("<page_context>")
+    assert "注意：使用者已從〈期中考〉切換到〈期末考〉。" in agent.prompts[0]
+    assert agent.prompts[0].endswith("</page_context>\n\nsecond")
