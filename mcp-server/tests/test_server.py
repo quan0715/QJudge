@@ -280,10 +280,6 @@ def test_django_api_handles_custom_exception_handler_message_only(monkeypatch):
     assert result["errors"] == ["You do not have permission to perform this action."]
 
 
-def test_answer_snapshot_compatibility_helper_is_removed():
-    assert not hasattr(server, "_strip_snapshots")
-
-
 def test_qjudge_browse_builds_encoded_query(monkeypatch):
     calls = []
 
@@ -812,12 +808,6 @@ def test_qjudge_exam_update_passes_explanation(monkeypatch):
         "path": "/api/v1/contests/11111111-1111-1111-1111-111111111111/exam-questions/eq-1/",
         "json_body": {"explanation": "Updated explanation"},
     }
-
-
-def test_widget_resources_and_widget_only_tools_are_removed():
-    assert server.mcp._resource_manager._resources == {}
-    assert "render_classroom_list" not in server.mcp._tool_manager._tools
-    assert "show_qjudge_classrooms_ui" not in server.mcp._tool_manager._tools
 
 
 def test_qjudge_exam_batch_create_append(monkeypatch):

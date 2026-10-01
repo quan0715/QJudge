@@ -42,7 +42,6 @@ export const AllPrimitives: Story = {
           <Select id="sp-status" labelText="" hideLabel size="sm">
             <SelectItem value="draft" text="Draft" />
             <SelectItem value="published" text="Published" />
-            <SelectItem value="archived" text="Archived" />
           </Select>
         </ActionRow>
         <ActionRow label="需要密碼" description="加入時需輸入密碼">

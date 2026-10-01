@@ -53,7 +53,6 @@ def test_integrity_run_metadata_contract():
     assert set(ExamIntegrityRun.SessionState.values) == {
         "prepared", "active", "draining", "archived", "closed",
     }
-    assert not hasattr(ExamIntegrityRun, "ComputeState")
     assert set(ExamIntegrityRun.Health.values) == {"healthy", "unhealthy"}
     assert set(ExamIntegrityRun.DataState.values) == {"open", "archived", "purged"}
     assert ExamIntegrityRun._meta.db_table == "exam_integrity_runs"

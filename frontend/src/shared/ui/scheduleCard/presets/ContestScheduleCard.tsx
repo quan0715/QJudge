@@ -1,6 +1,5 @@
 import { Tag } from "@carbon/react";
 import {
-  Archive,
   Calendar,
   CheckmarkFilled,
   InProgress,
@@ -21,7 +20,6 @@ const ACCENT: Record<string, string> = {
   upcoming: "var(--cds-border-strong-01)",
   running: "var(--cds-support-success)",
   ended: "var(--cds-border-strong-01)",
-  archived: "var(--cds-text-disabled)",
 };
 
 function StateIcon({ state }: { state: ContestDisplayState }) {
@@ -31,8 +29,6 @@ function StateIcon({ state }: { state: ContestDisplayState }) {
       return <InProgress {...props} />;
     case "ended":
       return <CheckmarkFilled {...props} />;
-    case "archived":
-      return <Archive {...props} />;
     default:
       return <Calendar {...props} />;
   }
@@ -58,7 +54,7 @@ export function ContestScheduleCard({
   });
 
   const accent = ACCENT[state] ?? ACCENT.upcoming;
-  const isMuted = state === "ended" || state === "archived";
+  const isMuted = state === "ended";
 
   return (
     <ScheduleCard.Root onClick={onClick} accentColor={accent} muted={isMuted}>

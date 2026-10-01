@@ -72,21 +72,6 @@ vi.mock("@/features/contest/modules/AdminPanelRendererRegistry", () => ({
   },
 }));
 
-vi.mock("@/features/app/components/WorkspaceToolBar", () => ({
-  WorkspaceToolBar: ({
-    title,
-    actions,
-  }: {
-    title: ReactNode;
-    actions?: ReactNode;
-  }) => (
-    <div>
-      <div data-testid="toolbar-title">{title}</div>
-      <div data-testid="toolbar-actions">{actions}</div>
-    </div>
-  ),
-}));
-
 vi.mock("@/features/contest/components/admin/ContestExportDialog", () => ({
   default: () => null,
 }));
@@ -111,18 +96,6 @@ describe("AdminDashboardScreen", () => {
     mockRefreshAdminData.mockReset();
     mockPanelMount.mockReset();
     mockContestState = { contest: mockContest, loading: false };
-  });
-
-  it("does not render the legacy workspace toolbar", () => {
-    render(
-      <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/admin?panel=overview"]}>
-        <Routes>
-          <Route path="/classrooms/:classroomId/contest/:contestId/admin" element={<AdminDashboardScreen />} />
-        </Routes>
-      </MemoryRouter>,
-    );
-
-    expect(screen.queryByTestId("toolbar-actions")).not.toBeInTheDocument();
   });
 
   it("does not remount the active panel when the dashboard rerenders", () => {

@@ -70,13 +70,6 @@ export const deleteContest = async (id: string): Promise<void> => {
   );
 };
 
-export const archiveContest = async (id: string): Promise<void> => {
-  await ensureOk(
-    httpClient.post(`/api/v1/contests/${id}/archive/`),
-    "Failed to archive contest"
-  );
-};
-
 export const getContestStandings = async (
   id: string
 ): Promise<ScoreboardData> => {

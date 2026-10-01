@@ -1,7 +1,7 @@
 import type { SubmissionStatus } from "./submission.entity";
 import type { Difficulty } from "./problem.entity";
 
-export type ContestStatus = "draft" | "published" | "archived";
+export type ContestStatus = "draft" | "published";
 export type ContestType = "coding" | "paper_exam";
 export type ContestScopeRole =
   | "platform_admin"
@@ -582,7 +582,6 @@ export interface ContestAttendanceStatus {
 
 export type ContestDisplayState =
   | "draft"
-  | "archived"
   | "upcoming"
   | "running"
   | "ended";
@@ -596,10 +595,6 @@ export const getContestState = (contest: {
 }, nowMs: number = Date.now()): ContestDisplayState => {
   if (contest.status === "draft") {
     return "draft";
-  }
-
-  if (contest.status === "archived") {
-    return "archived";
   }
 
   const now = nowMs;
@@ -630,8 +625,6 @@ export const getContestStateLabel = (state: ContestDisplayState): string => {
   switch (state) {
     case "draft":
       return "草稿";
-    case "archived":
-      return "已封存";
     case "upcoming":
       return "即將開始";
     case "running":
@@ -661,8 +654,6 @@ export const getContestStateColor = (
   switch (state) {
     case "draft":
       return "gray";
-    case "archived":
-      return "cool-gray";
     case "upcoming":
       return "blue";
     case "running":

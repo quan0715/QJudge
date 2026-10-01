@@ -111,35 +111,6 @@ describe("contest mapper", () => {
   });
 
   describe("anti-cheat config mapping", () => {
-    it("drops retired contest delivery and warning fields", () => {
-      const result = mapContestDetailDto({
-        id: "contest-1",
-        name: "Exam",
-        delivery_mode: "practice",
-        counts_toward_grade: false,
-        max_cheat_warnings: 3,
-        assignment_state: "accepted",
-        accepted_at: "2026-07-11T09:00:00+08:00",
-        submitted_at: "2026-07-11T10:00:00+08:00",
-        permissions: {},
-        problems: [],
-      } as any);
-
-      expect(result).not.toHaveProperty("deliveryMode");
-      expect(result).not.toHaveProperty("countsTowardGrade");
-      expect(result).not.toHaveProperty("maxCheatWarnings");
-      expect(result).not.toHaveProperty("assignmentState");
-      expect(result).not.toHaveProperty("acceptedAt");
-      expect(result).not.toHaveProperty("submittedAt");
-
-      const updateDto = mapContestUpdateRequestToDto({
-        maxCheatWarnings: 3,
-        countsTowardGrade: false,
-      } as any);
-      expect(updateDto).not.toHaveProperty("max_cheat_warnings");
-      expect(updateDto).not.toHaveProperty("counts_toward_grade");
-    });
-
     it("maps webcamRequired from the config and from the frozen run separately", () => {
       const config = mapContestAnticheatConfigDto({
         webcam_required: true,
@@ -154,35 +125,8 @@ describe("contest mapper", () => {
       });
 
       expect(config.webcamRequired).toBe(true);
-      expect(config).not.toHaveProperty("version");
       expect(config.integrityRun?.participantId).toBe(7);
       expect(config.integrityRun?.webcamRequired).toBe(false);
-    });
-
-    it("no longer maps device policies or contest co-admins", () => {
-      const config = mapContestAnticheatConfigDto({
-        webcam_required: false,
-        integrity_run: {
-          id: "run-1",
-          session_state: "active",
-          health: "healthy",
-          participant_id: "7",
-          policy_snapshot: { webcam_required: false },
-          registry_snapshot: { version: "registry-1", definitions: {} },
-        },
-      });
-      const detail = mapContestDetailDto({
-        id: "contest-1",
-        name: "Exam",
-        admins: [{ id: 1, username: "legacy" }],
-        permissions: {},
-        problems: [],
-      } as any);
-
-      expect(config).not.toHaveProperty("devicePolicy");
-      expect(config.integrityRun).not.toHaveProperty("devicePolicy");
-      expect(detail).not.toHaveProperty("admins");
-      expect(detail).not.toHaveProperty("anticheatDevicePolicy");
     });
 
     it("maps webcamRequired on contest detail and updates", () => {

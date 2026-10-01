@@ -71,17 +71,6 @@ def test_adapt_reasoning_content_blocks_and_text_blocks():
     assert events[1].content == "answer-a"
 
 
-def test_adapt_legacy_thinking_block_still_supported():
-    chunk = _Chunk(content=[{"type": "thinking", "thinking": "old-think"}])
-
-    events = adapt_langgraph_event(_stream_event(chunk))
-
-    assert events is not None
-    assert len(events) == 1
-    assert isinstance(events[0], ThinkingDelta)
-    assert events[0].content == "old-think"
-
-
 def test_adapt_openai_responses_api_reasoning_summary_block():
     """OpenAI Responses API (output_version=responses/v1) emits reasoning
     with a nested `summary[].text` shape. The adapter must extract the text

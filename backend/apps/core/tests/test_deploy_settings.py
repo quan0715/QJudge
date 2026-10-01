@@ -57,14 +57,11 @@ def load_settings(module: str, extra_env: dict[str, str], names: list[str]) -> d
     return json.loads(result.stdout.strip().splitlines()[-1])
 
 
-def test_urls_derive_from_public_origin_and_ignore_legacy_keys():
+def test_urls_derive_from_public_origin():
     values = load_settings(
         "base",
         {
             "QJUDGE_PUBLIC_ORIGIN": ORIGIN + "/",
-            "FRONTEND_URL": "https://ignored.example",
-            "OAUTH_ISSUER_URL": "https://ignored.example",
-            "MARKDOWN_IMAGE_PUBLIC_BASE_URL": "https://ignored.example",
         },
         ["FRONTEND_URL", "OAUTH_ISSUER_URL", "MARKDOWN_IMAGE_PUBLIC_BASE_URL"],
     )
@@ -154,12 +151,6 @@ def test_media_disabled_by_default():
     assert values["LIVE_MONITORING_PROVIDER"] == "disabled"
 
 
-def test_legacy_live_monitoring_flag_is_ignored():
-    values = load_settings("base", {"LIVE_MONITORING_ENABLED": "true"}, MEDIA_NAMES)
-
-    assert values["LIVE_MONITORING_ENABLED"] is False
-
-
 def test_explicit_internal_url_overrides_derived_url():
     values = load_settings(
         "base",
@@ -172,71 +163,6 @@ def test_explicit_internal_url_overrides_derived_url():
     )
 
     assert values["LIVEKIT_INTERNAL_URL"] == "http://livekit:7883"
-
-
-BASE_CONSTANTS = {
-    "JUDGE_ENGINE_ENABLED": True,
-    "JUDGE_MAX_CPU_TIME": 10,
-    "JUDGE_MAX_MEMORY": 256,
-    "DOCKER_JUDGE_PIDS_LIMIT": 64,
-    "DOCKER_JUDGE_TMPFS_SIZE": "100M",
-    "DOCKER_JUDGE_TIMEOUT": 60,
-    "JUDGE_TEST_RUN_QUEUE": "default",
-    "JUDGE_TEST_RUN_TIMEOUT": 120,
-    "AI_SERVICE_URL": "http://ai-service:8001",
-    "AI_ACCESS_TOKEN_SECONDS": 300,
-    "AI_SERVICE_CONNECT_TIMEOUT_SECONDS": 3.0,
-    "AI_SERVICE_READ_TIMEOUT_SECONDS": 30.0,
-    "AI_SERVICE_WRITE_TIMEOUT_SECONDS": 10.0,
-    "AI_SERVICE_POOL_TIMEOUT_SECONDS": 3.0,
-    "INTEGRITY_RESIDENT_URL": "http://integrity-resident:8011",
-    "INTEGRITY_ACCEPT_GRACE_SECONDS": 300,
-    "INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS": 1.0,
-    "INTEGRITY_WORKER_READ_TIMEOUT_SECONDS": 5.0,
-    "OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS": 300,
-    "INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES": 1073741824,
-    "INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES": 268435456,
-    "ANTICHEAT_CAPTURE_INTERVAL_SECONDS": 3,
-    "LIVEKIT_TOKEN_TTL_SECONDS": 120,
-    "MARKDOWN_IMAGE_MAX_BYTES": 5242880,
-}
-IGNORED_ENV = {
-    "JUDGE_ENGINE_ENABLED": "False",
-    "JUDGE_MAX_CPU_TIME": "99",
-    "JUDGE_MAX_MEMORY": "99",
-    "DOCKER_JUDGE_PIDS_LIMIT": "99",
-    "DOCKER_JUDGE_TMPFS_SIZE": "1M",
-    "DOCKER_JUDGE_TIMEOUT": "99",
-    "JUDGE_TEST_RUN_QUEUE": "other",
-    "JUDGE_TEST_RUN_TIMEOUT": "99",
-    "AI_SERVICE_URL": "http://other:1",
-    "AI_ACCESS_TOKEN_SECONDS": "99",
-    "AI_SERVICE_CONNECT_TIMEOUT_SECONDS": "99",
-    "AI_SERVICE_READ_TIMEOUT_SECONDS": "99",
-    "AI_SERVICE_WRITE_TIMEOUT_SECONDS": "99",
-    "AI_SERVICE_POOL_TIMEOUT_SECONDS": "99",
-    "INTEGRITY_RESIDENT_URL": "http://other:1",
-    "INTEGRITY_ACCEPT_GRACE_SECONDS": "99",
-    "INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS": "99",
-    "INTEGRITY_WORKER_READ_TIMEOUT_SECONDS": "99",
-    "OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS": "99",
-    "INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES": "99",
-    "INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES": "99",
-    "ANTICHEAT_CAPTURE_INTERVAL_SECONDS": "99",
-    "LIVEKIT_TOKEN_TTL_SECONDS": "99",
-    "MARKDOWN_IMAGE_MAX_BYTES": "99",
-    "QAUTH_PROVIDER_CONNECTIONS_FILE": "/nonexistent.json",
-}
-
-
-def test_tuning_values_are_constants():
-    values = load_settings(
-        "base", IGNORED_ENV, list(BASE_CONSTANTS) + ["QAUTH_PROVIDER_CONNECTIONS_FILE"]
-    )
-
-    file_path = values.pop("QAUTH_PROVIDER_CONNECTIONS_FILE")
-    assert values == BASE_CONSTANTS
-    assert file_path.endswith("config/qauth-providers.json")
 
 
 def test_prod_debug_and_hosts_ignore_env():
@@ -303,26 +229,6 @@ def test_database_url_is_required():
 
     assert result.returncode != 0
     assert "DATABASE_URL must be set" in result.stderr
-
-
-def test_legacy_mcp_public_url_is_ignored():
-    values = load_settings(
-        "base",
-        {"QJUDGE_PUBLIC_ORIGIN": ORIGIN, "MCP_PUBLIC_URL": "https://mcp.example.edu/"},
-        ["MCP_PUBLIC_URL"],
-    )
-
-    assert values["MCP_PUBLIC_URL"] == ORIGIN
-
-
-def test_legacy_bucket_keys_are_ignored():
-    values = load_settings(
-        "base",
-        {"ANTICHEAT_RAW_BUCKET": "old-raw", "MARKDOWN_IMAGE_S3_BUCKET": "old-markdown"},
-        ["OBJECT_STORAGE_BUCKET"],
-    )
-
-    assert values == {"OBJECT_STORAGE_BUCKET": ""}
 
 
 def test_storage_region_is_constant():

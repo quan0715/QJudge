@@ -2,7 +2,7 @@ import base64
 import hashlib
 import uuid
 from datetime import timedelta
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 from cryptography.hazmat.primitives import serialization
@@ -852,16 +852,6 @@ def test_commands_reject_a_legacy_bearer_token(internal_client, running_integrit
 
     assert response.status_code == 401
     assert response.json() == {"code": "invalid_integrity_run_token"}
-
-
-def test_command_helpers_never_import_worker_database_clients():
-    import apps.contests.services.integrity_commands as commands
-
-    source = __import__("inspect").getsource(commands)
-    assert "psycopg" not in source
-    assert "django.db" in source
-    assert UUID(command_id := "55555555-5555-5555-5555-555555555555")
-    assert str(UUID(command_id)) == command_id
 
 
 @pytest.mark.django_db

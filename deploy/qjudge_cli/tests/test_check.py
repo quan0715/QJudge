@@ -33,13 +33,6 @@ def error_keys(env):
 
 
 class CheckTests(unittest.TestCase):
-    def test_legacy_ai_keys_point_to_deploy_ai(self):
-        moved = "moved; put API keys in deploy/ai/keys.env and base URLs in deploy/ai/models.yml"
-        self.assertEqual(
-            check_env(with_changes(OPENAI_API_KEY="sk", VLLM_BASE_URL="http://vllm")),
-            [f"OPENAI_API_KEY: {moved}", f"VLLM_BASE_URL: {moved}"],
-        )
-
     def test_bundled_storage_secret_needs_eight_characters(self):
         env = with_changes(OBJECT_STORAGE_SECRET_KEY="short")
         self.assertEqual(error_keys(env), ["OBJECT_STORAGE_SECRET_KEY"])

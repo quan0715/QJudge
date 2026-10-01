@@ -52,7 +52,6 @@ class PermissionError:
 class ErrorCodes:
     """Constants for permission error codes."""
     CONTEST_DRAFT = 'contest_draft'
-    CONTEST_ARCHIVED = 'contest_archived'
     CONTEST_NOT_STARTED = 'contest_not_started'
     CONTEST_ENDED = 'contest_ended'
     SCOREBOARD_HIDDEN = 'scoreboard_hidden'
@@ -72,20 +71,20 @@ BASE_ROLE_PERMISSIONS = {
         'manage_contest_settings', 'manage_contest_lifecycle',
         'manage_participants', 'manage_problems',
         'view_scoreboard_full', 'view_report', 'export_report',
-        'submit', 'view_draft', 'view_archived', 'view_participants',
+        'submit', 'view_draft', 'view_participants',
         'manage_clarifications', 'view_all_submissions',
     },
     'owner': {
         'manage_contest_settings', 'manage_contest_lifecycle',
         'manage_participants', 'manage_problems',
         'view_scoreboard_full', 'view_report', 'export_report',
-        'submit', 'view_draft', 'view_archived', 'view_participants',
+        'submit', 'view_draft', 'view_participants',
         'manage_clarifications', 'view_all_submissions',
     },
     'co_owner': {
         'manage_contest_settings', 'manage_participants', 'manage_problems',
         'view_scoreboard_full', 'view_report', 'export_report',
-        'submit', 'view_draft', 'view_archived', 'view_participants',
+        'submit', 'view_draft', 'view_participants',
         'manage_clarifications', 'view_all_submissions',
     },
     'participant': {
@@ -102,11 +101,6 @@ STATUS_RESTRICTIONS = {
         'requires_permission': 'view_draft',
         'error_code': ErrorCodes.CONTEST_DRAFT,
         'error_message': 'Contest is not published',
-    },
-    'archived': {
-        'requires_permission': 'view_archived',
-        'error_code': ErrorCodes.CONTEST_ARCHIVED,
-        'error_message': 'Contest has been archived',
     }
 }
 
@@ -135,7 +129,7 @@ class ContestAccessPolicy(permissions.BasePermission):
 
     Permission check order:
     1. Check if user is authenticated (for protected actions)
-    2. Check contest status (draft/published/archived)
+    2. Check contest publication status (draft/published)
     3. Check role-based permissions
     4. Check context-specific conditions (scoreboard settings, exam status)
 
@@ -159,7 +153,6 @@ class ContestAccessPolicy(permissions.BasePermission):
 
         # Contest Lifecycle (owner-only)
         'toggle_status': 'manage_contest_lifecycle',
-        'archive': 'manage_contest_lifecycle',
 
         # Participant Management
         'participants': 'view_participants',
@@ -266,12 +259,6 @@ class ContestAccessPolicy(permissions.BasePermission):
         """Check if contest status allows access."""
         if action in {"standings", "my_report"}:
             return None
-
-        if contest.status == "archived" and action == "retrieve":
-            if user.is_authenticated and ContestParticipant.objects.filter(
-                contest=contest, user=user
-            ).exists():
-                return None
 
         if contest.status in STATUS_RESTRICTIONS:
             restriction = STATUS_RESTRICTIONS[contest.status]

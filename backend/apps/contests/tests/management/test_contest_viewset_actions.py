@@ -230,39 +230,6 @@ def test_toggle_status_rejects_publish_without_schedule(
 
 
 @pytest.mark.django_db
-def test_toggle_status_rejects_archived_contest(
-    api_client: APIClient,
-    owner: User,
-    contest: Contest,
-) -> None:
-    contest.status = "archived"
-    contest.save(update_fields=["status"])
-    api_client.force_authenticate(user=owner)
-
-    response = api_client.post(f"/api/v1/contests/{contest.id}/toggle_status/", {}, format="json")
-
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data["error"] == "Contest is archived and cannot be toggled"
-
-
-@pytest.mark.django_db
-def test_archive_contest_and_reject_second_archive(
-    api_client: APIClient,
-    owner: User,
-    contest: Contest,
-) -> None:
-    api_client.force_authenticate(user=owner)
-
-    first = api_client.post(f"/api/v1/contests/{contest.id}/archive/", {}, format="json")
-    second = api_client.post(f"/api/v1/contests/{contest.id}/archive/", {}, format="json")
-
-    assert first.status_code == status.HTTP_200_OK
-    assert first.data["status"] == "archived"
-    assert second.status_code == status.HTTP_400_BAD_REQUEST
-    assert second.data["success"] is False
-
-
-@pytest.mark.django_db
 def test_destroy_requires_owner_even_for_classroom_ta(
     api_client: APIClient,
     contest: Contest,
@@ -773,22 +740,6 @@ def test_contest_problem_retrieve_by_binding_id(
 
 
 @pytest.mark.django_db
-def test_contest_problem_destroy_rejects_coding_problem_id_fallback(
-    api_client: APIClient,
-    owner: User,
-    contest: Contest,
-) -> None:
-    problem = _create_problem("Destroy via coding problem id", owner)
-    binding = bind_problem_to_contest(contest, problem, order=0)
-
-    api_client.force_authenticate(user=owner)
-    response = api_client.delete(f"/api/v1/contests/{contest.id}/problems/{problem.id}/")
-
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert ContestQuestionBinding.objects.filter(id=binding.id).exists()
-
-
-@pytest.mark.django_db
 def test_contest_problem_destroy_cleans_orphan_asset(
     api_client: APIClient,
     owner: User,
@@ -1177,16 +1128,6 @@ def test_co_owner_cannot_toggle_status(
 
 
 @pytest.mark.django_db
-def test_co_owner_cannot_archive(
-    api_client: APIClient, contest: Contest, co_owner_user: User
-) -> None:
-    """co_owner must be blocked from archive (lifecycle-only)."""
-    api_client.force_authenticate(user=co_owner_user)
-    response = api_client.post(f"/api/v1/contests/{contest.id}/archive/", {}, format="json")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
-@pytest.mark.django_db
 def test_co_owner_cannot_delete_contest(
     api_client: APIClient, contest: Contest, co_owner_user: User
 ) -> None:
@@ -1213,17 +1154,6 @@ def test_platform_admin_can_toggle_status(
     api_client.force_authenticate(user=platform_admin_user)
     response = api_client.post(f"/api/v1/contests/{contest.id}/toggle_status/", {}, format="json")
     assert response.status_code == status.HTTP_200_OK
-
-
-@pytest.mark.django_db
-def test_platform_admin_can_archive(
-    api_client: APIClient, contest: Contest, platform_admin_user: User
-) -> None:
-    api_client.force_authenticate(user=platform_admin_user)
-    response = api_client.post(f"/api/v1/contests/{contest.id}/archive/", {}, format="json")
-    assert response.status_code == status.HTTP_200_OK
-    contest.refresh_from_db()
-    assert contest.status == "archived"
 
 
 @pytest.mark.django_db

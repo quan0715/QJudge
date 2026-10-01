@@ -55,11 +55,10 @@ class Contest(models.Model):
         help_text='room: 後鏡頭拍攝現場; room_and_selfie: 後鏡頭現場與前鏡頭本人各一張',
     )
 
-    # Contest status - draft/published/archived
+    # Publication status; the schedule determines whether a contest has ended.
     STATUS_CHOICES = [
         ('draft', 'Draft'),
         ('published', 'Published'),
-        ('archived', 'Archived'),
     ]
     status = models.CharField(
         max_length=20,
@@ -67,7 +66,7 @@ class Contest(models.Model):
         default='draft',
         db_index=True,
         verbose_name='狀態',
-        help_text='draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀'
+        help_text='draft: 草稿未發布；published: 已發布，依開始與結束時間決定是否可作答'
     )
 
     allow_multiple_joins = models.BooleanField(default=False, verbose_name='允許多次加入')

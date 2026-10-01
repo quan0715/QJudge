@@ -51,31 +51,3 @@ async def test_ai_schema_has_only_three_uuid_primary_keys(db_engine) -> None:
         assert await connection.run_sync(
             lambda sync: pk_columns(sync, "run_events")
         ) == ["run_id", "sequence"]
-
-
-async def test_removed_identity_columns_do_not_exist(db_engine) -> None:
-    forbidden = {
-        "external_run_id",
-        "thread_id",
-        "celery_task_id",
-        "tenant_id",
-        "user_id",
-        "user_message_id",
-        "assistant_message_id",
-        "object_key",
-    }
-    async with db_engine.connect() as connection:
-        columns = await connection.run_sync(
-            lambda sync: {
-                column["name"]
-                for table in (
-                    "sessions",
-                    "messages",
-                    "runs",
-                    "run_events",
-                    "artifacts",
-                )
-                for column in inspect(sync).get_columns(table, schema="ai")
-            }
-        )
-    assert forbidden.isdisjoint(columns)

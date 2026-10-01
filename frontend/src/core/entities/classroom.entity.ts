@@ -30,7 +30,7 @@ export interface BoundContest {
   contestId: string;
   contestName: string;
   contestDescription: string;
-  contestStatus: "draft" | "published" | "archived";
+  contestStatus: "draft" | "published";
   attendanceCheckEnabled?: boolean;
   contestType: "coding" | "paper_exam";
   contestStartTime: string;

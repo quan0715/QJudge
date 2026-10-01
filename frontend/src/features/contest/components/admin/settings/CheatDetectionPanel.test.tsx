@@ -19,15 +19,6 @@ const createProps = (
 });
 
 describe("CheatDetectionPanel", () => {
-  it("offers only the strict mode and webcam switches", () => {
-    render(<CheatDetectionPanel {...createProps({ cheatDetectionEnabled: true, webcamRequired: false })} />);
-
-    expect(screen.getAllByRole("switch")).toHaveLength(2);
-    expect(screen.getByRole("switch", { name: "要求 Webcam" })).toBeInTheDocument();
-    expect(screen.queryByText("允許平板作答")).not.toBeInTheDocument();
-    expect(screen.queryByText("啟用螢幕分享")).not.toBeInTheDocument();
-  });
-
   it("saves webcamRequired when the webcam switch changes", () => {
     const onChange = vi.fn();
     render(

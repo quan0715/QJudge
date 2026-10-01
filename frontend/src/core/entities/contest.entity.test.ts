@@ -11,11 +11,6 @@ describe('Contest Entity Utilities', () => {
       expect(getContestState(contest)).toBe('draft');
     });
 
-    it('should return "archived" when status is archived', () => {
-      const contest = { status: 'archived' };
-      expect(getContestState(contest)).toBe('archived');
-    });
-
     it('should return "upcoming" when start time is in the future', () => {
       const contest = {
         status: 'published',
@@ -43,20 +38,11 @@ describe('Contest Entity Utilities', () => {
       expect(getContestState(contest)).toBe('ended');
     });
 
-    it('should handle legacy snake_case fields', () => {
-      const contest = {
-        status: 'published',
-        start_time: new Date(now - oneHour).toISOString(),
-        end_time: new Date(now + oneHour).toISOString(),
-      };
-      expect(getContestState(contest)).toBe('running');
-    });
   });
 
   describe('getContestStateLabel', () => {
     it('should return correct Chinese labels', () => {
       expect(getContestStateLabel('draft')).toBe('草稿');
-      expect(getContestStateLabel('archived')).toBe('已封存');
       expect(getContestStateLabel('upcoming')).toBe('即將開始');
       expect(getContestStateLabel('running')).toBe('進行中');
       expect(getContestStateLabel('ended')).toBe('已結束');

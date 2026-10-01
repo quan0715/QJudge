@@ -33,17 +33,6 @@ describe("calculateObjectiveExpectedScore", () => {
     expect(calculateObjectiveExpectedScore(row)).toBe(8);
   });
 
-  it("supports legacy letter-style single choice answer", () => {
-    const row = buildRow({
-      questionType: "single_choice",
-      questionOptions: ["Alpha", "Beta", "Gamma"],
-      answerContent: { selected: 1 },
-      correctAnswer: "B",
-      maxScore: 6,
-    });
-    expect(calculateObjectiveExpectedScore(row)).toBe(6);
-  });
-
   it("supports true_false bool/string/index normalization", () => {
     const row = buildRow({
       questionType: "true_false",

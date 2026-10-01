@@ -84,8 +84,6 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         return self._contest_requires_classroom_binding_response()
 
     def _resolve_exam_window_status(self, contest: Contest, now):
-        if contest.status == "archived":
-            return "ended"
         if contest.status != "published":
             return "upcoming"
         if contest.end_time and now >= contest.end_time:
@@ -168,7 +166,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Filter contests based on classroom/contest relationships and user role.
-        Draft/archived contests are hidden from the default listing.
+        Draft contests are hidden from the default listing.
         """
         queryset = super().get_queryset()
 
@@ -276,11 +274,6 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         Toggle contest status between published and draft.
         """
         contest = self.get_object()
-        if contest.status == 'archived':
-            return Response(
-                {'error': 'Contest is archived and cannot be toggled'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
         if contest.status == 'published':
             contest.status = 'draft'
             contest.results_published = False
@@ -308,28 +301,6 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         )
 
         return Response({'status': contest.status})
-
-    @action(detail=True, methods=['post'], permission_classes=[IsContestLifecycleOwner])
-    def archive(self, request, pk=None):
-        """
-        Archive a contest. This action is irreversible.
-        """
-        contest = self.get_object()
-        if contest.status == 'archived':
-            raise DRFValidationError('Contest is already archived')
-
-        contest.status = 'archived'
-        contest.save()
-
-        # Log activity
-        log_contest_activity(
-            contest,
-            request.user,
-            'other',
-            "Archived contest"
-        )
-
-        return Response({'status': 'archived'})
 
     def destroy(self, request, *args, **kwargs):
         """

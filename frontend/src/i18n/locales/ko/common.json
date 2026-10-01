@@ -103,7 +103,6 @@
     }
   },
   "button": {
-    "archive": "보관",
     "back": "뒤로",
     "cancel": "취소",
     "clear": "초기화",
@@ -477,7 +476,6 @@
   },
   "status": {
     "active": "활성",
-    "archived": "보관됨",
     "connected": "연결됨",
     "disabled": "비활성화됨",
     "disconnected": "연결 안 됨",

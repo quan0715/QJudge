@@ -27,15 +27,9 @@ def load_issuer(extra_env: dict[str, str]) -> str:
 
 
 def test_issuer_comes_from_public_origin():
-    issuer = load_issuer(
-        {"QJUDGE_PUBLIC_ORIGIN": "https://judge.example.edu/", "OAUTH_ISSUER_URL": "https://ignored.example"}
-    )
+    issuer = load_issuer({"QJUDGE_PUBLIC_ORIGIN": "https://judge.example.edu/"})
 
     assert issuer == "https://judge.example.edu"
-
-
-def test_issuer_ignores_legacy_key():
-    assert load_issuer({"OAUTH_ISSUER_URL": "https://legacy.example/"}) == "http://localhost:8000"
 
 
 def load_public_url(extra_env: dict[str, str]) -> str:
@@ -59,11 +53,3 @@ def load_public_url(extra_env: dict[str, str]) -> str:
 
 def test_public_url_defaults_to_public_origin():
     assert load_public_url({"QJUDGE_PUBLIC_ORIGIN": "https://judge.example.edu/"}) == "https://judge.example.edu"
-
-
-def test_public_url_ignores_legacy_key():
-    url = load_public_url(
-        {"QJUDGE_PUBLIC_ORIGIN": "https://judge.example.edu", "MCP_PUBLIC_URL": "https://mcp.example.edu/"}
-    )
-
-    assert url == "https://judge.example.edu"

@@ -190,7 +190,6 @@
         "unset": "Not set"
       },
       "contestStatus": {
-        "archived": "Archived",
         "draft": "Draft",
         "published": "Published"
       },
@@ -376,7 +375,6 @@
       },
       "contestInfoLabel": "Contest info",
       "contestStatus": {
-        "archived": "Archived",
         "draft": "Draft",
         "published": "Published"
       },
@@ -582,11 +580,6 @@
       "unansweredSubtitle": "It is recommended to complete all questions before submitting.",
       "unansweredWarning": "{{count}} questions left unanswered"
     }
-  },
-  "archive": {
-    "confirm": "Are you sure you want to archive this contest? It will be moved to the archive list.",
-    "error": "Archive failed",
-    "title": "Archive Contest"
   },
   "attendance": {
     "badge": "QR Attendance",
@@ -1785,7 +1778,6 @@
     "accessControl": "Access Control",
     "allowMultipleJoins": "Allow Multiple Joins",
     "allowMultipleJoinsDesc": "Allow students to re-enter the exam after leaving and resume their existing progress.",
-    "alreadyArchived": "Already Archived",
     "anonymousMode": "Anonymous Mode",
     "anonymousModeHelp": "When enabled, participants can set nicknames. Scoreboard and submission list will display nicknames",
     "anticheat": {
@@ -1810,10 +1802,6 @@
       "securityDetectors": "Violation Detection Mechanism",
       "webcam": "Video Monitoring (Webcam)"
     },
-    "archiveContest": "Archive Contest",
-    "archiveDesc": "Once archived, the contest will become read-only and cannot be activated again.",
-    "archiveFailed": "Archive failed",
-    "archived": "Contest archived",
     "attendanceCheck": {
       "description": "When enabled, students must scan a QR Code on the contest home page and submit room photos before starting the exam.",
       "label": "QR check-in/out"
@@ -1825,7 +1813,6 @@
       "roomAndSelfie": "Front-camera selfie + rear-camera room photo"
     },
     "basicInfo": "Basic Information",
-    "confirmArchive": "Are you sure you want to archive this contest?",
     "confirmDelete": "Are you sure you want to delete this contest? This action cannot be undone!",
     "confirmDisableExamMode": "This will disable anti-cheat monitoring for this exam. Disable it?",
     "confirmEnableExamMode": "Students will need a computer that can share its screen. Turn this on?",
@@ -1964,7 +1951,6 @@
       "status": "Status"
     },
     "contestState": {
-      "archived": "Archived",
       "draft": "Draft",
       "ended": "Ended",
       "running": "In progress",

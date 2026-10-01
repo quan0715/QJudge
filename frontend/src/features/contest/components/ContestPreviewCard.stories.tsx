@@ -62,7 +62,7 @@ export const Past: Story = {
           contest={sampleContest({
             startTime: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
             endTime: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-            status: "archived",
+            status: "published",
           })}
         />
       ),

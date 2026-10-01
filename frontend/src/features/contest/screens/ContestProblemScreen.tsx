@@ -115,7 +115,7 @@ const ContestProblemScreen = () => {
 
   // Check view permissions
   const canView =
-    ((contest?.status === "published" || contest?.status === "archived") &&
+    (contest?.status === "published" &&
       contest?.hasStarted &&
       contest?.examStatus !== "locked");
 

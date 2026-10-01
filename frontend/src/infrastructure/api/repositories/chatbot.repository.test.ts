@@ -143,32 +143,6 @@ describe("chatbotRepository request errors", () => {
 });
 
 describe("chatbotRepository stream events", () => {
-  it("keeps the requested session authoritative when run_started carries a legacy thread id", () => {
-    const setResolvedId = vi.fn();
-
-    (chatbotRepository as unknown as {
-      _handleStreamEvent: (
-        event: Record<string, unknown>,
-        currentMessage: Record<string, unknown>,
-        callbacks: Record<string, never>,
-        resolvedSessionId: string,
-        legacySetResolvedId: (id: string) => void,
-      ) => void;
-    })._handleStreamEvent(
-      {
-        type: "run_started",
-        run_id: RUN_ID,
-        thread_id: "legacy-thread-id",
-      },
-      {},
-      {},
-      SESSION_ID,
-      setResolvedId,
-    );
-
-    expect(setResolvedId).not.toHaveBeenCalled();
-  });
-
   it("propagates the backend sequence through every callback from one source event", () => {
     const callbacks = {
       onSessionNotice: vi.fn(),

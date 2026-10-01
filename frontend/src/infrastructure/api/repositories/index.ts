@@ -6,7 +6,6 @@ export {
   replyClarification,
 } from "./clarification.repository";
 export {
-  archiveContest,
   deleteContest,
   getContest,
   getContestOverviewMetrics,

@@ -11,7 +11,6 @@ import {
 } from "@/features/contest/components/admin/examEditor/hooks/useExamAutoSave";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import {
-  archiveContest,
   deleteContest,
 } from "@/infrastructure/api/repositories";
 import { ContestSettingsModal } from "@/features/contest/components/admin/settings";
@@ -100,7 +99,7 @@ const ContestSettingsOverlay = ({
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
 
-  const { contest, refreshContest } = useContest();
+  const { contest } = useContest();
   const { confirm, modalProps } = useConfirmModal();
   const autoSave = useExamAutoSave({
     contestId: contestId || "",
@@ -210,19 +209,6 @@ const ContestSettingsOverlay = ({
     },
     [handleChange],
   );
-
-  const handleArchive = async () => {
-    if (!contestId) return;
-    const confirmed = await confirm({
-      title: t("settings.confirmArchive"),
-      confirmLabel: tc("button.confirm"),
-      cancelLabel: tc("button.cancel"),
-      danger: true,
-    });
-    if (!confirmed) return;
-    await archiveContest(contestId);
-    await refreshContest();
-  };
 
   const handleDelete = async () => {
     if (!contestId) return;
@@ -349,7 +335,6 @@ const ContestSettingsOverlay = ({
             () => endTimeInput,
           );
         }}
-        onArchive={() => void handleArchive()}
         onDelete={() => void handleDelete()}
       />
       <ConfirmModal {...modalProps} />

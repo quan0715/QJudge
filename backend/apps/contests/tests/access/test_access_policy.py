@@ -67,7 +67,6 @@ class TestBaseRolePermissions:
         assert 'view_report' in admin_perms
         assert 'export_report' in admin_perms
         assert 'view_draft' in admin_perms
-        assert 'view_archived' in admin_perms
 
     def test_owner_permissions(self):
         """Owner should have full permissions including lifecycle."""
@@ -77,7 +76,6 @@ class TestBaseRolePermissions:
         assert 'manage_contest_lifecycle' in owner_perms
         assert 'manage_participants' in owner_perms
         assert 'view_draft' in owner_perms
-        assert 'view_archived' in owner_perms
 
     def test_co_owner_permissions(self):
         """Co-owner should have settings but not lifecycle permissions."""
@@ -86,7 +84,6 @@ class TestBaseRolePermissions:
         assert 'manage_contest_settings' in role_perms
         assert 'manage_contest_lifecycle' not in role_perms
         assert 'view_draft' in role_perms
-        assert 'view_archived' in role_perms
 
     def test_participant_permissions(self):
         """Participant should have limited permissions."""
@@ -223,17 +220,6 @@ class TestContestAccessPolicy:
         # Should return 404 for 'retrieve' action (mask_as_404)
         assert hasattr(request, '_permission_error')
         assert request._permission_error.status_code == 404
-
-    def test_archived_contest_teacher_access(self, policy, teacher_user, contest):
-        """Teacher should access archived contest."""
-        contest.status = 'archived'
-        contest.save()
-
-        request = self._create_request(teacher_user)
-        view = self._create_view('standings')
-
-        result = policy.has_object_permission(request, view, contest)
-        assert result is True
 
     # ==================== Scoreboard Visibility Tests ====================
 
@@ -429,11 +415,6 @@ class TestPermissionMatrix:
         ('admin', 'draft', 'retrieve', True),
         ('teacher', 'draft', 'retrieve', True),
         ('student', 'draft', 'retrieve', False),  # Students blocked from draft
-
-        # Archived contest
-        ('admin', 'archived', 'retrieve', True),
-        ('teacher', 'archived', 'retrieve', True),
-        ('student', 'archived', 'retrieve', True),
     ])
     def test_status_restrictions(self, setup_contest, role, contest_status, action, expected):
         """Test contest status restrictions."""
@@ -480,7 +461,6 @@ class TestUtilityFunctions:
         # Owner should have manage_contest_settings and manage_contest_lifecycle
         assert check_contest_permission(user, contest, 'manage_contest_settings') is True
         assert check_contest_permission(user, contest, 'manage_contest_lifecycle') is True
-        assert check_contest_permission(user, contest, 'view_archived') is True
 
     def test_get_all_permissions(self, setup):
         """Test get_all_permissions function."""

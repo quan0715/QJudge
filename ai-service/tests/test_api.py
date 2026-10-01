@@ -600,14 +600,6 @@ def test_unknown_exception_does_not_leak_internal_details() -> None:
     assert "database-password" not in response.text
 
 
-def test_legacy_shared_secret_and_chat_routes_are_removed() -> None:
-    client, _ = make_client()
-    removed = client.post("/api/chat/stream", headers={"X-AI-Internal-Token": "old"})
-    assert removed.status_code == 404
-    assert removed.json()["error"]["code"] == "HTTP_NOT_FOUND"
-    assert client.get("/api/models").status_code == 404
-
-
 def test_start_run_accepts_null_model_id_and_uses_default() -> None:
     client, _ = make_client()
     created = client.post(

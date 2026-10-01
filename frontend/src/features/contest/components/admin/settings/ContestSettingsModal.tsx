@@ -26,7 +26,6 @@ interface ContestSettingsModalProps extends ContestSettingsPanelProps {
   onStartMeridiemChange: (value: string) => void;
   onEndMeridiemChange: (value: string) => void;
   // Access panel danger zone
-  onArchive: () => void;
   onDelete: () => void;
 }
 
@@ -61,7 +60,6 @@ export default function ContestSettingsModal({
   onEndTimeChange,
   onStartMeridiemChange,
   onEndMeridiemChange,
-  onArchive,
   onDelete,
 }: ContestSettingsModalProps) {
   const sharedProps: ContestSettingsPanelProps = {
@@ -96,7 +94,6 @@ export default function ContestSettingsModal({
         return (
           <AccessSettingsPanel
             {...sharedProps}
-            onArchive={onArchive}
             onDelete={onDelete}
           />
         );
