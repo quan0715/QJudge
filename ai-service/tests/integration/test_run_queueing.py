@@ -285,3 +285,38 @@ async def test_terminal_handoff_selects_oldest_queued_after_commit(
         (first.id, "lease:teacher-1"),
         (second.id, "lease:teacher-1"),
     ]
+
+
+async def test_start_persists_page_context_in_user_message_metadata(
+    run_service, chat_session: Session, principal: Principal, session_factory
+) -> None:
+    service, _ = run_service
+    page_context = {
+        "path": "/classrooms/12",
+        "segments": [
+            {"type": "classroom", "label": "資工一甲", "ids": {"classroom_id": "12"}}
+        ],
+    }
+
+    await service.start(
+        principal,
+        chat_session.id,
+        "hello",
+        "deepseek-flash",
+        "with-page",
+        "token",
+        page_context=page_context,
+    )
+
+    async with session_factory() as db_session:
+        messages = (
+            await db_session.scalars(
+                select(MessageRow)
+                .where(MessageRow.session_id == chat_session.id)
+                .order_by(MessageRow.ordinal)
+            )
+        ).all()
+    assert [(row.role, row.content, row.metadata_) for row in messages] == [
+        ("user", "hello", {"page_context": page_context}),
+        ("assistant", "", {}),
+    ]

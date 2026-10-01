@@ -139,11 +139,17 @@ class FakeRunRepository:
 class FakeMessageRepository:
     def __init__(self) -> None:
         self.pairs: list[tuple[UUID, UUID, str]] = []
+        self.metadata: list[dict[str, Any] | None] = []
 
     async def append_pair(
-        self, session: Session, run_id: UUID, prompt: str
+        self,
+        session: Session,
+        run_id: UUID,
+        prompt: str,
+        metadata: dict[str, Any] | None = None,
     ) -> tuple[Any, Any]:
         self.pairs.append((session.id, run_id, prompt))
+        self.metadata.append(metadata)
         return object(), object()
 
 
@@ -543,3 +549,38 @@ async def test_celery_dispatcher_uses_run_id_as_task_id_and_propagates_trace() -
             },
         }
     ]
+
+
+PAGE_CONTEXT = {
+    "path": "/classrooms/12",
+    "segments": [{"type": "classroom", "label": "資工一甲", "ids": {"classroom_id": "12"}}],
+}
+
+
+async def test_start_stores_page_context_on_the_user_message(
+    run_service: RunService, principal: Principal, state: FakeState
+) -> None:
+    session = next(iter(state.sessions.values()))
+    await run_service.start(
+        principal,
+        session.id,
+        "hello",
+        "deepseek-flash",
+        "with-page",
+        "ai-token",
+        page_context=PAGE_CONTEXT,
+    )
+
+    assert state.messages.pairs[0][2] == "hello"
+    assert state.messages.metadata == [{"page_context": PAGE_CONTEXT}]
+
+
+async def test_start_without_page_context_stores_empty_metadata(
+    run_service: RunService, principal: Principal, state: FakeState
+) -> None:
+    session = next(iter(state.sessions.values()))
+    await run_service.start(
+        principal, session.id, "hello", "deepseek-flash", "no-page", "ai-token"
+    )
+
+    assert state.messages.metadata == [{}]

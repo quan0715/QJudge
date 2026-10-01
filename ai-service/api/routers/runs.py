@@ -146,6 +146,9 @@ async def start_run(
         model.id,
         idempotency_key,
         token,
+        page_context=(
+            body.page_context.model_dump() if body.page_context is not None else None
+        ),
     )
     return RunResponse.from_domain(run)
 
