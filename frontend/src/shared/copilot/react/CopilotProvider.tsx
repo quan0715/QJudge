@@ -117,6 +117,11 @@ export interface CopilotProviderProps {
    * omitted, every disable is treated as an ownership boundary.
    */
   ownerKey?: string | null;
+  /**
+   * Host-supplied metadata merged into every started run, read at start time
+   * so it reflects where the user is when the message is sent.
+   */
+  getRunMetadata?: () => Record<string, unknown>;
   children: ReactNode;
 }
 
@@ -313,11 +318,14 @@ export function CopilotProvider({
   initialSession = "none",
   enabled = true,
   ownerKey,
+  getRunMetadata,
   children,
 }: CopilotProviderProps) {
   const [runtime, setRuntime] = useState(createCopilotRuntimeState);
   const runtimeRef = useRef(runtime);
   runtimeRef.current = runtime;
+  const getRunMetadataRef = useRef(getRunMetadata);
+  getRunMetadataRef.current = getRunMetadata;
   const [sessions, setSessions] = useState<CopilotSessionSummary[]>([]);
   const [listStatus, setListStatus] =
     useState<CopilotSessionListStatus>("idle");
@@ -1451,13 +1459,14 @@ export function CopilotProvider({
       lastSendRef.current = { ...input, text, optimisticId };
 
       try {
+        const runMetadata = { ...getRunMetadataRef.current?.(), ...input.metadata };
         const run = await transport.startRun({
           sessionId,
           text,
           attachments: uploaded,
           modelId: input.modelId,
           idempotencyKey: optimisticId,
-          metadata: input.metadata,
+          metadata: Object.keys(runMetadata).length > 0 ? runMetadata : undefined,
         });
         if (!isCurrentSend()) return staleResult();
         syncSessionSummaryRun(sessionId, run);

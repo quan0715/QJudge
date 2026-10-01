@@ -2294,3 +2294,66 @@ describe("CopilotProvider composer lifecycle", () => {
     expect(result.current.isSending).toBe(false);
   });
 });
+
+
+describe("CopilotProvider run metadata", () => {
+  it("asks the host for run metadata when the run starts", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Chat" });
+    const startRun = vi.spyOn(transport, "startRun");
+    let hostMetadata: Record<string, unknown> = { pageContext: "first" };
+    const getRunMetadata = vi.fn(() => hostMetadata);
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    render(
+      <CopilotProvider
+        transport={transport}
+        initialSession="first"
+        getRunMetadata={getRunMetadata}
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() =>
+      expect(snapshot.current?.sessions.activeSession.id).toBe(session.id),
+    );
+    act(() => snapshot.current?.composer.setDraft("Hello"));
+    await waitFor(() => expect(snapshot.current?.composer.canSend).toBe(true));
+    hostMetadata = { pageContext: "second" };
+
+    await act(async () => {
+      await snapshot.current!.composer.send();
+    });
+
+    expect(getRunMetadata).toHaveBeenCalledTimes(1);
+    expect(startRun).toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: { pageContext: "second" } }),
+    );
+  });
+
+  it("leaves metadata undefined when the host has nothing to add", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Chat" });
+    const startRun = vi.spyOn(transport, "startRun");
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    render(
+      <CopilotProvider
+        transport={transport}
+        initialSession="first"
+        getRunMetadata={() => ({})}
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() =>
+      expect(snapshot.current?.sessions.activeSession.id).toBe(session.id),
+    );
+    act(() => snapshot.current?.composer.setDraft("Hello"));
+    await waitFor(() => expect(snapshot.current?.composer.canSend).toBe(true));
+
+    await act(async () => {
+      await snapshot.current!.composer.send();
+    });
+
+    expect(startRun.mock.calls[0]?.[0].metadata).toBeUndefined();
+  });
+});
