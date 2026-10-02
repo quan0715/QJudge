@@ -29,6 +29,9 @@ runs:
       uses: docker/bake-action@v7
       env:
         QJUDGE_VERSION: ci
+        # Skip the build record artifact and job summary; nobody reads them.
+        DOCKER_BUILD_RECORD_UPLOAD: "false"
+        DOCKER_BUILD_SUMMARY: "false"
       with:
         source: ./deploy
         files: compose.yml,compose.build.yml
