@@ -40,12 +40,9 @@ def render_page_context(
     if current.get("path"):
         lines.append(f"- 路徑：{_clean(current['path'])}")
     now, before = _contest(current), _contest(previous)
-    if (
-        now is not None
-        and before is not None
-        and now.get("ids", {}).get("contest_id")
-        != before.get("ids", {}).get("contest_id")
-    ):
+    now_id = (now or {}).get("ids", {}).get("contest_id")
+    before_id = (before or {}).get("ids", {}).get("contest_id")
+    if now_id and before_id and now_id != before_id:
         lines.append(
             f"注意：使用者已從〈{_clean(before.get('label', ''))}〉"
             f"切換到〈{_clean(now.get('label', ''))}〉。"

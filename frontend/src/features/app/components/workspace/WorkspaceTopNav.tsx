@@ -23,6 +23,7 @@ import { usePageHeaderActionsSlot } from "@/features/app/contexts/PageHeaderActi
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { UserMenu } from "@/features/app/components/UserMenu";
 import { AiAssistantNavButton } from "@/features/app/components/workspace/AiAssistantNavButton";
+import { contestPageContext } from "@/features/app/components/workspace/contestPageContext";
 import { useContestRuntimeMode } from "@/features/contest/hooks";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useOptionalContest } from "@/features/contest/contexts";
@@ -187,11 +188,8 @@ export function WorkspaceTopNav({ showSidebarControl, previewMode = false }: Wor
         }
       : null,
   );
-  const contestLabel = contestData?.contest?.name ?? currentContest?.contestName ?? null;
   usePublishPageContext(
-    contestRouteId && contestLabel
-      ? { type: "contest", label: contestLabel, ids: { contest_id: contestRouteId } }
-      : null,
+    contestPageContext(contestRouteId, contestData?.contest, currentContest),
   );
   const effectiveOpenMenu = contestNavigationReadOnly ? null : openMenu;
   const toggleMenu = useCallback((kind: Exclude<MenuKind, null>) => {

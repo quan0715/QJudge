@@ -213,6 +213,20 @@ describe("ComposerBar page context chip", () => {
     expect(onDismissPageContext).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the full attached context available on hover when the chip is truncated", () => {
+    const label = "資工一甲 / 期中考 / 3. 請回答下列關於刑事訴訟法強制處分之問題";
+    render(
+      <ComposerBar
+        {...baseProps}
+        attachments={[]}
+        pageContextLabel={label}
+        onDismissPageContext={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(label)).toHaveAttribute("title", label);
+  });
+
   it("hides the chip when nothing is attached", () => {
     render(
       <ComposerBar

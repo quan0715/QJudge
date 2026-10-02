@@ -2330,6 +2330,56 @@ describe("CopilotProvider run metadata", () => {
     );
   });
 
+  it("captures host metadata when Send is pressed, not after async preparation", async () => {
+    const transport = new MemoryCopilotTransport();
+    await transport.createSession({ title: "Chat" });
+    const pendingUpload = deferred<CopilotAttachmentPart>();
+    const uploadAttachment = vi
+      .spyOn(transport, "uploadAttachment")
+      .mockReturnValueOnce(pendingUpload.promise);
+    const startRun = vi.spyOn(transport, "startRun");
+    let hostMetadata: Record<string, unknown> = { pageContext: "when-sent" };
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    render(
+      <CopilotProvider
+        transport={transport}
+        initialSession="first"
+        getRunMetadata={() => hostMetadata}
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() =>
+      expect(snapshot.current?.sessions.activeSession.status).toBe("ready"),
+    );
+    act(() => snapshot.current?.composer.setDraft("With file"));
+    await act(() =>
+      snapshot.current!.composer.addAttachments([
+        new File(["data"], "a.txt", { type: "text/plain" }),
+      ]),
+    );
+    let pendingSend!: ReturnType<ProviderProbeSnapshot["composer"]["send"]>;
+    act(() => {
+      pendingSend = snapshot.current!.composer.send();
+    });
+    await waitFor(() => expect(uploadAttachment).toHaveBeenCalledTimes(1));
+    hostMetadata = { pageContext: "navigated-away" };
+
+    await act(async () => {
+      pendingUpload.resolve({
+        type: "attachment",
+        id: "att-1",
+        name: "a.txt",
+        mediaType: "text/plain",
+      } as CopilotAttachmentPart);
+      await pendingSend;
+    });
+
+    expect(startRun).toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: { pageContext: "when-sent" } }),
+    );
+  });
+
   it("leaves metadata undefined when the host has nothing to add", async () => {
     const transport = new MemoryCopilotTransport();
     const session = await transport.createSession({ title: "Chat" });
