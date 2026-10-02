@@ -901,9 +901,9 @@ async def qjudge_browse(
 @mcp.tool(
     annotations=ToolAnnotations(
         readOnlyHint=False,
-        destructiveHint=False,
+        destructiveHint=True,
         idempotentHint=False,
-        openWorldHint=False,
+        openWorldHint=True,
     )
 )
 async def qjudge_contest_manager(
@@ -925,6 +925,10 @@ async def qjudge_contest_manager(
     allow_multiple_joins: bool | None = None,
 ) -> Any:
     """Contest-scoped operations with explicit contest_id.
+
+    Updates overwrite settings in the connected, independently administered QJudge
+    service and can change participants' schedules, access rules, and visibility.
+    Reordering replaces the existing question order; clear_fields removes saved times.
 
     Actions:
       get_detail    — Get contest detail (required: contest_id UUID)
@@ -1234,7 +1238,7 @@ async def qjudge_exam(
 @mcp.tool(
     annotations=ToolAnnotations(
         readOnlyHint=False,
-        destructiveHint=False,
+        destructiveHint=True,
         idempotentHint=False,
         openWorldHint=False,
     )
@@ -1257,6 +1261,10 @@ async def qjudge_grading(
     """Grade exam answers. Do NOT use this tool for question CRUD — use qjudge_exam or qjudge_coding_problems instead.
 
     Actions: list_answers, question_detail, dashboard, grade, batch_grade, ungrade.
+
+    grade and batch_grade overwrite existing scores and feedback. ungrade clears
+    the score, feedback, grader, grading timestamp, and correctness result. These
+    actions can remove prior grading information even though answers are retained.
 
     list_answers supports `projection="grading"` which returns a minimal
     row shape (index / exam_answer_id / username / answer_text /

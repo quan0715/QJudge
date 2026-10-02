@@ -22,6 +22,29 @@ QJudge MCP Server 提供 **6 個工具**（`qjudge_bank` 已自 MCP 移除），
 
 ---
 
+## Review annotation corrections (2026-10-02)
+
+Annotations describe every action exposed by a tool. `destructiveHint: false`
+means updates are only additive; retaining a record does not make overwriting
+its existing values non-destructive.
+
+| Tool | Annotation | Value | Portal justification |
+|---|---|---|---|
+| `qjudge_contest_manager` | `destructiveHint` | `true` | True: update overwrites contest settings, clear_fields removes saved start/end times, and reorder replaces existing question order. These changes can affect participants and are not purely additive. |
+| `qjudge_contest_manager` | `openWorldHint` | `true` | True: the tool interacts with the connected QJudge service, which is administered independently of ChatGPT. It changes shared exam schedules, participation rules, and visibility affecting other users. OAuth and contest permissions constrain access but do not make those external effects local to the conversation. |
+| `qjudge_grading` | `destructiveHint` | `true` | True: grade and batch_grade overwrite scores and feedback. ungrade clears the score, feedback, grader, grading timestamp, and correctness result. Existing grading information can be lost even though the original answer is retained. |
+
+Deploy the MCP server through the normal release/CD workflow, then scan tools
+in an editable Platform version and replace the corresponding justifications.
+Do not retain the earlier explanations equating non-destructive with no record
+deletion or closed-world with an authenticated API. A review-in-progress version
+must not be cancelled merely to apply these changes without owner authorization.
+The generic “needs further review” message is not approval or a specific code defect.
+
+Reference: [MCP ToolAnnotations](https://modelcontextprotocol.io/specification/2025-06-18/schema#toolannotations).
+
+---
+
 ## Response Format
 
 ### Success
