@@ -35,18 +35,6 @@ export interface TestCaseData {
 }
 
 /**
- * 從 source 判斷是否為範例測資
- */
-export const isSampleTestCase = (tc: TestCaseData): boolean => 
-  tc.source === "sample";
-
-/**
- * 從 source 判斷是否為自訂測資
- */
-export const isCustomTestCase = (tc: TestCaseData): boolean => 
-  tc.source === "custom";
-
-/**
  * 從 source 判斷是否為隱藏測資
  */
 export const isHiddenTestCase = (tc: TestCaseData): boolean => 

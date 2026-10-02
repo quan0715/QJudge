@@ -28,16 +28,6 @@ export function summarizeTodos(todos: readonly TodoListItem[]) {
   return { total: todos.length, done, inProgress, failed };
 }
 
-export function pickLatestTodos<T extends { todoItems?: TodoListItem[] }>(
-  messages: readonly T[],
-): TodoListItem[] {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const todos = messages[i]?.todoItems;
-    if (todos && todos.length > 0) return todos;
-  }
-  return [];
-}
-
 interface TodoListProps {
   items: readonly TodoListItem[];
   className?: string;

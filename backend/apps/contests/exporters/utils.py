@@ -1,6 +1,6 @@
 """
 Utility functions for contest exporters.
-Includes markdown helpers, filename sanitization, and chart generation.
+Includes markdown helpers, filename sanitization, and code highlighting.
 """
 import markdown
 import re
@@ -152,100 +152,6 @@ def highlight_code(code: str, language: str = 'cpp') -> str:
         # Fallback if Pygments not available
         import html
         return f'<pre><code>{html.escape(code)}</code></pre>'
-
-
-# Carbon Design System color palette for charts
-CHART_COLORS = [
-    '#0f62fe',  # Blue (Problem A)
-    '#24a148',  # Green (Problem B)
-    '#8a3ffc',  # Purple (Problem C)
-    '#ff832b',  # Orange (Problem D)
-    '#1192e8',  # Cyan (Problem E)
-    '#fa4d56',  # Red (Problem F)
-    '#009d9a',  # Teal (Problem G)
-    '#a56eff',  # Violet (Problem H)
-]
-
-
-def get_chart_color(index: int) -> str:
-    """Get a color from the chart palette by index."""
-    return CHART_COLORS[index % len(CHART_COLORS)]
-
-
-def generate_donut_chart_svg(
-    solved: int,
-    total: int,
-    label: str,
-    color: str,
-    bg_color: str,
-    size: float = 80.0,
-    scale: float = 1.0
-) -> str:
-    """
-    Generate a donut chart SVG for difficulty stats.
-
-    Args:
-        solved: Number of solved problems
-        total: Total number of problems
-        label: Label text (e.g., 'Easy', '簡單')
-        color: Main color for the chart
-        bg_color: Background color for unfilled portion
-        size: Chart size in pixels
-        scale: Scale multiplier
-
-    Returns:
-        SVG string
-    """
-    size = size * scale
-    stroke_width = 8 * scale
-    radius = (size - stroke_width) / 2
-    circumference = 2 * 3.14159 * radius
-    percentage = (solved / total * 100) if total > 0 else 0
-    dash_offset = circumference * (1 - percentage / 100)
-
-    return f'''
-        <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">
-            <circle cx="{size/2}" cy="{size/2}" r="{radius}"
-                    fill="none" stroke="{bg_color}" stroke-width="{stroke_width}"/>
-            <circle cx="{size/2}" cy="{size/2}" r="{radius}"
-                    fill="none" stroke="{color}" stroke-width="{stroke_width}"
-                    stroke-dasharray="{circumference}" stroke-dashoffset="{dash_offset}"
-                    stroke-linecap="round"
-                    transform="rotate(-90 {size/2} {size/2})"/>
-            <text x="{size/2}" y="{size/2 + 5*scale}" text-anchor="middle"
-                  font-size="{18*scale}px" font-weight="600" fill="#161616">{solved}/{total}</text>
-        </svg>
-    '''
-
-
-def generate_empty_chart_svg(
-    message: str,
-    width: float = 700.0,
-    height: float = 150.0,
-    scale: float = 1.0
-) -> str:
-    """
-    Generate an empty placeholder chart SVG.
-
-    Args:
-        message: Message to display
-        width: Chart width
-        height: Chart height
-        scale: Scale multiplier
-
-    Returns:
-        SVG string
-    """
-    width = width * scale
-    height = height * scale
-    return f'''
-        <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}"
-             xmlns="http://www.w3.org/2000/svg" style="font-family: IBM Plex Sans, sans-serif;">
-            <rect width="{width}" height="{height}" fill="#f4f4f4" rx="4"/>
-            <text x="{width/2}" y="{height/2}" font-size="{14 * scale}px" fill="#8d8d8d"
-                  text-anchor="middle" dominant-baseline="middle">{message}</text>
-        </svg>
-    '''
 
 
 def get_carbon_code_styles(scale: float = 1.0) -> str:

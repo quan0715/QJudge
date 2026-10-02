@@ -140,7 +140,7 @@ describe("SideMenu contest admin workspace panels", () => {
 
     render(
       <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/admin?panel=problem_editor"]}>
-        <SideMenu variant="panel" />
+        <SideMenu />
       </MemoryRouter>,
     );
 
@@ -162,7 +162,7 @@ describe("SideMenu contest admin workspace panels", () => {
 
     render(
       <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/admin?panel=overview"]}>
-        <SideMenu variant="panel" />
+        <SideMenu />
         <LocationProbe />
       </MemoryRouter>,
     );
@@ -181,7 +181,7 @@ describe("SideMenu contest admin workspace panels", () => {
 
     render(
       <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-2/admin?panel=overview"]}>
-        <SideMenu variant="panel" />
+        <SideMenu />
       </MemoryRouter>,
     );
 
@@ -207,7 +207,7 @@ describe("SideMenu contest admin workspace panels", () => {
 
     render(
       <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/admin?panel=overview"]}>
-        <SideMenu variant="panel" compact />
+        <SideMenu compact />
       </MemoryRouter>,
     );
 
@@ -224,7 +224,7 @@ describe("SideMenu contest admin workspace panels", () => {
   it("starts a local new task and removes the session query", async () => {
     render(
       <MemoryRouter initialEntries={["/chat?ai_session_id=session-1"]}>
-        <SideMenu variant="panel" />
+        <SideMenu />
         <LocationProbe />
       </MemoryRouter>,
     );
@@ -257,7 +257,7 @@ describe("SideMenu contest admin workspace panels", () => {
 
     render(
       <MemoryRouter initialEntries={["/chat?ai_session_id=session-1"]}>
-        <SideMenu variant="panel" />
+        <SideMenu />
         <ChatRouteProbe />
       </MemoryRouter>,
     );
@@ -307,7 +307,7 @@ describe("SideMenu contest admin workspace panels", () => {
 
     render(
       <MemoryRouter initialEntries={["/chat?ai_session_id=session-1"]}>
-        <SideMenu variant="panel" />
+        <SideMenu />
         <LocationProbe />
       </MemoryRouter>,
     );
@@ -344,7 +344,7 @@ describe("SideMenu contest admin workspace panels", () => {
 
     render(
       <MemoryRouter initialEntries={["/chat?ai_session_id=session-1"]}>
-        <SideMenu variant="panel" />
+        <SideMenu />
         <LocationProbe />
       </MemoryRouter>,
     );

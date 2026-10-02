@@ -18,25 +18,6 @@ export const DESC_STYLE: CSSProperties = {
 
 export { s as settingsPanelStyles };
 
-/* ── Root shell ─────────────────────────────────────────────── */
-
-export const SettingsPanelRoot = ({
-  children,
-  trailing,
-}: {
-  children: ReactNode;
-  trailing?: ReactNode;
-}) => (
-  <div className={s.root}>
-    <div className={s.inner}>
-      <div className={s.pageHeader}>
-        {children}
-      </div>
-      {trailing}
-    </div>
-  </div>
-);
-
 /* ── Section (title + description + action + body) ─────────── */
 
 export const Section = ({

@@ -7,7 +7,6 @@ import base64
 import uuid
 from functools import lru_cache
 from typing import Any
-from urllib.parse import urlparse, urlunparse
 
 from botocore.config import Config
 from django.conf import settings
@@ -42,35 +41,6 @@ def get_s3_client(*, endpoint_url: str | None = None):
     resolved_endpoint = endpoint_url if endpoint_url is not None else settings.OBJECT_STORAGE_ENDPOINT_URL
     endpoint_key = (resolved_endpoint or "").strip()
     return _cached_s3_client(endpoint_key)
-
-
-def _rewrite_presigned_url_for_browser(url: str) -> str:
-    """
-    Rewrite presigned URL host for browser access when the signing endpoint and
-    browser-facing endpoint differ.
-    """
-    public_endpoint = (settings.OBJECT_STORAGE_PUBLIC_ENDPOINT_URL or "").strip()
-    if not public_endpoint:
-        return url
-
-    parsed = urlparse(url)
-    public = urlparse(public_endpoint)
-    if not public.scheme or not public.netloc:
-        return url
-
-    base_path = (public.path or "").rstrip("/")
-    rewritten_path = f"{base_path}{parsed.path}" if base_path else parsed.path
-
-    return urlunparse(
-        (
-            public.scheme,
-            public.netloc,
-            rewritten_path,
-            parsed.params,
-            parsed.query,
-            parsed.fragment,
-        )
-    )
 
 
 def build_upload_session_id() -> str:

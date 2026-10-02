@@ -97,46 +97,6 @@ def get_or_create_personal_bank(
     return _resolve_or_create_active_personal_bank(user=user, category=category)
 
 
-def _get_asset_description(problem: CodingProblem) -> dict[str, str]:
-    """Read flat content fields from QuestionAsset payload."""
-    from .question_assets import extract_content_from_payload
-    if not problem.question_asset_id:
-        return {"description": "", "input_description": "", "output_description": "", "hint": ""}
-    try:
-        payload = problem.question_asset.payload or {}
-        return extract_content_from_payload(payload)
-    except Exception:
-        return {"description": "", "input_description": "", "output_description": "", "hint": ""}
-
-
-def _build_coding_ext_payload(problem: CodingProblem) -> dict[str, Any]:
-    content = _get_asset_description(problem)
-    return {
-        **content,
-        "test_cases": list(
-            problem.test_cases.values(
-                "input_data",
-                "output_data",
-                "is_sample",
-                "score",
-                "weight_percent",
-                "order",
-                "is_hidden",
-            )
-        ),
-        "language_configs": list(
-            problem.language_configs.values(
-                "language",
-                "template_code",
-                "is_enabled",
-                "order",
-            )
-        ),
-        "forbidden_keywords": problem.forbidden_keywords or [],
-        "required_keywords": problem.required_keywords or [],
-    }
-
-
 def _resolve_problem_source_context(problem: CodingProblem) -> tuple[str | None, str]:
     from apps.question_bank.models import ContestQuestionBinding
     binding = (

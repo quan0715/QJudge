@@ -2,37 +2,6 @@
 @use "@carbon/react/scss/type" as *;
 @use "@carbon/react/scss/theme" as *;
 
-// ── Root shell ──────────────────────────────────────────────────
-.root {
-  flex: 1 1 auto;  /* fill available height in flex parent */
-  min-height: 0;   /* allow shrinking below content — required for overflow-y scroll in flex */
-  width: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.inner {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: $spacing-06 $spacing-07 $spacing-09;
-
-  @media (max-width: 671px) {
-    padding: $spacing-05 $spacing-03 $spacing-09;
-  }
-}
-
-.pageHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: $spacing-03;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: $spacing-03 0;
-  background: var(--cds-background);
-}
-
 // ── Section ─────────────────────────────────────────────────────
 .section {
   padding: $spacing-05 0;

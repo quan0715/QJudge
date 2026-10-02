@@ -151,17 +151,3 @@ export const useApiError = (): ApiErrorContextType => {
   }
   return context;
 };
-
-/**
- * Utility function to check if response is a server error
- */
-export const isServerError = (status: number): boolean => {
-  return status >= 500 && status < 600;
-};
-
-/**
- * Utility function to check if response is not found
- */
-export const isNotFoundError = (status: number): boolean => {
-  return status === 404;
-};

@@ -27,7 +27,7 @@ export function AppSidebar({
     >
       {/* ── Navigation ── */}
       <div className={styles.nav}>
-        <SideMenu variant="panel" compact={compact} />
+        <SideMenu compact={compact} />
       </div>
 
       <div className={styles.footer}>

@@ -233,13 +233,3 @@ export interface StreamCallbacks {
     resumeSequence?: number,
   ) => void;
 }
-
-// ===== Helper Functions =====
-export function getCurrentStage(toolExecutions?: ToolInfo[]): string | null {
-  if (!toolExecutions?.length) return null;
-
-  const lastTool = [...toolExecutions].reverse().find((tool) => !!tool.toolName);
-  if (!lastTool) return null;
-
-  return `執行中: ${lastTool.toolName}`;
-}

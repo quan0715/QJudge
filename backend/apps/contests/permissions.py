@@ -193,29 +193,6 @@ class IsContestLifecycleOwner(permissions.BasePermission):
         return get_contest_scope_role(request.user, contest) in LIFECYCLE_OWNER_ROLES
 
 
-class IsContestParticipant(permissions.BasePermission):
-    """
-    Permission class: only contest participants can access.
-    """
-    def has_object_permission(self, request, view, obj):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        
-        # Admin and owner always have access
-        if request.user.is_staff or request.user.is_superuser:
-            return True
-        
-        if obj.owner_id == request.user.id:
-            return True
-        
-        # Check if user is registered for the contest
-        from .models import ContestParticipant
-        return ContestParticipant.objects.filter(
-            contest=obj,
-            user=request.user
-        ).exists()
-
-
 class IsTeacherOrAdmin(permissions.BasePermission):
     """
     Permission class: only platform teachers or system admins can access.
