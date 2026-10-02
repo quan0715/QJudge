@@ -22,4 +22,4 @@ No production deployment or migration is included. Stop after reviewable impleme
 - Multi-question browser validation caught a grading-link bug: byStudent ignores question selection. Changed to byQuestion, then verified the second answer changed 4→8 through the existing grading UI, its ticket showed 8/10, and the student result total refreshed to 14/20. Added a regression for the deep link.
 - Desktop light and 390px mobile dark inspected; no horizontal overflow or JavaScript errors. This is local development proof, not a production release or course pilot.
 - Additive migration applied in dev; all 6 historical Q&A records retained. Production data disposition is still open.
-- Initial PostgreSQL CI exposed missing unique fixture emails; corrected. The PR's merged dev baseline also has a Carbon policy reference to removed SideMenuToggle.tsx, unrelated to appeal changes.
+- PostgreSQL CI: all 1387 tests passed after correcting unique fixture emails. The merged dev baseline also referenced removed SideMenuToggle.tsx in Carbon policy metadata; removed that single obsolete entry so the existing contract gate can run. No gate was disabled.
