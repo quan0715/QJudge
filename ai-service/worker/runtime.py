@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from domain.model_catalog import ModelConfigInvalid, ModelNotAvailable
 from domain.models import Principal, Run, RunKind, RunStatus, Usage
+from domain.page_context import with_page_context
 from domain.ports import (
     CredentialLease,
     CredentialLeaseKey,
@@ -60,6 +61,8 @@ class RunClaim:
     owner: Principal
     prompt: str | None
     execution_epoch: int = 0
+    page_context: dict[str, Any] | None = None
+    previous_page_context: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -293,15 +296,35 @@ class SqlAlchemyWorkerRunStore:
             row.repair_pending = False
             row.started_at = row.started_at or now
             row.heartbeat_at = now
-            prompt = await session.scalar(
-                select(MessageRow.content)
-                .where(
-                    MessageRow.run_id == row.run_id,
-                    MessageRow.role == "user",
+            user_message = (
+                await session.execute(
+                    select(MessageRow.ordinal, MessageRow.content, MessageRow.metadata_)
+                    .where(
+                        MessageRow.run_id == row.run_id,
+                        MessageRow.role == "user",
+                    )
+                    .order_by(MessageRow.ordinal.desc())
+                    .limit(1)
                 )
-                .order_by(MessageRow.ordinal.desc())
-                .limit(1)
-            )
+            ).one_or_none()
+            prompt = None
+            page_context = None
+            previous_page_context = None
+            if user_message is not None:
+                ordinal, prompt, metadata = user_message
+                page_context = (metadata or {}).get("page_context")
+                if page_context is not None:
+                    previous_page_context = await session.scalar(
+                        select(MessageRow.metadata_["page_context"])
+                        .where(
+                            MessageRow.session_id == row.session_id,
+                            MessageRow.role == "user",
+                            MessageRow.ordinal < ordinal,
+                            MessageRow.metadata_.has_key("page_context"),
+                        )
+                        .order_by(MessageRow.ordinal.desc())
+                        .limit(1)
+                    )
             await session.flush()
             return RunClaim(
                 ClaimMode.EXECUTE,
@@ -309,6 +332,8 @@ class SqlAlchemyWorkerRunStore:
                 owner,
                 prompt,
                 row.execution_epoch,
+                page_context,
+                previous_page_context,
             )
 
     async def cancel_requested(self, run_id: UUID) -> bool:
@@ -760,7 +785,9 @@ class WorkerRuntime:
                 run_id=run.id,
                 session_id=run.session_id,
                 operation=AgentOperation.START,
-                prompt=claim.prompt,
+                prompt=with_page_context(
+                    claim.prompt, claim.page_context, claim.previous_page_context
+                ),
                 model_id=run.model_id,
                 mcp_token=mcp_token,
                 approval=None,

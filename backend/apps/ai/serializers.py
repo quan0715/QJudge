@@ -34,6 +34,8 @@ class StartRunSerializer(serializers.Serializer):
     content = serializers.CharField(max_length=100_000)
     # The AI service owns the live catalog, default and model validation.
     model_id = serializers.CharField(max_length=50, required=False)
+    # The AI service owns the page context shape it renders into prompts.
+    page_context = serializers.JSONField(required=False)
 
 
 class RunApprovalSerializer(serializers.Serializer):

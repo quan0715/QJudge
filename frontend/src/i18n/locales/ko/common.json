@@ -539,6 +539,7 @@
   },
   "workspaceTopNav": {
     "adminConsole": "管理後台",
+    "aiAssistant": "AI 어시스턴트",
     "backToContest": "대회 대시보드로 돌아가기",
     "closeInfoPanel": "정보 패널 닫기",
     "contestFallback": "競賽",

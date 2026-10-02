@@ -37,6 +37,7 @@
     "moreOptions": "Session options",
     "newTask": "New Task",
     "noTasks": "No tasks yet",
+    "pageContextDismiss": "Don't include current page",
     "processing": "Processing...",
     "questionPlaceholder": "Type your answer…",
     "reasoning": "Reasoning Process",

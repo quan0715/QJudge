@@ -462,6 +462,27 @@ describe("createQJudgeCopilotTransport", () => {
     );
   });
 
+  it("forwards the page context from run metadata", async () => {
+    const repository = createRepository();
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    const pageContext = {
+      path: "/classrooms/c1",
+      segments: [
+        { type: "classroom" as const, label: "資工一甲", ids: { classroom_id: "c1" } },
+      ],
+    };
+
+    await transport.startRun({
+      sessionId: legacySession.id,
+      text: "Hi",
+      metadata: { pageContext },
+    });
+
+    expect(vi.mocked(repository.startRun).mock.calls[0]?.[2]).toMatchObject({
+      pageContext,
+    });
+  });
+
   it("enriches each session with its own active run without subscribing", async () => {
     const secondSession: ChatSession = {
       ...legacySession,

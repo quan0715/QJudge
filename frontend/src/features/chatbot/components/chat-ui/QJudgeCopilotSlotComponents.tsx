@@ -15,6 +15,7 @@ import {
 } from "@copilot";
 import { MODEL_NOTICE_I18N_KEY, modelAvailabilityNotice } from "@/shared/ai/modelAvailabilityNotice";
 
+import { usePageContextAttachment } from "../../contexts/PageContextAttachmentProvider";
 import { ChatHistoryPanel } from "./ChatHistoryPanel";
 import { ChatTopBar } from "./ChatTopBar";
 import { ComposerBar } from "./ComposerBar";
@@ -76,6 +77,7 @@ export function QJudgeCopilotComposer() {
   const run = useCopilotRun();
   const models = useCopilotModels();
   const sessions = useCopilotSessions();
+  const pageContext = usePageContextAttachment();
   const isStreaming =
     run.state.status === "submitted" || run.state.status === "streaming";
   const isAwaitingHumanInput =
@@ -121,6 +123,8 @@ export function QJudgeCopilotComposer() {
       modelNotice={modelNotice ? t(MODEL_NOTICE_I18N_KEY[modelNotice.kind]) : null}
       onModelNoticeRetry={modelNotice?.blocking ? () => void refreshModels() : undefined}
       messages={sessions.activeSession.data?.messages ?? []}
+      pageContextLabel={pageContext.label}
+      onDismissPageContext={pageContext.dismiss}
     />
   );
 }

@@ -590,7 +590,11 @@ class SqlAlchemyMessageRepository:
         )
 
     async def append_pair(
-        self, session: Session, run_id: UUID, prompt: str
+        self,
+        session: Session,
+        run_id: UUID,
+        prompt: str,
+        metadata: dict[str, Any] | None = None,
     ) -> tuple[Message, Message]:
         session_row = await self._session.scalar(
             select(SessionRow)
@@ -608,6 +612,7 @@ class SqlAlchemyMessageRepository:
             run_id=run_id,
             role="user",
             content=prompt,
+            metadata_=dict(metadata or {}),
         )
         assistant_row = MessageRow(
             session_id=session.id,

@@ -153,6 +153,17 @@
   min-width: 0;
 }
 
+.pageContextRow {
+  display: flex;
+  min-width: 0;
+  margin-bottom: 0.4rem;
+
+  // .bar overlays the conversation with pointer-events: none; only the tag is interactive.
+  > * {
+    pointer-events: auto;
+  }
+}
+
 .pendingFileTag {
   display: inline-flex;
   align-items: center;

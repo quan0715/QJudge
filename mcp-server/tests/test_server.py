@@ -1310,7 +1310,7 @@ def test_tool_schemas_enumerate_supported_actions():
     tools = {tool.name: tool for tool in run(server.mcp.list_tools())}
     expected = {
         "qjudge_browse": {"list_classrooms", "get_classroom", "list_classroom_contests", "list_contests", "get_contest", "get_help"},
-        "qjudge_contest_manager": {"get_detail", "list_problems", "reorder", "update"},
+        "qjudge_contest_manager": {"create", "get_detail", "list_problems", "reorder", "update"},
         "qjudge_exam": {"get", "create", "update", "delete", "import_from_bank", "batch_create"},
         "qjudge_grading": {"list_answers", "question_detail", "dashboard", "grade", "batch_grade", "ungrade"},
         "qjudge_coding_problems": {"get", "create", "update", "delete"},

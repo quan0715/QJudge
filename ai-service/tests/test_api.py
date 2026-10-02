@@ -142,12 +142,21 @@ class FakeRunService:
             RUN_ID, SESSION_ID, RunStatus.QUEUED, RunKind.CHAT, "deepseek-flash"
         )
         self.start_token = None
+        self.start_page_context = None
         self.approval_calls = 0
 
     async def start(
-        self, principal, session_id, prompt, model_id, idempotency_key, subject_token
+        self,
+        principal,
+        session_id,
+        prompt,
+        model_id,
+        idempotency_key,
+        subject_token,
+        page_context=None,
     ):
         self.start_token = subject_token
+        self.start_page_context = page_context
         return replace(self.run, model_id=model_id)
 
     async def find_by_idempotency_key(self, principal, session_id, idempotency_key):
@@ -661,3 +670,74 @@ def test_invalid_model_config_is_reported_without_breaking_readiness() -> None:
 def test_empty_catalog_lists_no_models() -> None:
     client, _ = make_client(ModelCatalog(parse_model_config({}, {}, lambda kind, model: None), env={}))
     assert client.get("/v1/models").json() == {"models": []}
+
+
+PAGE_CONTEXT = {
+    "path": "/classrooms/12/contest/A/admin",
+    "segments": [
+        {"type": "classroom", "label": "資工一甲", "ids": {"classroom_id": "12"}},
+        {"type": "contest", "label": "期中考", "ids": {"contest_id": "A"}},
+    ],
+}
+
+
+def test_start_run_forwards_page_context() -> None:
+    client, runs = make_client()
+    started = client.post(
+        f"/v1/sessions/{SESSION_ID}/runs",
+        headers={"Idempotency-Key": "with-page"},
+        json={"message": "hello", "page_context": PAGE_CONTEXT},
+    )
+    assert started.status_code == 202
+    assert runs.start_page_context == PAGE_CONTEXT
+
+
+def test_start_run_without_page_context_passes_none() -> None:
+    client, runs = make_client()
+    started = client.post(
+        f"/v1/sessions/{SESSION_ID}/runs",
+        headers={"Idempotency-Key": "without-page"},
+        json={"message": "hello"},
+    )
+    assert started.status_code == 202
+    assert runs.start_page_context is None
+
+
+@pytest.mark.parametrize(
+    "page_context",
+    [
+        {"path": "/x", "segments": []},
+        {"path": "/x", "segments": [{"type": "lab", "label": "x", "ids": {}}]},
+        {
+            "path": "/x",
+            "segments": [
+                {"type": "contest", "label": "a", "ids": {}},
+                {"type": "contest", "label": "b", "ids": {}},
+            ],
+        },
+        {"path": "/x" * 251, "segments": [{"type": "contest", "label": "a", "ids": {}}]},
+        {"path": "/x", "segments": [{"type": "contest", "label": "a" * 201, "ids": {}}]},
+        {
+            "path": "/x",
+            "segments": [
+                {
+                    "type": "contest",
+                    "label": "a",
+                    "ids": {f"k{index}": "v" for index in range(5)},
+                }
+            ],
+        },
+        {
+            "path": "/x",
+            "segments": [{"type": "contest", "label": "a", "ids": {"contest_id": "v" * 65}}],
+        },
+    ],
+)
+def test_start_run_rejects_malformed_page_context(page_context) -> None:
+    client, _ = make_client()
+    response = client.post(
+        f"/v1/sessions/{SESSION_ID}/runs",
+        headers={"Idempotency-Key": "bad-page"},
+        json={"message": "hello", "page_context": page_context},
+    )
+    assert response.status_code == 422

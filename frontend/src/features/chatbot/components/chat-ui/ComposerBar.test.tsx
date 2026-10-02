@@ -195,3 +195,50 @@ describe("ComposerBar layout state", () => {
     expect(wrapper).not.toHaveClass(styles.inputWrapperExpanded);
   });
 });
+
+describe("ComposerBar page context chip", () => {
+  it("shows the attached page and lets the user drop it", () => {
+    const onDismissPageContext = vi.fn();
+    render(
+      <ComposerBar
+        {...baseProps}
+        attachments={[]}
+        pageContextLabel="資工一甲 / 期中考"
+        onDismissPageContext={onDismissPageContext}
+      />,
+    );
+
+    expect(screen.getByText("資工一甲 / 期中考")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "不附帶目前頁面" }));
+    expect(onDismissPageContext).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the full attached context available on hover when the chip is truncated", () => {
+    const label = "資工一甲 / 期中考 / 3. 請回答下列關於刑事訴訟法強制處分之問題";
+    render(
+      <ComposerBar
+        {...baseProps}
+        attachments={[]}
+        pageContextLabel={label}
+        onDismissPageContext={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(label)).toHaveAttribute("title", label);
+  });
+
+  it("hides the chip when nothing is attached", () => {
+    render(
+      <ComposerBar
+        {...baseProps}
+        attachments={[]}
+        pageContextLabel={null}
+        onDismissPageContext={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "不附帶目前頁面" }),
+    ).not.toBeInTheDocument();
+  });
+});

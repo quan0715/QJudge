@@ -2,6 +2,7 @@ import type { ChatbotRepository } from "@/core/ports/chatbot.repository";
 import type {
   ChatMessage,
   ChatRun,
+  PageContext,
   ChatRunStatus,
   StreamCallbacks,
   ToolInfo,
@@ -153,6 +154,7 @@ export function createQJudgeCopilotTransport(
           await repository.startRun(input.sessionId, input.text, {
             modelOverride: input.modelId,
             idempotencyKey,
+            pageContext: input.metadata?.pageContext as PageContext | undefined,
           }),
         );
       } catch (error) {

@@ -157,60 +157,27 @@ export interface StreamEvent extends BaseStreamEvent {
   toolName?: string;
 }
 
-// ===== Background Context =====
-export interface UserContext {
-  userId?: string;
-  userRole?: "student" | "teacher" | "admin";
-  preferences?: Record<string, unknown>;
+// ===== Page Context =====
+export type PageContextSegmentType = "classroom" | "contest" | "problem";
+
+export interface PageContextSegment {
+  type: PageContextSegmentType;
+  label: string;
+  /** Identifiers the AI service passes to MCP tools (e.g. contest_id). */
+  ids: Record<string, string>;
 }
 
 export interface PageContext {
-  pageType: string;
-  pageUrl?: string;
-  pageData?: Record<string, unknown>;
-}
-
-export interface ChatContext {
-  user?: UserContext;
-  page?: PageContext;
-  custom?: Record<string, unknown>;
-}
-
-export interface BackgroundInformation {
-  // Legacy-compatible fields (still used by some stories/UI scaffolds)
-  context?: string;
-  problemId?: string;
-  problemTitle?: string;
-  difficulty?: string;
-  description?: string;
-
-  user?: {
-    username: string;
-    role?: string;
-  };
-  problem?: {
-    id: number | string;
-    title: string;
-    difficulty?: string;
-  };
-}
-
-// ===== Problem Reference =====
-export interface ProblemReference {
-  id: number | string;
-  title: string;
-  difficulty?: string;
-  description?: string;
-  tags?: string[];
+  path: string;
+  segments: PageContextSegment[];
 }
 
 // ===== Request/Response Options =====
 export interface SendMessageOptions {
-  context?: ChatContext;
-  reference?: ProblemReference;
   modelOverride?: string;
   idempotencyKey?: string;
   signal?: AbortSignal;
+  pageContext?: PageContext;
 }
 
 // ===== HITL Approval =====

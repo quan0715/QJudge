@@ -387,6 +387,70 @@
         "title": "ModelsResponse",
         "type": "object"
       },
+      "PageContext": {
+        "properties": {
+          "path": {
+            "maxLength": 500,
+            "title": "Path",
+            "type": "string"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/PageContextSegment"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Segments",
+            "type": "array"
+          }
+        },
+        "required": [
+          "path",
+          "segments"
+        ],
+        "title": "PageContext",
+        "type": "object"
+      },
+      "PageContextSegment": {
+        "properties": {
+          "ids": {
+            "additionalProperties": {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxProperties": 4,
+            "propertyNames": {
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "title": "Ids",
+            "type": "object"
+          },
+          "label": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "classroom",
+              "contest",
+              "problem"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "label",
+          "ids"
+        ],
+        "title": "PageContextSegment",
+        "type": "object"
+      },
       "ReadyResponse": {
         "properties": {
           "checks": {
@@ -691,6 +755,16 @@
               }
             ],
             "title": "Model Id"
+          },
+          "page_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PageContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
