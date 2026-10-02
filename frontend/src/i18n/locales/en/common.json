@@ -539,6 +539,7 @@
   },
   "workspaceTopNav": {
     "adminConsole": "Admin console",
+    "aiAssistant": "AI assistant",
     "backToContest": "Back to contest dashboard",
     "closeInfoPanel": "Close information panel",
     "contestFallback": "Contest",

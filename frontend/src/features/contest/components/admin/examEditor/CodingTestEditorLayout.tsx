@@ -29,6 +29,8 @@ import type { QuestionSourceDragItem } from "./questionSource.types";
 import useToolbarSaveStatus from "./hooks/useToolbarSaveStatus";
 import { useEditorPaneScrollSelection } from "./hooks/useEditorPaneScrollSelection";
 import { labelForContestProblemOrder } from "@/features/contest/domain/contestProblemOrderLabel";
+import { usePublishPageContext } from "@/shared/contexts/PageContextProvider";
+import { codingProblemPageContext } from "./editorPageContext";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import styles from "./ExamEditorLayout.module.scss";
 
@@ -122,7 +124,12 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
     onReorderPointerSessionChange: bumpReorderPointerDepth,
     handleSelect,
     onCardRoot,
+    explicitSelectedId,
   } = useEditorPaneScrollSelection(selectedId, setSelectedId, codingScrollItemsKey);
+
+  const explicitProblem =
+    orderedProblems.find((problem) => problem.id === explicitSelectedId) ?? null;
+  usePublishPageContext(explicitProblem ? codingProblemPageContext(explicitProblem) : null);
 
   const onReorderPointerSessionChange = useCallback(
     (delta: 1 | -1) => {

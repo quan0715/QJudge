@@ -23,3 +23,17 @@ def test_start_run_serializer_leaves_model_choice_to_ai_service():
     serializer = StartRunSerializer(data={"content": "hello"})
     assert serializer.is_valid(), serializer.errors
     assert "model_id" not in serializer.validated_data
+
+
+def test_start_run_serializer_passes_page_context_through():
+    page_context = {
+        "path": "/classrooms/1",
+        "segments": [
+            {"type": "classroom", "label": "資工一甲", "ids": {"classroom_id": "1"}}
+        ],
+    }
+    serializer = StartRunSerializer(
+        data={"content": "hello", "page_context": page_context}
+    )
+    assert serializer.is_valid(), serializer.errors
+    assert serializer.validated_data["page_context"] == page_context

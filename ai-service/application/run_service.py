@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from contextvars import ContextVar, Token
 from dataclasses import replace
+from typing import Any
 from uuid import UUID
 
 from application.credential_service import CredentialService
@@ -85,6 +86,7 @@ class RunService:
         model_id: str,
         idempotency_key: str,
         subject_token: str,
+        page_context: dict[str, Any] | None = None,
     ) -> Run:
         lease_key = await self._credentials.ensure_ready(principal, subject_token)
         dispatch_after_commit = False
@@ -101,7 +103,12 @@ class RunService:
                 run = await uow.runs.create_queued(
                     session.id, model_id, idempotency_key
                 )
-                await uow.messages.append_pair(session, run.id, prompt)
+                await uow.messages.append_pair(
+                    session,
+                    run.id,
+                    prompt,
+                    metadata={"page_context": page_context} if page_context else {},
+                )
                 has_active_run = await uow.runs.has_blocking_run(
                     session.id, excluding=run.id
                 )

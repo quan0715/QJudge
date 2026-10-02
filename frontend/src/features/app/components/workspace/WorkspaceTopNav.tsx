@@ -22,6 +22,8 @@ import { shouldLockContestWorkspaceNavigation } from "@/features/contest/domain/
 import { usePageHeaderActionsSlot } from "@/features/app/contexts/PageHeaderActionsContext";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { UserMenu } from "@/features/app/components/UserMenu";
+import { AiAssistantNavButton } from "@/features/app/components/workspace/AiAssistantNavButton";
+import { contestPageContext } from "@/features/app/components/workspace/contestPageContext";
 import { useContestRuntimeMode } from "@/features/contest/hooks";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useOptionalContest } from "@/features/contest/contexts";
@@ -29,6 +31,7 @@ import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { ExamModeMonitorModal } from "@/features/contest/components/modals/ExamModeMonitorModal";
 import { useExamMonitoringStatus } from "@/features/contest/contexts/ExamMonitoringStatusContext";
 import { TimeDisplay } from "@/shared/components/dashboard";
+import { usePublishPageContext } from "@/shared/contexts/PageContextProvider";
 import styles from "./WorkspaceTopNav.module.scss";
 import refreshStyles from "@/shared/ui/RefreshAnimation.module.scss";
 
@@ -176,6 +179,18 @@ export function WorkspaceTopNav({ showSidebarControl, previewMode = false }: Wor
   const contestData = useOptionalContest();
   const contestNavigationReadOnly =
     isRuntime || shouldLockContestWorkspaceNavigation(contestData?.contest);
+  usePublishPageContext(
+    currentClassroom
+      ? {
+          type: "classroom",
+          label: currentClassroom.name,
+          ids: { classroom_id: currentClassroom.id },
+        }
+      : null,
+  );
+  usePublishPageContext(
+    contestPageContext(contestRouteId, contestData?.contest, currentContest),
+  );
   const effectiveOpenMenu = contestNavigationReadOnly ? null : openMenu;
   const toggleMenu = useCallback((kind: Exclude<MenuKind, null>) => {
     if (contestNavigationReadOnly) return;
@@ -188,7 +203,7 @@ export function WorkspaceTopNav({ showSidebarControl, previewMode = false }: Wor
         {showSidebarControl ? (
           <IconButton
             kind="ghost"
-            size="md"
+            size="lg"
             align="bottom"
             label={t("workspaceTopNav.expandSidebar", "展開側欄")}
             onClick={left.open}
@@ -328,6 +343,7 @@ export function WorkspaceTopNav({ showSidebarControl, previewMode = false }: Wor
         {(previewMode || isPreview) && <Tag type="cool-gray" size="sm">{t("workspaceTopNav.previewMode", "預覽模式")}</Tag>}
         {isRuntime && <RuntimeNavExtras />}
         {pageHeaderActions}
+        <AiAssistantNavButton />
         <UserMenu />
       </div>
     </header>
@@ -408,7 +424,7 @@ function RuntimeNavExtras() {
       </div>
       <IconButton
         kind="ghost"
-        size="md"
+        size="lg"
         align="bottom"
         label={refreshing ? t("adminOverview.screen.actions.refreshing", "重新整理中") : t("studentDashboard.actions.refresh", "重新整理")}
         onClick={handleRefresh}

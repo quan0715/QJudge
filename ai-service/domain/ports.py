@@ -178,7 +178,11 @@ class MessageRepository(Protocol):
     async def clear_for_session(self, session_id: UUID) -> None: ...
 
     async def append_pair(
-        self, session: Session, run_id: UUID, prompt: str
+        self,
+        session: Session,
+        run_id: UUID,
+        prompt: str,
+        metadata: dict[str, Any] | None = None,
     ) -> tuple[Message, Message]: ...
 
 

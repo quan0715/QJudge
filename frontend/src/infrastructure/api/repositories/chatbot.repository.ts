@@ -675,6 +675,7 @@ const chatbotRepository: ChatbotRepository = {
         {
           content,
           model_id: options?.modelOverride,
+          page_context: options?.pageContext,
         },
         options?.idempotencyKey
           ? { headers: { "Idempotency-Key": options.idempotencyKey } }

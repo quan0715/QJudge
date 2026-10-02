@@ -252,14 +252,17 @@ class SessionViewSet(viewsets.ViewSet):
     def runs(self, request, pk=None):
         serializer = StartRunSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        body = {
+            "message": serializer.validated_data["content"],
+            "model_id": serializer.validated_data.get("model_id"),
+        }
+        if "page_context" in serializer.validated_data:
+            body["page_context"] = serializer.validated_data["page_context"]
         return _proxy_json(
             request,
             method="POST",
             path=f"/v1/sessions/{pk}/runs",
-            json_body={
-                "message": serializer.validated_data["content"],
-                "model_id": serializer.validated_data.get("model_id"),
-            },
+            json_body=body,
             mapper=run_to_legacy,
         )
 

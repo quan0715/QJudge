@@ -16,11 +16,16 @@ import {
 } from "@copilot";
 import { QJudgeCopilotTranslations } from "../adapters/qJudgeCopilotTranslations";
 import { useReactRouterCopilotSessionLocation } from "../adapters/reactRouterCopilotSessionLocation";
+import { PageContextProvider } from "@/shared/contexts/PageContextProvider";
 import { ArtifactPanelProvider } from "./ArtifactPanelContext";
 import {
   CopilotDemandProvider,
   useIsCopilotRequested,
 } from "./CopilotDemandContext";
+import {
+  PageContextAttachmentProvider,
+  usePageContextAttachment,
+} from "./PageContextAttachmentProvider";
 
 export interface QJudgeCopilotBoundaryProps {
   enabled: boolean;
@@ -30,6 +35,7 @@ export interface QJudgeCopilotBoundaryProps {
   storage: CopilotStorage;
   translations: CopilotTranslations;
   modelCatalog: CopilotModelCatalog;
+  getRunMetadata?: () => Record<string, unknown>;
   children: ReactNode;
 }
 
@@ -43,6 +49,7 @@ export function QJudgeCopilotBoundary(props: QJudgeCopilotBoundaryProps) {
       storage={props.storage}
       translations={props.translations}
       modelCatalog={props.modelCatalog}
+      getRunMetadata={props.getRunMetadata}
       initialSession="first"
     >
       <ArtifactPanelProvider>{props.children}</ArtifactPanelProvider>
@@ -53,7 +60,11 @@ export function QJudgeCopilotBoundary(props: QJudgeCopilotBoundaryProps) {
 export function QJudgeCopilotProvider({ children }: { children: ReactNode }) {
   return (
     <CopilotDemandProvider>
-      <QJudgeCopilotRuntime>{children}</QJudgeCopilotRuntime>
+      <PageContextProvider>
+        <PageContextAttachmentProvider>
+          <QJudgeCopilotRuntime>{children}</QJudgeCopilotRuntime>
+        </PageContextAttachmentProvider>
+      </PageContextProvider>
     </CopilotDemandProvider>
   );
 }
@@ -61,6 +72,7 @@ export function QJudgeCopilotProvider({ children }: { children: ReactNode }) {
 function QJudgeCopilotRuntime({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { right } = useWorkspace();
+  const { takeRunMetadata } = usePageContextAttachment();
   const isRequested = useIsCopilotRequested();
   const location = useReactRouterCopilotSessionLocation();
   const translations = useMemo(() => new QJudgeCopilotTranslations(), []);
@@ -76,6 +88,7 @@ function QJudgeCopilotRuntime({ children }: { children: ReactNode }) {
       storage={qJudgeCopilotStorage}
       translations={translations}
       modelCatalog={qJudgeCopilotModelCatalog}
+      getRunMetadata={takeRunMetadata}
     >
       {children}
     </QJudgeCopilotBoundary>

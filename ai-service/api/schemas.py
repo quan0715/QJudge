@@ -6,10 +6,16 @@ import base64
 import binascii
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Literal, Self
+from typing import Annotated, Any, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 from application.artifacts import is_valid_content_type
 from domain.models import Artifact, Message, Run, Session, SessionDetail, UsageSummary
@@ -97,9 +103,34 @@ class SessionListResponse(BaseModel):
     results: list[SessionResponse]
 
 
+PageContextIdText = Annotated[str, StringConstraints(min_length=1, max_length=64)]
+
+
+class PageContextSegment(BaseModel):
+    type: Literal["classroom", "contest", "problem"]
+    label: str = Field(min_length=1, max_length=200)
+    ids: dict[PageContextIdText, PageContextIdText] = Field(max_length=4)
+
+
+class PageContext(BaseModel):
+    path: str = Field(max_length=500)
+    segments: list[PageContextSegment] = Field(min_length=1, max_length=3)
+
+    @field_validator("segments")
+    @classmethod
+    def segment_types_are_unique(
+        cls, segments: list[PageContextSegment]
+    ) -> list[PageContextSegment]:
+        types = [segment.type for segment in segments]
+        if len(set(types)) != len(types):
+            raise ValueError("segment types must be unique")
+        return segments
+
+
 class StartRunRequest(BaseModel):
     message: str = Field(min_length=1, max_length=100_000)
     model_id: str | None = Field(default=None, min_length=1, max_length=50)
+    page_context: PageContext | None = None
 
 
 class ApprovalDecision(StrEnum):

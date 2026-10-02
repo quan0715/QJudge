@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
-import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
 import { AppSidebar } from "@/features/app/components/AppSidebar";
 import { WorkspaceTopNav } from "@/features/app/components/workspace/WorkspaceTopNav";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
@@ -67,7 +66,6 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
   const showLeftMobileOverlay = leftEnabled && isMobile && left.isOpen;
   const dockRight = !isMobile && right.isOpen;
   const showRightMobileSheet = isMobile && right.isOpen;
-  const showFab = right.isAllowed && !right.isOpen && !right.isDisabled;
 
   const panelRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
@@ -280,18 +278,6 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
             </WorkspaceDraggableSheet>
           </WorkspaceOverlayRoot>
         </WorkspacePanelPresence>,
-        portalRoot,
-      )}
-
-      {portalRoot && showFab && createPortal(
-        <button
-          type="button"
-          className={styles.fab}
-          onClick={right.open}
-          aria-label="開啟 AI 助教"
-        >
-          <AiLaunch size={20} />
-        </button>,
         portalRoot,
       )}
     </div>

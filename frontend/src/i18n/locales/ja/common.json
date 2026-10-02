@@ -539,6 +539,7 @@
   },
   "workspaceTopNav": {
     "adminConsole": "管理後台",
+    "aiAssistant": "AI アシスタント",
     "backToContest": "コンテストダッシュボードに戻る",
     "closeInfoPanel": "情報パネルを閉じる",
     "contestFallback": "競賽",

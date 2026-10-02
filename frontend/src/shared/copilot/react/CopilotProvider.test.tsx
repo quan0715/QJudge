@@ -2294,3 +2294,116 @@ describe("CopilotProvider composer lifecycle", () => {
     expect(result.current.isSending).toBe(false);
   });
 });
+
+
+describe("CopilotProvider run metadata", () => {
+  it("asks the host for run metadata when the run starts", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Chat" });
+    const startRun = vi.spyOn(transport, "startRun");
+    let hostMetadata: Record<string, unknown> = { pageContext: "first" };
+    const getRunMetadata = vi.fn(() => hostMetadata);
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    render(
+      <CopilotProvider
+        transport={transport}
+        initialSession="first"
+        getRunMetadata={getRunMetadata}
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() =>
+      expect(snapshot.current?.sessions.activeSession.id).toBe(session.id),
+    );
+    act(() => snapshot.current?.composer.setDraft("Hello"));
+    await waitFor(() => expect(snapshot.current?.composer.canSend).toBe(true));
+    hostMetadata = { pageContext: "second" };
+
+    await act(async () => {
+      await snapshot.current!.composer.send();
+    });
+
+    expect(getRunMetadata).toHaveBeenCalledTimes(1);
+    expect(startRun).toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: { pageContext: "second" } }),
+    );
+  });
+
+  it("captures host metadata when Send is pressed, not after async preparation", async () => {
+    const transport = new MemoryCopilotTransport();
+    await transport.createSession({ title: "Chat" });
+    const pendingUpload = deferred<CopilotAttachmentPart>();
+    const uploadAttachment = vi
+      .spyOn(transport, "uploadAttachment")
+      .mockReturnValueOnce(pendingUpload.promise);
+    const startRun = vi.spyOn(transport, "startRun");
+    let hostMetadata: Record<string, unknown> = { pageContext: "when-sent" };
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    render(
+      <CopilotProvider
+        transport={transport}
+        initialSession="first"
+        getRunMetadata={() => hostMetadata}
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() =>
+      expect(snapshot.current?.sessions.activeSession.status).toBe("ready"),
+    );
+    act(() => snapshot.current?.composer.setDraft("With file"));
+    await act(() =>
+      snapshot.current!.composer.addAttachments([
+        new File(["data"], "a.txt", { type: "text/plain" }),
+      ]),
+    );
+    let pendingSend!: ReturnType<ProviderProbeSnapshot["composer"]["send"]>;
+    act(() => {
+      pendingSend = snapshot.current!.composer.send();
+    });
+    await waitFor(() => expect(uploadAttachment).toHaveBeenCalledTimes(1));
+    hostMetadata = { pageContext: "navigated-away" };
+
+    await act(async () => {
+      pendingUpload.resolve({
+        type: "attachment",
+        id: "att-1",
+        name: "a.txt",
+        mediaType: "text/plain",
+      } as CopilotAttachmentPart);
+      await pendingSend;
+    });
+
+    expect(startRun).toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: { pageContext: "when-sent" } }),
+    );
+  });
+
+  it("leaves metadata undefined when the host has nothing to add", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Chat" });
+    const startRun = vi.spyOn(transport, "startRun");
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    render(
+      <CopilotProvider
+        transport={transport}
+        initialSession="first"
+        getRunMetadata={() => ({})}
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() =>
+      expect(snapshot.current?.sessions.activeSession.id).toBe(session.id),
+    );
+    act(() => snapshot.current?.composer.setDraft("Hello"));
+    await waitFor(() => expect(snapshot.current?.composer.canSend).toBe(true));
+
+    await act(async () => {
+      await snapshot.current!.composer.send();
+    });
+
+    expect(startRun.mock.calls[0]?.[0].metadata).toBeUndefined();
+  });
+});

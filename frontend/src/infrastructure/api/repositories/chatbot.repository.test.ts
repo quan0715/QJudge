@@ -108,6 +108,37 @@ describe("chatbotRepository AI-owned identifiers", () => {
   });
 });
 
+describe("chatbotRepository.startRun page context", () => {
+  it("sends the page context with the run request", async () => {
+    const post = vi.spyOn(httpClient, "post").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          id: RUN_ID,
+          session_id: SESSION_ID,
+          status: "queued",
+          kind: "chat",
+          model_id: "openai-nano",
+          last_event_seq: 0,
+        }),
+        { status: 202, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    const pageContext = {
+      path: "/classrooms/c1",
+      segments: [
+        { type: "classroom" as const, label: "資工一甲", ids: { classroom_id: "c1" } },
+      ],
+    };
+
+    await chatbotRepository.startRun(SESSION_ID, "hello", { pageContext });
+
+    expect(post.mock.calls[0]?.[1]).toEqual({
+      content: "hello",
+      page_context: pageContext,
+    });
+  });
+});
+
 describe("chatbotRepository request errors", () => {
   it.each([403, 404, 503])("preserves HTTP status %s on request errors", async (status) => {
     vi.spyOn(httpClient, "get").mockResolvedValueOnce(
