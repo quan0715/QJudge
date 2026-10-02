@@ -19,10 +19,10 @@ def test_appeal_route_exists():
 
 @pytest.fixture
 def case(db):
-    teacher = User.objects.create_user(username='appeal_teacher', role='teacher')
-    student = User.objects.create_user(username='appeal_student')
-    other = User.objects.create_user(username='appeal_other')
-    outsider = User.objects.create_user(username='appeal_outsider', role='teacher')
+    teacher = User.objects.create_user(username='appeal_teacher', email='appeal_teacher@example.com', role='teacher')
+    student = User.objects.create_user(username='appeal_student', email='appeal_student@example.com')
+    other = User.objects.create_user(username='appeal_other', email='appeal_other@example.com')
+    outsider = User.objects.create_user(username='appeal_outsider', email='appeal_outsider@example.com', role='teacher')
     contest = Contest.objects.create(
         name='Appeal exam', owner=teacher, contest_type='paper_exam', status='published',
         results_published=True, start_time=timezone.now()-timedelta(hours=2),
@@ -98,7 +98,7 @@ def test_private_scope_and_no_other_student_creation(case, who):
     assert api.post(url(case), {'exam_answer':case['answer'].id,'content':'intrusion'}, format='json').status_code in [403,404]
 
 
-@pytest.mark.parametrize('content', ['', '   ', 'x'*5001])
+@pytest.mark.parametrize('content', ['', '   ', 'x'*5001], ids=['empty', 'whitespace', 'too-long'])
 def test_invalid_message_rejected_atomically(case, content):
     from apps.contests.models import GradeAppeal
     api = client(case['student'])
