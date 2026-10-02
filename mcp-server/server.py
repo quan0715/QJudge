@@ -588,7 +588,7 @@ def _build_exam_question_body(
 _TOOL_HELP = {
     "tools": {
         "qjudge_browse": "Discovery only: list/get classrooms, list classroom contests, list/get contests, get_help",
-        "qjudge_contest_manager": "Contest operations: get_detail, list_problems, reorder, update settings (requires contest_id UUID)",
+        "qjudge_contest_manager": "Contest operations: create a draft with classroom_id/name/contest_type; get_detail, list_problems, reorder, update settings with contest_id",
         "qjudge_exam": "Paper-exam contest questions: get, create, update, delete, batch_create, import_from_bank (no list/reorder — use qjudge_contest_manager)",
         "qjudge_coding_problems": "Coding contest problems: get, create, update, delete (no list — use qjudge_contest_manager list_problems)",
         "qjudge_code_runner": "Execute code against a problem's sample test cases: run code, get results",
@@ -596,7 +596,7 @@ _TOOL_HELP = {
     },
     "routing_rules": {
         "unknown_id": "If classroom_id/contest_id is unknown, use qjudge_browse first.",
-        "contest_ops": "Once contest_id is known, use qjudge_contest_manager for get_detail/list_problems/reorder/update.",
+        "contest_ops": "Use qjudge_contest_manager create with classroom_id/name/contest_type for a new draft. For an existing contest_id, use get_detail/list_problems/reorder/update.",
         "single_item_crud": "Use qjudge_exam (paper_exam) or qjudge_coding_problems (coding) for single-item CRUD.",
         "code_execution": "Use qjudge_code_runner for running source code.",
     },
@@ -604,7 +604,7 @@ _TOOL_HELP = {
         "summary": (
             "Several tools touch contests and code — pick by intent. "
             "qjudge_browse = classroom/contest discovery (find IDs); "
-            "qjudge_contest_manager = get_detail + list_problems + reorder + update settings (needs contest_id); "
+            "qjudge_contest_manager = create draft (needs classroom_id/name/contest_type), or get_detail + list_problems + reorder + update settings (needs contest_id); "
             "qjudge_exam = paper_exam question CRUD; "
             "qjudge_coding_problems = coding problem CRUD; "
             "qjudge_code_runner = execute code. "
@@ -901,13 +901,13 @@ async def qjudge_browse(
 @mcp.tool(
     annotations=ToolAnnotations(
         readOnlyHint=False,
-        destructiveHint=False,
+        destructiveHint=True,
         idempotentHint=False,
-        openWorldHint=False,
+        openWorldHint=True,
     )
 )
 async def qjudge_contest_manager(
-    action: Literal["get_detail", "list_problems", "reorder", "update"],
+    action: Literal["create", "get_detail", "list_problems", "reorder", "update"],
     ctx: Context,
     contest_id: str | None = None,
     question_ids: list[str] | None = None,
@@ -923,10 +923,23 @@ async def qjudge_contest_manager(
     clear_fields: list[Literal["start_time", "end_time"]] | None = None,
     scoreboard_visible_during_contest: bool | None = None,
     allow_multiple_joins: bool | None = None,
+    classroom_id: str | None = None,
+    contest_type: Literal["paper_exam", "coding"] | None = None,
 ) -> Any:
-    """Contest-scoped operations with explicit contest_id.
+    """Create a draft exam in a classroom, or manage an existing exam by contest_id.
+
+    Updates overwrite settings in the connected, independently administered QJudge
+    service and can change participants' schedules, access rules, and visibility.
+    Reordering replaces the existing question order; clear_fields removes saved times.
 
     Actions:
+      create        — Create a draft exam (required: classroom_id UUID, name, contest_type).
+                      Optional: description, start_time, end_time, attendance_check_enabled,
+                      cheat_detection_enabled, allow_multiple_joins. Requires classroom
+                      owner/manager or platform admin permission. Returns contest_id and
+                      contest_status; use that contest_id for update and question creation.
+                      Does not publish the exam or results. Repeating create makes another
+                      exam: after an uncertain response, list classroom contests before retrying.
       get_detail    — Get contest detail (required: contest_id UUID)
       list_problems — List all contest problems/questions (required: contest_id UUID)
       reorder       — Reorder questions/problems (required: contest_id UUID, question_ids)
@@ -939,6 +952,60 @@ async def qjudge_contest_manager(
                       arguments are never sent). status, contest_type and results_published
                       are not editable here.
     """
+    if action == "create":
+        uuid_error = _require_uuid(
+            classroom_id,
+            field_name="classroom_id",
+            tool_name="qjudge_contest_manager",
+            hint="Use qjudge_browse list_classrooms first to find a classroom you manage.",
+        )
+        if uuid_error:
+            return uuid_error
+        if not name or not name.strip():
+            return _tool_error(tool_name="qjudge_contest_manager", detail="name is required")
+        if contest_type not in {"paper_exam", "coding"}:
+            return _tool_error(
+                tool_name="qjudge_contest_manager",
+                detail="contest_type must be paper_exam or coding",
+            )
+        update_only = {
+            "contest_id": contest_id,
+            "question_ids": question_ids,
+            "rules": rules,
+            "attendance_photo_policy": attendance_photo_policy,
+            "webcam_required": webcam_required,
+            "clear_fields": clear_fields,
+            "scoreboard_visible_during_contest": scoreboard_visible_during_contest,
+        }
+        unsupported = [key for key, value in update_only.items() if value is not None]
+        if unsupported:
+            return _tool_error(
+                tool_name="qjudge_contest_manager",
+                detail="create does not accept: " + ", ".join(unsupported)
+                + ". Use update/reorder after creation for existing-exam settings.",
+            )
+        fields = {
+            "name": name,
+            "contest_type": contest_type,
+            "description": description,
+            "start_time": start_time,
+            "end_time": end_time,
+            "attendance_check_enabled": attendance_check_enabled,
+            "cheat_detection_enabled": cheat_detection_enabled,
+            "allow_multiple_joins": allow_multiple_joins,
+        }
+        return await django_api(
+            "POST",
+            f"/api/v1/classrooms/{classroom_id}/contests/",
+            ctx,
+            json_body={key: value for key, value in fields.items() if value is not None},
+        )
+
+    if classroom_id is not None or contest_type is not None:
+        return _tool_error(
+            tool_name="qjudge_contest_manager",
+            detail="classroom_id and contest_type are create-only; use contest_id for existing exams.",
+        )
     uuid_error = _require_uuid(
         contest_id,
         field_name="contest_id",
@@ -1234,7 +1301,7 @@ async def qjudge_exam(
 @mcp.tool(
     annotations=ToolAnnotations(
         readOnlyHint=False,
-        destructiveHint=False,
+        destructiveHint=True,
         idempotentHint=False,
         openWorldHint=False,
     )
@@ -1257,6 +1324,10 @@ async def qjudge_grading(
     """Grade exam answers. Do NOT use this tool for question CRUD — use qjudge_exam or qjudge_coding_problems instead.
 
     Actions: list_answers, question_detail, dashboard, grade, batch_grade, ungrade.
+
+    grade and batch_grade overwrite existing scores and feedback. ungrade clears
+    the score, feedback, grader, grading timestamp, and correctness result. These
+    actions can remove prior grading information even though answers are retained.
 
     list_answers supports `projection="grading"` which returns a minimal
     row shape (index / exam_answer_id / username / answer_text /
