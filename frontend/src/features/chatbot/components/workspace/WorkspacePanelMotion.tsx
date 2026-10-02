@@ -68,21 +68,6 @@ export function WorkspaceSlideInLeftPanel({ children, className }: SidePanelProp
   );
 }
 
-export function WorkspaceSlideUpPanel({ children, className }: SidePanelProps) {
-  const reduced = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduced ? { y: 0 } : { y: "100%" }}
-      animate={{ y: 0 }}
-      exit={reduced ? { y: 0 } : { y: "100%" }}
-      transition={reduced ? PANEL_TRANSITION : SHEET_SPRING}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 interface DraggableSheetProps {
   children: ReactNode;
   className: string;

@@ -36,26 +36,17 @@ def test_production_deploy_requires_an_explicit_main_branch_confirmation() -> No
         step for step in deploy["steps"] if step.get("name") == "Deploy on server"
     )
     assert "if" not in deploy_step
-    verify_ci_step = next(
-        step
-        for step in deploy["steps"]
-        if step.get("name") == "Verify release CI"
-    )
-    assert "gh run list" in verify_ci_step["run"]
-    assert "--workflow CI" in verify_ci_step["run"]
-    assert '--commit "$DEPLOY_SHA"' in verify_ci_step["run"]
-    assert "--event push" in verify_ci_step["run"]
-    assert (
-        'while [[ -z "$ci_run_id" ]] && (( SECONDS < deadline )); do'
-        in verify_ci_step["run"]
-    )
-    assert (
-        'gh run watch "$ci_run_id" --exit-status --interval 15'
-        in verify_ci_step["run"]
-    )
-    assert "set -euo pipefail" in verify_ci_step["run"]
-    assert "deadline=$((SECONDS + 300))" in verify_ci_step["run"]
-    assert deploy["permissions"]["actions"] == "read"
+    # Required checks on release pull requests gate main, so CD deploys the
+    # selected commit without waiting for another CI run.
+    assert all("gh run" not in step.get("run", "") for step in deploy["steps"])
+    assert deploy["permissions"] == {"contents": "read"}
+
+
+def test_ci_runs_on_pull_requests_to_main_but_not_on_pushes_to_main() -> None:
+    triggers = _workflow("ci.yml")["on"]
+
+    assert "main" in triggers["pull_request"]["branches"]
+    assert triggers["push"]["branches"] == ["dev"]
 
 
 def test_mcp_ci_jobs_respect_the_server_major_version_constraint() -> None:

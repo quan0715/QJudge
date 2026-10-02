@@ -10,29 +10,6 @@ from ..dto import ContestProblemDTO
 class MarkdownRenderer(BaseRenderer):
     """Export contest to Markdown format."""
 
-    def format_problem_content(self, problem, label: str) -> dict:
-        """
-        Format a problem's content for export.
-        Backward-compatible proxy to data_service._format_problem.
-        """
-        dto = self.data_service._format_problem(problem, label)
-        return {
-            'label': dto.label,
-            'title': dto.title,
-            'description': dto.description,
-            'input_description': dto.input_description,
-            'output_description': dto.output_description,
-            'hint': dto.hint,
-            'time_limit': dto.time_limit,
-            'memory_limit': dto.memory_limit,
-            'difficulty': dto.difficulty_display,
-            'sample_cases': [
-                {'input': tc.input, 'output': tc.output}
-                for tc in dto.sample_cases
-            ],
-            'tags': dto.tags,
-        }
-
     def export(self) -> str:
         """Generate markdown content for the contest."""
         lines = []

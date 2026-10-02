@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import base64
 import binascii
-from uuid import UUID
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
@@ -44,51 +43,3 @@ def verify_resident_request(public_key, *, method, path, run_id, revision, proto
         public_key.verify(base64.b64decode(signature_b64, validate=True), message)
     except (InvalidSignature, ValueError, binascii.Error) as error:
         raise RequestAuthenticationError("invalid signature") from error
-
-
-def verify_backend_request(
-    public_key: Ed25519PublicKey,
-    *,
-    body: bytes,
-    timestamp: str,
-    path_run_id: UUID,
-    expected_run_id: UUID,
-    header_run_id: str,
-    signature_b64: str,
-    now_seconds: int,
-) -> None:
-    try:
-        signed_run_id = UUID(header_run_id)
-    except (ValueError, AttributeError) as error:
-        raise RequestAuthenticationError("invalid request authentication") from error
-    if signed_run_id != path_run_id or path_run_id != expected_run_id:
-        raise RequestAuthenticationError("invalid request authentication")
-    if (
-        not timestamp.isascii()
-        or not timestamp.isdigit()
-        or len(timestamp) > 20
-    ):
-        raise RequestAuthenticationError("invalid request authentication")
-    try:
-        timestamp_seconds = int(timestamp)
-    except ValueError as error:
-        raise RequestAuthenticationError("invalid request authentication") from error
-    if timestamp != str(timestamp_seconds):
-        raise RequestAuthenticationError("invalid request authentication")
-    if abs(now_seconds - timestamp_seconds) > 30:
-        raise RequestAuthenticationError("stale request authentication")
-    try:
-        signature = base64.b64decode(signature_b64, validate=True)
-    except (ValueError, binascii.Error) as error:
-        raise RequestAuthenticationError("invalid request authentication") from error
-    message = (
-        str(signed_run_id).encode("ascii")
-        + b"\n"
-        + timestamp.encode("ascii")
-        + b"\n"
-        + body
-    )
-    try:
-        public_key.verify(signature, message)
-    except (InvalidSignature, ValueError) as error:
-        raise RequestAuthenticationError("invalid request authentication") from error

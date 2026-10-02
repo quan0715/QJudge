@@ -37,7 +37,6 @@ import {
   markAnticheatTerminal,
   syncAnticheatPhaseWithExamStatus,
 } from "@/features/contest/anticheat/orchestrator";
-import { clearRuntimeScreenShareReauth } from "@/features/contest/anticheat/runtimeReauthState";
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
 import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
 import {
@@ -81,7 +80,6 @@ export const useContestExamActions = ({
     stopCaptureForContest(id, stopReason);
     clearExamCaptureSessionId(id);
     clearExamPrecheckPassed(id);
-    clearRuntimeScreenShareReauth(id);
     clearRuntimeScreenShareHandoff(true);
     clearPrecheckScreenShareHandoff(true);
     clearRuntimeWebcamHandoff(true);
@@ -90,7 +88,6 @@ export const useContestExamActions = ({
 
   const handleStartExam = useCallback(async () => {
     if (!contest || !contestId) return;
-    clearRuntimeScreenShareReauth(contest.id);
 
     if (contest.cheatDetectionEnabled) {
       // Force every new start/resume attempt from dashboard to pass precheck again.

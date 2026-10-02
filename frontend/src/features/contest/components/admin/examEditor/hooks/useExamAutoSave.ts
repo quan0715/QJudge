@@ -31,21 +31,6 @@ export interface UseExamAutoSaveReturn {
   hasPendingChanges: boolean;
 }
 
-const FIELD_NAME_MAP: Record<string, keyof ContestUpdatePayload> = {
-  name: "name",
-  description: "description",
-  rules: "rules",
-  startTime: "startTime",
-  endTime: "endTime",
-  status: "status",
-  attendanceCheckEnabled: "attendanceCheckEnabled",
-  attendancePhotoPolicy: "attendancePhotoPolicy",
-  cheatDetectionEnabled: "cheatDetectionEnabled",
-  webcamRequired: "webcamRequired",
-  scoreboardVisibleDuringContest: "scoreboardVisibleDuringContest",
-  allowMultipleJoins: "allowMultipleJoins",
-};
-
 export function useExamAutoSave({
   contestId,
   debounceMs = 1500,
@@ -65,8 +50,7 @@ export function useExamAutoSave({
 
   const patchMutation = useMutation({
     mutationFn: async ({ fieldPath, value }: { fieldPath: string; value: unknown }) => {
-      const apiFieldName = FIELD_NAME_MAP[fieldPath] || fieldPath;
-      const payload: ContestUpdatePayload = { [apiFieldName]: value };
+      const payload: ContestUpdatePayload = { [fieldPath]: value };
       return updateContest(contestId, payload);
     },
   });

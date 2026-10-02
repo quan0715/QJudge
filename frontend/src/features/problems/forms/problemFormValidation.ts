@@ -93,15 +93,3 @@ export const SECTION_FIELDS: Record<SectionId, string[]> = {
   "language-config": ["languageConfigs", "forbiddenKeywords", "requiredKeywords"],
   "danger-zone": [],
 };
-
-/**
- * Get the section ID for a given field path
- */
-export function getSectionForField(fieldPath: string): SectionId | null {
-  for (const [sectionId, fields] of Object.entries(SECTION_FIELDS)) {
-    if (fields.some((f) => fieldPath === f || fieldPath.startsWith(f + "."))) {
-      return sectionId as SectionId;
-    }
-  }
-  return null;
-}

@@ -1,9 +1,4 @@
-import type {
-  ContestDetail,
-  ContestOverviewExamStatus,
-  ContestOverviewMetrics,
-} from "@/core/entities/contest.entity";
-import { getContestState } from "@/core/entities/contest.entity";
+import type { ContestDetail } from "@/core/entities/contest.entity";
 
 export interface ResolvedTimeProgress {
   totalSeconds: number;
@@ -12,14 +7,6 @@ export interface ResolvedTimeProgress {
   progressPercent: number;
   isStarted: boolean;
   isEnded: boolean;
-}
-
-export interface ResolvedOverviewSnapshot {
-  onlineNow: number;
-  onlineActiveSessions: number;
-  examStatus: ContestOverviewExamStatus;
-  examType: ContestDetail["contestType"];
-  timeProgress: ResolvedTimeProgress;
 }
 
 export const formatDuration = (seconds: number) => {
@@ -31,12 +18,6 @@ export const formatDuration = (seconds: number) => {
     return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }
   return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-};
-
-const toExamStatus = (state: string): ContestOverviewExamStatus => {
-  if (state === "running") return "running";
-  if (state === "ended") return "ended";
-  return "upcoming";
 };
 
 export const calculateContestTimeProgressAt = (
@@ -69,23 +50,5 @@ export const calculateContestTimeProgressAt = (
     progressPercent,
     isStarted: nowMs >= start,
     isEnded: nowMs >= end,
-  };
-};
-
-const fallbackTimeProgress = (contest: ContestDetail): ResolvedTimeProgress =>
-  calculateContestTimeProgressAt(contest, Date.now());
-
-export const resolveOverviewSnapshot = (
-  contest: ContestDetail,
-  overviewMetrics: ContestOverviewMetrics | null,
-): ResolvedOverviewSnapshot => {
-  const state = getContestState(contest);
-
-  return {
-    onlineNow: overviewMetrics?.onlineNow ?? 0,
-    onlineActiveSessions: overviewMetrics?.onlineActiveSessions ?? 0,
-    examStatus: overviewMetrics?.exam.status || toExamStatus(state),
-    examType: overviewMetrics?.exam.contestType || contest.contestType,
-    timeProgress: overviewMetrics?.timeProgress || fallbackTimeProgress(contest),
   };
 };

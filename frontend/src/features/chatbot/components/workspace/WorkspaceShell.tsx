@@ -4,7 +4,6 @@ import { useLocation } from "react-router-dom";
 import { AppSidebar } from "@/features/app/components/AppSidebar";
 import { WorkspaceTopNav } from "@/features/app/components/workspace/WorkspaceTopNav";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
-import { WorkspaceToolbarSlotProvider } from "@/features/app/contexts/WorkspaceToolbarSlotContext";
 import { QJudgeChatPanel } from "../chat-ui/QJudgeChatPanel";
 import {
   WorkspaceBackdrop,
@@ -204,11 +203,9 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
         )}
 
         <div className={styles.mainColumn}>
-          <WorkspaceToolbarSlotProvider>
-            <MainColumnBody chatOpen={right.isOpen}>
-              {children}
-            </MainColumnBody>
-          </WorkspaceToolbarSlotProvider>
+          <MainColumnBody chatOpen={right.isOpen}>
+            {children}
+          </MainColumnBody>
         </div>
 
         <aside

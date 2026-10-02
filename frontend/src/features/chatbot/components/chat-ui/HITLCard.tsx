@@ -8,7 +8,6 @@ import {
 import { Information } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { CopilotApprovalCardProps } from "@copilot";
-import { getHITLRenderer } from "./hitlRendererRegistry";
 import styles from "./HITLCard.module.scss";
 
 // Pretty JSON fallback with basic syntax colouring
@@ -72,7 +71,6 @@ function ActionItem({
   showIdentity: boolean;
 }) {
   const actionArg = typeof args?.action === "string" ? args.action : undefined;
-  const renderer = getHITLRenderer(name, actionArg);
   const safeArgs = args ?? {};
   const summary = summarizeActionArguments(safeArgs, t);
 
@@ -98,7 +96,6 @@ function ActionItem({
           ))}
         </dl>
       )}
-      {renderer && <div className={styles.actionBody}>{renderer(safeArgs)}</div>}
       {summary.length > 0 && (
         <Accordion align="start" className={styles.technicalDetails}>
           <AccordionItem title={t("ui.toolTechnicalDetails")}>

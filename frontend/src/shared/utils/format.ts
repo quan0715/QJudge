@@ -1,4 +1,3 @@
-import type { Difficulty } from "@/core/entities/problem.entity";
 import type { LanguageKey } from "@/core/config/language.config";
 import { formatDistanceToNow } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -100,21 +99,8 @@ const getLanguageLabel = (lang: LanguageKey | string): string => {
   return langMap[lang.toLowerCase()] || lang;
 };
 
-/**
- * Get display label for difficulty
- */
-const getDifficultyLabel = (diff: Difficulty): string => {
-  const diffMap: Record<Difficulty, string> = {
-    easy: "Easy",
-    medium: "Medium",
-    hard: "Hard",
-  };
-  return diffMap[diff] || diff;
-};
-
 export {
   formatDate,
   formatSmartTime,
   getLanguageLabel,
-  getDifficultyLabel,
 };
