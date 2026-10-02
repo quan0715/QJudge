@@ -12,7 +12,7 @@ export default function GradeAppealsPanel({ contestId }: { contestId: string }) 
   const { appeals, loading, error, refresh } = useGradeAppeals(contestId, true);
   const [selected, setSelected] = useState<GradeAppeal | null>(null);
   const { pathname } = useLocation();
-  const gradingParams = selected ? new URLSearchParams({ panel: "grading", grading_view: "byStudent", grading_student: String(selected.student_id), grading_question: selected.question_id }) : null;
+  const gradingParams = selected ? new URLSearchParams({ panel: "grading", grading_view: "byQuestion", grading_student: String(selected.student_id), grading_question: selected.question_id }) : null;
   return <section className={styles.root} aria-label="成績申訴管理">
     <BlockHeader title="成績申訴" titleAs="h3" actions={<Button kind="ghost" size="sm" disabled={loading} onClick={() => void refresh()}>重新整理申訴</Button>} />
     {loading ? <SkeletonText paragraph lineCount={3} /> : error ? <InlineNotification kind="error" title={error} hideCloseButton lowContrast /> : <div className={styles.list}>
