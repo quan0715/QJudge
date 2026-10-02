@@ -25,26 +25,6 @@ export const isSubmittedExamSessionResponse = (
 type EvidenceMode = "anchor_window" | "pre_loss" | "audit";
 type EvidenceSourceModule = "screen_share" | "webcam" | "attendance";
 
-export interface ExamAnswerDto {
-  id: string;
-  question_id: string;
-  question_prompt: string;
-  question_type: string;
-  question_options: string[] | null;
-  max_score: number;
-  answer: unknown;
-  is_correct: boolean | null;
-  score: number | null;
-  feedback: string;
-  graded_by_username: string | null;
-  graded_at: string | null;
-  participant_user_id: number;
-  participant_username: string;
-  participant_display_name: string;
-  created_at: string;
-  updated_at: string;
-}
-
 interface ExamDashboardQuestionSummaryDto {
   question_id: string;
   order: number;
