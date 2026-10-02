@@ -14,7 +14,7 @@ QJudge MCP Server 提供 **6 個工具**（`qjudge_bank` 已自 MCP 移除），
 | Tool | Purpose | Do NOT use for |
 |---|---|---|
 | `qjudge_browse` | 教室/競賽定位（ID discovery） | 競賽操作（get_detail/list_problems/reorder） |
-| `qjudge_contest_manager` | 競賽操作與設定更新（需 contest_id UUID） | 模糊搜尋/定位 |
+| `qjudge_contest_manager` | 建立班級草稿考試；讀取及編輯既有考試 | 模糊搜尋/定位 |
 | `qjudge_exam` | 競賽筆試題單題 CRUD / 批次 / 匯入 | coding contests, list/reorder 場內題目 |
 | `qjudge_coding_problems` | 競賽程式題單題 CRUD | code execution, paper_exam, list 場內題目 |
 | `qjudge_code_runner` | 程式碼執行驗證 | 題目 CRUD |
@@ -116,18 +116,22 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 
 ## qjudge_contest_manager
 
-**競賽操作工具**：已知 `contest_id` 後，進行競賽層讀取、設定更新與題目順序調整。
+**競賽操作工具**：用 `classroom_id` 建立草稿考試；已知 `contest_id` 後，進行競賽層讀取、設定更新與題目順序調整。
 
 ### Parameters
 
 | Param | Type | Used by |
 |---|---|---|
 | `action` | string | all |
+| `classroom_id` | string(UUID) | create：班級擁有者／管理者或平台管理員 |
+| `contest_type` | `paper_exam` / `coding` | create（必填） |
 | `contest_id` | string(UUID) | get_detail, list_problems, reorder, update |
 | `question_ids` | list[string]? | reorder |
-| `name` / `description` / `rules` | string? | update |
-| `start_time` / `end_time` | string? (ISO 8601) | update |
-| `attendance_check_enabled` / `cheat_detection_enabled` / `scoreboard_visible_during_contest` / `allow_multiple_joins` | bool? | update |
+| `name` / `description` | string? | create, update；create 必填 name |
+| `rules` | string? | update |
+| `start_time` / `end_time` | string? (ISO 8601) | create, update |
+| `attendance_check_enabled` / `cheat_detection_enabled` / `allow_multiple_joins` | bool? | create, update |
+| `scoreboard_visible_during_contest` | bool? | update |
 | `attendance_photo_policy` | string? (`room` / `room_and_selfie`) | update |
 | `webcam_required` | bool?（嚴格考試模式是否也要求 webcam） | update |
 | `clear_fields` | list? (`start_time` / `end_time`) | update：把列出的欄位設為 null；未傳的參數一律不送出 |
@@ -136,10 +140,19 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 
 | Action | Description | Required params |
 |---|---|---|
+| `create` | 建立班級內的草稿考試（POST） | classroom_id, name, contest_type |
 | `get_detail` | 取得競賽詳情 | contest_id |
 | `list_problems` | 列出競賽場內題目 | contest_id |
 | `reorder` | 重排競賽題目順序 | contest_id, question_ids |
 | `update` | 部分更新競賽設定（PATCH，只送有給的欄位） | contest_id + 至少一個設定欄位 |
+
+`create` 呼叫 `POST /api/v1/classrooms/{classroom_id}/contests/`，由後端驗證班級管理權限、名稱長度與起訖時間。回傳的 `contest_id` 可直接交給 `update`、`qjudge_exam` 或 `qjudge_coding_problems`；`contest_status` 為 `draft`，不發布考試或成績。
+
+```json
+{"action":"create","classroom_id":"<班級 UUID>","name":"期中考","contest_type":"paper_exam"}
+```
+
+建立後若要編輯規則、拍照政策、webcam 或成績看板設定，再以回傳的 `contest_id` 呼叫 `update`。建立時若傳入只適用既有考試的參數，會回傳明確錯誤，不會默默忽略。重複 `create` 會建立另一場考試；若回應不明，先列出該班級考試確認，避免直接重試。
 
 `update` 可改欄位見上表。`status`、`contest_type`、`results_published` 不開放，權限由後端 `ContestAccessPolicy` 判定。
 
