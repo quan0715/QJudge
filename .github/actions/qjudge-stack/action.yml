@@ -38,9 +38,19 @@ runs:
         # One target per image; the other services share these builds.
         targets: backend,ai-service,integrity-resident,qjudge-mcp,frontend
         load: true
+        # One cache scope per image: a cache export replaces its scope's index,
+        # so images sharing a scope would overwrite each other's layers.
         set: |
-          *.cache-from=type=gha,scope=qjudge-images
-          *.cache-to=type=gha,scope=qjudge-images,mode=max,ignore-error=true
+          backend.cache-from=type=gha,scope=qjudge-backend
+          backend.cache-to=type=gha,scope=qjudge-backend,mode=max,ignore-error=true
+          ai-service.cache-from=type=gha,scope=qjudge-ai-service
+          ai-service.cache-to=type=gha,scope=qjudge-ai-service,mode=max,ignore-error=true
+          integrity-resident.cache-from=type=gha,scope=qjudge-integrity-resident
+          integrity-resident.cache-to=type=gha,scope=qjudge-integrity-resident,mode=max,ignore-error=true
+          qjudge-mcp.cache-from=type=gha,scope=qjudge-qjudge-mcp
+          qjudge-mcp.cache-to=type=gha,scope=qjudge-qjudge-mcp,mode=max,ignore-error=true
+          frontend.cache-from=type=gha,scope=qjudge-frontend
+          frontend.cache-to=type=gha,scope=qjudge-frontend,mode=max,ignore-error=true
 
     - name: Install QJudge from scratch
       shell: bash
