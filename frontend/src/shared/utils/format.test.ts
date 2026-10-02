@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatDate, getLanguageLabel, getDifficultyLabel } from "./format";
+import { formatDate, getLanguageLabel } from "./format";
 
 describe("Format Utilities", () => {
   describe("formatDate", () => {
@@ -59,25 +59,6 @@ describe("Format Utilities", () => {
     it("should return original value for unknown language", () => {
       // @ts-expect-error - testing unknown language
       expect(getLanguageLabel("elixir")).toBe("elixir");
-    });
-  });
-
-  describe("getDifficultyLabel", () => {
-    it("should return Easy for easy", () => {
-      expect(getDifficultyLabel("easy")).toBe("Easy");
-    });
-
-    it("should return Medium for medium", () => {
-      expect(getDifficultyLabel("medium")).toBe("Medium");
-    });
-
-    it("should return Hard for hard", () => {
-      expect(getDifficultyLabel("hard")).toBe("Hard");
-    });
-
-    it("should return original value for unknown difficulty", () => {
-      // @ts-expect-error - testing unknown difficulty
-      expect(getDifficultyLabel("expert")).toBe("expert");
     });
   });
 });

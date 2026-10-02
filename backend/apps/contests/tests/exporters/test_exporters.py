@@ -164,18 +164,6 @@ class TestContestExporters:
         
         # PDF files start with %PDF
         assert content[:4] == b'%PDF'
-    
-    def test_format_problem_content(self, contest, problem):
-        """Test problem content formatting."""
-        exporter = MarkdownRenderer(contest, 'zh-TW')
-        problem_data = exporter.format_problem_content(problem, 'A')
-
-        assert problem_data['label'] == 'A'
-        assert problem_data['title'] == '測試題目'
-        assert problem_data['description'] == '這是一個測試題目描述'
-        assert len(problem_data['sample_cases']) == 1
-        assert problem_data['sample_cases'][0]['input'] == '1 2'
-        assert problem_data['sample_cases'][0]['output'] == '3'
 
 
 @pytest.mark.django_db

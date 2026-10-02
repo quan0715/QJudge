@@ -15,7 +15,6 @@ from typing import Any, Protocol
 from uuid import UUID
 
 from .models import (
-    Artifact,
     Message,
     Principal,
     Run,
@@ -186,16 +185,6 @@ class MessageRepository(Protocol):
     ) -> tuple[Message, Message]: ...
 
 
-class ArtifactRepository(Protocol):
-    async def create(self, artifact: Artifact) -> Artifact: ...
-
-    async def get_for_owner(self, principal: Principal, artifact_id: UUID) -> Artifact | None: ...
-
-
-class Queue(Protocol):
-    async def enqueue(self, run_id: UUID) -> None: ...
-
-
 class RunDispatcher(Protocol):
     async def dispatch(
         self,
@@ -209,10 +198,6 @@ class CheckpointLifecycle(Protocol):
     """Narrow session-facing lifecycle for non-authoritative Agent state."""
 
     async def delete_session(self, session_id: UUID) -> None: ...
-
-
-class Clock(Protocol):
-    def now(self) -> datetime: ...
 
 
 class UsageReader(Protocol):

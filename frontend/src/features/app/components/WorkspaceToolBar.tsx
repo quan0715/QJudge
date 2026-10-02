@@ -1,7 +1,6 @@
 import { IconButton } from "@carbon/react";
 import { OpenPanelLeft } from "@carbon/icons-react";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
-import { useRegisterPageToolbar } from "@/features/app/contexts/WorkspaceToolbarSlotContext";
 import styles from "./WorkspaceToolBar.module.scss";
 
 export interface WorkspaceToolBarProps {
@@ -26,9 +25,6 @@ export interface WorkspaceToolBarProps {
  * - 當 `left.isOpen === false`（desktop 收合 或 mobile drawer 關閉）→ 顯示展開鈕
  * - 當 `left.isOpen === true` → 不顯示 sidebar 按鈕（desktop 用 sidebar 本身的收合鈕；
  *   mobile 則由 drawer 覆蓋整個 viewport，關閉鈕在 drawer 內部的 AppSidebar header）
- *
- * 頁面 render 這個 component 即表示「本頁 main content 的 toolbar 由我提供」，
- * Shell 不再補 fallback chrome。
  */
 export function WorkspaceToolBar({
   leadingBefore,
@@ -38,7 +34,6 @@ export function WorkspaceToolBar({
   className,
 }: WorkspaceToolBarProps) {
   const { isMobile, left } = useWorkspace();
-  useRegisterPageToolbar();
 
   const showExpand = !hideSidebarControl && isMobile && !left.isOpen;
 

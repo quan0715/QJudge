@@ -1,0 +1,48 @@
+name: Frontend dependencies
+description: >-
+  Set up Node and restore frontend/node_modules from the cache, running npm ci
+  only when the lockfile changed. Optionally install Chromium for Playwright.
+inputs:
+  playwright:
+    description: Also install Chromium and its system dependencies for Playwright.
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: "20"
+
+    - name: Restore node_modules
+      id: modules
+      uses: actions/cache@v6
+      with:
+        path: frontend/node_modules
+        key: frontend-modules-${{ runner.os }}-node20-${{ hashFiles('frontend/package-lock.json') }}
+
+    - name: Install dependencies
+      if: steps.modules.outputs.cache-hit != 'true'
+      shell: bash
+      working-directory: frontend
+      run: npm ci
+
+    - name: Restore Playwright browsers
+      if: inputs.playwright == 'true'
+      id: browsers
+      uses: actions/cache@v6
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
+    - name: Install Chromium
+      if: inputs.playwright == 'true'
+      shell: bash
+      working-directory: frontend
+      env:
+        BROWSERS_CACHED: ${{ steps.browsers.outputs.cache-hit }}
+      run: |
+        if [[ "$BROWSERS_CACHED" == "true" ]]; then
+          npx playwright install-deps chromium
+        else
+          npx playwright install --with-deps chromium
+        fi

@@ -5,7 +5,6 @@ from django.contrib import admin
 from .models import (
     Contest,
     ContestParticipant,
-    Clarification,
     ExamEvent,
     ExamQuestion,
     ExamQuestionGroup,
@@ -28,13 +27,6 @@ class ContestAdmin(admin.ModelAdmin):
     list_filter = ['status', 'start_time']
     search_fields = ['name', 'description']
     inlines = [ContestParticipantInline]
-
-
-@admin.register(Clarification)
-class ClarificationAdmin(admin.ModelAdmin):
-    list_display = ['id', 'contest', 'author', 'status', 'created_at']
-    list_filter = ['status', 'is_public', 'contest']
-    search_fields = ['question', 'answer', 'author__username']
 
 
 @admin.register(ExamEvent)

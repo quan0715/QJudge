@@ -29,10 +29,6 @@ from .utils import (
     preprocess_markdown_html,
     ensure_markdown_lists,
     highlight_code,
-    CHART_COLORS,
-    get_chart_color,
-    generate_donut_chart_svg,
-    generate_empty_chart_svg,
     get_carbon_code_styles,
 )
 
@@ -64,9 +60,5 @@ __all__ = [
     "preprocess_markdown_html",
     "ensure_markdown_lists",
     "highlight_code",
-    "CHART_COLORS",
-    "get_chart_color",
-    "generate_donut_chart_svg",
-    "generate_empty_chart_svg",
     "get_carbon_code_styles",
 ]

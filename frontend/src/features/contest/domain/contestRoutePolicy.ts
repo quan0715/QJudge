@@ -41,15 +41,6 @@ export const getClassroomContestSolvePath = (
   return `${base}/${problemId}`;
 };
 
-export const getFirstContestProblemId = (contest: ContestRouteTarget): string | undefined => {
-  if (!contest?.problems?.length) return undefined;
-
-  const firstProblem = [...contest.problems].sort(
-    (a, b) => (a.order ?? 0) - (b.order ?? 0),
-  )[0];
-  return firstProblem?.problemId || firstProblem?.id;
-};
-
 export const shouldRouteToPrecheck = (params: {
   contest: ContestRouteTarget;
   precheckPassed: boolean;
@@ -65,18 +56,6 @@ export const shouldRouteToPrecheck = (params: {
   }
 
   return contest.examStatus === "in_progress" && !precheckPassed;
-};
-
-export const isPathWithinContest = (params: {
-  contestId: string;
-  pathname: string;
-}): boolean => {
-  const { contestId, pathname } = params;
-  const normalizedPath = trimTrailingSlash(pathname);
-  const classroomContestRegex = new RegExp(
-    `^/classrooms/[^/]+/contest/${contestId}(?:/|$)`,
-  );
-  return classroomContestRegex.test(normalizedPath);
 };
 
 export const shouldRedirectToOverviewOnStrictSubmitted = (params: {

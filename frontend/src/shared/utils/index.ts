@@ -5,7 +5,6 @@ export {
   formatDate,
   formatSmartTime,
   getLanguageLabel,
-  getDifficultyLabel,
   type FormatDateOptions,
 } from "./format";
 

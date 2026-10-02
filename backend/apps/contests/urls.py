@@ -4,7 +4,7 @@ from rest_framework_nested import routers
 from .views import (
     ContestViewSet,
     ContestAnnouncementViewSet,
-    ClarificationViewSet,
+    GradeAppealViewSet,
     ExamViewSet,
     ContestProblemViewSet,
     ContestExamQuestionViewSet,
@@ -25,7 +25,7 @@ router.register(r'', ContestViewSet, basename='contest')
 # Nested router for contest sub-resources
 contest_router = routers.NestedSimpleRouter(router, r'', lookup='contest')
 contest_router.register(r'announcements', ContestAnnouncementViewSet, basename='contest-announcements')
-contest_router.register(r'clarifications', ClarificationViewSet, basename='contest-clarifications')
+contest_router.register(r'grade-appeals', GradeAppealViewSet, basename='contest-grade-appeals')
 contest_router.register(r'exam', ExamViewSet, basename='contest-exam')
 contest_router.register(r'problems', ContestProblemViewSet, basename='contest-problems')
 contest_router.register(r'exam-questions', ContestExamQuestionViewSet, basename='contest-exam-questions')

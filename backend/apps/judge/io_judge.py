@@ -18,8 +18,6 @@ from typing import Any, Dict, Optional
 import docker
 from django.conf import settings
 
-from .base_judge import BaseJudge
-
 _CE_SENTINEL = "QJUDGE_CE_7f3a"
 _PUBLIC_SYSTEM_ERROR = "Judge system error"
 logger = logging.getLogger(__name__)
@@ -85,7 +83,7 @@ def resolve_language(language: str) -> str:
     return _ALIASES.get(key, key)
 
 
-class IOJudge(BaseJudge):
+class IOJudge:
     """
     Docker-based judge for languages with standard IO comparison.
     All languages run inside the same image (DOCKER_IMAGE_JUDGE).
@@ -106,10 +104,6 @@ class IOJudge(BaseJudge):
         self.tmpfs_size = settings.DOCKER_JUDGE_TMPFS_SIZE
         self.docker_timeout = settings.DOCKER_JUDGE_TIMEOUT
         self._client: Optional[docker.DockerClient] = None
-
-    # ------------------------------------------------------------------
-    # BaseJudge interface
-    # ------------------------------------------------------------------
 
     def get_language_name(self) -> str:
         return self._spec.name
