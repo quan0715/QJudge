@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Tag } from "@carbon/react";
 
 import type {
@@ -47,6 +48,7 @@ interface PaperQuestionReportCardProps {
   referenceAnswerDocument?: OpenAnswerDocument | null;
   explanationDocument?: OpenAnswerDocument | null;
   scorePolicy?: string;
+  actions?: ReactNode;
 }
 
 export default function PaperQuestionReportCard({
@@ -70,6 +72,7 @@ export default function PaperQuestionReportCard({
   referenceAnswerDocument,
   explanationDocument,
   scorePolicy,
+  actions,
 }: PaperQuestionReportCardProps) {
   const isExcluded = scorePolicy === "excluded";
   const isFullMarks = scorePolicy === "full_marks";
@@ -129,6 +132,7 @@ export default function PaperQuestionReportCard({
             </div>
           </div>
         ) : null}
+        {actions}
       </div>
     </article>
   );

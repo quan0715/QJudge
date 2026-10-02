@@ -1,5 +1,8 @@
+import GradeAppealDialog from "../GradeAppealDialog";
+import { useGradeAppeals } from "../../hooks/useGradeAppeals";
 import React from "react";
 import {
+  Button,
   InlineNotification,
   Tag,
 } from "@carbon/react";
@@ -46,6 +49,7 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
   const navigate = useNavigate();
   const { showToast } = useToast();
   const contestId = contest.id.toString();
+  const [reloadKey, setReloadKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [publishedResults, setPublishedResults] = useState<ExamResults | null>(null);
@@ -53,6 +57,8 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
   const canQueryExamData = isContestParticipant(contest);
   const canOpenAnswering = canOpenPaperAnsweringFromDashboard(contest);
   const resultsPublished = contest.resultsPublished === true;
+  const { appeals, refresh: refreshAppeals } = useGradeAppeals(contestId, resultsPublished && canQueryExamData);
+  const [appealTarget, setAppealTarget] = useState<{ answerId: number; appealId?: number; prompt: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,7 +105,7 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [canQueryExamData, contestId, resultsPublished, showToast, t]);
+  }, [canQueryExamData, contestId, resultsPublished, showToast, t, reloadKey]);
 
   const results = useMemo(() => publishedResults?.answers ?? [], [publishedResults]);
   const resultMap = useMemo(
@@ -297,6 +303,7 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
                               </MarkdownRenderer>
                             </div>
                           ) : null}
+                          {result.score != null && <Button kind="tertiary" size="sm" onClick={() => setAppealTarget({ answerId: Number(result.id), appealId: appeals.find(a => a.exam_answer === Number(result.id))?.id, prompt: question.prompt })}>{appeals.some(a => a.exam_answer === Number(result.id)) ? "查看申訴" : "提出申訴"}</Button>}
                         </section>
                       );
                     })}
@@ -326,6 +333,7 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
                 style={{ marginTop: "1rem" }}
               />
             )}
+      {resultsPublished && appealTarget && <GradeAppealDialog key={appealTarget.answerId} contestId={contestId} answerId={appealTarget.answerId} appealId={appealTarget.appealId} questionPrompt={appealTarget.prompt} managing={false} onClose={() => { setAppealTarget(null); setReloadKey(k => k + 1); }} onChanged={() => void refreshAppeals()} />}
     </div>
   );
 };

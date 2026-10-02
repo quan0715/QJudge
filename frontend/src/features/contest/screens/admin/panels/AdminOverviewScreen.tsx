@@ -1,3 +1,4 @@
+import GradeAppealsPanel from "@/features/contest/components/GradeAppealsPanel";
 import { useQueryClient } from "@tanstack/react-query";
 import refreshStyles from "@/shared/ui/RefreshAnimation.module.scss";
 import ContestClarifications from "@/features/contest/components/ContestClarifications";
@@ -581,6 +582,8 @@ export default function AdminOverviewScreen({
                 />
               }
               clarificationsContent={
+                <>
+                {contest.contestType === "paper_exam" && <GradeAppealsPanel contestId={contest.id} />}
                 <ContestClarifications
                   contestId={contest.id}
                   mode="manage"
@@ -591,6 +594,7 @@ export default function AdminOverviewScreen({
                   announcementOpen={announcementOpen}
                   onAnnouncementOpenChange={setAnnouncementOpen}
                 />
+                </>
               }
               submissionList={<ContestSubmissionListScreen embedded />}
               standingsContent={
