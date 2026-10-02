@@ -11,7 +11,6 @@
         "features/ai-tasks/shell/TaskMainTabs.tsx",
         "features/app/components/SideMenu.tsx",
         "features/app/components/SideMenuContestRuntimeSection.tsx",
-        "features/app/components/SideMenuToggle.tsx",
         "features/app/components/UserMenu.tsx",
         "features/app/components/workspace/WorkspaceTopNav.tsx",
         "features/chatbot/components/chat-ui/ChatHistoryPanel.tsx",

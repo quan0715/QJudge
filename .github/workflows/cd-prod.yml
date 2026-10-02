@@ -19,10 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: production
+    # main only accepts release pull requests that passed the required CI and E2E
+    # checks, so the selected commit is deployed without re-running CI.
     permissions:
       contents: read
-      checks: read
-      actions: read
 
     steps:
       - name: Determine SHA
@@ -58,37 +58,6 @@ jobs:
           PROD_SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
           PROD_SSH_USER: ${{ secrets.PROD_SSH_USER }}
           PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
-
-      - name: Verify release CI
-        env:
-          GH_TOKEN: ${{ github.token }}
-          DEPLOY_SHA: ${{ steps.sha.outputs.sha }}
-        run: |
-          set -euo pipefail
-          deadline=$((SECONDS + 300))
-          ci_run_id=""
-
-          while [[ -z "$ci_run_id" ]] && (( SECONDS < deadline )); do
-            ci_run_id="$(gh run list \
-              --workflow CI \
-              --commit "$DEPLOY_SHA" \
-              --event push \
-              --limit 1 \
-              --json databaseId \
-              --jq '.[0].databaseId // ""')"
-            if [[ -z "$ci_run_id" ]]; then
-              echo "Waiting for the CI run for $DEPLOY_SHA to appear..."
-              sleep 15
-            fi
-          done
-
-          if [[ -z "$ci_run_id" ]]; then
-            echo "Timed out waiting for the CI run for $DEPLOY_SHA to appear" >&2
-            exit 1
-          fi
-
-          echo "Waiting for CI run $ci_run_id on $DEPLOY_SHA to finish..."
-          gh run watch "$ci_run_id" --exit-status --interval 15
 
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4

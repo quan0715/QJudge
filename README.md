@@ -7,7 +7,7 @@ QJudge 是一個整合競賽、教學、評測與 AI 助教流程的線上評測
 - Production domain：`q-judge.com`
 - AI 助教：已導入 DeepAgent（LangGraph）流程，並完成前後端 SSE 事件串流對接
 - 考試系統：支援註冊、前檢、作答、檢查、評分與結果流程
-- CI/CD：GitHub Actions CI（Unit Tests + Judge Tests）通過後，透過 Tailscale SSH 自動部署
+- CI/CD：dev → main 的 release PR 須通過必要檢查（CI 與 E2E）才能合併；合併後手動觸發 CD，經 Tailscale SSH 部署到正式機
 - 本地容器化開發：`qjudge-dc.sh dev`（`deploy/compose.yml` + `compose.dev.yml`）可直接拉起 frontend/backend/ai-service/postgres/redis/celery/storybook
 
 ## 技術棧
