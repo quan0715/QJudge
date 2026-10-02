@@ -11,7 +11,6 @@ import {
   type ExamQuestionAnswerFormat,
   type ExamQuestionGroup,
   type ExamQuestionType,
-  type Clarification,
   type ContestAnnouncement,
   type ContestOverviewMetrics,
   type ContestUpdateRequest,
@@ -239,23 +238,6 @@ export function mapExamEventDto(dto: any): ExamEvent {
       ...(evidenceStatus ? { integrity_evidence_status: evidenceStatus } : {}),
       ...(evidenceSources ? { integrity_evidence_sources: evidenceSources } : {}),
     },
-  };
-}
-
-export function mapClarificationDto(dto: any): Clarification {
-  return {
-    id: dto.id?.toString() || "",
-    question: dto.question || "",
-    answer: dto.answer,
-    problemId: dto.problem_id?.toString(),
-    problemTitle: dto.problem_title,
-    isPublic: !!dto.is_public,
-    authorId: dto.author?.toString() ?? "",
-    authorUsername:
-      dto.author_username || dto.created_by?.username || "Unknown",
-    answeredBy: dto.answered_by,
-    createdAt: dto.created_at || "",
-    updatedAt: dto.updated_at || "",
   };
 }
 

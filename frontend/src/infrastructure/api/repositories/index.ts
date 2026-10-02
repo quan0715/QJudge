@@ -1,11 +1,5 @@
 export { resetParticipantExamRecord } from "./attendance.repository";
 export {
-  createClarification,
-  deleteClarification,
-  getClarifications,
-  replyClarification,
-} from "./clarification.repository";
-export {
   deleteContest,
   getContest,
   getContestOverviewMetrics,

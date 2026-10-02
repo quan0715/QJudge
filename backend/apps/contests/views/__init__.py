@@ -3,7 +3,7 @@ Contest views package.
 Re-exports all ViewSets so that urls.py import path stays unchanged.
 """
 from .contest import ContestViewSet
-from .clarification import ClarificationViewSet
+from .grade_appeal import GradeAppealViewSet
 from .announcement import ContestAnnouncementViewSet
 from .problem import ContestProblemViewSet
 from .exam_question import ContestExamQuestionViewSet
@@ -14,7 +14,7 @@ from .exam_lifecycle import ExamViewSet
 
 __all__ = [
     "ContestViewSet",
-    "ClarificationViewSet",
+    "GradeAppealViewSet",
     "ContestAnnouncementViewSet",
     "ContestProblemViewSet",
     "ContestExamQuestionViewSet",

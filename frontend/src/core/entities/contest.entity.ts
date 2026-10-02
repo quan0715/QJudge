@@ -509,20 +509,6 @@ export interface ExamPaper {
   blocks: ExamPaperBlock[];
 }
 
-export interface Clarification {
-  id: string;
-  question: string;
-  answer?: string;
-  problemId?: string;
-  problemTitle?: string;
-  isPublic: boolean;
-  authorId: string;
-  authorUsername: string;
-  answeredBy?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface ContestAnnouncement {
   id: string;
   title: string;
