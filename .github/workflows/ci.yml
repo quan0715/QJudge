@@ -1,8 +1,10 @@
 name: CI
 
+# main only changes through release pull requests, whose required checks already
+# ran this workflow, so pushes to main do not run it again.
 on:
   push:
-    branches: [main, dev]
+    branches: [dev]
     paths:
       - "frontend/**"
       - ".codex/skills/qjudge-*/**"
