@@ -1,6 +1,6 @@
 # QJudge MCP Tools Reference
 
-> **Last updated:** 2026-04-20
+> **Last updated:** 2026-10-03
 > **Source of truth:** `mcp-server/server.py`（參數與路由行為以此為準）
 
 `qjudge_browse` → `get_help` 回傳的 JSON（`_TOOL_HELP`）與本文件對齊：**`tools`** 為各工具一句話摘要；**`coding_tools_how_to_choose`**、**`coding_problem_example`** / **`exam_question_example`**、**`common_mistakes`** 與下方「Common Mistakes」表意義相同。完整 **Parameters / Actions** 以本文件各節為準。
@@ -22,7 +22,7 @@ QJudge MCP Server 提供 **6 個工具**（`qjudge_bank` 已自 MCP 移除），
 
 ---
 
-## Review annotation corrections (2026-10-02)
+## Review annotation corrections (2026-10-03)
 
 Annotations describe every action exposed by a tool. `destructiveHint: false`
 means updates are only additive; retaining a record does not make overwriting
@@ -33,6 +33,16 @@ its existing values non-destructive.
 | `qjudge_contest_manager` | `destructiveHint` | `true` | True: update overwrites contest settings, clear_fields removes saved start/end times, and reorder replaces existing question order. These changes can affect participants and are not purely additive. |
 | `qjudge_contest_manager` | `openWorldHint` | `true` | True: the tool interacts with the connected QJudge service, which is administered independently of ChatGPT. It changes shared exam schedules, participation rules, and visibility affecting other users. OAuth and contest permissions constrain access but do not make those external effects local to the conversation. |
 | `qjudge_grading` | `destructiveHint` | `true` | True: grade and batch_grade overwrite scores and feedback. ungrade clears the score, feedback, grader, grading timestamp, and correctness result. Existing grading information can be lost even though the original answer is retained. |
+| `qjudge_browse` | `openWorldHint` | `true` | True: classroom and contest lookups read from the connected, independently administered QJudge API. Only get_help is local; the annotation covers the whole tool, including external reads. |
+| `qjudge_exam` | `openWorldHint` | `true` | True: the tool reads, creates, updates, imports, and deletes shared paper-exam questions through the independently administered QJudge API. Authentication restricts access but does not make the service local to ChatGPT. |
+| `qjudge_grading` | `openWorldHint` | `true` | True: the tool retrieves student answers and reads or changes grading records through the independently administered QJudge API. Grades and feedback are shared service data outside ChatGPT. |
+| `qjudge_coding_problems` | `openWorldHint` | `true` | True: the tool reads and changes contest coding problems, test cases, and language settings through the independently administered QJudge API. These records exist outside ChatGPT. |
+| `qjudge_code_runner` | `openWorldHint` | `true` | True: the tool sends source code to the independently administered QJudge API for execution by its judge infrastructure and returns execution results. Public-sample-only execution still interacts with an external service. |
+
+All six tools expose actions that interact with the external QJudge service, so
+all six declare `openWorldHint: true`. This annotation is independent of
+`readOnlyHint`: external reads are still open-world interactions. It does not
+grant additional permissions or change the API routes.
 
 Deploy the MCP server through the normal release/CD workflow, then scan tools
 in an editable Platform version and replace the corresponding justifications.

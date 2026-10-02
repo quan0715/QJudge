@@ -714,7 +714,7 @@ mcp = FastMCP(
         readOnlyHint=True,
         destructiveHint=False,
         idempotentHint=True,
-        openWorldHint=False,
+        openWorldHint=True,
     )
 )
 async def qjudge_browse(
@@ -734,6 +734,9 @@ async def qjudge_browse(
     tool_name: str | None = None,
 ) -> Any:
     """Discovery-only tool for classroom/contest lookup.
+
+    Reads classroom and contest data from the connected, independently administered
+    QJudge service. get_help returns local documentation; other actions call its API.
 
     Actions:
       list_classrooms        — List classrooms you manage (optional: search)
@@ -1105,7 +1108,7 @@ async def qjudge_contest_manager(
         readOnlyHint=False,
         destructiveHint=True,
         idempotentHint=False,
-        openWorldHint=False,
+        openWorldHint=True,
     )
 )
 async def qjudge_exam(
@@ -1123,6 +1126,9 @@ async def qjudge_exam(
     mode: str | None = None,
 ) -> Any:
     """Manage paper-exam questions within a paper_exam contest.
+
+    Reads and changes shared exam questions in the connected, independently
+    administered QJudge service, subject to the authenticated user's permissions.
 
     Do NOT use this tool for coding contests or code execution — use qjudge_coding_problems or qjudge_code_runner instead.
     This tool only works with contests whose ``contest_type`` is ``paper_exam``.
@@ -1303,7 +1309,7 @@ async def qjudge_exam(
         readOnlyHint=False,
         destructiveHint=True,
         idempotentHint=False,
-        openWorldHint=False,
+        openWorldHint=True,
     )
 )
 async def qjudge_grading(
@@ -1322,6 +1328,9 @@ async def qjudge_grading(
     projection: str | None = None,
 ) -> Any:
     """Grade exam answers. Do NOT use this tool for question CRUD — use qjudge_exam or qjudge_coding_problems instead.
+
+    Reads answers and changes grading records in the connected, independently
+    administered QJudge service, subject to the authenticated user's permissions.
 
     Actions: list_answers, question_detail, dashboard, grade, batch_grade, ungrade.
 
@@ -1423,7 +1432,7 @@ async def qjudge_grading(
         readOnlyHint=False,
         destructiveHint=True,
         idempotentHint=False,
-        openWorldHint=False,
+        openWorldHint=True,
     )
 )
 async def qjudge_coding_problems(
@@ -1444,6 +1453,9 @@ async def qjudge_coding_problems(
     max_score: int | None = None,
 ) -> Any:
     """Manage **coding problems attached to a coding contest** (metadata + test cases + languages).
+
+    Reads and changes shared coding problems in the connected, independently
+    administered QJudge service, subject to the authenticated user's permissions.
 
     ## When to use this tool (vs other tools)
       • Use **`qjudge_contest_manager`** → **get_detail**, **list_problems**, or **reorder** for a contest (needs `contest_id`).
@@ -1586,7 +1598,7 @@ async def qjudge_coding_problems(
         readOnlyHint=False,
         destructiveHint=False,
         idempotentHint=True,
-        openWorldHint=False,
+        openWorldHint=True,
     )
 )
 async def qjudge_code_runner(
@@ -1596,6 +1608,9 @@ async def qjudge_code_runner(
     ctx: Context,
 ) -> Any:
     """**Run source code** against the **public sample** test cases of a **Problem** (management test_run API).
+
+    Sends source code to the connected, independently administered QJudge service
+    for execution by its judge infrastructure. Execution is external to ChatGPT.
 
     ## When to use (vs qjudge_coding_problems)
       • **`qjudge_code_runner`** — you have **source code** to execute and want **judge output** (stdout, verdict per case, CE/WA/AC, etc.).
