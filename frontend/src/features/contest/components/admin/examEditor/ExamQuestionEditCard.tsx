@@ -101,43 +101,28 @@ const isChoiceType = (type: ExamQuestionType) =>
 const isSubjectiveType = (type: ExamQuestionType) =>
   type === "short_answer" || type === "essay";
 
-const toSingleAnswerIndex = (
+/**
+ * Stored objective answers only count when they are the 0-based option
+ * indexes students submit; anything else grades every answer wrong, so it is
+ * shown as unset and the teacher has to pick the answer again.
+ */
+const isAnswerIndex = (value: unknown, size: number): value is number =>
+  typeof value === "number" && Number.isInteger(value) && value >= 0 && value < size;
+
+const toAnswerIndex = (
   value: unknown,
   options: string[],
   questionType: ExamQuestionType,
-): string => {
-  if (typeof value === "number" && Number.isInteger(value))
-    return String(value);
-  if (typeof value === "boolean") return value ? "0" : "1";
-  if (typeof value === "string") {
-    const lowered = value.toLowerCase().trim();
-    if (questionType === "true_false") {
-      if (lowered === "true") return "0";
-      if (lowered === "false") return "1";
-    }
-    const asNumber = Number(value);
-    if (!Number.isNaN(asNumber) && Number.isInteger(asNumber))
-      return String(asNumber);
-    const matchingIndex = options.findIndex((option) => option === value);
-    if (matchingIndex >= 0) return String(matchingIndex);
-  }
-  return "";
+): number | null => {
+  const size = questionType === "true_false" ? 2 : options.length;
+  return isAnswerIndex(value, size) ? value : null;
 };
 
-const toMultiAnswerIndexes = (value: unknown): string[] => {
+const toAnswerIndexes = (value: unknown, options: string[]): number[] => {
   if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => {
-      if (typeof item === "number" && Number.isInteger(item))
-        return String(item);
-      if (typeof item === "string") {
-        const asNumber = Number(item);
-        if (!Number.isNaN(asNumber) && Number.isInteger(asNumber))
-          return String(asNumber);
-      }
-      return "";
-    })
-    .filter(Boolean);
+  return value.every((item) => isAnswerIndex(item, options.length))
+    ? (value as number[])
+    : [];
 };
 
 const toFormState = (question: ExamQuestion): QuestionFormState => {
@@ -161,7 +146,7 @@ const toFormState = (question: ExamQuestion): QuestionFormState => {
     return {
       ...base,
       options,
-      multiAnswerIndexes: toMultiAnswerIndexes(question.correctAnswer),
+      multiAnswerIndexes: toAnswerIndexes(question.correctAnswer, options).map(String),
     };
   }
   if (question.questionType === "short_answer") {
@@ -196,10 +181,8 @@ const toFormState = (question: ExamQuestion): QuestionFormState => {
   return {
     ...base,
     options: resolvedOptions,
-    singleAnswerIndex: toSingleAnswerIndex(
-      question.correctAnswer,
-      resolvedOptions,
-      question.questionType,
+    singleAnswerIndex: String(
+      toAnswerIndex(question.correctAnswer, resolvedOptions, question.questionType) ?? "",
     ),
   };
 };
@@ -311,37 +294,11 @@ const isFormDirty = (
 // --- Preview helpers ---
 
 /** Get the correct answer index for true_false / single_choice */
-const getCorrectSingleIndex = (question: ExamQuestion): number | null => {
-  const { correctAnswer, questionType } = question;
-  if (correctAnswer == null) return null;
-  if (questionType === "true_false") {
-    if (
-      correctAnswer === 0 ||
-      correctAnswer === true ||
-      correctAnswer === "true"
-    )
-      return 0;
-    if (
-      correctAnswer === 1 ||
-      correctAnswer === false ||
-      correctAnswer === "false"
-    )
-      return 1;
-    return null;
-  }
-  if (typeof correctAnswer === "number") return correctAnswer;
-  const n = Number(correctAnswer);
-  return Number.isInteger(n) ? n : null;
-};
+const getCorrectSingleIndex = (question: ExamQuestion): number | null =>
+  toAnswerIndex(question.correctAnswer, question.options, question.questionType);
 
-const getCorrectMultiIndexes = (question: ExamQuestion): Set<number> => {
-  if (!Array.isArray(question.correctAnswer)) return new Set();
-  return new Set(
-    (question.correctAnswer as number[]).filter(
-      (v) => typeof v === "number" && Number.isInteger(v),
-    ),
-  );
-};
+const getCorrectMultiIndexes = (question: ExamQuestion): Set<number> =>
+  new Set(toAnswerIndexes(question.correctAnswer, question.options));
 
 const OptionMarkdownLabel = ({
   letter,

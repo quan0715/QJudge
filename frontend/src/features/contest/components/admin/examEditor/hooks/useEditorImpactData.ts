@@ -104,6 +104,16 @@ export function useEditorImpactData(
 
   // Derive impactContext — questions come from current paper state (always fresh)
   const impactContext = useMemo<ScorePolicyMenuImpactContext>(() => {
+    const answerCounts = new Map<string, { total: number; graded: number }>();
+    for (const rows of rawData?.answersByStudent.values() ?? []) {
+      for (const row of rows) {
+        const count = answerCounts.get(row.questionId) ?? { total: 0, graded: 0 };
+        count.total += 1;
+        if (row.score != null) count.graded += 1;
+        answerCounts.set(row.questionId, count);
+      }
+    }
+
     const questions: QuestionProgress[] = allQuestionsForPolicy.map((q, idx) => ({
       questionId: q.id,
       questionIndex: (q.order ?? idx) + 1,
@@ -112,8 +122,8 @@ export function useEditorImpactData(
       maxScore: q.score,
       scorePolicy: (q.scorePolicy ?? "normal") as ExamQuestionScorePolicy,
       scorePolicyConfig: q.scorePolicyConfig,
-      totalAnswers: 0,
-      gradedCount: 0,
+      totalAnswers: answerCounts.get(q.id)?.total ?? 0,
+      gradedCount: answerCounts.get(q.id)?.graded ?? 0,
       progressPercent: 0,
       isObjective: true,
     }));

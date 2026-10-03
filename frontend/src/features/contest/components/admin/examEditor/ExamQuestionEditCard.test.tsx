@@ -226,6 +226,39 @@ describe("ExamQuestionEditCard", () => {
     );
   });
 
+  it("lets a locked legacy answer be re-picked and regraded", async () => {
+    const onAutoSave = vi.fn().mockResolvedValue(undefined);
+    renderWithProviders(
+      <ExamQuestionEditCard
+        question={createQuestion({
+          questionType: "true_false",
+          options: ["True", "False"],
+          correctAnswer: true,
+        })}
+        index={0}
+        contentLocked
+        gradedAnswerCount={3}
+        onAutoSave={onAutoSave}
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("exam-card-q1"));
+    const trueOption = document.getElementById("edit-tf-q1-0") as HTMLInputElement;
+    expect(trueOption.checked).toBe(false);
+    fireEvent.click(trueOption);
+    fireEvent.click(screen.getByRole("button", { name: "儲存變更" }));
+    fireEvent.click(screen.getByRole("button", { name: "重新批改" }));
+
+    await waitFor(() => expect(onAutoSave).toHaveBeenCalledTimes(1));
+    expect(onAutoSave).toHaveBeenCalledWith(
+      expect.objectContaining({ correct_answer: 0 }),
+      "q1",
+      "regrade",
+    );
+  });
+
   it("omits locked content fields from a locked grading save", async () => {
     const onAutoSave = vi.fn().mockResolvedValue(undefined);
     renderWithProviders(
