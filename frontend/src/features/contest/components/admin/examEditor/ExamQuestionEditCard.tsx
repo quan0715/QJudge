@@ -258,6 +258,24 @@ const buildPayload = (
   return payload;
 };
 
+/**
+ * A locked question only accepts grading fields. Content fields are dropped so
+ * values the form filled in for display (e.g. default true/false options) are
+ * not sent back as content edits.
+ */
+const toLockedGradingPayload = (
+  payload: ExamQuestionUpsertPayload,
+): Partial<ExamQuestionUpsertPayload> => {
+  const {
+    question_type: _questionType,
+    prompt: _prompt,
+    options: _options,
+    answer_format: _answerFormat,
+    ...grading
+  } = payload;
+  return grading;
+};
+
 /** Deep-compare two form states to detect dirty */
 const isFormDirty = (
   a: QuestionFormState,
@@ -376,7 +394,7 @@ interface ExamQuestionEditCardProps {
   /** Called when the policy overflow menu is opened — triggers lazy data load. */
   onMenuOpen?: () => void;
   onAutoSave: (
-    payload: ExamQuestionUpsertPayload,
+    payload: Partial<ExamQuestionUpsertPayload>,
     questionId?: string,
     action?: ExistingGradesAction,
   ) => Promise<void>;
@@ -490,7 +508,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
         setSaving(true);
         const snapshot = latestFormRef.current;
         const payload = buildPayload(snapshot, showScoreField);
-        await onAutoSave(payload, question.id, action);
+        await onAutoSave(
+          contentLocked ? toLockedGradingPayload(payload) : payload,
+          question.id,
+          action,
+        );
         originalFormRef.current = { ...snapshot };
         setOriginalForm({ ...snapshot });
         setForm({ ...snapshot });
@@ -510,7 +532,15 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
         setSaving(false);
       }
     },
-    [getValidationError, onAutoSave, question.id, showScoreField, showToast, t],
+    [
+      contentLocked,
+      getValidationError,
+      onAutoSave,
+      question.id,
+      showScoreField,
+      showToast,
+      t,
+    ],
   );
 
   const handleCloseOrSave = useCallback(async () => {

@@ -225,4 +225,39 @@ describe("ExamQuestionEditCard", () => {
       "mark_pending",
     );
   });
+
+  it("omits locked content fields from a locked grading save", async () => {
+    const onAutoSave = vi.fn().mockResolvedValue(undefined);
+    renderWithProviders(
+      <ExamQuestionEditCard
+        question={createQuestion({
+          questionType: "true_false",
+          options: [],
+          correctAnswer: 0,
+        })}
+        index={0}
+        contentLocked
+        gradedAnswerCount={3}
+        onAutoSave={onAutoSave}
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("exam-card-q1"));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "分" }), {
+      target: { value: "7" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "儲存變更" }));
+    fireEvent.click(screen.getByRole("button", { name: "重新批改" }));
+
+    await waitFor(() => expect(onAutoSave).toHaveBeenCalledTimes(1));
+    const [payload, questionId, action] = onAutoSave.mock.calls[0];
+    expect(questionId).toBe("q1");
+    expect(action).toBe("regrade");
+    expect(payload).toMatchObject({ score: 7, correct_answer: 0 });
+    for (const field of ["question_type", "prompt", "options", "answer_format"]) {
+      expect(payload).not.toHaveProperty(field);
+    }
+  });
 });

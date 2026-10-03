@@ -39,7 +39,7 @@ const EXAM_DEFAULT_PAYLOADS: Record<ExamQuestionType, Omit<ExamQuestionUpsertPay
     prompt: "New question",
     score: 5,
     options: ["True", "False"],
-    correct_answer: true,
+    correct_answer: 0,
   },
   short_answer: { question_type: "short_answer", prompt: "New question", score: 5 },
   essay: { question_type: "essay", prompt: "New question", score: 5 },

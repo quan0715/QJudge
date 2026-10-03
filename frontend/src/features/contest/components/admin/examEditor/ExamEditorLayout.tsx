@@ -89,7 +89,7 @@ const DEFAULT_PAYLOADS: Record<
     prompt: "New question",
     score: 5,
     options: ["True", "False"],
-    correct_answer: true,
+    correct_answer: 0,
   },
   short_answer: {
     question_type: "short_answer",
@@ -434,7 +434,7 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
 
   const handleQuestionAutoSave = useCallback(
     async (
-      payload: ExamQuestionUpsertPayload,
+      payload: Partial<ExamQuestionUpsertPayload>,
       questionId?: string,
       action?: ExistingGradesAction,
     ) => {
