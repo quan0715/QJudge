@@ -30,11 +30,6 @@ describe("submission repository integration", () => {
     const target = await ensureProblemExists(TEST_PROBLEMS.aPlusB.title);
     problemId = target.id;
 
-    await loginAndSetToken({
-      email: TEST_USERS.student.email,
-      password: TEST_USERS.student.password,
-    });
-
     submission = await submitSolution({
       problem_id: problemId,
       language: "cpp",
