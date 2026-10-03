@@ -30,7 +30,8 @@
       "quick-start": "快速入門",
       "teacher-qualification": "管理教師資格",
       "privacy": "隱私權政策",
-      "terms": "服務條款"
+      "terms": "服務條款",
+      "grade-appeal": "成績申訴"
     },
     "lastUpdated": "前次更新",
     "onThisPage": "在此頁面",
@@ -40,7 +41,8 @@
       "deployment": "架設與部署",
       "first-exam": "準備第一場考試",
       "getting-started": "快速開始",
-      "legal": "法律與隱私"
+      "legal": "法律與隱私",
+      "student-guide": "學生指南"
     }
   },
   "page": {

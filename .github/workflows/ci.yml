@@ -1,8 +1,10 @@
 name: CI
 
+# main only changes through release pull requests, whose required checks already
+# ran this workflow, so pushes to main do not run it again.
 on:
   push:
-    branches: [main, dev]
+    branches: [dev]
     paths:
       - "frontend/**"
       - ".codex/skills/qjudge-*/**"
@@ -40,19 +42,16 @@ concurrency:
 
 jobs:
   # ============================================
-  # Static Analysis & Build Check (Blocking)
+  # Static Analysis (runs alongside the test jobs; the frontend production
+  # build is covered by the frontend image built in Integration Tests)
   # ============================================
   static-checks:
-    name: Static Analysis & Build Check
+    name: Static Analysis
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+      - uses: ./.github/actions/frontend-deps
 
       - uses: actions/setup-python@v7
         with:
@@ -71,10 +70,6 @@ jobs:
           docker compose --project-directory deploy --env-file deploy/.env.example \
             -f deploy/addons/media/compose.yml config --quiet
 
-      - name: Install Frontend Deps
-        run: npm ci
-        working-directory: frontend
-
       - name: Frontend Quality Gate Contract Tests
         run: node --test .codex/skills/qjudge-quality-gates-owner/scripts/*.test.js
 
@@ -92,31 +87,18 @@ jobs:
         run: npm run typecheck
         working-directory: frontend
 
-      - name: Frontend Build Check (Ensures CD Success)
-        run: npm run build
-        working-directory: frontend
-
   # ============================================
   # Frontend Unit Tests
   # ============================================
   frontend-unit:
     name: Frontend Unit Tests
-    needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-        working-directory: frontend
+      - uses: ./.github/actions/frontend-deps
 
       - name: Lint
         run: npm run lint
@@ -141,7 +123,6 @@ jobs:
   # ============================================
   integration-tests:
     name: Integration Tests
-    needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -151,28 +132,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Resolve bundled MinIO on the runner
-        run: echo "127.0.0.1 minio" | sudo tee -a /etc/hosts
-
       - name: Install QJudge from scratch
-        run: ci/e2e-stack.sh
-
-      - uses: actions/setup-node@v7
+        uses: ./.github/actions/qjudge-stack
         with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install frontend dependencies
-        run: npm ci
-        working-directory: frontend
+      - uses: ./.github/actions/frontend-deps
 
       - name: Frontend API Integration Tests
         run: npm run test:api
@@ -211,7 +176,6 @@ jobs:
   # ============================================
   backend-unit:
     name: Backend Unit Tests
-    needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -268,6 +232,7 @@ jobs:
           pytest \
             --ignore=apps/judge/ \
             --ignore=apps/submissions/tests/test_performance.py \
+            --tb=short \
             --cov=apps \
             --cov-config=.coveragerc \
             --cov-report=term-missing \
@@ -286,7 +251,6 @@ jobs:
 
   mcp-server-unit:
     name: MCP Server Tests
-    needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -311,7 +275,6 @@ jobs:
 
   ai-service-unit:
     name: AI Service Tests
-    needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -347,7 +310,6 @@ jobs:
 
   integrity-service-unit:
     name: Integrity Service Tests
-    needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -378,7 +340,6 @@ jobs:
   # ============================================
   judge:
     name: Judge Tests
-    needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:

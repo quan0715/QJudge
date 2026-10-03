@@ -1,0 +1,44 @@
+@use "@carbon/layout";
+
+.root, .messages {
+  display: grid;
+  gap: layout.$spacing-05;
+  min-width: 0;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: layout.$spacing-03;
+}
+.context, .message {
+  display: grid;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-05;
+  background: var(--cds-layer);
+  border: 1px solid var(--cds-border-subtle);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.meta {
+  color: var(--cds-text-secondary);
+  margin: 0;
+}
+.content {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.list {
+  display: grid;
+  gap: layout.$spacing-03;
+  min-width: 0;
+}
+.ticket {
+  display: flex;
+  justify-content: space-between;
+  gap: layout.$spacing-03;
+  flex-wrap: wrap;
+  padding-block: layout.$spacing-04;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}

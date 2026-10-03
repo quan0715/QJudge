@@ -8,6 +8,12 @@
       ]
     },
     {
+      "id": "student-guide",
+      "items": [
+        "grade-appeal"
+      ]
+    },
+    {
       "id": "deployment",
       "items": [
         "deployment",

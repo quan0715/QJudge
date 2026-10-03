@@ -15,7 +15,6 @@ from .models import (
     ContestParticipant,
     ContestAnnouncement,
     ExamStatus,
-    Clarification,
     ExamEvent,
     ExamEvidenceFrame,
     ContestActivity,
@@ -814,82 +813,6 @@ class ExamQuestionGroupSerializer(serializers.ModelSerializer):
         return obj.questions.exclude(
             score_policy=ExamQuestionScorePolicy.EXCLUDED
         ).aggregate(total=Sum('score'))['total'] or 0
-
-
-# ============================================================================
-# Clarification Serializers (New)
-# ============================================================================
-
-class ClarificationSerializer(serializers.ModelSerializer):
-    """
-    Serializer for clarifications/Q&A.
-    """
-    author_username = serializers.CharField(source='author.username', read_only=True)
-    author_display_name = serializers.SerializerMethodField()
-    problem_title = serializers.SerializerMethodField()
-
-    def get_problem_title(self, obj):
-        if obj.problem_id and obj.problem.question_asset_id:
-            try:
-                return obj.problem.question_asset.title
-            except Exception:
-                pass
-        return None
-    
-    class Meta:
-        model = Clarification
-        fields = [
-            'id',
-            'contest',
-            'problem',
-            'problem_title',
-            'author',
-            'author_username',
-            'author_display_name',
-            'question',
-            'answer',
-            'is_public',
-            'status',
-            'created_at',
-            'answered_at',
-        ]
-        read_only_fields = ['author', 'status', 'answered_at', 'author_username', 'author_display_name', 'problem_title']
-
-    def get_author_display_name(self, obj):
-        profile = getattr(obj.author, 'profile', None)
-        return getattr(profile, 'display_name', '') or obj.author.username
-
-
-class ClarificationCreateSerializer(serializers.ModelSerializer):
-    """
-    Serializer for creating a clarification.
-    """
-    problem_id = serializers.UUIDField(required=False, allow_null=True)
-    
-    class Meta:
-        model = Clarification
-        fields = ['problem_id', 'question']
-
-    def create(self, validated_data):
-        problem_id = validated_data.pop('problem_id', None)
-        problem = None
-        if problem_id:
-            from apps.problems.models import CodingProblem
-            try:
-                problem = CodingProblem.objects.get(id=problem_id)
-            except CodingProblem.DoesNotExist:
-                pass
-        
-        validated_data['problem'] = problem
-        return super().create(validated_data)
-
-
-class ClarificationReplySerializer(serializers.Serializer):
-    """
-    Serializer for replying to a clarification.
-    """
-    answer = serializers.CharField()
-    is_public = serializers.BooleanField(default=True)
 
 
 # ============================================================================

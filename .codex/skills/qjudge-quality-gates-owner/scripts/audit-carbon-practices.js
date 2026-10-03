@@ -44,15 +44,32 @@ try {
   // The regex fallback still runs when frontend dependencies are not installed.
 }
 // Every --cds-* custom property Carbon React emits; null only outside the strict profile.
+// Compiling Carbon takes seconds, so the list is cached per @carbon/react version.
+function loadCarbonTokens() {
+  const frontend = path.resolve(__dirname, "../../../../frontend");
+  const modules = path.join(frontend, "node_modules");
+  const version = JSON.parse(fs.readFileSync(path.join(modules, "@carbon/react/package.json"), "utf8")).version;
+  const cacheFile = path.join(modules, ".cache", "qjudge-carbon-tokens.json");
+  try {
+    const cached = JSON.parse(fs.readFileSync(cacheFile, "utf8"));
+    if (cached.version === version) return new Set(cached.tokens);
+  } catch {
+    // No usable cache yet.
+  }
+  const sass = require(require.resolve("sass", { paths: [frontend] }));
+  const css = sass.compileString('@use "@carbon/react";', { loadPaths: [modules], logger: sass.Logger.silent }).css;
+  const tokens = [...new Set([...css.matchAll(/(--cds-[a-z0-9-]+)\s*:/g)].map((match) => match[1]))];
+  try {
+    fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
+    fs.writeFileSync(cacheFile, JSON.stringify({ version, tokens }));
+  } catch {
+    // A read-only node_modules only loses the cache.
+  }
+  return new Set(tokens);
+}
 let carbonTokens = null;
 try {
-  const frontend = path.resolve(__dirname, "../../../../frontend");
-  const sass = require(require.resolve("sass", { paths: [frontend] }));
-  const css = sass.compileString('@use "@carbon/react";', {
-    loadPaths: [path.join(frontend, "node_modules")],
-    logger: sass.Logger.silent,
-  }).css;
-  carbonTokens = new Set([...css.matchAll(/(--cds-[a-z0-9-]+)\s*:/g)].map((match) => match[1]));
+  carbonTokens = loadCarbonTokens();
 } catch {
   // Unknown-token checks need the frontend's sass and @carbon/react.
 }

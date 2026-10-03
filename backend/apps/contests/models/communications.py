@@ -47,7 +47,7 @@ class ContestAnnouncement(models.Model):
 
 class Clarification(models.Model):
     """
-    Clarification/Q&A during contest.
+    Retired Q&A data. No API or UI; retained until historical data disposition.
     Replaces the older ContestQuestion model with better structure.
     """
     contest = models.ForeignKey(
