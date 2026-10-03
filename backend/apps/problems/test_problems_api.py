@@ -666,8 +666,7 @@ class ProblemTestRunTests(TestCase):
 
 
 class ProblemTestRunContestAccessTests(TestCase):
-    """Access policy mirrors Submission: any authenticated user may test_run,
-    and contest_id (when provided) gates by SubmissionAccessPolicy."""
+    """Test-run access requires an eligible participant and a bound problem."""
 
     def setUp(self):
         User = get_user_model()
@@ -736,12 +735,6 @@ class ProblemTestRunContestAccessTests(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
         self.assertEqual(Submission.objects.count(), 0)
 
-    def test_student_can_test_run_without_contest_id(self):
-        """Mirrors Submission practice path: no contest context => any auth user."""
-        self._mock_judge()
-        self.client.force_authenticate(user=self.student)
-        resp = self._post({'language': 'python', 'code': 'x'})
-        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
 
     def test_non_participant_with_contest_id_is_denied(self):
         self.client.force_authenticate(user=self.outsider)

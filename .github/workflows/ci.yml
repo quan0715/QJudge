@@ -285,13 +285,23 @@ jobs:
           POSTGRES_USER: ai_test
           POSTGRES_PASSWORD: ai_test_password
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U ai_test -d qjudge_ai_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
         ports:
           - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
     env:
+      AI_TEST_REDIS_URL: redis://localhost:6379/0
       AI_TEST_DATABASE_URL: postgresql+psycopg://ai_test:ai_test_password@localhost:5432/qjudge_ai_test
     defaults:
       run:

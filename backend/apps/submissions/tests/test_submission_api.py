@@ -251,7 +251,8 @@ class SubmissionExecutionTestCase(TestCase):
         self.user = User.objects.create_user(
             username='exec_user',
             email='exec@test.com',
-            password='testpass123'
+            password='testpass123',
+            role='teacher'
         )
         
         self.problem = CodingProblem.objects.create(
