@@ -23,15 +23,14 @@ HttpStatus = Callable[[str, str, str], int]
 Sleep = Callable[[float], None]
 
 DATABASES = ("online_judge", "qjudge_ai")
-APP_SERVICES = ("backend", "ai-service", "integrity-resident")
+APP_SERVICES = ("backend", "ai-service", "integrity-resident", "celery", "ai-worker", "integrity-reconciler")
 MIGRATIONS = (
     ("backend", ("python", "manage.py", "migrate", "--noinput")),
     ("ai-service", ("sh", "-c", "python -m alembic upgrade head && python -m infrastructure.checkpoints.langgraph_store setup")),
 )
 # Validate with the new image before stopping the running application.
 MODEL_CONFIG_CHECK = ("ai-service", ("python", "-m", "infrastructure.agent.model_config"))
-JUDGE_IMAGE = "oj-judge:latest"
-JUDGE_REMOTE = "ghcr.io/quan0715/qjudge/judge:latest"
+JUDGE_REMOTE = "ghcr.io/quan0715/qjudge/judge"
 KEEP_BACKUPS = 10
 KEEP_IMAGES = 3
 POSTGRES_TIMEOUT = 120
@@ -105,12 +104,17 @@ class _Stack:
         return self.run(command, env={**os.environ, "QJUDGE_VERSION": version}, **kwargs)
 
     def judge_image(self) -> bool:
-        if self.run(["docker", "pull", JUDGE_REMOTE]).returncode == 0:
-            return self.run(["docker", "tag", JUDGE_REMOTE, JUDGE_IMAGE]).returncode == 0
-        if self.run(["docker", "image", "inspect", JUDGE_IMAGE], capture_output=True).returncode == 0:
+        image = f"qjudge/judge:{_version(self.head())}"
+        if self.run(["docker", "image", "inspect", image], capture_output=True).returncode == 0:
             return True
+        source = self.git("rev-parse", "HEAD:backend/judge")
+        if source.returncode != 0 or not source.stdout.strip():
+            return False
+        remote = f"{JUDGE_REMOTE}:source-{source.stdout.strip()}"
+        if self.run(["docker", "pull", remote]).returncode == 0:
+            return self.run(["docker", "tag", remote, image]).returncode == 0
         judge = self.repo / "backend" / "judge"
-        build = ["docker", "build", "-t", JUDGE_IMAGE, "-f", str(judge / "Dockerfile.judge"), str(judge)]
+        build = ["docker", "build", "-t", image, "-f", str(judge / "Dockerfile.judge"), str(judge)]
         return self.run(build).returncode == 0
 
     def healthy(self, version: str, services: tuple[str, ...]) -> bool:
@@ -247,6 +251,7 @@ def upgrade(
         print(f"{version} is not healthy")
         if current:
             stack.checkout(current)
+            stack.judge_image()
             stack.compose(_version(current), "up", "-d", "--remove-orphans")
             print(f"Started {_version(current)} again")
         else:
@@ -276,6 +281,9 @@ def rollback(
     if not stack.checkout(previous):
         return 1
     version = _version(previous)
+    if not stack.judge_image():
+        stack.checkout(recorded["current"])
+        return 1
     if not stack.start(version):
         current = recorded["current"]
         print(f"{version} is not healthy; starting {_version(current)} again")

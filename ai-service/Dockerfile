@@ -9,9 +9,9 @@ RUN for i in 1 2 3 4 5; do \
       break || sleep 10; \
     done && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install runtime dependencies from the single project manifest.
+COPY pyproject.toml .
+RUN pip install --no-cache-dir .
 
 # Copy application code
 COPY . .

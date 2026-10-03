@@ -47,7 +47,6 @@ INSTALLED_APPS = [
     "oauth2_provider",  # OAuth 2.1 Authorization Server
     "corsheaders",
     "django_ratelimit",  # API 速率限制
-    "channels",  # WebSocket support
     # Local apps
     "apps.core",
     "apps.users",
@@ -308,16 +307,6 @@ CACHE_KEYS = {
     "POPULAR_PROBLEMS": "popular_problems",
     "CONTEST_STANDINGS": "contest_standings_{contest_id}",
     "USER_STATS": "user_stats_{user_id}",
-}
-
-# Django Channels settings (WebSocket)
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [env("REDIS_URL", "redis://localhost:6379/0")],
-        },
-    },
 }
 
 # Email defaults (provider-agnostic; EMAIL_BACKEND set per environment)

@@ -29,6 +29,27 @@ class SubmissionAccessPolicy:
         return can_manage_contest(user, contest)
 
     @classmethod
+    def enforce_problem_access(cls, user: User, problem, contest: Contest | None = None):
+        if contest is not None:
+            from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
+            cls.enforce_contest_submission(user, contest)
+            binding = ContestQuestionBinding.objects.filter(
+                contest=contest,
+                coding_problem=problem,
+                binding_type=QuestionAsset.AssetType.CODING,
+            ).first()
+            if binding is None:
+                raise SubmissionAccessError("Problem does not belong to this contest")
+            return binding
+
+        if not type(problem).objects.visible_to(
+            user=user, scope=None, action="retrieve",
+        ).filter(pk=problem.pk).exists():
+            raise SubmissionAccessError("You do not have access to this problem")
+        return None
+
+    @classmethod
     def enforce_contest_submission(cls, user: User, contest: Contest) -> bool:
         """
         Validate contest submission eligibility.

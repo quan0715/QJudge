@@ -99,7 +99,7 @@ def silence_contest_activity(mocker: MockerFixture) -> Mock:
 
 @pytest.mark.django_db
 def test_practice_dispatches_to_default_queue(judge_mock: Mock) -> None:
-    user = UserFactory()
+    user = UserFactory(role="teacher")
     problem = ProblemFactory(created_by=user)
 
     submission = SubmissionService.create_and_dispatch(
@@ -116,6 +116,10 @@ def test_contest_dispatches_to_high_priority_queue(judge_mock: Mock) -> None:
     user = UserFactory()
     contest = ContestFactory()
     problem = ProblemFactory(created_by=contest.owner)
+    ContestQuestionBinding.objects.create(
+        contest=contest, coding_problem=problem, binding_type="coding",
+        question_asset=QuestionAsset.objects.create(owner=contest.owner, asset_type="coding", title="Test"),
+    )
     ContestParticipantFactory(contest=contest, user=user)
 
     submission = SubmissionService.create_and_dispatch(
@@ -138,7 +142,7 @@ def test_contest_dispatches_to_high_priority_queue(judge_mock: Mock) -> None:
 
 @pytest.mark.django_db
 def test_forbidden_keyword_skips_dispatch(judge_mock: Mock) -> None:
-    user = UserFactory()
+    user = UserFactory(role="teacher")
     problem = ProblemFactory(created_by=user, forbidden_keywords=["eval"])
 
     submission = SubmissionService.create_and_dispatch(
@@ -153,7 +157,7 @@ def test_forbidden_keyword_skips_dispatch(judge_mock: Mock) -> None:
 
 @pytest.mark.django_db
 def test_required_keyword_missing_skips_dispatch(judge_mock: Mock) -> None:
-    user = UserFactory()
+    user = UserFactory(role="teacher")
     problem = ProblemFactory(created_by=user, required_keywords=["import"])
 
     submission = SubmissionService.create_and_dispatch(
@@ -178,6 +182,10 @@ def test_contest_submission_logs_activity(
     user = UserFactory()
     contest = ContestFactory()
     problem = ProblemFactory(created_by=contest.owner)
+    ContestQuestionBinding.objects.create(
+        contest=contest, coding_problem=problem, binding_type="coding",
+        question_asset=QuestionAsset.objects.create(owner=contest.owner, asset_type="coding", title="Test"),
+    )
     ContestParticipantFactory(contest=contest, user=user)
 
     SubmissionService.create_and_dispatch(
@@ -202,7 +210,7 @@ def test_practice_submission_does_not_log_activity(
     judge_mock: Mock,
     silence_contest_activity: Mock,
 ) -> None:
-    user = UserFactory()
+    user = UserFactory(role="teacher")
     problem = ProblemFactory(created_by=user)
 
     SubmissionService.create_and_dispatch(
@@ -265,6 +273,10 @@ def test_not_started_non_exam_submission_is_allowed(judge_mock: Mock) -> None:
     user = UserFactory()
     contest = ContestFactory(status="published", cheat_detection_enabled=False)
     problem = ProblemFactory(created_by=contest.owner)
+    ContestQuestionBinding.objects.create(
+        contest=contest, coding_problem=problem, binding_type="coding",
+        question_asset=QuestionAsset.objects.create(owner=contest.owner, asset_type="coding", title="Test"),
+    )
     ContestParticipantFactory(contest=contest, user=user, exam_status=ExamStatus.NOT_STARTED)
 
     submission = SubmissionService.create_and_dispatch(

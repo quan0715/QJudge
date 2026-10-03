@@ -1,4 +1,4 @@
-"""Compatibility artifact routes backed exclusively by the AI Service."""
+"""Artifact routes backed exclusively by the AI Service."""
 
 from __future__ import annotations
 
@@ -16,8 +16,6 @@ from apps.users.permissions import IsTeacherOrAdmin
 
 from .serializers import (
     ArtifactUploadSerializer,
-    artifact_list_to_legacy,
-    artifact_to_legacy,
 )
 from .services.ai_service_client import (
     AIServiceUnavailable,
@@ -61,10 +59,10 @@ class ArtifactViewSet(viewsets.ViewSet):
         run_id = request.query_params.get("run_id")
 
         def map_list(data):
-            mapped = artifact_list_to_legacy(data)
+            mapped = data
             if run_id:
                 mapped["results"] = [
-                    item for item in mapped["results"] if item["run_id"] == run_id
+                    item for item in mapped["results"] if item["produced_by_run_id"] == run_id
                 ]
                 mapped["count"] = len(mapped["results"])
             return mapped
@@ -76,7 +74,6 @@ class ArtifactViewSet(viewsets.ViewSet):
             request,
             method="GET",
             path=f"/v1/artifacts/{pk}",
-            mapper=artifact_to_legacy,
         )
 
     @action(detail=False, methods=["post"], url_path="upload")
@@ -109,7 +106,6 @@ class ArtifactViewSet(viewsets.ViewSet):
                     "source": "composer_upload",
                 },
             },
-            mapper=artifact_to_legacy,
         )
 
     @action(detail=True, methods=["get"], url_path="content")

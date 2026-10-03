@@ -2,10 +2,7 @@ import type {
   ContestDetail,
   ExamQuestion,
   ExamStatusType,
-  ScoreboardData,
-  ScoreboardRow,
 } from "@/core/entities/contest.entity";
-import type { User } from "@/core/entities/auth.entity";
 import { getContestState } from "@/core/entities/contest.entity";
 
 export type StudentContestPhase = "before" | "during" | "after";
@@ -36,33 +33,6 @@ export const resolveStudentContestPhase = (
   const startMs = Date.parse(contest.startTime);
   if (Number.isFinite(startMs) && nowMs >= startMs) return "during";
   return "before";
-};
-
-export const findCurrentUserScoreboardRow = (
-  scoreboardData: ScoreboardData | null | undefined,
-  currentUser: User | null | undefined,
-): ScoreboardRow | null => {
-  if (!scoreboardData?.rows?.length || !currentUser) return null;
-
-  const userId = String(currentUser.id);
-  const directMatch = scoreboardData.rows.find(
-    (row) => String(row.userId) === userId,
-  );
-  if (directMatch) return directMatch;
-
-  const nameCandidates = new Set(
-    [
-      currentUser.username,
-      currentUser.profile?.display_name,
-      currentUser.email,
-    ]
-      .filter(Boolean)
-      .map((value) => String(value)),
-  );
-  return (
-    scoreboardData.rows.find((row) => nameCandidates.has(row.displayName)) ??
-    null
-  );
 };
 
 export interface StudentProgressSummary {

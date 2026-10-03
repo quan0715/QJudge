@@ -179,13 +179,13 @@ export function TaskDetailPanel(props: TaskDetailPanelProps) {
         {artifacts && artifacts.length > 0 ? (
           <ul className={styles.artifactList}>
             {artifacts.map((artifact) => {
-              const isActive = artifact.id === activeArtifactId;
+              const isActive = artifact.artifact_id === activeArtifactId;
               return (
-                <li key={artifact.id}>
+                <li key={artifact.artifact_id}>
                   <button
                     type="button"
                     className={`${styles.artifactItem} ${isActive ? styles.artifactItemActive : ""}`}
-                    onClick={() => onOpenArtifact?.(artifact.id)}
+                    onClick={() => onOpenArtifact?.(artifact.artifact_id)}
                     aria-pressed={isActive}
                   >
                     <span className={styles.artifactIdentity}>

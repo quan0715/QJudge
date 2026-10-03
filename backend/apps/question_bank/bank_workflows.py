@@ -255,7 +255,7 @@ def _get_effective_synced_ids_for_user(
 ) -> set[str]:
     resolved: set[str] = set()
     rows = (
-        QuestionBankMembership.objects.select_related(
+        QuestionBankMembership.objects.filter(bank__owner=user, bank__is_archived=False).select_related(
             "bank",
             "bank__owner",
             "question_asset",
@@ -264,8 +264,6 @@ def _get_effective_synced_ids_for_user(
         .order_by("-updated_at", "-id")
     )
     for row in rows:
-        if not _is_effectively_accessible_bank_for_user(bank=row.bank, user=user):
-            continue
         value = _source_id_from_membership_payload(
             row,
             source_type=source_type,
@@ -280,23 +278,7 @@ def _get_effective_synced_ids_for_user(
 
 
 def _resolve_effective_existing_membership(*, queryset, user) -> QuestionBankMembership | None:
-    rows = list(
-        queryset.select_related(
-            "bank",
-            "bank__owner",
-            "question_asset",
-            "question_asset__latest_version",
-        ).order_by("-updated_at", "-id")
-    )
-    for row in rows:
-        if row.bank.is_archived:
-            continue
-        if row.bank.owner_id == user.id:
-            return row
-    for row in rows:
-        if _is_effectively_accessible_bank_for_user(bank=row.bank, user=user):
-            return row
-    return None
+    return queryset.filter(bank__owner=user, bank__is_archived=False).order_by("-updated_at", "-id").first()
 
 
 def list_question_bank_inbox(user, category: str | None = None) -> dict[str, list[dict[str, Any]]]:

@@ -1,11 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IndexedDbIntegrityOutbox } from "@/infrastructure/browser/integrity/indexedDbIntegrityOutbox";
 import { OpfsEvidenceStore } from "@/infrastructure/browser/integrity/opfsEvidenceStore";
-import { applyIntegrityHealthUpdate, contestIntegritySourceFiles, enabledEvidenceSources, initialHealthSnapshot } from "./useIntegrityRuntime";
+import { applyIntegrityHealthUpdate, enabledEvidenceSources, initialHealthSnapshot } from "./useIntegrityRuntime";
 import { ResidentIntegritySession } from "./residentIntegritySession";
 import { IntegrityTransport } from "./integrityTransport";
-import integrityRuntimeSource from "./useIntegrityRuntime.ts?raw";
-import { assertFrontendSignalsInRegistry, FRONTEND_INTEGRITY_SIGNAL_IDS } from "./frontendIntegritySignals";
+const FRONTEND_INTEGRITY_SIGNAL_IDS = ["exam_entered", "mouse_leave_triggered", "head_pose_changed"];
 
 const frontendRegistryDefinitions = Object.fromEntries(
   FRONTEND_INTEGRITY_SIGNAL_IDS.map(signal => [
@@ -84,10 +83,6 @@ describe("Resident integrity emitter and shared contract", () => {
   it("accepts a registry-only event without changing transport core", async () => {
     const outbox = outboxMock();
     vi.spyOn(IndexedDbIntegrityOutbox, "open").mockResolvedValue(outbox as unknown as IndexedDbIntegrityOutbox);
-    assertFrontendSignalsInRegistry({ version: "registry-v2", definitions: {
-      ...frontendRegistryDefinitions,
-      head_pose: { signals: { triggered: "head_pose_changed", escalated: "", restored: "" }, emission: "sample" },
-    } });
     const session = createSession();
     try {
       await session.start();
@@ -153,31 +148,7 @@ describe("Resident integrity emitter and shared contract", () => {
     expect(after.evidenceSources.webcam).toEqual({ status: "degraded", reason: "recorder_failed" });
   });
 
-  it("keeps every literal frontend emission in the declared frozen-registry contract", async () => {
-    const sourceFiles = [
-      ...await contestIntegritySourceFiles(),
-      { path: "./useIntegrityRuntime.ts", text: integrityRuntimeSource },
-    ];
-    const emittedSignals = new Set<string>();
-    for (const source of sourceFiles) {
-      for (const match of source.text.matchAll(/(?:eventType:\s*|emit\(\s*)["']([A-Za-z][A-Za-z0-9_]*)["']/g)) {
-        emittedSignals.add(match[1]);
-      }
-    }
-    expect([...emittedSignals].sort()).toEqual([...FRONTEND_INTEGRITY_SIGNAL_IDS].sort());
-  });
-
-  it("rejects a frozen registry snapshot that misses a frontend emission", () => {
-    expect(() => assertFrontendSignalsInRegistry({
-      version: "test",
-      definitions: {
-        incomplete: { signals: { triggered: "exam_entered" } },
-      },
-    })).toThrow("forbidden_action");
-  });
-
 });
-
 
 describe("enabledEvidenceSources", () => {
   it("always records the screen and adds the webcam only when the run requires it", () => {

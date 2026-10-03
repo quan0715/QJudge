@@ -1,5 +1,6 @@
 import json
 import time
+from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import close_old_connections
@@ -27,6 +28,7 @@ class Command(BaseCommand):
             while True:
                 close_old_connections()
                 self.stdout.write(json.dumps(reconcile_integrity_once(timezone.now())))
+                Path("/tmp/integrity-reconciler-heartbeat").touch()
                 if options["once"]:
                     return
                 time.sleep(options["interval"])

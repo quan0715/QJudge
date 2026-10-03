@@ -302,7 +302,7 @@ async function patchGradeCsvArtifact(
     .filter((artifact) => artifact.filename.toLowerCase() === "grade.csv")
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
   if (!gradeCsv) return;
-  const content = await fetchArtifactContent(gradeCsv.id);
+  const content = await fetchArtifactContent(gradeCsv.artifact_id);
   const nextContent = patchSuggestionCsv(content.content, answerIds, patch);
   if (nextContent === content.content) return;
   const file = new File([nextContent], "grade.csv", { type: "text/csv" });
@@ -354,10 +354,10 @@ export function useAiQuestionGrading() {
     let hasGradeArtifact = false;
     for (const artifact of latest) {
       const version = artifact.checksum || artifact.updated_at;
-      const prevVersion = artifactVersionsRef.current.get(artifact.id);
+      const prevVersion = artifactVersionsRef.current.get(artifact.artifact_id);
       if (!options?.force && prevVersion === version) continue;
-      artifactVersionsRef.current.set(artifact.id, version);
-      const content = await fetchArtifactContent(artifact.id);
+      artifactVersionsRef.current.set(artifact.artifact_id, version);
+      const content = await fetchArtifactContent(artifact.artifact_id);
       const filename = artifact.filename.toLowerCase();
       if (filename === "rubric.md") {
         rubricMarkdown = content.content;

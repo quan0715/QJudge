@@ -6,8 +6,9 @@ Supports priority queues via apply_async(queue=...):
 """
 import logging
 from celery import shared_task
+from django.db.models import F
 from .models import Submission, SubmissionResult
-from apps.problems.models import TestCase
+from apps.problems.models import CodingProblem, TestCase
 from apps.judge.judge_factory import get_judge
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 
@@ -126,7 +127,8 @@ def judge_submission(submission_id):
                 output=output[:1000],
                 error_message=error_msg[:1000],
                 input_data=tc.input_data[:2000],  # Save snapshot of input
-                expected_output=tc.output_data[:2000] # Save snapshot of expected output
+                expected_output=tc.output_data[:2000],
+                is_hidden=tc.is_hidden,
             )
             
             # If CE or SE, stop testing other cases
@@ -178,23 +180,14 @@ def judge_submission(submission_id):
         
         # Update problem stats (only for official submissions, not test runs)
         if not submission.is_test:
-            problem = submission.problem
-            problem.submission_count += 1
-            # Update status-specific counts
-            status = submission.status
-            if status == 'AC':
-                problem.accepted_count += 1
-            elif status == 'WA':
-                problem.wa_count += 1
-            elif status == 'TLE':
-                problem.tle_count += 1
-            elif status == 'MLE':
-                problem.mle_count += 1
-            elif status == 'RE':
-                problem.re_count += 1
-            elif status == 'CE':
-                problem.ce_count += 1
-            problem.save()
+            counts = {"submission_count": F("submission_count") + 1}
+            status_field = {
+                "AC": "accepted_count", "WA": "wa_count", "TLE": "tle_count",
+                "MLE": "mle_count", "RE": "re_count", "CE": "ce_count",
+            }.get(submission.status)
+            if status_field:
+                counts[status_field] = F(status_field) + 1
+            CodingProblem.objects.filter(pk=submission.problem_id).update(**counts)
         
         return f"Submission {submission_id} judged: {submission.status}"
         

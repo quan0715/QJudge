@@ -169,7 +169,7 @@ export function ArtifactPreview({ artifact }: ArtifactPreviewProps) {
     setLoading(true);
     setError(null);
     setContent(null);
-    fetchArtifactContent(artifact.id)
+    fetchArtifactContent(artifact.artifact_id)
       .then(({ content: body }) => {
         if (cancelled) return;
         setContent(body);
@@ -184,7 +184,7 @@ export function ArtifactPreview({ artifact }: ArtifactPreviewProps) {
     return () => {
       cancelled = true;
     };
-  }, [artifact.id]);
+  }, [artifact.artifact_id]);
 
   if (loading) {
     return (

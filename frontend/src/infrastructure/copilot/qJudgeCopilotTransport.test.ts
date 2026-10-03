@@ -192,9 +192,9 @@ function createQJudgeContractSubject(): CopilotTransportContractSubject {
     },
   };
   const upload = async (sessionId: string, file: File): Promise<ArtifactRecord> => ({
-    id: `artifact-${file.name}`,
+    artifact_id: `artifact-${file.name}`,
     session_id: sessionId,
-    run_id: null,
+    produced_by_run_id: null,
     step: "user_upload",
     filename: file.name,
     content_type: file.type,
@@ -416,9 +416,9 @@ describe("chatbotCopilotMapper", () => {
 
   it("keeps QJudge artifact metadata outside the public attachment", () => {
     const artifact: ArtifactRecord = {
-      id: "artifact-1",
+      artifact_id: "artifact-1",
       session_id: "session-1",
-      run_id: "run-1",
+      produced_by_run_id: "run-1",
       step: "user_upload",
       filename: "answer.pdf",
       content_type: "application/pdf",
@@ -998,7 +998,7 @@ describe("createQJudgeCopilotTransport", () => {
 
   it("maps upload results to public attachments", async () => {
     const artifact = {
-      id: "artifact-1",
+      artifact_id: "artifact-1",
       filename: "answer.pdf",
       content_type: "application/pdf",
     } as ArtifactRecord;

@@ -1,17 +1,6 @@
 import { lazy } from "react";
-import type { ContestDetail } from "@/core/entities/contest.entity";
-import {
-  canAccessExamContent,
-  isContestParticipant,
-  isStrictSubmittedBeforeEnd,
-} from "@/features/contest/domain/contestRuntimePolicy";
-import {
-  toContestTabSpecs,
-  type ContestTabKey,
-} from "@/features/contest/tabConfig";
 import type {
   AdminPanelId,
-  ContestStudentTabContentKind,
   ContestTypeModule,
 } from "@/features/contest/modules/types";
 import PaperExamAnsweringScreen from "@/features/contest/screens/paperExam/PaperExamAnsweringScreen";
@@ -20,36 +9,6 @@ import { getClassroomContestSolvePath } from "@/features/contest/domain/contestR
 const ExamEditorLayout = lazy(
   () => import("@/features/contest/components/admin/examEditor/ExamEditorLayout"),
 );
-
-const getPaperExamTabs = (contest?: ContestDetail | null) => {
-  const keyToContentKind: Record<ContestTabKey, ContestStudentTabContentKind> =
-    {
-      overview: "overview",
-      problems: "paper_exam_problems",
-      submissions: "submissions",
-      standings: "standings",
-      clarifications: "clarifications",
-    };
-  const toTabDefinitions = (keys: ContestTabKey[]) =>
-    toContestTabSpecs(keys).map((tab) => ({
-      ...tab,
-      contentKind: keyToContentKind[tab.key],
-    }));
-
-  if (!contest || !isContestParticipant(contest)) {
-    return toTabDefinitions(["overview"]);
-  }
-  if (isStrictSubmittedBeforeEnd(contest)) {
-    return toTabDefinitions(["overview"]);
-  }
-
-  const tabs: ContestTabKey[] = ["overview"];
-  if (canAccessExamContent(contest)) {
-    tabs.push("problems", "clarifications");
-  }
-
-  return toTabDefinitions(tabs);
-};
 
 const PAPER_EXAM_ADMIN_PANELS: AdminPanelId[] = [
   "overview",
@@ -63,7 +22,6 @@ const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor"];
 export const paperExamContestModule: ContestTypeModule = {
   type: "paper_exam",
   student: {
-    getTabs: (contest) => getPaperExamTabs(contest),
     getSolveRenderer: () => () => <PaperExamAnsweringScreen />,
     getAnsweringEntryPath: (contestId, contest) => {
       const classroomId = contest?.boundClassroomId;

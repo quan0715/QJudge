@@ -35,7 +35,7 @@ class FakeHost:
         elif "ps" in args and "--format" in args:
             state = "healthy" if self.healthy else "unhealthy"
             out = "\n".join(json.dumps({"Service": s, "Health": state})
-                            for s in ("postgres", "backend", "ai-service", "integrity-resident"))
+                            for s in ("postgres", "backend", "ai-service", "integrity-resident", "celery", "ai-worker", "integrity-reconciler"))
         elif "pg_dump" in args:
             kwargs["stdout"].write(b"dump")
         elif args[:3] == ["docker", "image", "ls"]:

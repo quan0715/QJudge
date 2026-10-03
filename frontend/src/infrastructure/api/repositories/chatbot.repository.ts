@@ -89,19 +89,16 @@ interface V2StreamEvent {
 
 // ===== Backend response types =====
 interface BackendMessage {
-  id?: string | number;
-  session_id?: string;
-  ordinal?: number;
+  ordinal: number;
+  run_id: string | null;
   role: string;
   content: string;
-  message_type: string;
   metadata?: Record<string, unknown>;
   created_at: string;
 }
 
 interface BackendSessionListItem {
   session_id: string;
-  user: number;
   title: string;
   context?: Record<string, unknown> | null;
   created_at: string;
@@ -120,34 +117,20 @@ interface BackendSession {
   session_id: string;
   title: string;
   messages: BackendMessage[];
-  // 後端 AISessionSerializer 會帶 context（含 task_manifest）。沒 pipe 過來的話，
-  // session detail 背景 lazy-load 會用沒 context 的 detail 覆寫 sessions list 裡
-  // 帶 task_manifest 的項目，useTaskSession.findLatestTaskSession 就找不到匹配 →
-  // AI Grading auto-bind 永遠失敗。
   context?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
 
 interface BackendRun {
-  id: string;
+  run_id: string;
   session_id: string;
   status: ChatRun["status"];
   kind: ChatRun["kind"];
   model_id: string;
-  last_event_seq: number;
-  approval_payload?: {
-    action_requests?: Array<{ name: string; args?: Record<string, unknown> }>;
-    review_configs?: Array<{ action_name: string; allowed_decisions: string[] }>;
-  };
-  question_payload?: {
-    question?: string;
-    options?: string[];
-    input_type?: string;
-  };
-  user_message_id?: string | number;
-  assistant_message_id?: string | number;
-  error?: string;
+  last_sequence: number;
+  pause_payload: NonNullable<ChatRun["approvalPayload"]> & NonNullable<ChatRun["questionPayload"]>;
+  error_message?: string;
 }
 
 // ===== Helpers =====
@@ -390,19 +373,6 @@ function extractTodoItemsFromEvent(event: V2StreamEvent): RunTodoItem[] | undefi
   );
 }
 
-function toMessageId(backendMsg: BackendMessage, sessionId: string): string {
-  const ordinal =
-    backendMsg.ordinal ??
-    (typeof backendMsg.id === "number"
-      ? backendMsg.id
-      : typeof backendMsg.id === "string" && /^\d+$/.test(backendMsg.id)
-        ? Number(backendMsg.id)
-        : undefined);
-  if (ordinal !== undefined) return `${sessionId}:${ordinal}`;
-  if (backendMsg.id !== undefined) return String(backendMsg.id);
-  throw new Error("AI message is missing its aggregate identity");
-}
-
 function convertBackendMessage(
   backendMsg: BackendMessage,
   sessionId: string,
@@ -412,7 +382,7 @@ function convertBackendMessage(
     typeof metadata.thinking === "string" ? metadata.thinking : undefined;
   const runStatus =
     typeof metadata.run_status === "string" ? metadata.run_status : undefined;
-  const runId = typeof metadata.run_id === "string" ? metadata.run_id : undefined;
+  const runId = backendMsg.run_id ?? undefined;
   const runErrorRaw =
     typeof metadata.run_error === "string"
       ? metadata.run_error
@@ -455,7 +425,7 @@ function convertBackendMessage(
     .map((o) => ({ label: String(o.label), message: String(o.message) }));
 
   return {
-    id: toMessageId(backendMsg, sessionId),
+    id: `${sessionId}:${backendMsg.ordinal}`,
     role: backendMsg.role as "user" | "assistant",
     content: backendMsg.content,
     timestamp: new Date(backendMsg.created_at),
@@ -474,17 +444,15 @@ function convertBackendMessage(
 
 function convertBackendRun(run: BackendRun): ChatRun {
   return {
-    id: run.id,
+    id: run.run_id,
     sessionId: run.session_id,
     status: run.status,
     kind: run.kind,
     modelId: run.model_id,
-    lastEventSeq: run.last_event_seq,
-    approvalPayload: run.approval_payload,
-    questionPayload: run.question_payload,
-    userMessageId: run.user_message_id,
-    assistantMessageId: run.assistant_message_id,
-    error: run.error,
+    lastEventSeq: run.last_sequence,
+    approvalPayload: run.status === "awaiting_approval" ? run.pause_payload : undefined,
+    questionPayload: run.status === "awaiting_user_answer" ? run.pause_payload : undefined,
+    error: run.error_message,
   };
 }
 
@@ -611,10 +579,11 @@ const chatbotRepository: ChatbotRepository = {
   },
 
   async createBackendSession(): Promise<{ id: string; status: string }> {
-    return await requestJson<{ id: string; status: string }>(
+    const session = await requestJson<BackendSessionListItem>(
       httpClient.post(`${BASE_URL}/new_session/`),
       "無法創建後端會話"
     );
+    return { id: session.session_id, status: "ready" };
   },
 
   async deleteSession(sessionId: string | number): Promise<void> {

@@ -74,7 +74,7 @@ export function AITaskShell(props: AITaskShellProps) {
   );
   const [openArtifactIds, setOpenArtifactIds] = useState<string[]>([]);
   const artifactsById = useMemo(
-    () => new Map((props.artifacts ?? []).map((artifact) => [artifact.id, artifact])),
+    () => new Map((props.artifacts ?? []).map((artifact) => [artifact.artifact_id, artifact])),
     [props.artifacts],
   );
 
@@ -142,7 +142,7 @@ export function AITaskShell(props: AITaskShellProps) {
         if (!artifact) return [];
         return [
           {
-            id: getArtifactTabId(artifact.id),
+            id: getArtifactTabId(artifact.artifact_id),
             title: artifact.filename,
             icon: <ArtifactFileIcon filename={artifact.filename} size={16} />,
             closable: true,
@@ -219,7 +219,7 @@ function TaskArtifactMain({ artifact }: { artifact: ArtifactRecord }) {
   const { t } = useTranslation("contest");
 
   const handleDownload = async () => {
-    const { url } = await fetchArtifactDownloadUrl(artifact.id);
+    const { url } = await fetchArtifactDownloadUrl(artifact.artifact_id);
     window.open(url, "_blank", "noopener,noreferrer");
   };
 

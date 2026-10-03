@@ -89,7 +89,7 @@ class QJudgeApiClient:
 
     def create_ai_session(self) -> str:
         data = self.post_json("/api/v1/ai/sessions/new_session/")
-        session_id = data.get("id") if isinstance(data, dict) else None
+        session_id = data.get("session_id") if isinstance(data, dict) else None
         if not isinstance(session_id, str) or not session_id:
             raise RuntimeError("Backend did not return an AI session id")
         return session_id

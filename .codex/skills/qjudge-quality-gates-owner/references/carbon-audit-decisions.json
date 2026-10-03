@@ -3,15 +3,18 @@
   "decisions": [
     {
       "id": "composite-navigation-controls",
-      "rules": ["raw-interactive-control"],
-      "components": ["button"],
+      "rules": [
+        "raw-interactive-control"
+      ],
+      "components": [
+        "button"
+      ],
       "paths": [
         "features/ai-tasks/shell/InitPromptEditor.tsx",
         "features/ai-tasks/shell/TaskDetailPanel.tsx",
         "features/ai-tasks/shell/TaskMainTabs.tsx",
         "features/app/components/SideMenu.tsx",
         "features/app/components/SideMenuContestRuntimeSection.tsx",
-        "features/app/components/SideMenuToggle.tsx",
         "features/app/components/UserMenu.tsx",
         "features/app/components/workspace/WorkspaceTopNav.tsx",
         "features/chatbot/components/chat-ui/ChatHistoryPanel.tsx",
@@ -42,8 +45,12 @@
     },
     {
       "id": "rich-selection-surface-controls",
-      "rules": ["raw-interactive-control"],
-      "components": ["button"],
+      "rules": [
+        "raw-interactive-control"
+      ],
+      "components": [
+        "button"
+      ],
       "paths": [
         "features/auth/screens/CampusSsoScreen.tsx",
         "features/chatbot/components/artifact/ArtifactInlineCard.tsx",
@@ -76,17 +83,27 @@
     },
     {
       "id": "landing-disclosure-controls",
-      "rules": ["raw-interactive-control"],
-      "components": ["button"],
-      "paths": ["features/landing/sections/FaqSection.tsx"],
+      "rules": [
+        "raw-interactive-control"
+      ],
+      "components": [
+        "button"
+      ],
+      "paths": [
+        "features/landing/sections/FaqSection.tsx"
+      ],
       "reason": "The FAQ question is a native disclosure trigger with aria-expanded and aria-controls; Carbon Button would not add disclosure semantics.",
       "owner": "frontend-ui",
       "removalCondition": "Replace only if the landing FAQ adopts Carbon Accordion without losing the branded presentation."
     },
     {
       "id": "editor-media-controls",
-      "rules": ["raw-interactive-control"],
-      "components": ["button"],
+      "rules": [
+        "raw-interactive-control"
+      ],
+      "components": [
+        "button"
+      ],
       "paths": [
         "shared/ui/editor/mathMarkdownEditor/MathMarkdownEditor.tsx",
         "shared/ui/editor/openAnswerDocument/FormulaEditorModal.tsx",
@@ -99,8 +116,13 @@
     },
     {
       "id": "platform-native-data-controls",
-      "rules": ["raw-interactive-control"],
-      "components": ["input", "textarea"],
+      "rules": [
+        "raw-interactive-control"
+      ],
+      "components": [
+        "input",
+        "textarea"
+      ],
       "paths": [
         "features/chatbot/components/chat-ui/ChatHistoryPanel.tsx",
         "features/chatbot/components/chat-ui/ChatTopBar.tsx",
@@ -119,8 +141,12 @@
     },
     {
       "id": "contextual-inline-notifications",
-      "rules": ["notification-variant-review"],
-      "components": ["InlineNotification"],
+      "rules": [
+        "notification-variant-review"
+      ],
+      "components": [
+        "InlineNotification"
+      ],
       "paths": [
         "features/admin/screens/ServiceStatusScreen.tsx",
         "features/admin/screens/UserManagementScreen.tsx",
@@ -135,9 +161,7 @@
         "features/chatbot/components/chat-ui/QuestionCard.tsx",
         "features/classroom/components/AddMembersModal.tsx",
         "features/classroom/components/CreateContestModal.tsx",
-        "features/contest/components/ContestOverview.tsx",
         "features/contest/components/admin/settings/CheatDetectionPanel.tsx",
-        "features/contest/components/exam/PaperExamResultsList.tsx",
         "features/contest/components/participants/ParticipantDashboardPane.tsx",
         "features/contest/components/participants/ParticipantOperationsPane.tsx",
         "features/contest/components/solver/submissions/ContestProblemSubmissions.tsx",
@@ -162,9 +186,15 @@
     },
     {
       "id": "global-toast-host",
-      "rules": ["notification-variant-review"],
-      "components": ["ToastNotification"],
-      "paths": ["shared/contexts/ToastContext.tsx"],
+      "rules": [
+        "notification-variant-review"
+      ],
+      "components": [
+        "ToastNotification"
+      ],
+      "paths": [
+        "shared/contexts/ToastContext.tsx"
+      ],
       "reason": "The shared toast host is the single transient global-feedback channel used by useToast.",
       "owner": "frontend-ui",
       "removalCondition": "Replace only if the application adopts a different single global notification host."

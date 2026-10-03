@@ -103,11 +103,11 @@ export function SessionBadges({ messages, inline = false }: SessionBadgesProps) 
           <div className={styles.artifactList}>
             {artifacts.map((artifact) => (
               <ArtifactInlineCard
-                key={artifact.id}
+                key={artifact.artifact_id}
                 artifact={artifact}
                 onClick={handleArtifactCardClick}
                 isActive={
-                  artifactCtx?.isOpen && artifactCtx?.activeArtifactId === artifact.id
+                  artifactCtx?.isOpen && artifactCtx?.activeArtifactId === artifact.artifact_id
                 }
               />
             ))}

@@ -209,8 +209,8 @@ class ProblemService:
 
         ProblemService.replace_related(
             instance,
-            test_cases_data=test_cases_data if test_cases_data else None,
-            language_configs_data=language_configs_data if language_configs_data else None,
+            test_cases_data=test_cases_data,
+            language_configs_data=language_configs_data,
         )
 
         tags = ProblemService.resolve_tags(
@@ -223,20 +223,19 @@ class ProblemService:
         # 2. Write content to QuestionAsset (source of truth)
         owner = instance.created_by
 
-        # Merge provided content_fields with existing payload (backward compat)
         existing_payload = (instance.question_asset.payload or {}) if instance.question_asset_id else {}
         effective_content = extract_content_from_payload(existing_payload)
         # Merge: provided fields override existing
-        merged_content = {**effective_content, **{k: v for k, v in content_fields.items() if v}}
+        merged_content = {**effective_content, **content_fields}
         prompt = merged_content.get("description", "")
 
-        effective_test_cases = test_cases_data if test_cases_data else list(
+        effective_test_cases = test_cases_data if test_cases_data is not None else list(
             instance.test_cases.values(
                 "input_data", "output_data", "is_sample",
                 "score", "weight_percent", "order", "is_hidden",
             )
         )
-        effective_lang_configs = language_configs_data if language_configs_data else list(
+        effective_lang_configs = language_configs_data if language_configs_data is not None else list(
             instance.language_configs.values(
                 "language", "template_code", "is_enabled", "order",
             )

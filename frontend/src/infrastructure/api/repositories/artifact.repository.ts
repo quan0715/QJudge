@@ -10,9 +10,9 @@ import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 const BASE_URL = "/api/v1/ai/artifacts";
 
 export interface ArtifactRecord {
-  id: string;
+  artifact_id: string;
   session_id: string;
-  run_id: string | null;
+  produced_by_run_id: string | null;
   step: string;
   filename: string;
   content_type: string;
@@ -38,11 +38,10 @@ export async function listArtifacts(params: {
   if (params.runId) query.set("run_id", params.runId);
   if (params.step) query.set("step", params.step);
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const data = await requestJson<PaginatedResponse<ArtifactRecord> | ArtifactRecord[]>(
+  const data = await requestJson<PaginatedResponse<ArtifactRecord>>(
     httpClient.get(`${BASE_URL}/${suffix}`),
     "Failed to list artifacts",
   );
-  if (Array.isArray(data)) return data;
   return data.results ?? [];
 }
 

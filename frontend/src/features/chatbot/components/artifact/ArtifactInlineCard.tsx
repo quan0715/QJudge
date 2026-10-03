@@ -29,7 +29,7 @@ export function ArtifactInlineCard({
     <button
       type="button"
       className={`${styles.card} ${isActive ? styles.active : ""}`}
-      onClick={() => onClick?.(artifact.id)}
+      onClick={() => onClick?.(artifact.artifact_id)}
       disabled={!onClick}
     >
       <Document size={16} className={styles.icon} />

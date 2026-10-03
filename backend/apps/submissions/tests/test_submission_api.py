@@ -60,7 +60,7 @@ class SubmissionAPITestCase(TestCase):
     
     def test_create_submission_authenticated(self):
         """Test creating a submission as authenticated user"""
-        self.client.force_authenticate(user=self.student)
+        self.client.force_authenticate(user=self.teacher)
         
         code = '''#include <iostream>
 using namespace std;
@@ -85,7 +85,7 @@ int main() {
         
         # Verify submission was created
         submission = Submission.objects.get(id=response.data['id'])
-        self.assertEqual(submission.user, self.student)
+        self.assertEqual(submission.user, self.teacher)
         self.assertEqual(submission.problem, self.problem)
         self.assertEqual(submission.code, code)
     
