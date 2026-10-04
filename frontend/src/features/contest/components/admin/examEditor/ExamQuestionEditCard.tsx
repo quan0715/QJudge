@@ -57,13 +57,13 @@ import ScorePolicyMenu, {
 } from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
 import type { ScorePolicyMenuImpactContext } from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
 import type { QuestionProgress } from "@/features/contest/screens/settings/grading/gradingTypes";
+import type { EditorImpactStatus } from "./hooks/useEditorImpactData";
 import styles from "./ExamQuestionEditCard.module.scss";
 import LockedGradingSaveModal from "./LockedGradingSaveModal";
 import {
   classifyLockedQuestionSave,
   type ExistingGradesAction,
   type LockedQuestionComparableState,
-  type LockedSaveImpact,
 } from "./lockedQuestionSaveImpact";
 
 // --- Constants ---
@@ -120,7 +120,8 @@ const toAnswerIndex = (
 
 const toAnswerIndexes = (value: unknown, options: string[]): number[] => {
   if (!Array.isArray(value)) return [];
-  return value.every((item) => isAnswerIndex(item, options.length))
+  return new Set(value).size === value.length &&
+    value.every((item) => isAnswerIndex(item, options.length))
     ? (value as number[])
     : [];
 };
@@ -333,7 +334,9 @@ interface ExamQuestionEditCardProps {
   showScoreField?: boolean;
   frozen?: boolean;
   contentLocked?: boolean;
-  gradedAnswerCount?: number;
+  answerCounts?: { total: number; graded: number };
+  impactStatus?: EditorImpactStatus;
+  onRefreshImpact?: () => void;
   resultsPublished?: boolean;
   startEditingSignal?: number;
   /** All questions for redistribute target selection */
@@ -368,7 +371,9 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   showScoreField = true,
   frozen,
   contentLocked = false,
-  gradedAnswerCount = 0,
+  answerCounts,
+  impactStatus = "loaded",
+  onRefreshImpact,
   resultsPublished = false,
   startEditingSignal,
   allQuestions,
@@ -391,12 +396,18 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     toFormState(question),
   );
   const [saving, setSaving] = useState(false);
-  const [lockedSaveImpact, setLockedSaveImpact] =
-    useState<LockedSaveImpact | null>(null);
+  const [lockedSaveOpen, setLockedSaveOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const originalFormRef = useRef<QuestionFormState>(toFormState(question));
   const latestFormRef = useRef<QuestionFormState>(toFormState(question));
+  const lockedSaveImpact = lockedSaveOpen
+    ? classifyLockedQuestionSave(
+        originalFormRef.current,
+        form,
+        impactStatus === "loaded" ? answerCounts ?? null : null,
+      )
+    : null;
   const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync form when question prop changes (after external save/reload)
@@ -610,15 +621,18 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     const impact = classifyLockedQuestionSave(
       originalFormRef.current,
       latestFormRef.current,
-      gradedAnswerCount,
+      impactStatus === "loaded" ? answerCounts ?? null : null,
     );
     if (impact.kind === "no-op") return;
-    setLockedSaveImpact(impact);
+    if (impact.kind !== "display-only") onRefreshImpact?.();
+    setLockedSaveOpen(true);
   };
 
   const handleLockedSaveChoice = async (action: ExistingGradesAction) => {
+    if (!lockedSaveImpact || (lockedSaveImpact.kind !== "display-only" &&
+      (impactStatus !== "loaded" || lockedSaveImpact.affectedCount === null))) return;
     const saved = await persistAutoSave(true, action);
-    if (saved) setLockedSaveImpact(null);
+    if (saved) setLockedSaveOpen(false);
   };
 
   const handleDiscard = () => {
@@ -837,17 +851,30 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                         })}
                   </span>
                 ) : null}
-                {/* Score policy menu — always available, even when frozen */}
+                {/* Only mounted with known data; refreshing also closes stale previews. */}
                 <div onClick={(e) => e.stopPropagation()}>
-                  <ScorePolicyMenu
-                    questionId={question.id}
-                    questionIndex={index + 1}
-                    currentPolicy={question.scorePolicy ?? "normal"}
-                    allQuestions={allQuestions}
-                    onPolicyChanged={onScorePolicyChanged}
-                    impactContext={impactContext}
-                    onMenuOpen={onMenuOpen}
-                  />
+                  {impactStatus === "loaded" ? (
+                    <ScorePolicyMenu
+                      questionId={question.id}
+                      questionIndex={index + 1}
+                      currentPolicy={question.scorePolicy ?? "normal"}
+                      allQuestions={allQuestions}
+                      onPolicyChanged={onScorePolicyChanged}
+                      impactContext={impactContext}
+                      onMenuOpen={onMenuOpen}
+                    />
+                  ) : impactStatus === "error" ? (
+                    <Button
+                      kind="ghost"
+                      size="sm"
+                      title={t("examEditor.lockedSave.impactError", "無法載入受影響作答數，請重試後再確認。")}
+                      onClick={onRefreshImpact}
+                    >
+                      {t("examEditor.lockedSave.retryImpact", "重試")}
+                    </Button>
+                  ) : (
+                    <InlineLoading description={t("examEditor.lockedSave.loadingImpact", "正在載入受影響作答數…")} />
+                  )}
                 </div>
                 {!frozen && !contentLocked && (
                   <>
@@ -1514,9 +1541,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
         <LockedGradingSaveModal
           open
           impact={lockedSaveImpact}
+          impactStatus={impactStatus}
+          onRetry={onRefreshImpact}
           resultsPublished={resultsPublished}
           submitting={saving}
-          onCancel={() => setLockedSaveImpact(null)}
+          onCancel={() => setLockedSaveOpen(false)}
           onChoose={(action) => void handleLockedSaveChoice(action)}
         />
       ) : null}

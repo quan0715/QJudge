@@ -1057,6 +1057,9 @@
     "loadFailed": "読み込み失敗",
     "loadFailedDetail": "試験問題の読み込みに失敗しました",
     "lockedSave": {
+      "impactError": "影響を受ける解答数を読み込めませんでした。確認する前に再試行してください。",
+      "loadingImpact": "影響を受ける解答数を読み込み中…",
+      "retryImpact": "再試行",
       "continueEditing": "編集を続ける",
       "discard": "変更を破棄",
       "discardBody": "編集を続けますか、それとも変更を破棄しますか？",
