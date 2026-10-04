@@ -24,6 +24,7 @@ class AuthProviderOptionObject(serializers.Serializer):
 
 class AuthProviderOptionsObject(serializers.Serializer):
     password_enabled = serializers.BooleanField()
+    password_reset_enabled = serializers.BooleanField()
     providers = AuthProviderOptionObject(many=True)
 
 
@@ -113,6 +114,8 @@ class UserContractSchema(AutoSchema):
         from apps.classrooms.serializers import ClassroomDetailSerializer
         name = type(self.view).__name__
         contracts = {
+            'PasswordResetRequestView': {202: {'type': 'object', 'nullable': True, 'enum': [None]}},
+            'PasswordResetCompleteView': {200: {'type': 'object', 'nullable': True, 'enum': [None]}},
             'CurrentUserView': UserSerializer,
             'UserPreferencesView': UserSettingsSerializer,
             'UserSearchView': UserSerializer(many=True),

@@ -68,3 +68,11 @@ class SchemaTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PasswordMailSchemaTests(unittest.TestCase):
+    def test_enabled_reset_requires_host_and_sender(self):
+        for name in ('EMAIL_HOST', 'DEFAULT_FROM_EMAIL'):
+            self.assertTrue(KEYS_BY_NAME[name].is_required({'PASSWORD_RESET_ENABLED': 'true'}))
+            self.assertFalse(KEYS_BY_NAME[name].is_required({'PASSWORD_RESET_ENABLED': 'false'}))
+        self.assertTrue(KEYS_BY_NAME['EMAIL_HOST_PASSWORD'].secret)

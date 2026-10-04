@@ -100,6 +100,29 @@
       "title": "建立帳號",
       "username": "使用者名稱",
       "usernamePlaceholder": "選擇一個使用者名稱"
+    },
+    "passwordReset": {
+      "requestTitle": "忘記密碼",
+      "requestSubtitle": "透過電子郵件連結重設帳號密碼。",
+      "identifier": "信箱或使用者名稱",
+      "send": "寄送重設連結",
+      "loading": "處理中…",
+      "requested": "已收到申請",
+      "genericMessage": "若有符合條件的帳號，將寄送重設連結。請查看收件匣與垃圾郵件。",
+      "backToLogin": "返回登入",
+      "resetTitle": "重設密碼",
+      "resetSubtitle": "請使用未在其他網站使用過的強密碼。",
+      "password": "新密碼",
+      "confirmation": "確認新密碼",
+      "reset": "儲存密碼",
+      "mismatch": "兩次密碼不一致。",
+      "invalidLink": "連結無效或已過期。",
+      "requestAnother": "重新申請連結",
+      "completed": "密碼已更新",
+      "loginAgain": "請使用新密碼重新登入。",
+      "failed": "暫時無法處理，請稍後再試。",
+      "disabled": "尚未開放密碼重設，請聯絡管理者。",
+      "retry": "重試"
     }
   },
   "button": {

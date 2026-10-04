@@ -8,3 +8,5 @@ class UsersConfig(AppConfig):
 
     def ready(self):
         import apps.users.signals  # noqa: F401
+        from .security_logging import install_reset_log_redaction
+        install_reset_log_redaction()

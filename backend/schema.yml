@@ -1178,6 +1178,198 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+  /api/v1/auth/password/reset-requests:
+    post:
+      operationId: v1_auth_password_reset_requests_create
+      description: APIView with serializer support for schema generation.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequestRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: object
+                    nullable: true
+                    enum:
+                    - null
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+  /api/v1/auth/password/resets/{token}:
+    post:
+      operationId: v1_auth_password_resets_create
+      description: APIView with serializer support for schema generation.
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetCompleteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordResetCompleteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetCompleteRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: object
+                    nullable: true
+                    enum:
+                    - null
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/auth/providers:
     get:
       operationId: v1_auth_providers_retrieve
@@ -6863,12 +7055,15 @@ components:
       properties:
         password_enabled:
           type: boolean
+        password_reset_enabled:
+          type: boolean
         providers:
           type: array
           items:
             $ref: '#/components/schemas/AuthProviderOptionObject'
       required:
       - password_enabled
+      - password_reset_enabled
       - providers
     AuthSessionObject:
       type: object
@@ -8332,6 +8527,31 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
+    PasswordResetCompleteRequest:
+      type: object
+      properties:
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+        password_confirm:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+      required:
+      - password
+      - password_confirm
+    PasswordResetRequestRequest:
+      type: object
+      properties:
+        identifier:
+          type: string
+          minLength: 1
+          maxLength: 254
+      required:
+      - identifier
     PatchedClassroomCreateUpdateRequest:
       type: object
       properties:

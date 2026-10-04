@@ -3,6 +3,8 @@
 from django.conf import settings
 from django.urls import path
 
+from .views.password_reset import PasswordResetRequestView, PasswordResetCompleteView
+
 from .views import (
     AuthSessionListView,
     AuthOptionsView,
@@ -18,6 +20,8 @@ from .views import (
 app_name = "auth"
 
 urlpatterns = [
+    path("password/reset-requests", PasswordResetRequestView.as_view(), name="password-reset-request"),
+    path("password/resets/<str:token>", PasswordResetCompleteView.as_view(), name="password-reset-complete"),
     path("providers", AuthOptionsView.as_view(), name="auth-providers"),
     path("register/password", RegisterView.as_view(), name="password-register"),
     path("login/<str:provider>", ProviderLoginView.as_view(), name="provider-login"),

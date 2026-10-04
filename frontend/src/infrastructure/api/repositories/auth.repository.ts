@@ -117,3 +117,11 @@ export const getAuthSessions = async (): Promise<LoginRecordsResponseDto> => {
     "Failed to fetch auth sessions"
   );
 };
+
+export const requestPasswordReset = (identifier: string) =>
+  fetchEnvelope<null>(httpClient.post("/api/v1/auth/password/reset-requests", { identifier }), "Unable to request password reset");
+
+export const completePasswordReset = (token: string, password: string, passwordConfirm: string) =>
+  fetchEnvelope<null>(httpClient.post(`/api/v1/auth/password/resets/${encodeURIComponent(token)}`, {
+    password, password_confirm: passwordConfirm,
+  }), "Unable to reset password");

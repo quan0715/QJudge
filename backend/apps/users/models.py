@@ -402,3 +402,15 @@ class UserLoginRecord(models.Model):
 
     def __str__(self):
         return f"{self.user.username} login at {self.created_at} ({self.login_method})"
+
+
+class PasswordResetToken(models.Model):
+    """Only the digest of a short-lived password reset secret is persisted."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_reset_tokens')
+    token_digest = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(db_index=True)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'password_reset_tokens'

@@ -91,6 +91,7 @@ const isAuthFlowPath = (): boolean => {
 
 const shouldAttemptTokenRefresh = (endpoint: string): boolean => {
   if (isAuthFlowPath()) return false;
+  if (endpoint.startsWith("/api/v1/auth/password/")) return false;
   if (endpoint === AUTH_REFRESH_ENDPOINT) return false;
   if (endpoint.startsWith("/api/v1/auth/login/")) return false;
   if (endpoint.startsWith("/api/v1/auth/register/")) return false;

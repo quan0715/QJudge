@@ -100,6 +100,29 @@
       "title": "Create Account",
       "username": "Username",
       "usernamePlaceholder": "Choose a username"
+    },
+    "passwordReset": {
+      "requestTitle": "Forgot password",
+      "requestSubtitle": "Recover your password account with an email link.",
+      "identifier": "Email or username",
+      "send": "Send reset link",
+      "loading": "Processing…",
+      "requested": "Request received",
+      "genericMessage": "If an eligible account exists, a reset link will be sent. Check your inbox and spam folder.",
+      "backToLogin": "Back to login",
+      "resetTitle": "Reset password",
+      "resetSubtitle": "Choose a strong password you have not used elsewhere.",
+      "password": "New password",
+      "confirmation": "Confirm new password",
+      "reset": "Save password",
+      "mismatch": "Passwords do not match.",
+      "invalidLink": "This reset link is invalid or expired.",
+      "requestAnother": "Request another link",
+      "completed": "Password updated",
+      "loginAgain": "Please log in with your new password.",
+      "failed": "Unable to process this request. Please try again.",
+      "disabled": "Password recovery is not enabled. Please contact the administrator.",
+      "retry": "Retry"
     }
   },
   "button": {

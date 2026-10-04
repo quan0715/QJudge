@@ -312,6 +312,7 @@ CACHE_KEYS = {
 # Email defaults (provider-agnostic; EMAIL_BACKEND set per environment)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "noreply@example.com")
 EMAIL_SUBJECT_PREFIX = "[QJudge] "
+PASSWORD_RESET_ENABLED = env("PASSWORD_RESET_ENABLED", "False").lower() in {"1", "true", "yes", "on"}
 
 # Celery settings
 CELERY_BROKER_URL = env("REDIS_URL", "redis://localhost:6379/0")

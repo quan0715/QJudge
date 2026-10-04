@@ -29,6 +29,7 @@ def get_auth_options() -> dict:
 
     return {
         "password_enabled": password_enabled,
+        "password_reset_enabled": password_enabled and settings.PASSWORD_RESET_ENABLED,
         "providers": providers,
     }
 
