@@ -80,6 +80,7 @@ class EnhancedAuthTests(APITestCase):
             response.json()["data"],
             {
                 "password_enabled": False,
+                "password_reset_enabled": False,
                 "providers": [],
             },
         )

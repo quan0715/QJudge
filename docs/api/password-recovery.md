@@ -37,3 +37,10 @@ Run `deploy/qjudge check`, then follow the ordinary reviewed release/deployment 
 Development uses Django's console email backend; tests use the in-memory backend. Enable `PASSWORD_RESET_ENABLED=true` in the development environment and run the normal Celery worker. No provider credentials or real emails are needed for tests.
 
 To disable recovery, set `PASSWORD_RESET_ENABLED=false` and restart backend/worker. The additive token table can remain during an application rollback. Password changes already completed by users must not be reversed.
+
+
+### Example: Resend SMTP
+
+Resend is one compatible provider; selecting it does not change the application code. Its [official SMTP settings](https://resend.com/docs/send-with-smtp) are `EMAIL_HOST=smtp.resend.com`, `EMAIL_PORT=587`, `EMAIL_USE_TLS=true`, `EMAIL_USE_SSL=false`, `EMAIL_HOST_USER=resend`, and an API key as `EMAIL_HOST_PASSWORD`. Set the API key through the deployment secret file, not a chat message or committed example.
+
+Verify the sending domain first using the provider's [domain setup](https://resend.com/docs/dashboard/domains/introduction). Configure the actual records provided by its dashboard rather than copying example DNS values. Keep click tracking disabled for password-reset mail. These instructions do not imply a provider account or DNS records have been created.

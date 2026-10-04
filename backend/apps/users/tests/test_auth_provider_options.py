@@ -33,6 +33,7 @@ def test_get_auth_options_returns_only_configured_registered_provider_metadata(s
 
     assert options == {
         "password_enabled": False,
+        "password_reset_enabled": False,
         "providers": [
             {
                 "key": "nycu",
@@ -52,6 +53,7 @@ def test_get_auth_options_hides_registered_providers_without_a_connection(settin
 
     assert get_auth_options() == {
         "password_enabled": False,
+        "password_reset_enabled": False,
         "providers": [],
     }
 

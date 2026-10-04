@@ -183,3 +183,21 @@ def test_two_concurrent_redemptions_have_one_winner(user):
     with ThreadPoolExecutor(max_workers=2) as workers:
         results = list(workers.map(lambda _: redeem(), range(2)))
     assert sorted(results) == ['invalid', 'ok']
+
+
+@pytest.mark.django_db
+def test_request_to_eager_worker_delivers_locmem_mail_by_username(user, settings):
+    settings.CELERY_TASK_ALWAYS_EAGER = True
+    response = APIClient().post(REQUEST_URL, {'identifier': user.username}, format='json')
+    assert response.status_code == 202
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == [user.email]
+    assert PasswordResetToken.objects.filter(user=user, consumed_at__isnull=True).count() == 1
+
+
+@pytest.mark.parametrize('password_enabled,reset_flag,expected', [(True, True, True), (True, False, False), (False, True, False)])
+def test_public_provider_options_advertise_configured_recovery(settings, password_enabled, reset_flag, expected):
+    from apps.users.auth.options import get_auth_options
+    settings.AUTH_EMAIL_PASSWORD_ENABLED = password_enabled
+    settings.PASSWORD_RESET_ENABLED = reset_flag
+    assert get_auth_options()['password_reset_enabled'] is expected
