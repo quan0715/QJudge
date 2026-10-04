@@ -219,7 +219,7 @@ class TestQuestionTypes:
         res = api_client.post(url(contest.id), {
             "question_type": "true_false",
             "prompt": "The sky is blue.",
-            "correct_answer": True,
+            "correct_answer": 0,
             "score": 2,
         }, format="json")
         assert res.status_code == status.HTTP_201_CREATED
@@ -396,7 +396,7 @@ class TestValidation:
             "question_type": "true_false",
             "prompt": "T/F",
             "options": ["True", "False", "Maybe"],
-            "correct_answer": True,
+            "correct_answer": 0,
             "score": 1,
         }, format="json")
         assert res.status_code == status.HTTP_400_BAD_REQUEST
@@ -434,6 +434,100 @@ class TestValidation:
 # ═══════════════════════════════════════════════════════════════════
 # Auto-Order
 # ═══════════════════════════════════════════════════════════════════
+
+@pytest.mark.django_db
+class TestObjectiveAnswerFormat:
+    """Objective answers must be the 0-based option indexes students submit."""
+
+    @pytest.mark.parametrize(
+        ("question_type", "options", "correct_answer"),
+        [
+            ("true_false", ["True", "False"], True),
+            ("true_false", ["True", "False"], "true"),
+            ("true_false", [], 2),
+            ("single_choice", ["a", "b", "c", "d"], "1"),
+            ("single_choice", ["a", "b", "c", "d"], "B"),
+            ("single_choice", ["a", "b", "c", "d"], "b"),
+            ("single_choice", ["a", "b", "c", "d"], 4),
+            ("single_choice", ["a", "b", "c", "d"], -1),
+            ("single_choice", ["a", "b", "c", "d"], True),
+            ("multiple_choice", ["a", "b", "c", "d"], ["0", "2"]),
+            ("multiple_choice", ["a", "b", "c", "d"], [0, 9]),
+            ("multiple_choice", ["a", "b", "c", "d"], [0, 0]),
+            ("multiple_choice", ["a", "b", "c", "d"], [True]),
+            ("multiple_choice", ["a", "b"], [[0]]),
+            ("multiple_choice", ["a", "b"], [{}]),
+            ("multiple_choice", ["a", "b"], [0, {"index": 1}]),
+        ],
+    )
+    def test_rejects_non_index_answers(
+        self, api_client, teacher, contest, question_type, options, correct_answer,
+    ):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": question_type,
+            "prompt": "Pick",
+            "options": options,
+            "correct_answer": correct_answer,
+            "score": 2,
+        }, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+        assert "correct_answer" in str(res.data)
+        assert not ExamQuestion.objects.filter(contest=contest).exists()
+
+    def test_patch_options_rejects_answer_left_out_of_range(self, api_client, teacher, contest):
+        question = ExamQuestion.objects.create(
+            contest=contest,
+            question_type="single_choice",
+            prompt="Pick",
+            options=["a", "b", "c"],
+            correct_answer=2,
+            score=2,
+            order=0,
+        )
+        api_client.force_authenticate(user=teacher)
+        res = api_client.patch(url(contest.id, question.id), {"options": ["a", "b"]}, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+        question.refresh_from_db()
+        assert question.options == ["a", "b", "c"]
+
+    def test_patch_unrelated_field_keeps_working_on_legacy_answer(self, api_client, teacher, contest):
+        question = ExamQuestion.objects.create(
+            contest=contest,
+            question_type="single_choice",
+            prompt="Pick",
+            options=["a", "b"],
+            correct_answer="b",
+            score=2,
+            order=0,
+        )
+        api_client.force_authenticate(user=teacher)
+        res = api_client.patch(url(contest.id, question.id), {"score": 3}, format="json")
+        assert res.status_code == status.HTTP_200_OK
+
+    def test_import_from_bank_rejects_non_index_answer(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        bank = QuestionBank.objects.create(
+            owner=teacher,
+            name="Legacy Bank",
+            category=QuestionBank.Category.EXAM,
+        )
+        _asset, membership = _create_exam_bank_item(
+            bank=bank,
+            owner=teacher,
+            prompt="Sky is blue",
+            question_type="true_false",
+            options=["True", "False"],
+            correct_answer=True,
+        )
+        res = api_client.post(
+            url(contest.id) + "import-from-bank/",
+            {"items": [{"question_bank_id": str(bank.uuid), "question_id": str(membership.id)}]},
+            format="json",
+        )
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+        assert not ExamQuestion.objects.filter(contest=contest).exists()
+
 
 @pytest.mark.django_db
 class TestAutoOrder:

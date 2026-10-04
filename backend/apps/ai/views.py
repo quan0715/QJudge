@@ -1,4 +1,4 @@
-"""Permission-preserving compatibility BFF for the autonomous AI Service."""
+"""Permission-preserving BFF for the autonomous AI Service."""
 
 from __future__ import annotations
 
@@ -21,10 +21,6 @@ from .serializers import (
     RunApprovalSerializer,
     StartRunSerializer,
     UpdateSessionSerializer,
-    run_list_to_legacy,
-    run_to_legacy,
-    session_list_to_legacy,
-    session_to_legacy,
 )
 from .services.ai_service_client import (
     AIServiceUnavailable,
@@ -128,7 +124,6 @@ class SessionViewSet(viewsets.ViewSet):
             request,
             method="GET",
             path="/v1/sessions",
-            mapper=lambda data: session_list_to_legacy(data, user_id=request.user.pk),
         )
 
     def create(self, request):
@@ -139,38 +134,17 @@ class SessionViewSet(viewsets.ViewSet):
             method="POST",
             path="/v1/sessions",
             json_body={"context": serializer.validated_data["context"]},
-            mapper=lambda data: session_to_legacy(
-                data, user_id=request.user.pk, include_messages=False
-            ),
         )
 
     @action(detail=False, methods=["post"])
     def new_session(self, request):
-        serializer = CreateSessionSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        response = _proxy_json(
-            request,
-            method="POST",
-            path="/v1/sessions",
-            json_body={"context": serializer.validated_data["context"]},
-            mapper=lambda data: {"id": str(data["session_id"]), "status": "pending"},
-        )
-        if response.status_code == status.HTTP_201_CREATED:
-            response.status_code = status.HTTP_200_OK
-        return response
+        return self.create(request)
 
     def retrieve(self, request, pk=None):
-        # DefaultRouter would otherwise interpret the removed legacy credit
-        # endpoint as a session primary key.
-        if pk == "credit":
-            return Response(status=status.HTTP_404_NOT_FOUND)
         return _proxy_json(
             request,
             method="GET",
             path=f"/v1/sessions/{pk}",
-            mapper=lambda data: session_to_legacy(
-                data, user_id=request.user.pk, include_messages=True
-            ),
         )
 
     def update(self, request, pk=None):
@@ -193,9 +167,6 @@ class SessionViewSet(viewsets.ViewSet):
             method="PATCH",
             path=f"/v1/sessions/{pk}",
             json_body=body,
-            mapper=lambda data: session_to_legacy(
-                data, user_id=request.user.pk, include_messages=False
-            ),
         )
 
     partial_update = update
@@ -212,9 +183,6 @@ class SessionViewSet(viewsets.ViewSet):
             method="PATCH",
             path=f"/v1/sessions/{session_id}",
             json_body={"title": title},
-            mapper=lambda data: session_to_legacy(
-                data, user_id=request.user.pk, include_messages=False
-            ),
         )
 
     @action(detail=True, methods=["post"])
@@ -224,9 +192,6 @@ class SessionViewSet(viewsets.ViewSet):
             method="POST",
             path=f"/v1/sessions/{pk}/clear",
             json_body={},
-            mapper=lambda data: session_to_legacy(
-                data, user_id=request.user.pk, include_messages=True
-            ),
         )
 
     @action(detail=True, methods=["get"])
@@ -263,7 +228,6 @@ class SessionViewSet(viewsets.ViewSet):
             method="POST",
             path=f"/v1/sessions/{pk}/runs",
             json_body=body,
-            mapper=run_to_legacy,
         )
 
 
@@ -276,7 +240,6 @@ class ChatRunViewSet(viewsets.ViewSet):
             request,
             method="GET",
             path="/v1/runs?status=active",
-            mapper=run_list_to_legacy,
         )
 
     def retrieve(self, request, pk=None):
@@ -284,7 +247,6 @@ class ChatRunViewSet(viewsets.ViewSet):
             request,
             method="GET",
             path=f"/v1/runs/{pk}",
-            mapper=run_to_legacy,
         )
 
     @action(detail=True, methods=["get"])
@@ -322,7 +284,6 @@ class ChatRunViewSet(viewsets.ViewSet):
             method="POST",
             path=f"/v1/runs/{pk}/cancel",
             json_body={},
-            mapper=run_to_legacy,
         )
 
     @action(detail=True, methods=["post"])
@@ -334,7 +295,6 @@ class ChatRunViewSet(viewsets.ViewSet):
             method="POST",
             path=f"/v1/runs/{pk}/approve",
             json_body={"decision": serializer.validated_data["decision"]},
-            mapper=run_to_legacy,
         )
 
     @action(detail=True, methods=["post"])
@@ -346,7 +306,6 @@ class ChatRunViewSet(viewsets.ViewSet):
             method="POST",
             path=f"/v1/runs/{pk}/answer",
             json_body={"answer": serializer.validated_data["answer"]},
-            mapper=run_to_legacy,
         )
 
 

@@ -37,6 +37,7 @@ from ..services.question_edit_lock import (
     lock_contest_for_question_edit,
 )
 from ..services.locked_question_update import apply_locked_question_update
+from ..services.objective_answer import objective_answer_error
 from ..services.activity_log import log_contest_activity
 from .exam_validation_response import build_device_conflict_response_for_view
 
@@ -373,11 +374,19 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             if not prompt:
                 raise DRFValidationError(f'Imported question {bank_item.id} has empty prompt/title')
 
+            question_type = self._normalize_exam_question_type_from_bank_item(bank_item)
+            options = payload.get("options") or []
+            answer_error = objective_answer_error(question_type, options, payload.get("correct_answer"))
+            if answer_error:
+                raise DRFValidationError({
+                    'correct_answer': f'Imported question {bank_item.id}: {answer_error}',
+                })
+
             exam_question = ExamQuestion.objects.create(
                 contest=contest,
-                question_type=self._normalize_exam_question_type_from_bank_item(bank_item),
+                question_type=question_type,
                 prompt=prompt,
-                options=payload.get("options") or [],
+                options=options,
                 correct_answer=payload.get("correct_answer"),
                 score=max(1, int(payload.get("score") or 1)),
                 order=next_order,

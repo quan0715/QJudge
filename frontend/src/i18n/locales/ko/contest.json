@@ -1057,6 +1057,9 @@
     "loadFailed": "로드 실패",
     "loadFailedDetail": "시험 문제 로드에 실패했습니다",
     "lockedSave": {
+      "impactError": "영향을 받는 답안 수를 불러오지 못했습니다. 확인하기 전에 다시 시도하세요.",
+      "loadingImpact": "영향을 받는 답안 수를 불러오는 중…",
+      "retryImpact": "다시 시도",
       "continueEditing": "계속 편집",
       "discard": "변경 사항 버리기",
       "discardBody": "계속 편집하거나 이번 변경을 버리시겠습니까?",

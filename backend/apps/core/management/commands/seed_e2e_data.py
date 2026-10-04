@@ -442,7 +442,7 @@ int main() {
                 'question_type': 'single_choice',
                 'prompt': '1 + 1 = ?',
                 'options': ['1', '2', '3', '4'],
-                'correct_answer': '2',
+                'correct_answer': 1,
                 'score': 10,
             }
         )
@@ -453,7 +453,7 @@ int main() {
                 'question_type': 'true_false',
                 'prompt': 'Python 是一種程式語言。',
                 'options': ['True', 'False'],
-                'correct_answer': 'True',
+                'correct_answer': 0,
                 'score': 10,
             }
         )

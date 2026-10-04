@@ -41,7 +41,7 @@ deploy/qjudge secrets --image qjudge/backend:dev
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
   python -m pytest -q --ds=config.settings.test <test path>
 
-# AI-service tests (no CI job runs them)
+# Database-free AI-service tests (PostgreSQL integration tests run in CI)
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T ai-service python -m pytest -q <test path>
 
 # Frontend checks
@@ -63,6 +63,7 @@ Never run `dev down -v`: it deletes the dev database and MinIO data.
 | Judge Tests | judge and submission tests with the judge image |
 | Integration Tests | `ci/e2e-stack.sh`, then `npm run test:api` and MCP integration tests |
 | MCP Server Tests | `mcp-server` `pytest tests` (integration tests skip without a backend) |
+| AI Service Tests | AI unit and PostgreSQL persistence tests |
 | Integrity Service Tests | `integrity-service` `pytest` on the runner Python, as root for the secret bootstrap tests |
 | `e2e.yml` | every pull request to `main` (no path filter) and manual dispatch: all Playwright groups (auth, exam, contest, coding); coding calls `e2e-coding.yml` |
 

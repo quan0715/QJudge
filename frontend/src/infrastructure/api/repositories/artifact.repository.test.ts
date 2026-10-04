@@ -24,9 +24,9 @@ describe("artifactRepository AI-owned response conversion", () => {
           count: 1,
           results: [
             {
-              id: ARTIFACT_ID,
+              artifact_id: ARTIFACT_ID,
               session_id: SESSION_ID,
-              run_id: RUN_ID,
+              produced_by_run_id: RUN_ID,
               step: "user_upload",
               filename: "answer.pdf",
               content_type: "application/pdf",
@@ -50,9 +50,9 @@ describe("artifactRepository AI-owned response conversion", () => {
 
     expect(artifacts).toEqual([
       expect.objectContaining({
-        id: ARTIFACT_ID,
+        artifact_id: ARTIFACT_ID,
         session_id: SESSION_ID,
-        run_id: RUN_ID,
+        produced_by_run_id: RUN_ID,
       }),
     ]);
     const url = new URL(String(get.mock.calls[0]?.[0]), "https://qjudge.test");
@@ -65,9 +65,9 @@ describe("artifactRepository AI-owned response conversion", () => {
 
   it("converts upload, content, and download response shapes", async () => {
     const artifact = {
-      id: ARTIFACT_ID,
+      artifact_id: ARTIFACT_ID,
       session_id: SESSION_ID,
-      run_id: null,
+      produced_by_run_id: null,
       step: "user_upload",
       filename: "notes.txt",
       content_type: "text/plain",

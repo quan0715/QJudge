@@ -5,22 +5,44 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from qjudge_cli.release import _ps_rows, http_status, read_version, rollback, upgrade
+from qjudge_cli.release import APP_SERVICES, _ps_rows, http_status, read_version, rollback, upgrade
 from qjudge_cli.tests.test_check import VALID
 
 OLD = "a" * 40
 NEW = "b" * 40
 
 
+def app_containers(healthy=True, legacy=False):
+    containers = []
+    for service in APP_SERVICES:
+        container = {
+            "Id": f"container-{service}",
+            "Config": {"Labels": {"com.docker.compose.service": service},
+                       "Healthcheck": {"Test": ["CMD", "check-readiness"]}},
+            "State": {"Status": "running", "Health": {"Status": "healthy" if healthy else "unhealthy"}},
+        }
+        if legacy and service in ("celery", "ai-worker", "integrity-reconciler"):
+            container["Config"].pop("Healthcheck")
+            container["State"].pop("Health")
+            if service == "ai-worker":
+                container["Config"]["Healthcheck"] = {"Test": ["NONE"]}
+        containers.append(container)
+    return containers
+
+
 class FakeHost:
     """Answers docker/git commands; fail_on marks a command substring to fail."""
 
-    def __init__(self, head=OLD, fail_on=(), healthy=True, images=""):
+    def __init__(self, head=OLD, fail_on=(), healthy=True, images="", containers_by_ref=None):
         self.head = head
         self.fail_on = fail_on
         self.healthy = healthy
         self.images = images
         self.calls = []
+        self.containers_by_ref = containers_by_ref or {}
+
+    def containers(self):
+        return self.containers_by_ref.get(self.head, app_containers(self.healthy))
 
     def __call__(self, args, **kwargs):
         self.calls.append((list(args), (kwargs.get("env") or {}).get("QJUDGE_VERSION")))
@@ -32,10 +54,16 @@ class FakeHost:
             self.head = NEW if args[-1] == "v2" else args[-1]
         elif args[:2] == ["git", "-C"] and "rev-parse" in args:
             out = self.head + "\n"
+        elif "ps" in args and "--quiet" in args:
+            out = "\n".join(container["Id"] for container in self.containers())
+        elif args[:3] == ["docker", "container", "inspect"]:
+            out = json.dumps([container for container in self.containers() if container["Id"] in args[3:]])
         elif "ps" in args and "--format" in args:
-            state = "healthy" if self.healthy else "unhealthy"
-            out = "\n".join(json.dumps({"Service": s, "Health": state})
-                            for s in ("postgres", "backend", "ai-service", "integrity-resident"))
+            rows = [{"Service": "postgres", "Health": "healthy" if self.healthy else "unhealthy"}]
+            rows += [{"Service": c["Config"]["Labels"]["com.docker.compose.service"],
+                      "State": c["State"]["Status"], "Health": c["State"].get("Health", {}).get("Status", "")}
+                     for c in self.containers()]
+            out = "\n".join(json.dumps(row) for row in rows)
         elif "pg_dump" in args:
             kwargs["stdout"].write(b"dump")
         elif args[:3] == ["docker", "image", "ls"]:
@@ -46,7 +74,49 @@ class FakeHost:
         return [" ".join(args) for args, _ in self.calls]
 
 
+class JudgeBuildHost(FakeHost):
+    """Model a Buildx container driver whose output needs an explicit load."""
+
+    def __init__(self, *, build_succeeds=True, load_succeeds=True):
+        super().__init__()
+        self.build_succeeds = build_succeeds
+        self.load_succeeds = load_succeeds
+        self.judge_loaded = False
+
+    def __call__(self, args, **kwargs):
+        result = super().__call__(args, **kwargs)
+        if args[:3] == ["docker", "image", "inspect"]:
+            result.returncode = 0 if self.judge_loaded else 1
+        elif args[:2] == ["docker", "pull"]:
+            result.returncode = 1  # Source-tagged image is not published yet.
+        elif args[:2] == ["docker", "build"]:
+            result.returncode = 0 if self.build_succeeds else 1
+            self.judge_loaded = self.build_succeeds and self.load_succeeds and "--load" in args
+        return result
+
+
 class ReleaseTests(unittest.TestCase):
+    def test_upgrade_loads_fallback_judge_image_before_starting_services(self):
+        host = JudgeBuildHost()
+        self.assertEqual(self._upgrade(host), 0)
+        self.assertTrue(host.judge_loaded)
+        commands = host.commands()
+        build = next(i for i, command in enumerate(commands) if command.startswith("docker build "))
+        inspect = next(i for i, command in enumerate(commands)
+                       if i > build and command == "docker image inspect qjudge/judge:sha-" + NEW[:12])
+        start = next(i for i, command in enumerate(commands) if "up -d postgres" in command)
+        self.assertLess(inspect, start)
+
+    def test_upgrade_aborts_when_fallback_build_fails_or_image_is_missing(self):
+        for settings in ({"build_succeeds": False}, {"load_succeeds": False}):
+            with self.subTest(**settings):
+                host = JudgeBuildHost(**settings)
+                self.assertEqual(self._upgrade(host), 1)
+                self.assertEqual(host.head, OLD)
+                self.assertFalse(any(" up " in command for command in host.commands()))
+                self.assertFalse(any("migrate" in command for command in host.commands()))
+                self.assertFalse((self.deploy / ".version").exists())
+
     def test_invalid_model_config_aborts_before_stopping_anything(self):
         host = FakeHost(fail_on=("infrastructure.agent.model_config",))
         self.assertEqual(self._upgrade(host), 1)
@@ -214,6 +284,75 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(last_up, "sha-" + OLD[:12])
         self.assertEqual(read_version(self.deploy), {"current": OLD, "previous": NEW})
 
+    def test_rollback_to_legacy_main_accepts_running_workers_without_healthchecks(self):
+        # Main 23b3442 disabled ai-worker's image check; celery/reconciler had none.
+        (self.deploy / ".version").write_text(f"current={NEW}\nprevious={OLD}\n")
+        host = FakeHost(head=NEW, containers_by_ref={OLD: app_containers(legacy=True)})
+        self.assertEqual(self._rollback(host), 0)
+        self.assertEqual(host.head, OLD)
+        self.assertEqual(read_version(self.deploy), {"current": OLD, "previous": NEW})
+
+    def test_legacy_rollback_rejects_unhealthy_checked_services(self):
+        for service in ("backend", "ai-service", "integrity-resident"):
+            with self.subTest(service=service):
+                containers = app_containers(legacy=True)
+                next(c for c in containers if c["Id"] == f"container-{service}")["State"]["Health"]["Status"] = "unhealthy"
+                self._assert_rollback_rejected(containers)
+
+    def test_rollback_requires_enabled_worker_healthchecks_to_be_healthy(self):
+        for service in ("celery", "ai-worker", "integrity-reconciler"):
+            for health in ("unhealthy", "starting", None):
+                with self.subTest(service=service, health=health):
+                    containers = app_containers()
+                    state = next(c for c in containers if c["Id"] == f"container-{service}")["State"]
+                    if health is None:
+                        state.pop("Health")
+                    else:
+                        state["Health"]["Status"] = health
+                    self._assert_rollback_rejected(containers)
+
+    def test_legacy_rollback_rejects_workers_that_are_missing_or_not_running(self):
+        for service in ("celery", "ai-worker", "integrity-reconciler"):
+            for status in ("missing", "exited", "restarting", "paused"):
+                with self.subTest(service=service, status=status):
+                    containers = app_containers(legacy=True)
+                    container = next(c for c in containers if c["Id"] == f"container-{service}")
+                    if status == "missing":
+                        containers.remove(container)
+                    else:
+                        container["State"]["Status"] = status
+                    self._assert_rollback_rejected(containers)
+
+    def test_rollback_rejects_exited_container_even_with_last_healthy_status(self):
+        containers = app_containers()
+        containers[-1]["State"]["Status"] = "exited"
+        self._assert_rollback_rejected(containers)
+
+    def test_legacy_rollback_checks_healthchecks_inherited_from_images(self):
+        containers = app_containers(legacy=True)
+        celery = next(c for c in containers if c["Id"] == "container-celery")
+        # Docker's effective Config includes image checks even when Compose omits them.
+        celery["Config"]["Healthcheck"] = {"Test": ["CMD", "image-readiness"]}
+        celery["State"]["Health"] = {"Status": "unhealthy"}
+        self._assert_rollback_rejected(containers)
+
+    def test_rollback_rejects_container_listing_or_inspection_errors(self):
+        for command in ("ps --all --quiet", "docker container inspect"):
+            with self.subTest(command=command):
+                (self.deploy / ".version").write_text(f"current={NEW}\nprevious={OLD}\n")
+                host = FakeHost(head=NEW, fail_on=(command,))
+                self.assertEqual(self._rollback(host), 1)
+                self.assertEqual(host.head, NEW)
+                self.assertEqual(read_version(self.deploy), {"current": NEW, "previous": OLD})
+
+    def _assert_rollback_rejected(self, containers):
+        (self.deploy / ".version").write_text(f"current={NEW}\nprevious={OLD}\n")
+        host = FakeHost(head=NEW, containers_by_ref={OLD: containers})
+        self.assertEqual(self._rollback(host), 1)
+        self.assertEqual(host.head, NEW)
+        self.assertEqual(read_version(self.deploy), {"current": NEW, "previous": OLD})
+        self.assertEqual([v for c, v in host.calls if "--remove-orphans" in c][-1], "sha-" + NEW[:12])
+
     def test_rollback_without_previous_fails(self):
         (self.deploy / ".version").write_text(f"current={NEW}\n")
         host = FakeHost(head=NEW)
@@ -245,6 +384,7 @@ class HttpStatusTests(unittest.TestCase):
             self.assertEqual(http_status(url, "judge.example.edu", "https"), 200)
         finally:
             server.shutdown()
+            server.server_close()
 
 
 if __name__ == "__main__":

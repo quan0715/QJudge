@@ -13,6 +13,7 @@ from rest_framework.test import APIClient
 
 from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.problems.models import CodingProblem
 from apps.submissions.models import Submission
 from apps.users.models import User
@@ -102,7 +103,7 @@ def test_forbidden_keyword_sets_kr_and_skips_judge(
     api_client: APIClient,
     judge_mocks: Dict[str, Mock],
 ) -> None:
-    user = UserFactory()
+    user = UserFactory(role="teacher")
     problem = ProblemFactory(created_by=user, forbidden_keywords=["eval"])
 
     api_client.force_authenticate(user=user)
@@ -128,7 +129,7 @@ def test_required_keyword_missing_sets_kr(
     api_client: APIClient,
     judge_mocks: Dict[str, Mock],
 ) -> None:
-    user = UserFactory()
+    user = UserFactory(role="teacher")
     problem = ProblemFactory(created_by=user, required_keywords=["import"])
 
     api_client.force_authenticate(user=user)
@@ -154,7 +155,7 @@ def test_practice_submission_triggers_judge(
     api_client: APIClient,
     judge_mocks: Dict[str, Mock],
 ) -> None:
-    user = UserFactory()
+    user = UserFactory(role="teacher")
     problem = ProblemFactory(created_by=user)
 
     api_client.force_authenticate(user=user)
@@ -338,6 +339,10 @@ def test_contest_submission_allows_not_started_when_exam_mode_disabled(
     user = UserFactory()
     contest = ContestFactory(status="published", cheat_detection_enabled=False)
     problem = ProblemFactory(created_by=contest.owner)
+    ContestQuestionBinding.objects.create(
+        contest=contest, coding_problem=problem, binding_type="coding",
+        question_asset=QuestionAsset.objects.create(owner=contest.owner, asset_type="coding", title="Test"),
+    )
     ContestParticipantFactory(contest=contest, user=user, exam_status=ExamStatus.NOT_STARTED)
 
     api_client.force_authenticate(user=user)
@@ -366,6 +371,10 @@ def test_contest_submission_privileged_bypasses_restrictions(
     admin = UserFactory(role="admin", is_staff=True)
     contest = ContestFactory(status="draft")
     problem = ProblemFactory(created_by=contest.owner)
+    ContestQuestionBinding.objects.create(
+        contest=contest, coding_problem=problem, binding_type="coding",
+        question_asset=QuestionAsset.objects.create(owner=contest.owner, asset_type="coding", title="Test"),
+    )
 
     api_client.force_authenticate(user=admin)
     response = api_client.post(
@@ -393,6 +402,10 @@ def test_contest_submission_triggers_judge(
     user = UserFactory()
     contest = ContestFactory(status="published")
     problem = ProblemFactory(created_by=contest.owner)
+    ContestQuestionBinding.objects.create(
+        contest=contest, coding_problem=problem, binding_type="coding",
+        question_asset=QuestionAsset.objects.create(owner=contest.owner, asset_type="coding", title="Test"),
+    )
     ContestParticipantFactory(contest=contest, user=user, exam_status=ExamStatus.IN_PROGRESS)
 
     api_client.force_authenticate(user=user)

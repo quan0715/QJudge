@@ -40,31 +40,21 @@ class SubmissionResultSerializer(serializers.ModelSerializer):
         user = self.context.get('request').user if self.context.get('request') else None
         is_privileged = user and (user.is_staff or getattr(user, 'role', '') in ['teacher', 'admin'])
         
-        # If it's a custom test case (test_case is None), return the stored input
-        if obj.test_case is None:
-            return obj.input_data
-
-        if is_privileged or obj.test_case.is_sample or not obj.test_case.is_hidden:
-            return obj.test_case.input_data
+        if is_privileged or not self.get_is_hidden(obj):
+            return obj.test_case.input_data if obj.test_case else obj.input_data
         return None
 
     def get_expected_output(self, obj):
         user = self.context.get('request').user if self.context.get('request') else None
         is_privileged = user and (user.is_staff or getattr(user, 'role', '') in ['teacher', 'admin'])
         
-        # If it's a custom test case (test_case is None), return the stored expected output
-        if obj.test_case is None:
-            return obj.expected_output
-
-        if is_privileged or obj.test_case.is_sample or not obj.test_case.is_hidden:
-            return obj.test_case.output_data
+        if is_privileged or not self.get_is_hidden(obj):
+            return obj.test_case.output_data if obj.test_case else obj.expected_output
         return None
 
     def get_is_hidden(self, obj):
         """Return whether this testcase is hidden."""
-        if obj.test_case is None:
-            return False
-        return obj.test_case.is_hidden
+        return obj.is_hidden or bool(obj.test_case and obj.test_case.is_hidden)
 
 
 class ScreenEventSerializer(serializers.ModelSerializer):

@@ -191,7 +191,7 @@ export function mapArtifactRecordToCopilotAttachment(
 ): CopilotAttachmentPart {
   return {
     type: "attachment",
-    id: artifact.id,
+    id: artifact.artifact_id,
     name: artifact.filename,
     mediaType: artifact.content_type || undefined,
   };

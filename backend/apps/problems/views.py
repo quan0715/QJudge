@@ -201,11 +201,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         cases, without creating a submission. Hidden cases only run in a
         formal submission.
 
-        Access mirrors Submission: any authenticated user may invoke test_run as
-        long as they hold the problem id. If a `contest_id` is supplied, the
-        same SubmissionAccessPolicy used by real submissions is applied so that
-        contest-level rules (status, schedule, participant, exam state) gate
-        the run.
+        Access uses the same problem and contest policy as formal submissions.
         """
         from django.shortcuts import get_object_or_404
         from rest_framework.exceptions import PermissionDenied
@@ -227,12 +223,11 @@ class ProblemViewSet(viewsets.ModelViewSet):
         problem = get_object_or_404(CodingProblem, id=id)
 
         contest_id = serializer.validated_data.get("contest_id")
-        if contest_id:
-            contest = get_object_or_404(Contest, id=contest_id)
-            try:
-                SubmissionAccessPolicy.enforce_contest_submission(request.user, contest)
-            except SubmissionAccessError as exc:
-                raise PermissionDenied(exc.message) from exc
+        contest = get_object_or_404(Contest, id=contest_id) if contest_id else None
+        try:
+            SubmissionAccessPolicy.enforce_problem_access(request.user, problem, contest)
+        except SubmissionAccessError as exc:
+            raise PermissionDenied(exc.message) from exc
 
         custom_test_cases = serializer.validated_data["custom_test_cases"]
         if serializer.validated_data["asynchronous"]:

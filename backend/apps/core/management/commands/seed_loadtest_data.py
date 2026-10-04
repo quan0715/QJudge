@@ -223,14 +223,14 @@ class Command(BaseCommand):
         # Paper exam questions
         paper_questions = [
             {"order": 0, "question_type": "single_choice", "prompt": "1 + 1 = ?",
-             "options": ["1", "2", "3", "4"], "correct_answer": "2", "score": 10},
+             "options": ["1", "2", "3", "4"], "correct_answer": 1, "score": 10},
             {"order": 1, "question_type": "true_false", "prompt": "Python is a programming language.",
-             "options": ["True", "False"], "correct_answer": "True", "score": 10},
+             "options": ["True", "False"], "correct_answer": 0, "score": 10},
             {"order": 2, "question_type": "single_choice", "prompt": "Which is O(n log n)?",
              "options": ["Bubble Sort", "Merge Sort", "Insertion Sort", "Selection Sort"],
-             "correct_answer": "Merge Sort", "score": 10},
+             "correct_answer": 1, "score": 10},
             {"order": 3, "question_type": "true_false", "prompt": "HTTP is stateful.",
-             "options": ["True", "False"], "correct_answer": "False", "score": 10},
+             "options": ["True", "False"], "correct_answer": 1, "score": 10},
             {"order": 4, "question_type": "short_answer", "prompt": "What does CPU stand for?",
              "options": [], "correct_answer": "Central Processing Unit", "score": 10},
         ]

@@ -57,13 +57,13 @@ import ScorePolicyMenu, {
 } from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
 import type { ScorePolicyMenuImpactContext } from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
 import type { QuestionProgress } from "@/features/contest/screens/settings/grading/gradingTypes";
+import type { EditorImpactStatus } from "./hooks/useEditorImpactData";
 import styles from "./ExamQuestionEditCard.module.scss";
 import LockedGradingSaveModal from "./LockedGradingSaveModal";
 import {
   classifyLockedQuestionSave,
   type ExistingGradesAction,
   type LockedQuestionComparableState,
-  type LockedSaveImpact,
 } from "./lockedQuestionSaveImpact";
 
 // --- Constants ---
@@ -101,43 +101,29 @@ const isChoiceType = (type: ExamQuestionType) =>
 const isSubjectiveType = (type: ExamQuestionType) =>
   type === "short_answer" || type === "essay";
 
-const toSingleAnswerIndex = (
+/**
+ * Stored objective answers only count when they are the 0-based option
+ * indexes students submit; anything else grades every answer wrong, so it is
+ * shown as unset and the teacher has to pick the answer again.
+ */
+const isAnswerIndex = (value: unknown, size: number): value is number =>
+  typeof value === "number" && Number.isInteger(value) && value >= 0 && value < size;
+
+const toAnswerIndex = (
   value: unknown,
   options: string[],
   questionType: ExamQuestionType,
-): string => {
-  if (typeof value === "number" && Number.isInteger(value))
-    return String(value);
-  if (typeof value === "boolean") return value ? "0" : "1";
-  if (typeof value === "string") {
-    const lowered = value.toLowerCase().trim();
-    if (questionType === "true_false") {
-      if (lowered === "true") return "0";
-      if (lowered === "false") return "1";
-    }
-    const asNumber = Number(value);
-    if (!Number.isNaN(asNumber) && Number.isInteger(asNumber))
-      return String(asNumber);
-    const matchingIndex = options.findIndex((option) => option === value);
-    if (matchingIndex >= 0) return String(matchingIndex);
-  }
-  return "";
+): number | null => {
+  const size = questionType === "true_false" ? 2 : options.length;
+  return isAnswerIndex(value, size) ? value : null;
 };
 
-const toMultiAnswerIndexes = (value: unknown): string[] => {
+const toAnswerIndexes = (value: unknown, options: string[]): number[] => {
   if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => {
-      if (typeof item === "number" && Number.isInteger(item))
-        return String(item);
-      if (typeof item === "string") {
-        const asNumber = Number(item);
-        if (!Number.isNaN(asNumber) && Number.isInteger(asNumber))
-          return String(asNumber);
-      }
-      return "";
-    })
-    .filter(Boolean);
+  return new Set(value).size === value.length &&
+    value.every((item) => isAnswerIndex(item, options.length))
+    ? (value as number[])
+    : [];
 };
 
 const toFormState = (question: ExamQuestion): QuestionFormState => {
@@ -161,7 +147,7 @@ const toFormState = (question: ExamQuestion): QuestionFormState => {
     return {
       ...base,
       options,
-      multiAnswerIndexes: toMultiAnswerIndexes(question.correctAnswer),
+      multiAnswerIndexes: toAnswerIndexes(question.correctAnswer, options).map(String),
     };
   }
   if (question.questionType === "short_answer") {
@@ -196,10 +182,8 @@ const toFormState = (question: ExamQuestion): QuestionFormState => {
   return {
     ...base,
     options: resolvedOptions,
-    singleAnswerIndex: toSingleAnswerIndex(
-      question.correctAnswer,
-      resolvedOptions,
-      question.questionType,
+    singleAnswerIndex: String(
+      toAnswerIndex(question.correctAnswer, resolvedOptions, question.questionType) ?? "",
     ),
   };
 };
@@ -258,6 +242,24 @@ const buildPayload = (
   return payload;
 };
 
+/**
+ * A locked question only accepts grading fields. Content fields are dropped so
+ * values the form filled in for display (e.g. default true/false options) are
+ * not sent back as content edits.
+ */
+const toLockedGradingPayload = (
+  payload: ExamQuestionUpsertPayload,
+): Partial<ExamQuestionUpsertPayload> => {
+  const {
+    question_type: _questionType,
+    prompt: _prompt,
+    options: _options,
+    answer_format: _answerFormat,
+    ...grading
+  } = payload;
+  return grading;
+};
+
 /** Deep-compare two form states to detect dirty */
 const isFormDirty = (
   a: QuestionFormState,
@@ -293,37 +295,11 @@ const isFormDirty = (
 // --- Preview helpers ---
 
 /** Get the correct answer index for true_false / single_choice */
-const getCorrectSingleIndex = (question: ExamQuestion): number | null => {
-  const { correctAnswer, questionType } = question;
-  if (correctAnswer == null) return null;
-  if (questionType === "true_false") {
-    if (
-      correctAnswer === 0 ||
-      correctAnswer === true ||
-      correctAnswer === "true"
-    )
-      return 0;
-    if (
-      correctAnswer === 1 ||
-      correctAnswer === false ||
-      correctAnswer === "false"
-    )
-      return 1;
-    return null;
-  }
-  if (typeof correctAnswer === "number") return correctAnswer;
-  const n = Number(correctAnswer);
-  return Number.isInteger(n) ? n : null;
-};
+const getCorrectSingleIndex = (question: ExamQuestion): number | null =>
+  toAnswerIndex(question.correctAnswer, question.options, question.questionType);
 
-const getCorrectMultiIndexes = (question: ExamQuestion): Set<number> => {
-  if (!Array.isArray(question.correctAnswer)) return new Set();
-  return new Set(
-    (question.correctAnswer as number[]).filter(
-      (v) => typeof v === "number" && Number.isInteger(v),
-    ),
-  );
-};
+const getCorrectMultiIndexes = (question: ExamQuestion): Set<number> =>
+  new Set(toAnswerIndexes(question.correctAnswer, question.options));
 
 const OptionMarkdownLabel = ({
   letter,
@@ -358,7 +334,9 @@ interface ExamQuestionEditCardProps {
   showScoreField?: boolean;
   frozen?: boolean;
   contentLocked?: boolean;
-  gradedAnswerCount?: number;
+  answerCounts?: { total: number; graded: number };
+  impactStatus?: EditorImpactStatus;
+  onRefreshImpact?: () => void;
   resultsPublished?: boolean;
   startEditingSignal?: number;
   /** All questions for redistribute target selection */
@@ -376,7 +354,7 @@ interface ExamQuestionEditCardProps {
   /** Called when the policy overflow menu is opened — triggers lazy data load. */
   onMenuOpen?: () => void;
   onAutoSave: (
-    payload: ExamQuestionUpsertPayload,
+    payload: Partial<ExamQuestionUpsertPayload>,
     questionId?: string,
     action?: ExistingGradesAction,
   ) => Promise<void>;
@@ -393,7 +371,9 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   showScoreField = true,
   frozen,
   contentLocked = false,
-  gradedAnswerCount = 0,
+  answerCounts,
+  impactStatus = "loaded",
+  onRefreshImpact,
   resultsPublished = false,
   startEditingSignal,
   allQuestions,
@@ -416,12 +396,18 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     toFormState(question),
   );
   const [saving, setSaving] = useState(false);
-  const [lockedSaveImpact, setLockedSaveImpact] =
-    useState<LockedSaveImpact | null>(null);
+  const [lockedSaveOpen, setLockedSaveOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const originalFormRef = useRef<QuestionFormState>(toFormState(question));
   const latestFormRef = useRef<QuestionFormState>(toFormState(question));
+  const lockedSaveImpact = lockedSaveOpen
+    ? classifyLockedQuestionSave(
+        originalFormRef.current,
+        form,
+        impactStatus === "loaded" ? answerCounts ?? null : null,
+      )
+    : null;
   const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync form when question prop changes (after external save/reload)
@@ -490,7 +476,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
         setSaving(true);
         const snapshot = latestFormRef.current;
         const payload = buildPayload(snapshot, showScoreField);
-        await onAutoSave(payload, question.id, action);
+        await onAutoSave(
+          contentLocked ? toLockedGradingPayload(payload) : payload,
+          question.id,
+          action,
+        );
         originalFormRef.current = { ...snapshot };
         setOriginalForm({ ...snapshot });
         setForm({ ...snapshot });
@@ -510,7 +500,15 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
         setSaving(false);
       }
     },
-    [getValidationError, onAutoSave, question.id, showScoreField, showToast, t],
+    [
+      contentLocked,
+      getValidationError,
+      onAutoSave,
+      question.id,
+      showScoreField,
+      showToast,
+      t,
+    ],
   );
 
   const handleCloseOrSave = useCallback(async () => {
@@ -623,15 +621,18 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     const impact = classifyLockedQuestionSave(
       originalFormRef.current,
       latestFormRef.current,
-      gradedAnswerCount,
+      impactStatus === "loaded" ? answerCounts ?? null : null,
     );
     if (impact.kind === "no-op") return;
-    setLockedSaveImpact(impact);
+    if (impact.kind !== "display-only") onRefreshImpact?.();
+    setLockedSaveOpen(true);
   };
 
   const handleLockedSaveChoice = async (action: ExistingGradesAction) => {
+    if (!lockedSaveImpact || (lockedSaveImpact.kind !== "display-only" &&
+      (impactStatus !== "loaded" || lockedSaveImpact.affectedCount === null))) return;
     const saved = await persistAutoSave(true, action);
-    if (saved) setLockedSaveImpact(null);
+    if (saved) setLockedSaveOpen(false);
   };
 
   const handleDiscard = () => {
@@ -850,17 +851,30 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                         })}
                   </span>
                 ) : null}
-                {/* Score policy menu — always available, even when frozen */}
+                {/* Only mounted with known data; refreshing also closes stale previews. */}
                 <div onClick={(e) => e.stopPropagation()}>
-                  <ScorePolicyMenu
-                    questionId={question.id}
-                    questionIndex={index + 1}
-                    currentPolicy={question.scorePolicy ?? "normal"}
-                    allQuestions={allQuestions}
-                    onPolicyChanged={onScorePolicyChanged}
-                    impactContext={impactContext}
-                    onMenuOpen={onMenuOpen}
-                  />
+                  {impactStatus === "loaded" ? (
+                    <ScorePolicyMenu
+                      questionId={question.id}
+                      questionIndex={index + 1}
+                      currentPolicy={question.scorePolicy ?? "normal"}
+                      allQuestions={allQuestions}
+                      onPolicyChanged={onScorePolicyChanged}
+                      impactContext={impactContext}
+                      onMenuOpen={onMenuOpen}
+                    />
+                  ) : impactStatus === "error" ? (
+                    <Button
+                      kind="ghost"
+                      size="sm"
+                      title={t("examEditor.lockedSave.impactError", "無法載入受影響作答數，請重試後再確認。")}
+                      onClick={onRefreshImpact}
+                    >
+                      {t("examEditor.lockedSave.retryImpact", "重試")}
+                    </Button>
+                  ) : (
+                    <InlineLoading description={t("examEditor.lockedSave.loadingImpact", "正在載入受影響作答數…")} />
+                  )}
                 </div>
                 {!frozen && !contentLocked && (
                   <>
@@ -1527,9 +1541,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
         <LockedGradingSaveModal
           open
           impact={lockedSaveImpact}
+          impactStatus={impactStatus}
+          onRetry={onRefreshImpact}
           resultsPublished={resultsPublished}
           submitting={saving}
-          onCancel={() => setLockedSaveImpact(null)}
+          onCancel={() => setLockedSaveOpen(false)}
           onChoose={(action) => void handleLockedSaveChoice(action)}
         />
       ) : null}

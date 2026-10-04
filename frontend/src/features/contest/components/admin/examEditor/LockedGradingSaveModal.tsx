@@ -1,5 +1,6 @@
 import {
   Button,
+  InlineLoading,
   ComposedModal,
   ModalBody,
   ModalFooter,
@@ -7,6 +8,7 @@ import {
 } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 
+import type { EditorImpactStatus } from "./hooks/useEditorImpactData";
 import type {
   ExistingGradesAction,
   LockedSaveImpact,
@@ -15,6 +17,8 @@ import type {
 interface LockedGradingSaveModalProps {
   open: boolean;
   impact: LockedSaveImpact;
+  impactStatus?: EditorImpactStatus;
+  onRetry?: () => void;
   resultsPublished: boolean;
   submitting: boolean;
   onCancel: () => void;
@@ -24,6 +28,8 @@ interface LockedGradingSaveModalProps {
 const LockedGradingSaveModal = ({
   open,
   impact,
+  impactStatus = "loaded",
+  onRetry,
   resultsPublished,
   submitting,
   onCancel,
@@ -32,6 +38,10 @@ const LockedGradingSaveModal = ({
   const { t } = useTranslation("contest");
   const subjective = impact.kind === "subjective-review";
   const objective = impact.kind === "objective-regrade";
+
+  const needsCount = objective || subjective;
+  const countKnown = impactStatus === "loaded" && impact.affectedCount !== null;
+  const blocked = submitting || (needsCount && !countKnown);
 
   const heading = objective
     ? t("examEditor.lockedSave.objectiveTitle", "更新評分規則並重新批改？")
@@ -43,13 +53,25 @@ const LockedGradingSaveModal = ({
     <ComposedModal open={open} onClose={onCancel} size="sm">
       <ModalHeader title={heading} closeModal={onCancel} />
       <ModalBody>
-        {objective ? (
+        {needsCount && !countKnown ? (
+          impactStatus === "error" ? (
+            <div role="alert">
+              <p>{t("examEditor.lockedSave.impactError", "無法載入受影響作答數，請重試後再確認。")}</p>
+              <Button kind="ghost" onClick={onRetry} disabled={submitting}>
+                {t("examEditor.lockedSave.retryImpact", "重試")}
+              </Button>
+            </div>
+          ) : (
+            <InlineLoading description={t("examEditor.lockedSave.loadingImpact", "正在載入受影響作答數…")} />
+          )
+        ) : null}
+        {objective && countKnown ? (
           <p>
             <strong>{impact.affectedCount}</strong>{" "}
             {t("examEditor.lockedSave.objectiveBody", "份作答將依新規則重新批改。")}
           </p>
         ) : null}
-        {subjective ? (
+        {subjective && countKnown ? (
           <p>
             <strong>{impact.affectedCount}</strong>{" "}
             {t("examEditor.lockedSave.subjectiveBody", "份既有批改，請選擇保留或改為待批改。")}
@@ -71,14 +93,14 @@ const LockedGradingSaveModal = ({
             <Button
               kind="tertiary"
               onClick={() => onChoose("keep")}
-              disabled={submitting}
+              disabled={blocked}
             >
               {t("examEditor.lockedSave.keep", "保留既有批改")}
             </Button>
             <Button
               kind="primary"
               onClick={() => onChoose("mark_pending")}
-              disabled={submitting}
+              disabled={blocked}
             >
               {t("examEditor.lockedSave.markPending", "標記為待批改")}
             </Button>
@@ -87,7 +109,7 @@ const LockedGradingSaveModal = ({
           <Button
             kind="primary"
             onClick={() => onChoose(objective ? "regrade" : "keep")}
-            disabled={submitting}
+            disabled={blocked}
           >
             {objective
               ? t("examEditor.lockedSave.regrade", "重新批改")

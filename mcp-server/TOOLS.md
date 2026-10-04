@@ -188,6 +188,7 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 | `correct_answer` | any? | create, update |
 | `items` | list[dict]? | batch_create, import_from_bank |
 | `mode` | string? | batch_create |
+| `existing_grades_action` | `"regrade"` / `"keep"` / `"mark_pending"`? | update |
 
 ### Actions
 
@@ -195,7 +196,7 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 |---|---|---|---|
 | `get` | contest_id, question_id | — | |
 | `create` | contest_id, question_type, prompt | explanation, score, options, correct_answer | 一次一題 |
-| `update` | contest_id, question_id | any field | 一次一題 |
+| `update` | contest_id, question_id | any field, existing_grades_action | 一次一題；考生開始作答後只能改 correct_answer／score／explanation，並須帶 existing_grades_action（客觀題改答案或配分用 `regrade`） |
 | `delete` | contest_id, question_id | — | 一次一題，無批量 |
 | `import_from_bank` | contest_id, items | — | items: [{question_bank_id, question_id}] |
 | `batch_create` | contest_id, items | mode | mode: "append"(default) / "overwrite"。先驗證全部 items，overwrite 先建新題、全部成功才刪舊題；建立失敗會回滾已建的新題（回傳 `rolled_back`） |
@@ -203,10 +204,21 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 ### Parameter-action mapping
 
 ```
-question_id  → get, update, delete only
-items        → batch_create, import_from_bank only
-mode         → batch_create only
+question_id            → get, update, delete only
+items                  → batch_create, import_from_bank only
+mode                   → batch_create only
+existing_grades_action → update only
 ```
+
+### correct_answer 格式
+
+客觀題一律使用 0-based 選項索引，與學生作答送出的值相同；字母、選項文字、數字字串與越界索引都會回 400。
+
+| 題型 | 格式 |
+|---|---|
+| `single_choice` | int，例如 `0` |
+| `multiple_choice` | 不重複的 int 陣列，例如 `[0, 2]` |
+| `true_false` | `0`（是）或 `1`（否），不可用 boolean |
 
 ---
 

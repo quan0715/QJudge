@@ -60,7 +60,7 @@ class SubmissionService:
         return result.submission
 
     # ------------------------------------------------------------------
-    # Submission creation (unchanged public contract for backward compat)
+    # Submission creation
     # ------------------------------------------------------------------
 
     @staticmethod
@@ -78,9 +78,6 @@ class SubmissionService:
 
         source_type = "contest" if contest else "practice"
 
-        if contest:
-            SubmissionAccessPolicy.enforce_contest_submission(user, contest)
-
         problem: CodingProblem = data["problem"]
         code: str = data.get("code", "")
 
@@ -96,19 +93,6 @@ class SubmissionService:
         create_payload = dict(data)
         create_payload.pop("source_type", None)
 
-        # Resolve ContestQuestionBinding for contest submissions
-        problem_id = getattr(problem, "id", None)
-        if source_type == "contest" and contest_id and problem_id is not None:
-            from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
-
-            binding = ContestQuestionBinding.objects.filter(
-                contest_id=contest_id,
-                coding_problem_id=problem_id,
-                binding_type=QuestionAsset.AssetType.CODING,
-            ).only("id").first()
-            if binding:
-                create_payload["contest_question_binding_id"] = binding.id
-
         with transaction.atomic():
             if contest is not None:
                 contest = Contest.objects.select_for_update().get(pk=contest.pk)
@@ -116,8 +100,11 @@ class SubmissionService:
                 from apps.contests.models import ContestParticipant
                 lock_exam_runs(contest.pk)
                 list(ContestParticipant.objects.select_for_update().filter(contest=contest, user=user))
-                SubmissionAccessPolicy.enforce_contest_submission(user, contest)
                 create_payload["contest"] = contest
+
+            binding = SubmissionAccessPolicy.enforce_problem_access(user, problem, contest)
+            if binding is not None:
+                create_payload["contest_question_binding"] = binding
 
             if violation_message:
                 submission = Submission.objects.create(

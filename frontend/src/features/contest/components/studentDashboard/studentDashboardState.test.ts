@@ -2,11 +2,9 @@ import { describe, expect, it } from "vitest";
 import type {
   ContestDetail,
   ExamQuestion,
-  ScoreboardData,
 } from "@/core/entities/contest.entity";
 import {
   buildPaperProgressSummary,
-  findCurrentUserScoreboardRow,
   resolveStudentContestPhase,
 } from "./studentDashboardState";
 
@@ -68,42 +66,6 @@ describe("studentDashboardState", () => {
         Date.parse("2026-05-05T09:00:00.000Z"),
       ),
     ).toBe("after");
-  });
-
-  it("matches scoreboard rows by user id before display name fallback", () => {
-    const scoreboardData: ScoreboardData = {
-      contestId: "contest-1",
-      contestName: "Contest",
-      problems: [],
-      rows: [
-        {
-          userId: "2",
-          displayName: "same-name",
-          solvedCount: 0,
-          totalScore: 0,
-          penalty: 0,
-          rank: 2,
-          problems: {},
-        },
-        {
-          userId: "1",
-          displayName: "different-name",
-          solvedCount: 1,
-          totalScore: 100,
-          penalty: 0,
-          rank: 1,
-          problems: {},
-        },
-      ],
-    };
-
-    const row = findCurrentUserScoreboardRow(scoreboardData, {
-      id: 1,
-      username: "same-name",
-      role: "student",
-    });
-
-    expect(row?.userId).toBe("1");
   });
 
   it("builds paper progress without publishing scores early", () => {

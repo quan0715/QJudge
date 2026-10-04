@@ -709,7 +709,7 @@ const ContestAiGradingScreen: React.FC = () => {
     () =>
       artifactPanel.artifacts
         .filter((artifact) => artifact.filename.toLowerCase() === "grade.csv")
-        .map((artifact) => `${artifact.id}:${artifact.checksum || artifact.updated_at}`)
+        .map((artifact) => `${artifact.artifact_id}:${artifact.checksum || artifact.updated_at}`)
         .join("|"),
     [artifactPanel.artifacts],
   );

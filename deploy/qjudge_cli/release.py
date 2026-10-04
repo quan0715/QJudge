@@ -23,15 +23,14 @@ HttpStatus = Callable[[str, str, str], int]
 Sleep = Callable[[float], None]
 
 DATABASES = ("online_judge", "qjudge_ai")
-APP_SERVICES = ("backend", "ai-service", "integrity-resident")
+APP_SERVICES = ("backend", "ai-service", "integrity-resident", "celery", "ai-worker", "integrity-reconciler")
 MIGRATIONS = (
     ("backend", ("python", "manage.py", "migrate", "--noinput")),
     ("ai-service", ("sh", "-c", "python -m alembic upgrade head && python -m infrastructure.checkpoints.langgraph_store setup")),
 )
 # Validate with the new image before stopping the running application.
 MODEL_CONFIG_CHECK = ("ai-service", ("python", "-m", "infrastructure.agent.model_config"))
-JUDGE_IMAGE = "oj-judge:latest"
-JUDGE_REMOTE = "ghcr.io/quan0715/qjudge/judge:latest"
+JUDGE_REMOTE = "ghcr.io/quan0715/qjudge/judge"
 KEEP_BACKUPS = 10
 KEEP_IMAGES = 3
 POSTGRES_TIMEOUT = 120
@@ -105,13 +104,20 @@ class _Stack:
         return self.run(command, env={**os.environ, "QJUDGE_VERSION": version}, **kwargs)
 
     def judge_image(self) -> bool:
-        if self.run(["docker", "pull", JUDGE_REMOTE]).returncode == 0:
-            return self.run(["docker", "tag", JUDGE_REMOTE, JUDGE_IMAGE]).returncode == 0
-        if self.run(["docker", "image", "inspect", JUDGE_IMAGE], capture_output=True).returncode == 0:
+        image = f"qjudge/judge:{_version(self.head())}"
+        if self.run(["docker", "image", "inspect", image], capture_output=True).returncode == 0:
             return True
+        source = self.git("rev-parse", "HEAD:backend/judge")
+        if source.returncode != 0 or not source.stdout.strip():
+            return False
+        remote = f"{JUDGE_REMOTE}:source-{source.stdout.strip()}"
+        if self.run(["docker", "pull", remote]).returncode == 0:
+            return self.run(["docker", "tag", remote, image]).returncode == 0
         judge = self.repo / "backend" / "judge"
-        build = ["docker", "build", "-t", JUDGE_IMAGE, "-f", str(judge / "Dockerfile.judge"), str(judge)]
-        return self.run(build).returncode == 0
+        build = ["docker", "build", "--load", "-t", image, "-f", str(judge / "Dockerfile.judge"), str(judge)]
+        if self.run(build).returncode != 0:
+            return False
+        return self.run(["docker", "image", "inspect", image], capture_output=True).returncode == 0
 
     def healthy(self, version: str, services: tuple[str, ...]) -> bool:
         result = self.compose(version, "ps", "--format", "json", capture_output=True, text=True)
@@ -120,8 +126,35 @@ class _Stack:
             health.setdefault(row.get("Service"), set()).add(row.get("Health"))
         return all(health.get(service) == {"healthy"} for service in services)
 
+    def app_services_ready(self, version: str) -> bool:
+        result = self.compose(version, "ps", "--all", "--quiet", *APP_SERVICES,
+                              capture_output=True, text=True)
+        containers = result.stdout.split() if result.returncode == 0 else []
+        if not containers:
+            return False
+        result = self.run(["docker", "container", "inspect", *containers], capture_output=True, text=True)
+        if result.returncode != 0:
+            return False
+        rows = _ps_rows(result.stdout)
+        if len(rows) != len(containers):
+            return False
+        services = set()
+        for row in rows:
+            config, state = row.get("Config", {}), row.get("State", {})
+            services.add(config.get("Labels", {}).get("com.docker.compose.service"))
+            if state.get("Status") != "running":
+                return False
+            # Inspect the target container, not this CLI version's assumptions:
+            # Docker merges image healthchecks and Compose overrides (including NONE).
+            check = (config.get("Healthcheck") or {}).get("Test", [])
+            has_check = bool(check) and check[0] != "NONE"
+            health = state.get("Health") or {}
+            if (has_check or health) and health.get("Status") != "healthy":
+                return False
+        return services == set(APP_SERVICES)
+
     def app_ready(self, version: str) -> bool:
-        if not self.healthy(version, APP_SERVICES):
+        if not self.app_services_ready(version):
             return False
         host = self.env.get("FRONTEND_BIND_ADDRESS", "").strip() or "127.0.0.1"
         host = "127.0.0.1" if host in ("0.0.0.0", "::") else f"[{host}]" if ":" in host else host
@@ -247,6 +280,7 @@ def upgrade(
         print(f"{version} is not healthy")
         if current:
             stack.checkout(current)
+            stack.judge_image()
             stack.compose(_version(current), "up", "-d", "--remove-orphans")
             print(f"Started {_version(current)} again")
         else:
@@ -276,6 +310,9 @@ def rollback(
     if not stack.checkout(previous):
         return 1
     version = _version(previous)
+    if not stack.judge_image():
+        stack.checkout(recorded["current"])
+        return 1
     if not stack.start(version):
         current = recorded["current"]
         print(f"{version} is not healthy; starting {_version(current)} again")

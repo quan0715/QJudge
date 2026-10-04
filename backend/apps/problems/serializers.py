@@ -427,13 +427,12 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
     
     def update(self, instance, validated_data):
         content_fields = {
-            'description': validated_data.pop('description', ''),
-            'input_description': validated_data.pop('input_description', ''),
-            'output_description': validated_data.pop('output_description', ''),
-            'hint': validated_data.pop('hint', ''),
+            field: validated_data.pop(field)
+            for field in ('description', 'input_description', 'output_description', 'hint')
+            if field in validated_data
         }
-        test_cases_data = validated_data.pop('test_cases', [])
-        language_configs_data = validated_data.pop('language_configs', [])
+        test_cases_data = validated_data.pop('test_cases', None)
+        language_configs_data = validated_data.pop('language_configs', None)
         existing_tag_ids = validated_data.pop('existing_tag_ids', None)
         new_tag_names = validated_data.pop('new_tag_names', None)
 

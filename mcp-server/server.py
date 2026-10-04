@@ -664,9 +664,10 @@ _TOOL_HELP = {
         "_options_note": "Do NOT add A/B/C/D prefixes — the UI adds them automatically",
         "_correct_answer_formats": {
             "single_choice": "0-based int index (e.g. 0)",
-            "multiple_choice": "list of int indices (e.g. [0, 2])",
-            "true_false": "boolean (true/false), options should be ['True', 'False']",
+            "multiple_choice": "list of distinct 0-based int indices (e.g. [0, 2])",
+            "true_false": "int 0 (true) or 1 (false) — NOT a boolean; options should be ['True', 'False']",
             "short_answer": "string",
+            "rejected": "letters ('B'), option text, numeric strings ('1') and out-of-range indexes return 400",
         },
     },
     "common_mistakes": {
@@ -678,6 +679,11 @@ _TOOL_HELP = {
         "option prefixes": "Do NOT add A/B/C/D prefixes to options — the UI adds them",
         "question_ids for delete": "delete only accepts single question_id — no batch delete",
         "items for create": "create is single-item — use batch_create for multiple items",
+        "objective correct_answer": "Use 0-based int indexes; true_false is 0 (true) / 1 (false), never a boolean",
+        "locked exam answer fix": (
+            "After students start, update correct_answer/score with existing_grades_action='regrade' "
+            "(objective) or 'keep'/'mark_pending' (subjective); prompt/options/type stay locked"
+        ),
         "browse routing": "Use qjudge_browse only for locating classroom_id/contest_id when user intent is ambiguous.",
         "run code on qjudge_coding_problems": "NEVER — use qjudge_code_runner(problem_id, language, code) for execution",
         "list problems in contest": "Use qjudge_contest_manager list_problems. Do NOT use list actions on qjudge_exam / qjudge_coding_problems",
@@ -1124,6 +1130,7 @@ async def qjudge_exam(
     correct_answer: Any | None = None,
     items: list[dict] | None = None,
     mode: str | None = None,
+    existing_grades_action: Literal["regrade", "keep", "mark_pending"] | None = None,
 ) -> Any:
     """Manage paper-exam questions within a paper_exam contest.
 
@@ -1136,7 +1143,7 @@ async def qjudge_exam(
     Actions:
       get              — Get one question (required: question_id)
       create           — Create ONE question (required: question_type, prompt; optional: explanation, score, options, correct_answer)
-      update           — Update ONE question (required: question_id; optional: question_type, prompt, explanation, score, options, correct_answer)
+      update           — Update ONE question (required: question_id; optional: question_type, prompt, explanation, score, options, correct_answer, existing_grades_action)
       delete           — Delete ONE question (required: question_id). No batch delete — call once per question.
       import_from_bank — Import from question bank (required: items — list of {question_bank_id, question_id})
       batch_create     — Create multiple questions at once (required: items — list of question objects;
@@ -1144,12 +1151,25 @@ async def qjudge_exam(
                          new questions are created first and old ones deleted only after all succeed)
                          Each item in items: {question_type, prompt, options, correct_answer, explanation?, score?}
 
+    correct_answer must be 0-based option indexes, the same values students submit:
+      single_choice   → one int, e.g. 0 (first option)
+      multiple_choice → list of distinct ints, e.g. [0, 2]
+      true_false      → 0 (true) or 1 (false); NOT a boolean
+    Letters ("B"), option text, strings ("1") and out-of-range indexes are rejected.
+
+    Once any student has started, the contest content is locked: prompt/options/type
+    cannot change, but correct_answer, score and explanation can be updated with
+    existing_grades_action — "regrade" for objective answer/score changes (re-grades
+    existing answers), "keep" or "mark_pending" for subjective ones, "keep" for
+    explanation-only changes.
+
     Use **qjudge_contest_manager** (list_problems, reorder) instead of list/reorder here.
 
     Parameter-action mapping (do NOT mix these up):
-      question_id  → get, update, delete only
-      items        → batch_create, import_from_bank only
-      mode         → batch_create only
+      question_id            → get, update, delete only
+      items                  → batch_create, import_from_bank only
+      mode                   → batch_create only
+      existing_grades_action → update only
     """
     base = f"/api/v1/contests/{contest_id}/exam-questions"
     uuid_error = _require_uuid(
@@ -1172,6 +1192,8 @@ async def qjudge_exam(
             tool_name="qjudge_exam",
             detail="items is required (list of {question_bank_id, question_id})",
         )
+    if existing_grades_action is not None and action != "update":
+        return _tool_error(tool_name="qjudge_exam", detail="existing_grades_action is only used by update")
     if action == "update":
         body = _build_exam_question_body(
             question_type=question_type,
@@ -1183,6 +1205,8 @@ async def qjudge_exam(
         )
         if not body:
             return _tool_error(tool_name="qjudge_exam", detail="No fields to update")
+        if existing_grades_action is not None:
+            body["existing_grades_action"] = existing_grades_action
     normalized_mode = mode or "append"
     if action == "batch_create":
         if not items:

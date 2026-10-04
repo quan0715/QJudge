@@ -175,7 +175,7 @@ class FakeGradingClient:
                 "content": path.read_text(encoding="utf-8"),
             }
         )
-        return {"id": "artifact-seed", "filename": path.name}
+        return {"artifact_id": "artifact-seed", "filename": path.name}
 
     def start_ai_run(self, *, session_id: str, prompt: str, model_id: str):
         self.started_run = {
@@ -183,7 +183,7 @@ class FakeGradingClient:
             "prompt": prompt,
             "model_id": model_id,
         }
-        return {"id": "run-1", "status": "running"}
+        return {"run_id": "run-1", "status": "running"}
 
     def iter_run_events(self, run_id: str):
         assert run_id == "run-1"
@@ -193,8 +193,8 @@ class FakeGradingClient:
     def list_artifacts(self, *, session_id: str):
         assert session_id == "session-1"
         return [
-            {"id": "artifact-rubric", "filename": "rubric.md", "updated_at": "now"},
-            {"id": "artifact-grade", "filename": "grade.csv", "updated_at": "now"},
+            {"artifact_id": "artifact-rubric", "filename": "rubric.md", "updated_at": "now"},
+            {"artifact_id": "artifact-grade", "filename": "grade.csv", "updated_at": "now"},
         ]
 
     def artifact_content(self, artifact_id: str):

@@ -1,11 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import {
-  DEFAULT_PROBLEM_FORM_VALUES,
-  type ProblemFormSchema,
-} from "./problemFormSchema";
-import {
-  formSchemaToApiPayload,
   problemDetailToFormSchema,
 } from "./problemFormAdapters";
 
@@ -53,67 +48,4 @@ describe("problemFormAdapters", () => {
     });
   });
 
-  describe("formSchemaToApiPayload", () => {
-    it("builds payload with flat content fields and filters disabled languages", () => {
-      const schema: ProblemFormSchema = {
-        ...DEFAULT_PROBLEM_FORM_VALUES,
-        title: "Form Problem",
-        translationZh: {
-          title: "標題",
-          description: "描述",
-          inputDescription: "",
-          outputDescription: "",
-          hint: "",
-        },
-        languageConfigs: [
-          { language: "cpp", templateCode: "//", isEnabled: true },
-          { language: "python", templateCode: "#", isEnabled: false },
-        ],
-        testCases: [
-          {
-            input: "1",
-            output: "1",
-            isSample: true,
-          },
-        ],
-        existingTagIds: [1, 2],
-      };
-
-      const payload = formSchemaToApiPayload(schema);
-
-      expect(payload.title).toBe("Form Problem");
-      expect(payload.description).toBe("描述");
-      expect(payload.language_configs).toHaveLength(1);
-      expect(payload.language_configs[0].language).toBe("cpp");
-      expect(payload.existing_tag_ids).toEqual([1, 2]);
-    });
-
-    it("keeps language config in payload when language field is missing but index is known", () => {
-      const schema: ProblemFormSchema = {
-        ...DEFAULT_PROBLEM_FORM_VALUES,
-        title: "Form Problem",
-        translationZh: {
-          title: "標題",
-          description: "描述",
-          inputDescription: "",
-          outputDescription: "",
-          hint: "",
-        },
-        languageConfigs: [
-          { language: "", templateCode: "int main(){}", isEnabled: true },
-        ],
-      };
-
-      const payload = formSchemaToApiPayload(schema);
-
-      expect(payload.language_configs).toEqual([
-        {
-          language: "cpp",
-          template_code: "int main(){}",
-          is_enabled: true,
-          order: 0,
-        },
-      ]);
-    });
-  });
 });

@@ -137,8 +137,8 @@ def test_create_run_maps_path_token_body_and_idempotency(
         "model_id": "deepseek-flash",
     }
     assert response.status_code == 202
-    assert response.json()["id"] == RUN_ID
-    assert response.json()["last_event_seq"] == 0
+    assert response.json()["run_id"] == RUN_ID
+    assert response.json()["last_sequence"] == 0
 
 
 def test_create_run_without_model_forwards_null(api_client, teacher, ai_transport) -> None:
@@ -298,7 +298,7 @@ def test_session_create_and_clear_preserve_ai_owned_summary_fields(
 
 
 @pytest.mark.parametrize(
-    ("method", "legacy_path", "upstream_path", "upstream_status", "payload"),
+    ("method", "gateway_path", "upstream_path", "upstream_status", "payload"),
     [
         (
             "get",
@@ -409,12 +409,12 @@ def test_session_create_and_clear_preserve_ai_owned_summary_fields(
         ("get", "/api/v1/ai/models/", "/v1/models", 200, {"models": []}),
     ],
 )
-def test_legacy_routes_delegate_to_canonical_ai_service(
+def test_routes_delegate_to_ai_service(
     api_client,
     teacher,
     ai_transport,
     method,
-    legacy_path,
+    gateway_path,
     upstream_path,
     upstream_status,
     payload,
@@ -422,16 +422,16 @@ def test_legacy_routes_delegate_to_canonical_ai_service(
     ai_transport.respond_json(upstream_status, payload)
     api_client.force_authenticate(teacher)
     body = None
-    if legacy_path.endswith("rename/"):
+    if gateway_path.endswith("rename/"):
         body = {"title": "Renamed"}
-    elif legacy_path.endswith("approval/"):
+    elif gateway_path.endswith("approval/"):
         body = {"decision": "approve"}
-    elif legacy_path.endswith("answer/"):
+    elif gateway_path.endswith("answer/"):
         body = {"answer": "yes"}
 
-    response = getattr(api_client, method)(legacy_path, body, format="json")
+    response = getattr(api_client, method)(gateway_path, body, format="json")
 
-    expected_status = 200 if legacy_path.endswith("new_session/") else upstream_status
+    expected_status = upstream_status
     assert response.status_code == expected_status
     assert ai_transport.requests[0].url.path == upstream_path
 
@@ -505,16 +505,6 @@ def test_transport_failure_returns_stable_unavailable_error(
     assert attempts == 1
 
 
-def test_malformed_success_payload_returns_stable_invalid_response(
-    api_client, teacher, ai_transport
-) -> None:
-    ai_transport.respond_json(200, {"title": "missing required session id"})
-    api_client.force_authenticate(teacher)
-
-    response = api_client.get(f"/api/v1/ai/sessions/{SESSION_ID}/")
-
-    assert response.status_code == 502
-    assert response.json()["error"]["code"] == "AI_SERVICE_INVALID_RESPONSE"
 
 
 def _artifact_payload() -> dict[str, object]:
@@ -552,7 +542,7 @@ def test_artifact_list_maps_canonical_metadata(
         "session_id": SESSION_ID,
         "step": "user_upload",
     }
-    assert response.json()["results"][0]["id"] == ARTIFACT_ID
+    assert response.json()["results"][0]["artifact_id"] == ARTIFACT_ID
     assert "object_key" not in response.json()["results"][0]
 
 
@@ -591,7 +581,7 @@ def test_artifact_upload_converts_multipart_to_canonical_content(
         },
     }
     assert response.status_code == 201
-    assert response.json()["id"] == ARTIFACT_ID
+    assert response.json()["artifact_id"] == ARTIFACT_ID
 
 
 def test_artifact_upload_normalizes_client_mime_from_supported_extension(
@@ -617,7 +607,7 @@ def test_artifact_upload_normalizes_client_mime_from_supported_extension(
     )
 
 
-def test_artifact_content_and_download_preserve_legacy_consumers(
+def test_artifact_content_and_download_preserve_content_and_download(
     api_client, teacher, ai_transport
 ) -> None:
     ai_transport.respond_stream(

@@ -89,7 +89,7 @@ const DEFAULT_PAYLOADS: Record<
     prompt: "New question",
     score: 5,
     options: ["True", "False"],
-    correct_answer: true,
+    correct_answer: 0,
   },
   short_answer: {
     question_type: "short_answer",
@@ -235,13 +235,12 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
   );
   const blocksKey = useMemo(() => blocks.map((block) => block.id).join(","), [blocks]);
 
-  const { impactContext: editorImpactContext, ensureLoaded: ensureImpactLoaded } =
-    useEditorImpactData(contestId, allQuestionsForPolicy);
-
-  // Pre-fetch grading data for impact preview once blocks are loaded.
-  useEffect(() => {
-    if (blocks.length > 0) ensureImpactLoaded();
-  }, [blocks.length, ensureImpactLoaded]);
+  const {
+    impactContext: editorImpactContext,
+    status: impactStatus,
+    ensureLoaded: ensureImpactLoaded,
+    refresh: refreshImpact,
+  } = useEditorImpactData(contestId, allQuestionsForPolicy);
 
   const {
     editorPaneRef,
@@ -434,7 +433,7 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
 
   const handleQuestionAutoSave = useCallback(
     async (
-      payload: ExamQuestionUpsertPayload,
+      payload: Partial<ExamQuestionUpsertPayload>,
       questionId?: string,
       action?: ExistingGradesAction,
     ) => {
@@ -453,6 +452,7 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
           setBlocks((prev) => replaceQuestionInBlocks(prev, updated.question));
         }
         if (action === "regrade" || action === "mark_pending") {
+          refreshImpact();
           await refreshContest().catch((error: unknown) => {
             console.error("Failed to refresh contest after grading update", error);
           });
@@ -462,12 +462,13 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
         throw error;
       }
     },
-    [contestId, refreshContest, toolbarSave],
+    [contestId, refreshContest, refreshImpact, toolbarSave],
   );
 
   const handleScorePolicyChanged = useCallback(() => {
+    refreshImpact();
     void Promise.allSettled([loadPaper(), refreshContest()]);
-  }, [loadPaper, refreshContest]);
+  }, [loadPaper, refreshContest, refreshImpact]);
 
   const handleGroupAutoSave = useCallback(
     async (
@@ -817,11 +818,12 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
                   question={block.question}
                   index={getQuestionDisplayIndex(block.question)}
                   contentLocked={frozen}
-                  gradedAnswerCount={
-                    editorImpactContext?.questions.find(
-                      (item) => item.questionId === block.question.id,
-                    )?.gradedCount ?? 0
-                  }
+                  answerCounts={impactStatus === "loaded" ? {
+                    total: editorImpactContext.questions.find((item) => item.questionId === block.question.id)?.totalAnswers ?? 0,
+                    graded: editorImpactContext.questions.find((item) => item.questionId === block.question.id)?.gradedCount ?? 0,
+                  } : undefined}
+                  impactStatus={impactStatus}
+                  onRefreshImpact={refreshImpact}
                   resultsPublished={contest.resultsPublished === true}
                   allQuestions={allQuestionsForPolicy}
                   editorImpactContext={editorImpactContext}
@@ -856,11 +858,12 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
                         index={getQuestionDisplayIndex(child)}
                         showScoreField
                         contentLocked={frozen}
-                        gradedAnswerCount={
-                          editorImpactContext?.questions.find(
-                            (item) => item.questionId === child.id,
-                          )?.gradedCount ?? 0
-                        }
+                        answerCounts={impactStatus === "loaded" ? {
+                          total: editorImpactContext.questions.find((item) => item.questionId === child.id)?.totalAnswers ?? 0,
+                          graded: editorImpactContext.questions.find((item) => item.questionId === child.id)?.gradedCount ?? 0,
+                        } : undefined}
+                        impactStatus={impactStatus}
+                        onRefreshImpact={refreshImpact}
                         resultsPublished={contest.resultsPublished === true}
                         allQuestions={allQuestionsForPolicy}
                         editorImpactContext={editorImpactContext}

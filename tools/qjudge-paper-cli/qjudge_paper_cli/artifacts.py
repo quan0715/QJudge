@@ -18,7 +18,7 @@ def download_text_artifacts(
     downloaded: list[dict[str, Any]] = []
     for artifact in client.list_artifacts(session_id=session_id):
         filename = artifact.get("filename")
-        artifact_id = artifact.get("id")
+        artifact_id = artifact.get("artifact_id")
         if filename not in selected or not artifact_id:
             continue
         content = client.artifact_content(str(artifact_id))

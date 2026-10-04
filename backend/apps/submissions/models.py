@@ -155,6 +155,8 @@ class SubmissionResult(models.Model):
     # Snapshot of test case data (for custom test cases or historical preservation)
     input_data = models.TextField(blank=True, null=True, verbose_name='輸入資料')
     expected_output = models.TextField(blank=True, null=True, verbose_name='預期輸出')
+    # Migration 0005 also retains a DB default for pre-0004 writers/rollbacks.
+    is_hidden = models.BooleanField(default=True, verbose_name='是否隱藏')
     
     class Meta:
         db_table = 'submission_results'

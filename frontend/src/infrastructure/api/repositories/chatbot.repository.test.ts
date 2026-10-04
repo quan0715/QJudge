@@ -25,15 +25,13 @@ describe("chatbotRepository AI-owned identifiers", () => {
               ordinal: 3,
               role: "assistant",
               content: "Hi",
-              message_type: "text",
               metadata: {},
               created_at: "2026-08-06T00:00:00Z",
             },
             {
-              id: 4,
+              ordinal: 4,
               role: "user",
               content: "Hello",
-              message_type: "text",
               metadata: {},
               created_at: "2026-08-06T00:00:01Z",
             },
@@ -85,12 +83,12 @@ describe("chatbotRepository AI-owned identifiers", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            id: RUN_ID,
+            run_id: RUN_ID,
             session_id: SESSION_ID,
             status: "queued",
             kind: "chat",
             model_id: "openai-nano",
-            last_event_seq: 0,
+            last_sequence: 0,
           }),
           { status: 202, headers: { "Content-Type": "application/json" } },
         ),
@@ -113,12 +111,12 @@ describe("chatbotRepository.startRun page context", () => {
     const post = vi.spyOn(httpClient, "post").mockResolvedValueOnce(
       new Response(
         JSON.stringify({
-          id: RUN_ID,
+          run_id: RUN_ID,
           session_id: SESSION_ID,
           status: "queued",
           kind: "chat",
           model_id: "openai-nano",
-          last_event_seq: 0,
+          last_sequence: 0,
         }),
         { status: 202, headers: { "Content-Type": "application/json" } },
       ),

@@ -260,7 +260,7 @@ def run_question_grading(
     )
 
     run = client.start_ai_run(session_id=session_id, prompt=prompt, model_id=model_id)
-    run_id = str(run.get("id") or "")
+    run_id = str(run.get("run_id") or "")
     if not run_id:
         raise RuntimeError("Backend did not return an AI run id")
 
@@ -289,9 +289,9 @@ def run_question_grading(
         "blind_grading": True,
         "session_id": session_id,
         "run_id": run_id,
-        "seed_artifact_id": seed_artifact.get("id") if isinstance(seed_artifact, dict) else None,
+        "seed_artifact_id": seed_artifact.get("artifact_id") if isinstance(seed_artifact, dict) else None,
         "question_context_artifact_id": (
-            question_context_artifact.get("id")
+            question_context_artifact.get("artifact_id")
             if isinstance(question_context_artifact, dict)
             else None
         ),

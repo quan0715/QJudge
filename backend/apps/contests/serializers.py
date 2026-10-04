@@ -23,6 +23,7 @@ from .models import (
 from django.db.models import Sum
 from .permissions import can_manage_contest, get_contest_permissions, get_contest_scope_role
 from .services.attendance import build_attendance_status
+from .services.objective_answer import objective_answer_error
 from .services.open_answer_document import validate_open_answer_document
 from .services.question_edit_lock import is_contest_question_edit_locked
 from .services.participation import is_contest_candidate, roster_user_ids
@@ -771,21 +772,13 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             if merged_answer in (None, ''):
                 raise serializers.ValidationError({'correct_answer': 'objective question requires correct_answer'})
 
-            if question_type == ExamQuestionType.SINGLE_CHOICE and isinstance(merged_answer, list):
-                raise serializers.ValidationError({'correct_answer': 'single_choice expects one answer index/value'})
-
-            if question_type == ExamQuestionType.MULTIPLE_CHOICE:
-                if not isinstance(merged_answer, list) or len(merged_answer) == 0:
-                    raise serializers.ValidationError({'correct_answer': 'multiple_choice expects a non-empty answer array'})
-
-            if question_type == ExamQuestionType.TRUE_FALSE:
-                if isinstance(merged_answer, bool):
-                    return attrs
-                if isinstance(merged_answer, int) and merged_answer in {0, 1}:
-                    return attrs
-                if isinstance(merged_answer, str) and merged_answer.lower() in {'true', 'false'}:
-                    return attrs
-                raise serializers.ValidationError({'correct_answer': 'true_false expects true/false'})
+            # Only re-check the format when this write touches it, so legacy rows
+            # can still change unrelated fields such as score or score_policy.
+            if attrs.keys() & {'question_type', 'options', 'correct_answer'}:
+                merged_options = options if options is not None else getattr(self.instance, 'options', [])
+                error = objective_answer_error(question_type, merged_options, merged_answer)
+                if error:
+                    raise serializers.ValidationError({'correct_answer': error})
 
         return attrs
 

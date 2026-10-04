@@ -84,32 +84,3 @@ export const applyIntegrityHealthUpdate = (
     [key]: { ...current[key], [update.source]: value },
   };
 };
-
-type IntegritySourceFile = { path: string; text: string };
-
-const contestIntegrityRawSources = import.meta.glob<string>(
-  [
-    "../../components/ExamModeWrapper.tsx",
-    "../../hooks/useExamMonitoring.ts",
-    "../../hooks/useFullscreenMonitoring.ts",
-    "../../hooks/useMouseLeaveMonitoring.ts",
-    "../../hooks/useMultiDisplayMonitoring.ts",
-    "../../hooks/useScreenShareMonitoring.ts",
-    "../../hooks/useWebcamMonitoring.ts",
-    "../../hooks/useExamState.ts",
-    "../../hooks/useContestExamActions.ts",
-    "../../hooks/useExamSessionFlow.ts",
-    "../../screens/paperExam/PaperExamAnsweringScreen.tsx",
-    "../../screens/paperExam/hooks/useAnticheatScreenCapture.ts",
-    "../../screens/paperExam/hooks/useAnticheatWebcamCapture.ts",
-    "../../detectors/clipboardDetector.ts",
-    "../../detectors/keyboardShortcutDetector.ts",
-    "../../detectors/popupGuardDetector.ts",
-    "./integrityTransport.ts",
-    "./residentIntegritySession.ts",
-  ],
-  { eager: true, query: "?raw", import: "default" },
-);
-
-export const contestIntegritySourceFiles = async (): Promise<IntegritySourceFile[]> =>
-  Object.entries(contestIntegrityRawSources).map(([path, text]) => ({ path, text }));

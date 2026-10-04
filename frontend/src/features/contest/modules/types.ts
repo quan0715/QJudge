@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import type { ContestDetail, ContestType, ScoreboardRow } from "@/core/entities/contest.entity";
-import type { ContestTabSpec } from "@/features/contest/tabConfig";
+import type { ContestDetail, ContestType } from "@/core/entities/contest.entity";
 import type { Params } from "react-router-dom";
 
 export type AdminPanelId =
@@ -21,28 +20,6 @@ export type ContestSettingsSectionId =
   | "cheatDetection";
 
 export type ContestAdminEditorKind = "coding" | "paper_exam";
-export type ContestStudentTabContentKind =
-  | "overview"
-  | "coding_problems"
-  | "paper_exam_problems"
-  | "submissions"
-  | "standings"
-  | "clarifications";
-
-export interface ContestStudentTabDefinition extends ContestTabSpec {
-  contentKind: ContestStudentTabContentKind;
-}
-
-export interface ContestStudentTabRenderContext {
-  contest: ContestDetail;
-  myRank: ScoreboardRow | null;
-  maxWidth: string;
-}
-
-export type ContestStudentTabRenderer = (
-  context: ContestStudentTabRenderContext,
-) => ReactNode;
-
 export interface ContestSolveRenderContext {
   contestId: string;
   contest: ContestDetail | null;
@@ -71,10 +48,6 @@ export type ContestExportTarget =
   | "coding-markdown";
 
 export interface ContestStudentModule {
-  getTabs: (contest?: ContestDetail | null) => ContestStudentTabDefinition[];
-  getTabRenderers?: () => Partial<
-    Record<ContestStudentTabContentKind, ContestStudentTabRenderer>
-  >;
   getSolveRenderer: () => ContestSolveRenderer;
   getAnsweringEntryPath: (
     contestId: string,

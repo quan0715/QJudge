@@ -278,3 +278,61 @@ def test_rule_and_regrade_roll_back_together(locked_exam, monkeypatch):
     assert locked_exam["objective_answer"].is_correct is False
     assert locked_exam["objective_answer"].score == Decimal("0")
     assert locked_exam["contest"].results_published is True
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(('legacy', 'index'), [(True, 1), (False, 0), (True, 0), (False, 1)])
+@pytest.mark.parametrize('extra', [{}, {'score': 7}, {'explanation': 'Corrected explanation'}])
+def test_legacy_boolean_repair_persists_integer_and_regrades(locked_exam, legacy, index, extra):
+    question = locked_exam['objective']
+    question.question_type = ExamQuestionType.TRUE_FALSE
+    question.correct_answer = legacy
+    question.save(update_fields=['question_type', 'correct_answer'])
+    answer = locked_exam['objective_answer']
+    answer.answer = {'selected': index}
+    answer.save(update_fields=['answer'])
+
+    response = locked_exam['client'].patch(
+        question_url(locked_exam, question),
+        {'correct_answer': index, 'existing_grades_action': 'regrade', **extra},
+        format='json',
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    question.refresh_from_db()
+    answer.refresh_from_db()
+    locked_exam['contest'].refresh_from_db()
+    assert type(question.correct_answer) is int
+    assert question.correct_answer == index
+    assert answer.is_correct is True
+    assert answer.score == Decimal(extra.get('score', 5))
+    assert answer.graded_by_id is None
+    assert answer.graded_at is None
+    assert locked_exam['contest'].results_published is False
+    for field, value in extra.items():
+        assert getattr(question, field) == value
+
+
+@pytest.mark.django_db
+def test_legacy_boolean_in_multi_answer_is_not_equal_to_integer(locked_exam):
+    question = locked_exam['objective']
+    question.question_type = ExamQuestionType.MULTIPLE_CHOICE
+    question.correct_answer = [False, True]
+    question.save(update_fields=['question_type', 'correct_answer'])
+    answer = locked_exam['objective_answer']
+    answer.answer = {'selected': [0, 1]}
+    answer.save(update_fields=['answer'])
+
+    response = locked_exam['client'].patch(
+        question_url(locked_exam, question),
+        {'correct_answer': [0, 1], 'existing_grades_action': 'regrade'},
+        format='json',
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    question.refresh_from_db()
+    answer.refresh_from_db()
+    assert all(type(index) is int for index in question.correct_answer)
+    assert question.correct_answer == [0, 1]
+    assert answer.score == Decimal('5')
+    assert answer.graded_by_id is None

@@ -27,14 +27,14 @@ export function ArtifactPanel() {
   } = useArtifactPanel();
 
   const active = useMemo(
-    () => artifacts.find((a) => a.id === activeArtifactId) ?? null,
+    () => artifacts.find((a) => a.artifact_id === activeArtifactId) ?? null,
     [artifacts, activeArtifactId],
   );
 
   const handleDownload = async () => {
     if (!active) return;
     try {
-      const { url } = await fetchArtifactDownloadUrl(active.id);
+      const { url } = await fetchArtifactDownloadUrl(active.artifact_id);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch {
       // Keep panel usable; user can still refresh/retry.

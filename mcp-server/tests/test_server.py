@@ -810,6 +810,49 @@ def test_qjudge_exam_update_passes_explanation(monkeypatch):
     }
 
 
+def test_qjudge_exam_update_passes_existing_grades_action(monkeypatch):
+    captured = {}
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        if path == "/api/v1/contests/11111111-1111-1111-1111-111111111111/":
+            return contest_detail()
+        captured["json_body"] = json_body
+        return {"id": "eq-1"}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    run(
+        server.qjudge_exam(
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            DummyContext(),
+            question_id="eq-1",
+            correct_answer=2,
+            existing_grades_action="regrade",
+        )
+    )
+
+    assert captured["json_body"] == {"correct_answer": 2, "existing_grades_action": "regrade"}
+
+
+def test_qjudge_exam_rejects_existing_grades_action_outside_update():
+    result = run(
+        server.qjudge_exam(
+            "create",
+            "11111111-1111-1111-1111-111111111111",
+            DummyContext(),
+            question_type="single_choice",
+            prompt="Pick",
+            options=["a", "b"],
+            correct_answer=0,
+            existing_grades_action="regrade",
+        )
+    )
+
+    assert result["error"] is True
+    assert "existing_grades_action" in result["detail"]
+
+
 def test_qjudge_exam_batch_create_append(monkeypatch):
     calls = []
 
