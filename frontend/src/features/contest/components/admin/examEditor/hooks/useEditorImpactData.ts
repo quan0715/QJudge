@@ -1,11 +1,4 @@
-/**
- * useEditorImpactData — fetches grading data once for the exam editor so that
- * ScorePolicyMenu can show a before/after score distribution preview.
- *
- * Lazy: fetches on first trigger (user opens the policy menu), then caches.
- * Questions are derived from the current paper state so they're always fresh.
- */
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getAllExamAnswersForGrading,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
@@ -25,33 +18,42 @@ interface PolicyQuestion {
   scorePolicyConfig?: { redistributeTo?: string[] } | null;
 }
 
+export type EditorImpactStatus = "idle" | "loading" | "loaded" | "error";
+
 interface RawGradingData {
-  /** All student-role participant IDs. */
+  answerCounts: Map<string, { total: number; graded: number }>;
+  /** Current roster participant IDs, including staff test runs. */
   studentIds: string[];
   /** Answers keyed by studentId. Only studentId, questionId, score are meaningful. */
   answersByStudent: Map<string, GradingAnswerRow[]>;
 }
 
 export interface UseEditorImpactDataResult {
-  /** Fully derived impact context — always reflects the latest paper state. */
   impactContext: ScorePolicyMenuImpactContext;
-  /**
-   * Call this when the user opens the policy menu.
-   * No-op if data is already loaded or loading.
-   */
+  status: EditorImpactStatus;
+  /** Deduplicates initial loads. Failures require an explicit retry. */
   ensureLoaded: () => void;
+  /** Invalidates counts immediately, including after grading mutations. */
+  refresh: () => void;
 }
 
 export function useEditorImpactData(
   contestId: string | undefined,
   allQuestionsForPolicy: PolicyQuestion[],
 ): UseEditorImpactDataResult {
-  const [rawData, setRawData] = useState<RawGradingData | null>(null);
-  const loadingRef = useRef(false);
+  const [snapshot, setSnapshot] = useState<{
+    contestId: string;
+    status: EditorImpactStatus;
+    data: RawGradingData | null;
+  } | null>(null);
+  const requestRef = useRef<{ contestId: string } | null>(null);
 
-  const ensureLoaded = useCallback(() => {
-    if (!contestId || rawData !== null || loadingRef.current) return;
-    loadingRef.current = true;
+  const load = useCallback((force: boolean) => {
+    if (!contestId) return;
+    if (!force && requestRef.current?.contestId === contestId) return;
+    const request = { contestId };
+    requestRef.current = request;
+    setSnapshot({ contestId, status: "loading", data: null });
 
     void (async () => {
       try {
@@ -59,19 +61,20 @@ export function useEditorImpactData(
           getContestParticipants(contestId),
           getAllExamAnswersForGrading(contestId),
         ]);
-
-        // Everyone on the roster, staff test runs included.
+        if (requestRef.current !== request) return;
         const studentIds = participantsRes.map((p) => String(p.userId));
-
         const answersByStudent = new Map<string, GradingAnswerRow[]>();
-        for (const sid of studentIds) {
-          answersByStudent.set(sid, []);
-        }
+        const answerCounts = new Map<string, { total: number; graded: number }>();
+        for (const sid of studentIds) answersByStudent.set(sid, []);
         for (const answer of answersRes.data) {
+          // Regrading operates on all answers, independently of today's roster.
+          const count = answerCounts.get(answer.questionId) ?? { total: 0, graded: 0 };
+          count.total += 1;
+          if (answer.score != null) count.graded += 1;
+          answerCounts.set(answer.questionId, count);
           const sid = answer.participantUserId;
-          if (!answersByStudent.has(sid)) continue; // not on the roster
-          const list = answersByStudent.get(sid)!;
-          // Minimal row — only studentId, questionId, score are read by simulation
+          const list = answersByStudent.get(sid);
+          if (!list) continue;
           list.push({
             id: answer.id,
             studentId: sid,
@@ -92,27 +95,29 @@ export function useEditorImpactData(
             correctAnswer: null,
           });
         }
-
-        setRawData({ studentIds, answersByStudent });
+        setSnapshot({ contestId, status: "loaded", data: { studentIds, answersByStudent, answerCounts } });
       } catch (err) {
+        if (requestRef.current !== request) return;
+        setSnapshot({ contestId, status: "error", data: null });
         console.error("[useEditorImpactData] Failed to load grading data for preview:", err);
-      } finally {
-        loadingRef.current = false;
       }
     })();
-  }, [contestId, rawData]);
+  }, [contestId]);
+
+  const ensureLoaded = useCallback(() => load(false), [load]);
+  const refresh = useCallback(() => load(true), [load]);
+  useEffect(() => {
+    ensureLoaded();
+    return () => { requestRef.current = null; };
+  }, [ensureLoaded]);
+
+  // Never expose the previous contest's snapshot while its successor loads.
+  const status = snapshot && snapshot.contestId === contestId ? snapshot.status : "idle";
+  const rawData = snapshot && snapshot.contestId === contestId ? snapshot.data : null;
 
   // Derive impactContext — questions come from current paper state (always fresh)
   const impactContext = useMemo<ScorePolicyMenuImpactContext>(() => {
-    const answerCounts = new Map<string, { total: number; graded: number }>();
-    for (const rows of rawData?.answersByStudent.values() ?? []) {
-      for (const row of rows) {
-        const count = answerCounts.get(row.questionId) ?? { total: 0, graded: 0 };
-        count.total += 1;
-        if (row.score != null) count.graded += 1;
-        answerCounts.set(row.questionId, count);
-      }
-    }
+    const answerCounts = rawData?.answerCounts;
 
     const questions: QuestionProgress[] = allQuestionsForPolicy.map((q, idx) => ({
       questionId: q.id,
@@ -122,8 +127,8 @@ export function useEditorImpactData(
       maxScore: q.score,
       scorePolicy: (q.scorePolicy ?? "normal") as ExamQuestionScorePolicy,
       scorePolicyConfig: q.scorePolicyConfig,
-      totalAnswers: answerCounts.get(q.id)?.total ?? 0,
-      gradedCount: answerCounts.get(q.id)?.graded ?? 0,
+      totalAnswers: answerCounts?.get(q.id)?.total ?? 0,
+      gradedCount: answerCounts?.get(q.id)?.graded ?? 0,
       progressPercent: 0,
       isObjective: true,
     }));
@@ -135,5 +140,5 @@ export function useEditorImpactData(
     };
   }, [allQuestionsForPolicy, rawData]);
 
-  return { impactContext, ensureLoaded };
+  return { impactContext, status, ensureLoaded, refresh };
 }

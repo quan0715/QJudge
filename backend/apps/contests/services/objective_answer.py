@@ -31,8 +31,8 @@ def objective_answer_error(question_type: str, options: list, answer: Any) -> st
         valid = (
             isinstance(answer, list)
             and len(answer) > 0
-            and len(set(answer)) == len(answer)
             and all(_is_index(item, len(options)) for item in answer)
+            and len(set(answer)) == len(answer)
         )
     else:
         return None

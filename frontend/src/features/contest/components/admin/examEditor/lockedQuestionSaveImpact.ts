@@ -19,8 +19,8 @@ export interface LockedQuestionComparableState {
 }
 
 export type LockedSaveImpact =
-  | { kind: "objective-regrade"; affectedCount: number }
-  | { kind: "subjective-review"; affectedCount: number }
+  | { kind: "objective-regrade"; affectedCount: number | null }
+  | { kind: "subjective-review"; affectedCount: number | null }
   | { kind: "display-only"; affectedCount: 0 }
   | { kind: "no-op"; affectedCount: 0 };
 
@@ -30,7 +30,7 @@ const same = (left: unknown, right: unknown): boolean =>
 export const classifyLockedQuestionSave = (
   before: LockedQuestionComparableState,
   after: LockedQuestionComparableState,
-  gradedAnswerCount: number,
+  answerCounts: { total: number; graded: number } | null,
 ): LockedSaveImpact => {
   const scoreChanged = before.score !== after.score;
   const explanationChanged =
@@ -51,10 +51,10 @@ export const classifyLockedQuestionSave = (
     after.questionType,
   );
   if (objective && (scoreChanged || answerChanged)) {
-    return { kind: "objective-regrade", affectedCount: gradedAnswerCount };
+    return { kind: "objective-regrade", affectedCount: answerCounts?.total ?? null };
   }
   if (!objective && (scoreChanged || answerChanged)) {
-    return { kind: "subjective-review", affectedCount: gradedAnswerCount };
+    return { kind: "subjective-review", affectedCount: answerCounts?.graded ?? null };
   }
   return { kind: "display-only", affectedCount: 0 };
 };

@@ -1,6 +1,7 @@
 """Atomic grading-rule updates for questions whose exam content is locked."""
 from __future__ import annotations
 
+import json
 from typing import Literal
 
 from django.core.cache import cache
@@ -45,11 +46,17 @@ GRADING_FIELDS = (
 
 
 def _changed_fields(question: ExamQuestion, values: dict) -> set[str]:
-    return {
-        name
-        for name, value in values.items()
-        if getattr(question, name) != value
-    }
+    changes = set()
+    for name, value in values.items():
+        previous = getattr(question, name)
+        if name == "correct_answer":
+            # JSON booleans (including those inside lists) are not integer
+            # answer indexes, even though Python considers False == 0.
+            previous = json.dumps(previous, sort_keys=True)
+            value = json.dumps(value, sort_keys=True)
+        if previous != value:
+            changes.add(name)
+    return changes
 
 
 def _validate_action(

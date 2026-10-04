@@ -1057,6 +1057,9 @@
     "loadFailed": "載入失敗",
     "loadFailedDetail": "載入 Exam 題目失敗",
     "lockedSave": {
+      "impactError": "無法載入受影響作答數，請重試後再確認。",
+      "loadingImpact": "正在載入受影響作答數…",
+      "retryImpact": "重試",
       "continueEditing": "繼續編輯",
       "discard": "捨棄變更",
       "discardBody": "要繼續編輯，還是捨棄這次變更？",

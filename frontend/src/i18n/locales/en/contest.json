@@ -1057,6 +1057,9 @@
     "loadFailed": "Load failed",
     "loadFailedDetail": "Failed to load exam questions",
     "lockedSave": {
+      "impactError": "Unable to load the affected answer count. Retry before confirming.",
+      "loadingImpact": "Loading affected answer count…",
+      "retryImpact": "Retry",
       "continueEditing": "Continue editing",
       "discard": "Discard changes",
       "discardBody": "Continue editing or discard these changes?",

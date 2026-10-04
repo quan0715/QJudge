@@ -455,6 +455,9 @@ class TestObjectiveAnswerFormat:
             ("multiple_choice", ["a", "b", "c", "d"], [0, 9]),
             ("multiple_choice", ["a", "b", "c", "d"], [0, 0]),
             ("multiple_choice", ["a", "b", "c", "d"], [True]),
+            ("multiple_choice", ["a", "b"], [[0]]),
+            ("multiple_choice", ["a", "b"], [{}]),
+            ("multiple_choice", ["a", "b"], [0, {"index": 1}]),
         ],
     )
     def test_rejects_non_index_answers(

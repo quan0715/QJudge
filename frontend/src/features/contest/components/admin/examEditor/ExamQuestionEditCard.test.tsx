@@ -141,7 +141,7 @@ describe("ExamQuestionEditCard", () => {
         })}
         index={0}
         contentLocked
-        gradedAnswerCount={3}
+        answerCounts={{ total: 5, graded: 3 }}
         onAutoSave={onAutoSave}
         onDelete={vi.fn()}
         onDuplicate={vi.fn()}
@@ -205,7 +205,7 @@ describe("ExamQuestionEditCard", () => {
         })}
         index={0}
         contentLocked
-        gradedAnswerCount={3}
+        answerCounts={{ total: 5, graded: 3 }}
         onAutoSave={onAutoSave}
         onDelete={vi.fn()}
         onDuplicate={vi.fn()}
@@ -216,6 +216,7 @@ describe("ExamQuestionEditCard", () => {
     const reference = screen.getByRole("textbox", { name: "評分參考答案" });
     fireEvent.change(reference, { target: { value: "new rubric" } });
     fireEvent.click(screen.getByRole("button", { name: "儲存變更" }));
+    expect(screen.getByRole("dialog").querySelector("strong")).toHaveTextContent("3");
     fireEvent.click(screen.getByRole("button", { name: "標記為待批改" }));
 
     await waitFor(() => expect(onAutoSave).toHaveBeenCalledTimes(1));
@@ -237,7 +238,7 @@ describe("ExamQuestionEditCard", () => {
         })}
         index={0}
         contentLocked
-        gradedAnswerCount={3}
+        answerCounts={{ total: 5, graded: 3 }}
         onAutoSave={onAutoSave}
         onDelete={vi.fn()}
         onDuplicate={vi.fn()}
@@ -270,7 +271,7 @@ describe("ExamQuestionEditCard", () => {
         })}
         index={0}
         contentLocked
-        gradedAnswerCount={3}
+        answerCounts={{ total: 5, graded: 3 }}
         onAutoSave={onAutoSave}
         onDelete={vi.fn()}
         onDuplicate={vi.fn()}
@@ -293,4 +294,152 @@ describe("ExamQuestionEditCard", () => {
       expect(payload).not.toHaveProperty(field);
     }
   });
+
+  it.each([
+    { questionType: "single_choice", key: 0, selected: [0] },
+    { questionType: "single_choice", key: 1, selected: [1] },
+    { questionType: "single_choice", key: -1, selected: [] },
+    { questionType: "single_choice", key: 2, selected: [] },
+    { questionType: "single_choice", key: 0.5, selected: [] },
+    { questionType: "single_choice", key: "1", selected: [] },
+    { questionType: "single_choice", key: "B", selected: [] },
+    { questionType: "single_choice", key: "Option B", selected: [] },
+    { questionType: "single_choice", key: true, selected: [] },
+    { questionType: "true_false", key: 0, selected: [0] },
+    { questionType: "true_false", key: 1, selected: [1] },
+    { questionType: "true_false", key: 2, selected: [] },
+    { questionType: "true_false", key: false, selected: [] },
+    { questionType: "true_false", key: "true", selected: [] },
+    { questionType: "multiple_choice", key: [0, 1], selected: [0, 1] },
+    { questionType: "multiple_choice", key: [1, 0], selected: [0, 1] },
+    { questionType: "multiple_choice", key: [0, 0], selected: [] },
+    { questionType: "multiple_choice", key: [0, 2], selected: [] },
+    { questionType: "multiple_choice", key: [0, -1], selected: [] },
+    { questionType: "multiple_choice", key: [0, 0.5], selected: [] },
+    { questionType: "multiple_choice", key: [0, "1"], selected: [] },
+    { questionType: "multiple_choice", key: [false], selected: [] },
+    { questionType: "multiple_choice", key: ["Option B"], selected: [] },
+  ] as const)("uses the same canonical key in preview and editor: $questionType $key", ({ questionType, key, selected }) => {
+    renderWithProviders(
+      <ExamQuestionEditCard
+        question={createQuestion({ questionType, options: ["Option A", "Option B"], correctAnswer: key })}
+        index={0}
+        contentLocked
+        onAutoSave={vi.fn()}
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+      />,
+    );
+    if (questionType === "true_false") {
+      // True/false preview uses answer badges rather than inputs.
+      expect(screen.getAllByText("正確答案")).toHaveLength(selected.length + 1);
+    } else {
+      const prefix = questionType === "multiple_choice" ? "mc" : "opt";
+      for (const index of [0, 1]) {
+        expect((document.getElementById(`pv-q1-${prefix}-${index}`) as HTMLInputElement).checked)
+          .toBe(selected.some((value) => value === index));
+      }
+    }
+    fireEvent.click(screen.getByTestId("exam-card-q1"));
+    const prefix = questionType === "multiple_choice" ? "mc" : questionType === "true_false" ? "tf" : "sc";
+    for (const index of [0, 1]) {
+      expect((document.getElementById(`edit-${prefix}-q1-${index}`) as HTMLInputElement).checked)
+        .toBe(selected.some((value) => value === index));
+    }
+  });
+
+  it.each(["B", "Option B", "1", true])("reselects a legacy single-choice key %j before saving", async (correctAnswer) => {
+    const onAutoSave = vi.fn().mockResolvedValue(undefined);
+    renderWithProviders(
+      <ExamQuestionEditCard
+        question={createQuestion({ options: ["Option A", "Option B"], correctAnswer })}
+        index={0}
+        contentLocked
+        answerCounts={{ total: 5, graded: 3 }}
+        onAutoSave={onAutoSave}
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("exam-card-q1"));
+    fireEvent.click(document.getElementById("edit-sc-q1-1")!);
+    fireEvent.click(screen.getByRole("button", { name: "儲存變更" }));
+    fireEvent.click(screen.getByRole("button", { name: "重新批改" }));
+    await waitFor(() => expect(onAutoSave).toHaveBeenCalledWith(
+      expect.objectContaining({ correct_answer: 1 }), "q1", "regrade",
+    ));
+  });
+
+  it("allows reselecting a duplicate key and saves unique integer indexes", async () => {
+    const onAutoSave = vi.fn().mockResolvedValue(undefined);
+    renderWithProviders(
+      <ExamQuestionEditCard
+        question={createQuestion({ questionType: "multiple_choice", correctAnswer: [0, 0] })}
+        index={0}
+        contentLocked
+        answerCounts={{ total: 5, graded: 3 }}
+        onAutoSave={onAutoSave}
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("exam-card-q1"));
+    fireEvent.click(document.getElementById("edit-mc-q1-0")!);
+    fireEvent.click(screen.getByRole("button", { name: "儲存變更" }));
+    fireEvent.click(screen.getByRole("button", { name: "重新批改" }));
+    await waitFor(() => expect(onAutoSave).toHaveBeenCalledWith(
+      expect.objectContaining({ correct_answer: [0] }), "q1", "regrade",
+    ));
+  });
+
+  it("keeps an open dialog current and blocks unknown impact until a successful retry", async () => {
+    const onAutoSave = vi.fn().mockResolvedValue(undefined);
+    const onRefreshImpact = vi.fn();
+    const props = {
+      question: createQuestion(), index: 0, contentLocked: true,
+      onAutoSave, onDelete: vi.fn(), onDuplicate: vi.fn(), onRefreshImpact,
+    };
+    const view = renderWithProviders(<ExamQuestionEditCard {...props} impactStatus="loading" />);
+    fireEvent.click(screen.getByTestId("exam-card-q1"));
+    fireEvent.click(document.getElementById("edit-sc-q1-0")!);
+    fireEvent.click(screen.getByRole("button", { name: "儲存變更" }));
+    expect(onRefreshImpact).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "重新批改" })).toBeDisabled();
+    expect(screen.getByRole("dialog").querySelector("strong")).toBeNull();
+    view.rerender(<ThemeProvider><ExamQuestionEditCard {...props} impactStatus="error" /></ThemeProvider>);
+    expect(screen.getByRole("button", { name: "重新批改" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "重試" }));
+    expect(onRefreshImpact).toHaveBeenCalledTimes(2);
+    view.rerender(<ThemeProvider><ExamQuestionEditCard {...props} impactStatus="loaded" answerCounts={{total: 8, graded: 3}} /></ThemeProvider>);
+    expect(screen.getByRole("dialog").querySelector("strong")).toHaveTextContent("8");
+    expect(screen.getByRole("button", { name: "重新批改" })).toBeEnabled();
+    view.rerender(<ThemeProvider><ExamQuestionEditCard {...props} impactStatus="loaded" answerCounts={{total: 9, graded: 4}} /></ThemeProvider>);
+    expect(screen.getByRole("dialog").querySelector("strong")).toHaveTextContent("9");
+    fireEvent.click(screen.getByRole("button", { name: "重新批改" }));
+    await waitFor(() => expect(onAutoSave).toHaveBeenCalledOnce());
+  });
+
+
+  it("gates policy previews until impact is loaded and resets the menu when counts refresh", () => {
+    const onRefreshImpact = vi.fn();
+    const props = {
+      question: createQuestion(), index: 0, contentLocked: true,
+      onAutoSave: vi.fn(), onDelete: vi.fn(), onDuplicate: vi.fn(), onRefreshImpact,
+    };
+    const view = renderWithProviders(<ExamQuestionEditCard {...props} impactStatus="loading" />);
+    expect(screen.queryByRole("button", { name: "分數政策" })).not.toBeInTheDocument();
+    view.rerender(<ThemeProvider><ExamQuestionEditCard {...props} impactStatus="error" /></ThemeProvider>);
+    expect(screen.queryByRole("button", { name: "分數政策" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "重試" }));
+    expect(onRefreshImpact).toHaveBeenCalledOnce();
+    view.rerender(<ThemeProvider><ExamQuestionEditCard {...props} impactStatus="loaded" /></ThemeProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "分數政策" }));
+    expect(screen.getByRole("button", { name: "分數政策" })).toHaveAttribute("aria-expanded", "true");
+    view.rerender(<ThemeProvider><ExamQuestionEditCard {...props} impactStatus="loading" /></ThemeProvider>);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "分數政策" })).not.toBeInTheDocument();
+    view.rerender(<ThemeProvider><ExamQuestionEditCard {...props} impactStatus="loaded" /></ThemeProvider>);
+    expect(screen.getByRole("button", { name: "分數政策" })).toHaveAttribute("aria-expanded", "false");
+  });
+
 });

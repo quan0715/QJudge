@@ -124,8 +124,35 @@ class _Stack:
             health.setdefault(row.get("Service"), set()).add(row.get("Health"))
         return all(health.get(service) == {"healthy"} for service in services)
 
+    def app_services_ready(self, version: str) -> bool:
+        result = self.compose(version, "ps", "--all", "--quiet", *APP_SERVICES,
+                              capture_output=True, text=True)
+        containers = result.stdout.split() if result.returncode == 0 else []
+        if not containers:
+            return False
+        result = self.run(["docker", "container", "inspect", *containers], capture_output=True, text=True)
+        if result.returncode != 0:
+            return False
+        rows = _ps_rows(result.stdout)
+        if len(rows) != len(containers):
+            return False
+        services = set()
+        for row in rows:
+            config, state = row.get("Config", {}), row.get("State", {})
+            services.add(config.get("Labels", {}).get("com.docker.compose.service"))
+            if state.get("Status") != "running":
+                return False
+            # Inspect the target container, not this CLI version's assumptions:
+            # Docker merges image healthchecks and Compose overrides (including NONE).
+            check = (config.get("Healthcheck") or {}).get("Test", [])
+            has_check = bool(check) and check[0] != "NONE"
+            health = state.get("Health") or {}
+            if (has_check or health) and health.get("Status") != "healthy":
+                return False
+        return services == set(APP_SERVICES)
+
     def app_ready(self, version: str) -> bool:
-        if not self.healthy(version, APP_SERVICES):
+        if not self.app_services_ready(version):
             return False
         host = self.env.get("FRONTEND_BIND_ADDRESS", "").strip() or "127.0.0.1"
         host = "127.0.0.1" if host in ("0.0.0.0", "::") else f"[{host}]" if ":" in host else host

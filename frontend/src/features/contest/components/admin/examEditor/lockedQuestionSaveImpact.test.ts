@@ -31,7 +31,7 @@ describe("classifyLockedQuestionSave", () => {
       classifyLockedQuestionSave(
         objectiveBefore,
         { ...objectiveBefore, singleAnswerIndex: "1" },
-        18,
+        { total: 18, graded: 7 },
       ),
     ).toEqual({ kind: "objective-regrade", affectedCount: 18 });
   });
@@ -41,7 +41,7 @@ describe("classifyLockedQuestionSave", () => {
       classifyLockedQuestionSave(
         essayBefore,
         { ...essayBefore, essayReferenceAnswer: "New rubric" },
-        7,
+        { total: 18, graded: 7 },
       ),
     ).toEqual({ kind: "subjective-review", affectedCount: 7 });
   });
@@ -51,13 +51,13 @@ describe("classifyLockedQuestionSave", () => {
       classifyLockedQuestionSave(
         essayBefore,
         { ...essayBefore, explanation: "Corrected explanation" },
-        7,
+        { total: 18, graded: 7 },
       ),
     ).toEqual({ kind: "display-only", affectedCount: 0 });
   });
 
   it("returns no-op for identical values", () => {
-    expect(classifyLockedQuestionSave(essayBefore, essayBefore, 7)).toEqual({
+    expect(classifyLockedQuestionSave(essayBefore, essayBefore, { total: 18, graded: 7 })).toEqual({
       kind: "no-op",
       affectedCount: 0,
     });
