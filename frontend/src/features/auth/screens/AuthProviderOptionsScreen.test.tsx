@@ -115,7 +115,7 @@ describe("auth provider options", () => {
     } });
     renderWithRouter(<LoginScreen />);
     await screen.findByTestId("auth-login-form");
-    const link = screen.queryByRole("link", { name: "忘記密碼" });
+    const link = screen.queryByRole("link", { name: "auth.passwordReset.requestTitle" });
     if (enabled) expect(link).toHaveAttribute("href", "/forgot-password");
     else expect(link).not.toBeInTheDocument();
   });
