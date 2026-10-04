@@ -114,8 +114,10 @@ class _Stack:
         if self.run(["docker", "pull", remote]).returncode == 0:
             return self.run(["docker", "tag", remote, image]).returncode == 0
         judge = self.repo / "backend" / "judge"
-        build = ["docker", "build", "-t", image, "-f", str(judge / "Dockerfile.judge"), str(judge)]
-        return self.run(build).returncode == 0
+        build = ["docker", "build", "--load", "-t", image, "-f", str(judge / "Dockerfile.judge"), str(judge)]
+        if self.run(build).returncode != 0:
+            return False
+        return self.run(["docker", "image", "inspect", image], capture_output=True).returncode == 0
 
     def healthy(self, version: str, services: tuple[str, ...]) -> bool:
         result = self.compose(version, "ps", "--format", "json", capture_output=True, text=True)
