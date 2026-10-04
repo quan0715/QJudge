@@ -61,7 +61,7 @@ class TeacherActivationPermissionTests(APITestCase):
         return response
 
     def _token_from_issue_response(self, response) -> str:
-        return response.data["data"]["action_link_url"].rstrip("/").split("/invite/")[1]
+        return response.json()["data"]["action_link_url"].rstrip("/").split("/invite/")[1]
 
     # ── Issue permission tests ──────────────────────────────
 
@@ -96,7 +96,7 @@ class TeacherActivationPermissionTests(APITestCase):
     def test_preview_with_invalid_token_returns_404(self):
         response = self.client.get("/api/v1/action-links/qj_ta_bogus_token_12345")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data["error"]["code"], "ACTION_LINK_NOT_FOUND")
+        self.assertEqual(response.json()["errors"][0]["code"], 'action_link_not_found')
 
     def test_preview_shows_can_consume_when_authenticated(self):
         issue_response = self._issue_invite()
@@ -106,10 +106,10 @@ class TeacherActivationPermissionTests(APITestCase):
         response = self.client.get(self._inspect_url(token))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(response.data["data"]["requires_login"])
-        self.assertTrue(response.data["data"]["can_consume"])
-        self.assertTrue(response.data["data"]["can_redeem"])
-        self.assertEqual(response.data["data"]["current_user_email"], self.student.email)
+        self.assertFalse(response.json()["data"]["requires_login"])
+        self.assertTrue(response.json()["data"]["can_consume"])
+        self.assertTrue(response.json()["data"]["can_redeem"])
+        self.assertEqual(response.json()["data"]["current_user_email"], self.student.email)
 
     # ── Consume edge cases ──────────────────────────────────
 
@@ -132,7 +132,7 @@ class TeacherActivationPermissionTests(APITestCase):
         self.client.force_authenticate(user=self.student)
         response = self.client.post(self._redeem_url(token), {}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["error"]["code"], "ACTION_LINK_EXPIRED")
+        self.assertEqual(response.json()["errors"][0]["code"], 'action_link_expired')
 
     def test_consume_with_invalid_token_returns_404(self):
         self.client.force_authenticate(user=self.student)
@@ -140,7 +140,7 @@ class TeacherActivationPermissionTests(APITestCase):
             "/api/v1/action-links/qj_ta_nonexistent_token/redeem", {}, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data["error"]["code"], "ACTION_LINK_NOT_FOUND")
+        self.assertEqual(response.json()["errors"][0]["code"], 'action_link_not_found')
 
     def test_already_teacher_consuming_invite_stays_teacher(self):
         """If a teacher consumes an invite, they should remain teacher (idempotent)."""

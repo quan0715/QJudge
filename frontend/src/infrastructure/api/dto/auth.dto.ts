@@ -1,7 +1,7 @@
 import type {
   AuthOptions,
   User,
-  UserPreferences,
+  UserSettings,
   ManagedUser,
   ActionLinkIssueData,
   ActionLinkPreview,
@@ -9,11 +9,9 @@ import type {
 } from "@/core/entities/auth.entity";
 import type { ClassroomDetailDto } from "./classroom.dto";
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
+import type { ApiEnvelope } from "../envelope";
+
+export type ApiResponse<T> = ApiEnvelope<T>;
 
 export interface AuthSuccessDto {
   access_token: string;
@@ -34,19 +32,18 @@ export interface AuthSuccessDto {
 export type AuthResponseDto = ApiResponse<AuthSuccessDto>;
 export type AuthOptionsResponseDto = ApiResponse<AuthOptions>;
 export type CurrentUserResponseDto = ApiResponse<User>;
-export type PreferencesResponseDto = ApiResponse<UserPreferences>;
+export type PreferencesResponseDto = ApiResponse<UserSettings>;
 export type UserSearchResponseDto = ApiResponse<ManagedUser[]>;
 export type ActionLinkIssueResponseDto = ApiResponse<ActionLinkIssueData>;
 export type ActionLinkInspectResponseDto = ApiResponse<ActionLinkPreview>;
 export type ActionLinkRedeemResponseDto =
-  | ApiResponse<{
+  ApiResponse<{
       access_token: string;
       user: User;
       refresh_token?: string;
       invite?: ActionLinkIssueData;
       action_link?: ActionLinkPreview;
-    }>
-  | ClassroomDetailDto;
+    } | ClassroomDetailDto>;
 export type LoginRecordsResponseDto = ApiResponse<UserLoginRecord[]>;
 export type UploadAvatarResponseDto = ApiResponse<{
   avatar_url: string;

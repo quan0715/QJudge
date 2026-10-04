@@ -63,5 +63,5 @@ def _sync_oauth_avatar(user: User, avatar_url: str) -> None:
     profile.avatar_url = avatar_url
     profile.avatar_source = "oauth"
     profile.save(update_fields=["avatar_url", "avatar_source", "updated_at"])
-    cache.delete(f"user_preferences:v1:{user.id}")
+    cache.delete(f"user_preferences:v2:{user.id}")
     logger.info("oauth avatar synced provider=%s user_id=%s", user.auth_provider, user.id)

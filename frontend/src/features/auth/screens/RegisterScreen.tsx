@@ -1,3 +1,4 @@
+import { EnvelopeError } from "@/infrastructure/api/envelope";
 import { useState } from "react";
 import {
   Form,
@@ -79,19 +80,20 @@ const RegisterPage = () => {
         password,
         password_confirm: confirmPassword,
       });
-      if (response.success) {
+      if (response.data) {
         notifyAuthSessionChanged();
         window.location.href = getAuthedLandingPath(response.data.user);
       } else {
         setError(t("auth.register.failed"));
       }
     } catch (err: any) {
-      const data = err.response?.data;
-      if (data?.error?.details) {
-        setFieldErrors(data.error.details);
-        setError(data.error.message || t("auth.register.failed"));
-      } else if (data?.error?.message) {
-        setError(data.error.message);
+      if (err instanceof EnvelopeError) {
+        const fields: Record<string, string[]> = {};
+        for (const item of err.errors) {
+          if (item.field) (fields[item.field] ??= []).push(item.message);
+        }
+        setFieldErrors(fields);
+        setError(err.message);
       } else {
         setError(t("auth.register.failedRetry"));
       }

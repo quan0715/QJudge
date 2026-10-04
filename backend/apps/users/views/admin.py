@@ -4,9 +4,10 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.response import Response
+from apps.core.api.envelope import contract_error_response, contract_validation_error_response
 
 from ..permissions import IsSuperAdmin
-from ..serializers import UserRoleUpdateSerializer, UserSearchSerializer
+from ..serializers import UserRoleUpdateSerializer, UserSerializer
 from .common import SchemaAPIView
 
 User = get_user_model()
@@ -29,33 +30,21 @@ class UserSearchView(SchemaAPIView):
         # If no query, return all users
         if not query:
             users = User.objects.all().order_by('-last_login_at')[:100]  # Limit to 100 users
-            serializer = UserSearchSerializer(users, many=True)
-            return Response({
-                'success': True,
-                'data': serializer.data
-            })
+            serializer = UserSerializer(users, many=True)
+            return Response(serializer.data)
 
         # Validate query length for search
         if len(query) < 2:
-            return Response({
-                'success': False,
-                'error': {
-                    'code': 'QUERY_TOO_SHORT',
-                    'message': '搜尋關鍵字至少需要 2 個字元'
-                }
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return contract_error_response(request, 'QUERY_TOO_SHORT', '搜尋關鍵字至少需要 2 個字元', status=status.HTTP_400_BAD_REQUEST)
 
         # Search by username or email
         users = User.objects.filter(
             Q(username__icontains=query) | Q(email__icontains=query)
         ).order_by('-last_login_at')[:20]  # Limit to 20 results
 
-        serializer = UserSearchSerializer(users, many=True)
+        serializer = UserSerializer(users, many=True)
 
-        return Response({
-            'success': True,
-            'data': serializer.data
-        })
+        return Response(serializer.data)
 
 
 class UserRoleUpdateView(SchemaAPIView):
@@ -71,35 +60,16 @@ class UserRoleUpdateView(SchemaAPIView):
         serializer = UserRoleUpdateSerializer(data=request.data)
 
         if not serializer.is_valid():
-            return Response({
-                'success': False,
-                'error': {
-                    'code': 'VALIDATION_ERROR',
-                    'message': '資料驗證失敗',
-                    'details': serializer.errors
-                }
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return contract_validation_error_response(request, '資料驗證失敗', serializer.errors)
 
         try:
             user = User.objects.get(pk=pk)
         except User.DoesNotExist:
-            return Response({
-                'success': False,
-                'error': {
-                    'code': 'USER_NOT_FOUND',
-                    'message': '找不到指定的使用者'
-                }
-            }, status=status.HTTP_404_NOT_FOUND)
+            return contract_error_response(request, 'USER_NOT_FOUND', '找不到指定的使用者', status=status.HTTP_404_NOT_FOUND)
 
         # Prevent users from modifying their own role
         if user.id == request.user.id:
-            return Response({
-                'success': False,
-                'error': {
-                    'code': 'CANNOT_MODIFY_SELF',
-                    'message': '無法修改自己的角色'
-                }
-            }, status=status.HTTP_403_FORBIDDEN)
+            return contract_error_response(request, 'CANNOT_MODIFY_SELF', '無法修改自己的角色', status=status.HTTP_403_FORBIDDEN)
 
         new_role = serializer.validated_data['role']
         old_role = user.role
@@ -118,13 +88,9 @@ class UserRoleUpdateView(SchemaAPIView):
         user.save()
 
         # Return updated user data
-        user_serializer = UserSearchSerializer(user)
+        user_serializer = UserSerializer(user)
 
-        return Response({
-            'success': True,
-            'data': user_serializer.data,
-            'message': f'已將 {user.username} 的角色從 {old_role} 更新為 {new_role}'
-        })
+        return Response(user_serializer.data)
 
 
 __all__ = ["UserSearchView", "UserRoleUpdateView"]

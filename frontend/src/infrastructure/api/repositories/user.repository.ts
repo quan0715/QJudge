@@ -1,4 +1,5 @@
-import { httpClient, requestJson } from "@/infrastructure/api/http.client";
+import { fetchEnvelope } from "@/infrastructure/api/envelope";
+import { httpClient } from "@/infrastructure/api/http.client";
 import type { UpdatePreferencesRequest } from "@/core/entities/auth.entity";
 import type {
   CurrentUserResponseDto,
@@ -8,7 +9,7 @@ import type {
 } from "@/infrastructure/api/dto/auth.dto";
 
 export const getCurrentUser = async (): Promise<CurrentUserResponseDto> => {
-  return requestJson<CurrentUserResponseDto>(
+  return fetchEnvelope<CurrentUserResponseDto["data"]>(
     httpClient.get("/api/v1/users/me", {
       allowUnauthenticated: true,
       suppressGlobalError: true,
@@ -20,14 +21,14 @@ export const getCurrentUser = async (): Promise<CurrentUserResponseDto> => {
 export const updateAccountProfile = async (
   data: { username?: string; email?: string },
 ): Promise<CurrentUserResponseDto> => {
-  return requestJson<CurrentUserResponseDto>(
+  return fetchEnvelope<CurrentUserResponseDto["data"]>(
     httpClient.patch("/api/v1/users/me", data),
     "Failed to update profile",
   );
 };
 
 export const getPreferences = async (): Promise<PreferencesResponseDto> => {
-  return requestJson<PreferencesResponseDto>(
+  return fetchEnvelope<PreferencesResponseDto["data"]>(
     httpClient.get("/api/v1/users/me/preferences"),
     "Failed to fetch preferences",
   );
@@ -36,7 +37,7 @@ export const getPreferences = async (): Promise<PreferencesResponseDto> => {
 export const updatePreferences = async (
   data: UpdatePreferencesRequest,
 ): Promise<PreferencesResponseDto> => {
-  return requestJson<PreferencesResponseDto>(
+  return fetchEnvelope<PreferencesResponseDto["data"]>(
     httpClient.patch("/api/v1/users/me/preferences", data),
     "Failed to update preferences",
   );
@@ -46,7 +47,7 @@ export const uploadAvatar = async (file: File): Promise<UploadAvatarResponseDto>
   const formData = new FormData();
   formData.append("file", file);
 
-  return requestJson<UploadAvatarResponseDto>(
+  return fetchEnvelope<UploadAvatarResponseDto["data"]>(
     httpClient.request("/api/v1/users/me/avatar", {
       method: "POST",
       body: formData,
@@ -62,7 +63,7 @@ export const searchUsers = async (query: string): Promise<UserSearchResponseDto>
     searchParams.set("q", trimmedQuery);
   }
 
-  return requestJson<UserSearchResponseDto>(
+  return fetchEnvelope<UserSearchResponseDto["data"]>(
     httpClient.get(
       searchParams.size > 0
         ? `/api/v1/users/?${searchParams.toString()}`
@@ -72,8 +73,8 @@ export const searchUsers = async (query: string): Promise<UserSearchResponseDto>
   );
 };
 
-export const updateUserRole = async (id: number | string, role: string): Promise<any> => {
-  return requestJson<any>(
+export const updateUserRole = async (id: number | string, role: string): Promise<CurrentUserResponseDto> => {
+  return fetchEnvelope<CurrentUserResponseDto["data"]>(
     httpClient.patch(`/api/v1/users/${id}/role`, { role }),
     "Failed to update user role",
   );

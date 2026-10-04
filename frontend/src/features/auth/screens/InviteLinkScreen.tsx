@@ -29,12 +29,10 @@ const statusLabel = (status?: string) => {
 
 const isAuthRedeemResponse = (
   value: unknown,
-): value is { success: true; data: { user: User }; message?: string } => {
+): value is { data: { user: User } } => {
   return Boolean(
     value &&
       typeof value === "object" &&
-      "success" in value &&
-      (value as { success?: unknown }).success === true &&
       (value as { data?: { user?: User } }).data?.user,
   );
 };
@@ -101,8 +99,7 @@ const InviteLinkScreen = () => {
         clearPendingAction(ACTION_LINK_ACTION.storageKey);
         setError(
           err?.message ||
-            err?.response?.data?.error?.message ||
-            "無法載入邀請連結資訊",
+          "無法載入邀請連結資訊",
         );
       } finally {
         if (mounted) setLoading(false);
@@ -135,13 +132,13 @@ const InviteLinkScreen = () => {
         const nextUser = response.data.user;
         setUser(nextUser);
         notifyAuthSessionChanged();
-        setSuccess(response.message || "邀請已完成");
+        setSuccess("邀請已完成");
         window.location.href = getAuthedLandingPath(nextUser);
         return;
       }
 
       if (preview.purpose === "classroom_join") {
-        const classroom = mapClassroomDetailDto(response as ClassroomDetailDto);
+        const classroom = mapClassroomDetailDto(response.data as ClassroomDetailDto);
         navigate(`/classrooms/${classroom.id}`, { replace: true });
         return;
       }
@@ -151,7 +148,6 @@ const InviteLinkScreen = () => {
     } catch (err: any) {
       setError(
         err?.message ||
-          err?.response?.data?.error?.message ||
           "邀請連結處理失敗",
       );
     } finally {

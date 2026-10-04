@@ -59,7 +59,7 @@ const UserManagementScreen = () => {
 
     try {
       const response = await searchUsers(""); // Empty query = all users
-      if (response.success) {
+      if (response.data) {
         setUsers(response.data);
       } else {
         setError(t("user.management.loadFailed"));
@@ -98,7 +98,7 @@ const UserManagementScreen = () => {
 
     try {
       const response = await searchUsers(searchQuery);
-      if (response.success) {
+      if (response.data) {
         setUsers(response.data);
         if (response.data.length === 0) {
           setError(t("user.management.noUsersFound"));
@@ -130,8 +130,8 @@ const UserManagementScreen = () => {
     setUpdating(true);
     try {
       const response = await updateUserRole(selectedUser.id, newRole);
-      if (response.success) {
-        setSuccess(response.message || tc("message.success"));
+      if (response.data) {
+        setSuccess(tc("message.success"));
         // Update user in list
         setUsers(
           users.map((u) =>
@@ -160,7 +160,7 @@ const UserManagementScreen = () => {
 
     try {
       const response = await issueTeacherActivationActionLink("");
-      setSuccess(response.message || t("user.management.activationInvite.sent", "已產生教師開通連結"));
+      setSuccess(t("user.management.activationInvite.sent", "已產生教師開通連結"));
       setLatestInviteUrl(response.data.activation_url || response.data.action_link_url || "");
       setLatestInviteExpiresAt(response.data.expires_at || null);
       await loadAllUsers();
@@ -434,7 +434,7 @@ const UserManagementScreen = () => {
                         <TableRow key={user.id}>
                           <TableCell>{user.username}</TableCell>
                           <TableCell>{user.email}</TableCell>
-                          <TableCell>{user.display_name || "—"}</TableCell>
+                          <TableCell>{user.profile?.display_name || "—"}</TableCell>
                           <TableCell>
                             <Tag
                               type={

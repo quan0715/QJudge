@@ -106,9 +106,9 @@ def test_classroom_action_link_issue_returns_prefixed_token(
     )
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.data["data"]["purpose"] == "classroom_join"
-    assert response.data["data"]["token"] == action_token(classroom)
-    assert response.data["data"]["action_link_url"].endswith(f"/invite/{action_token(classroom)}")
+    assert response.json()["data"]["purpose"] == "classroom_join"
+    assert response.json()["data"]["token"] == action_token(classroom)
+    assert response.json()["data"]["action_link_url"].endswith(f"/invite/{action_token(classroom)}")
 
 
 @pytest.mark.django_db
@@ -121,11 +121,11 @@ def test_classroom_action_link_inspect_returns_preview(
 
     response = api_client.get(inspect_url(token))
     assert response.status_code == status.HTTP_200_OK
-    assert response.data["data"]["purpose"] == "classroom_join"
-    assert response.data["data"]["status"] == "pending"
-    assert response.data["data"]["requires_login"] is True
-    assert response.data["data"]["target"]["id"] == str(classroom.uuid)
-    assert response.data["data"]["target"]["name"] == classroom.name
+    assert response.json()["data"]["purpose"] == "classroom_join"
+    assert response.json()["data"]["status"] == "pending"
+    assert response.json()["data"]["requires_login"] is True
+    assert response.json()["data"]["target"]["id"] == str(classroom.uuid)
+    assert response.json()["data"]["target"]["name"] == classroom.name
 
 
 @pytest.mark.django_db
@@ -332,8 +332,8 @@ def test_join_returns_classroom_detail_with_uuid(
         format="json",
     )
     assert response.status_code == status.HTTP_201_CREATED
-    assert response.data["uuid"] == str(classroom.uuid)
-    assert response.data["name"] == classroom.name
+    assert response.json()["data"]["uuid"] == str(classroom.uuid)
+    assert response.json()["data"]["name"] == classroom.name
 
 
 @pytest.mark.django_db

@@ -48,19 +48,19 @@ class TeacherActivationInviteTests(APITestCase):
         return response
 
     def _token_from_issue_response(self, response) -> str:
-        return response.data["data"]["action_link_url"].rstrip("/").split("/invite/")[1]
+        return response.json()["data"]["action_link_url"].rstrip("/").split("/invite/")[1]
 
     def test_admin_can_issue_teacher_activation_invite(self):
         response = self._issue_invite()
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["data"]["email"], "")
-        self.assertEqual(response.data["data"]["purpose"], "teacher_activation")
+        self.assertEqual(response.json()["data"]["email"], "")
+        self.assertEqual(response.json()["data"]["purpose"], "teacher_activation")
         token = self._token_from_issue_response(response)
         self.assertTrue(token.startswith("qj_ta_"))
-        self.assertIn("/invite/", response.data["data"]["action_link_url"])
-        self.assertEqual(response.data["data"]["activation_url"], response.data["data"]["action_link_url"])
-        self.assertIn("已產生", response.data["message"])
+        self.assertIn("/invite/", response.json()["data"]["action_link_url"])
+        self.assertEqual(response.json()["data"]["activation_url"], response.json()["data"]["action_link_url"])
+        self.assertIn("已產生", response.json()["message"])
         self.assertEqual(TeacherActivationInvite.objects.count(), 1)
 
     def test_preview_returns_pending_invite_state(self):
@@ -70,11 +70,11 @@ class TeacherActivationInviteTests(APITestCase):
         response = self.client.get(self._inspect_url(token))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["data"]["purpose"], "teacher_activation")
-        self.assertEqual(response.data["data"]["status"], "pending")
-        self.assertTrue(response.data["data"]["requires_login"])
-        self.assertFalse(response.data["data"]["can_consume"])
-        self.assertFalse(response.data["data"]["can_redeem"])
+        self.assertEqual(response.json()["data"]["purpose"], "teacher_activation")
+        self.assertEqual(response.json()["data"]["status"], "pending")
+        self.assertTrue(response.json()["data"]["requires_login"])
+        self.assertFalse(response.json()["data"]["can_consume"])
+        self.assertFalse(response.json()["data"]["can_redeem"])
 
     def test_matching_user_can_consume_invite_and_become_teacher(self):
         issue_response = self._issue_invite()
@@ -89,7 +89,7 @@ class TeacherActivationInviteTests(APITestCase):
         self.assertEqual(self.student.role, "teacher")
         self.assertIsNotNone(invite.consumed_at)
         self.assertEqual(invite.consumed_by_id, self.student.id)
-        self.assertEqual(response.data["data"]["user"]["role"], "teacher")
+        self.assertEqual(response.json()["data"]["user"]["role"], "teacher")
         self.assertIn("access_token", response.cookies)
         self.assertIn("refresh_token", response.cookies)
 
@@ -115,5 +115,5 @@ class TeacherActivationInviteTests(APITestCase):
         self.client.force_authenticate(user=self.other_user)
         second_response = self.client.post(self._redeem_url(token), {}, format="json")
         self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(second_response.data["error"]["code"], "ACTION_LINK_ALREADY_REDEEMED")
+        self.assertEqual(second_response.json()["errors"][0]["code"], 'action_link_already_redeemed')
 

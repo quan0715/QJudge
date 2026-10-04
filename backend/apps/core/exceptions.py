@@ -32,6 +32,8 @@ def _should_use_envelope_errors(context):
     view = context.get("view")
     if view is None:
         return False
+    if getattr(view, "api_contract_enabled", False):
+        return True
     allowed = getattr(view, "envelope_error_actions", None)
     action = getattr(view, "action", None)
     if allowed is None or action is None:

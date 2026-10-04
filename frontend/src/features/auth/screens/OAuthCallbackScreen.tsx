@@ -56,7 +56,7 @@ const OAuthCallbackPage = () => {
       try {
         const response = await oauthCallback(provider, code);
 
-        if (response.success) {
+        if (response.data) {
           notifyAuthSessionChanged();
           const nextPath = getAuthedLandingPath(response.data.user);
 
@@ -73,8 +73,7 @@ const OAuthCallbackPage = () => {
       } catch (err: any) {
         console.error(err);
         setError(
-          err?.response?.data?.message ||
-          err?.response?.data?.error?.message ||
+
           t("auth.callback.failed", "登入失敗，請稍後再試")
         );
         setState('error');

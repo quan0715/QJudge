@@ -1,10 +1,11 @@
+import { fetchEnvelope } from "@/infrastructure/api/envelope";
 /**
  * Auth Repository Implementation
  *
  * Handles login, registration, provider auth, and session lifecycle.
  */
 
-import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
+import { httpClient } from "@/infrastructure/api/http.client";
 import type {
   LoginCredentials,
   RegisterCredentials,
@@ -25,7 +26,7 @@ import type {
 export const login = async (
   credentials: LoginCredentials
 ): Promise<AuthResponseDto> => {
-  return requestJson<AuthResponseDto>(
+  return fetchEnvelope<AuthResponseDto["data"]>(
     httpClient.post("/api/v1/auth/login/password", credentials),
     "Login failed"
   );
@@ -34,25 +35,25 @@ export const login = async (
 export const register = async (
   credentials: RegisterCredentials
 ): Promise<AuthResponseDto> => {
-  return requestJson<AuthResponseDto>(
+  return fetchEnvelope<AuthResponseDto["data"]>(
     httpClient.post("/api/v1/auth/register/password", credentials),
     "Registration failed"
   );
 };
 
 export const getAuthOptions = async (): Promise<AuthOptionsResponseDto> => {
-  return requestJson<AuthOptionsResponseDto>(
+  return fetchEnvelope<AuthOptionsResponseDto["data"]>(
     httpClient.get("/api/v1/auth/providers"),
     "Failed to fetch auth options"
   );
 };
 
 export const logout = async (): Promise<void> => {
-  await ensureOk(httpClient.post("/api/v1/auth/logout"), "Logout failed");
+  await fetchEnvelope<null>(httpClient.post("/api/v1/auth/logout"), "Logout failed");
 };
 
 export const logoutOtherSessions = async (): Promise<void> => {
-  await ensureOk(httpClient.post("/api/v1/auth/sessions/logout-others"), "Failed to logout other sessions");
+  await fetchEnvelope<null>(httpClient.post("/api/v1/auth/sessions/logout-others"), "Failed to logout other sessions");
 };
 
 // ============================================================================
@@ -62,7 +63,7 @@ export const logoutOtherSessions = async (): Promise<void> => {
 export const issueTeacherActivationActionLink = async (
   email: string
 ): Promise<ActionLinkIssueResponseDto> => {
-  return requestJson<ActionLinkIssueResponseDto>(
+  return fetchEnvelope<ActionLinkIssueResponseDto["data"]>(
     httpClient.post("/api/v1/action-links", { purpose: "teacher_activation", email }),
     "Failed to issue invite"
   );
@@ -71,7 +72,7 @@ export const issueTeacherActivationActionLink = async (
 export const inspectActionLink = async (
   token: string
 ): Promise<ActionLinkInspectResponseDto> => {
-  return requestJson<ActionLinkInspectResponseDto>(
+  return fetchEnvelope<ActionLinkInspectResponseDto["data"]>(
     httpClient.get(`/api/v1/action-links/${encodeURIComponent(token)}`),
     "Failed to inspect action link"
   );
@@ -80,7 +81,7 @@ export const inspectActionLink = async (
 export const redeemActionLink = async (
   token: string
 ): Promise<ActionLinkRedeemResponseDto> => {
-  return requestJson<ActionLinkRedeemResponseDto>(
+  return fetchEnvelope<ActionLinkRedeemResponseDto["data"]>(
     httpClient.post(`/api/v1/action-links/${encodeURIComponent(token)}/redeem`, {}),
     "Failed to redeem action link"
   );
@@ -92,7 +93,7 @@ export const redeemActionLink = async (
 
 export const getOAuthUrl = async (provider: string, redirect?: string): Promise<string> => {
   const query = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
-  const response = await requestJson<{ success: boolean; data?: { authorization_url?: string } }>(
+  const response = await fetchEnvelope<{ authorization_url: string }>(
     httpClient.get(`/api/v1/auth/login/${provider}${query}`),
     "Failed to get OAuth URL"
   );
@@ -104,14 +105,14 @@ export const oauthCallback = async (provider: string, code: string): Promise<Aut
     typeof window !== "undefined"
       ? `${window.location.origin}/auth/${provider}/callback`
       : `http://localhost:5173/auth/${provider}/callback`;
-  return requestJson<AuthResponseDto>(
+  return fetchEnvelope<AuthResponseDto["data"]>(
     httpClient.post(`/api/v1/auth/callback/${provider}`, { code, redirect_uri: redirectUri }),
     "OAuth callback failed"
   );
 };
 
 export const getAuthSessions = async (): Promise<LoginRecordsResponseDto> => {
-  return requestJson<LoginRecordsResponseDto>(
+  return fetchEnvelope<LoginRecordsResponseDto["data"]>(
     httpClient.get("/api/v1/auth/sessions"),
     "Failed to fetch auth sessions"
   );

@@ -126,13 +126,12 @@ test.describe("Exam login blocked — dual device (Playwright)", () => {
     });
     expect(loginResp.status()).toBe(409);
     const body = (await loginResp.json()) as {
-      code?: string;
-      success?: boolean;
-      conflict_token?: string;
+      errors: { code: string; details: Record<string, unknown> }[];
+      meta: Record<string, unknown>;
     };
-    expect(body.success).not.toBe(true);
-    expect(body.code).toBe("ACTIVE_EXAM_SESSION_EXISTS");
-    expect(body.conflict_token).toBeUndefined();
+    expect(Object.keys(body).sort()).toEqual(["errors", "meta"]);
+    expect(body.errors[0].code).toBe("active_exam_session_exists");
+    expect(body.errors[0].details.conflict_token).toBeUndefined();
 
     if (studentUserId != null) {
       const token = await teacherPage.evaluate(() => localStorage.getItem("token"));

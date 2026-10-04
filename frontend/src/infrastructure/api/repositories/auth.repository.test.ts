@@ -31,7 +31,7 @@ describe("auth repository endpoints", () => {
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
-          success: true,
+          meta: {},
           data: {
             id: 1,
             created_at: "2026-04-14T00:00:00Z",
@@ -62,7 +62,7 @@ describe("auth repository endpoints", () => {
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
-          success: true,
+          meta: {},
           data: {
             password_enabled: false,
             providers: [
@@ -96,7 +96,7 @@ describe("auth repository endpoints", () => {
 
   it("login uses the password credentials endpoint", async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ success: true, data: { access_token: "token", user: { id: 1 } } }), {
+      new Response(JSON.stringify({ meta: {}, data: { access_token: "token", user: { id: 1 } } }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
@@ -115,7 +115,7 @@ describe("auth repository endpoints", () => {
 
   it("register uses the password credentials endpoint", async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ success: true, data: { access_token: "token", user: { id: 1 } } }), {
+      new Response(JSON.stringify({ meta: {}, data: { access_token: "token", user: { id: 1 } } }), {
         status: 201,
         headers: { "Content-Type": "application/json" },
       }),
@@ -137,12 +137,12 @@ describe("auth repository endpoints", () => {
     fetchMock
       .mockResolvedValueOnce(
         new Response(
-          JSON.stringify({ success: true, data: { authorization_url: "https://provider.example/auth" } }),
+          JSON.stringify({ meta: {}, data: { authorization_url: "https://provider.example/auth" } }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         ),
       )
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ success: true, data: { access_token: "token", user: { id: 1 } } }), {
+        new Response(JSON.stringify({ meta: {}, data: { access_token: "token", user: { id: 1 } } }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         }),
@@ -158,13 +158,13 @@ describe("auth repository endpoints", () => {
   it("session helpers use canonical auth session endpoints", async () => {
     fetchMock
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ success: true, data: [] }), {
+        new Response(JSON.stringify({ meta: {}, data: [] }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         }),
       )
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ success: true }), {
+        new Response(JSON.stringify({ data: { blacklisted_count: 1 }, meta: {} }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         }),

@@ -25,7 +25,7 @@ describe("user repository endpoints", () => {
 
   it("searchUsers calls the users collection endpoint with q", async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ success: true, data: [] }), {
+      new Response(JSON.stringify({ meta: {}, data: [] }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
@@ -43,7 +43,7 @@ describe("user repository endpoints", () => {
   it("loads the current user through the cookie-backed session endpoint", async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(
-        JSON.stringify({ success: true, data: { id: 7, username: "alice" } }),
+        JSON.stringify({ meta: {}, data: { id: 7, username: "alice" } }),
         {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -62,7 +62,7 @@ describe("user repository endpoints", () => {
 
   it("updateUserRole calls the users role endpoint", async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ success: true, data: { id: 7, role: "teacher" } }), {
+      new Response(JSON.stringify({ meta: {}, data: { id: 7, role: "teacher" } }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
@@ -79,7 +79,7 @@ describe("user repository endpoints", () => {
 
   it("uploadAvatar sends multipart FormData to the users avatar endpoint", async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ success: true, data: { avatar_url: "/avatar.png" } }), {
+      new Response(JSON.stringify({ meta: {}, data: { avatar_url: "/avatar.png" } }), {
         status: 201,
         headers: { "Content-Type": "application/json" },
       }),

@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from apps.core.api.envelope import contract_error_response
 
 from ..serializers import UserLoginRecordSerializer
 from .common import SchemaAPIView
@@ -19,10 +20,7 @@ class AuthSessionListView(SchemaAPIView):
     def get(self, request):
         cutoff = timezone.now() - timedelta(days=30)
         records = request.user.login_records.filter(created_at__gte=cutoff)[:50]
-        return Response({
-            'success': True,
-            'data': UserLoginRecordSerializer(records, many=True).data,
-        })
+        return Response(UserLoginRecordSerializer(records, many=True).data)
 
 
 class LogoutOtherSessionsView(SchemaAPIView):
@@ -35,10 +33,7 @@ class LogoutOtherSessionsView(SchemaAPIView):
 
         jti = get_token_jti(request)
         if not jti:
-            return Response(
-                {'success': False, 'error': {'code': 'NO_JTI', 'message': 'Cannot identify current token.'}},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return contract_error_response(request, 'NO_JTI', 'Cannot identify current token.', status=status.HTTP_400_BAD_REQUEST)
 
         count = blacklist_other_tokens(request.user, access_jti=jti, refresh_jti=get_refresh_jti(request))
 
@@ -46,11 +41,7 @@ class LogoutOtherSessionsView(SchemaAPIView):
         from ..models import UserLoginRecord
         UserLoginRecord.objects.filter(user=request.user, is_current=True).exclude(jti=jti).update(is_current=False)
 
-        return Response({
-            'success': True,
-            'data': {'blacklisted_count': count},
-            'message': f'已登出其他 {count} 個裝置',
-        })
+        return Response({'blacklisted_count': count})
 
 
 __all__ = ["AuthSessionListView", "LogoutOtherSessionsView"]
