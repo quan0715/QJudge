@@ -74,7 +74,49 @@ class FakeHost:
         return [" ".join(args) for args, _ in self.calls]
 
 
+class JudgeBuildHost(FakeHost):
+    """Model a Buildx container driver whose output needs an explicit load."""
+
+    def __init__(self, *, build_succeeds=True, load_succeeds=True):
+        super().__init__()
+        self.build_succeeds = build_succeeds
+        self.load_succeeds = load_succeeds
+        self.judge_loaded = False
+
+    def __call__(self, args, **kwargs):
+        result = super().__call__(args, **kwargs)
+        if args[:3] == ["docker", "image", "inspect"]:
+            result.returncode = 0 if self.judge_loaded else 1
+        elif args[:2] == ["docker", "pull"]:
+            result.returncode = 1  # Source-tagged image is not published yet.
+        elif args[:2] == ["docker", "build"]:
+            result.returncode = 0 if self.build_succeeds else 1
+            self.judge_loaded = self.build_succeeds and self.load_succeeds and "--load" in args
+        return result
+
+
 class ReleaseTests(unittest.TestCase):
+    def test_upgrade_loads_fallback_judge_image_before_starting_services(self):
+        host = JudgeBuildHost()
+        self.assertEqual(self._upgrade(host), 0)
+        self.assertTrue(host.judge_loaded)
+        commands = host.commands()
+        build = next(i for i, command in enumerate(commands) if command.startswith("docker build "))
+        inspect = next(i for i, command in enumerate(commands)
+                       if i > build and command == "docker image inspect qjudge/judge:sha-" + NEW[:12])
+        start = next(i for i, command in enumerate(commands) if "up -d postgres" in command)
+        self.assertLess(inspect, start)
+
+    def test_upgrade_aborts_when_fallback_build_fails_or_image_is_missing(self):
+        for settings in ({"build_succeeds": False}, {"load_succeeds": False}):
+            with self.subTest(**settings):
+                host = JudgeBuildHost(**settings)
+                self.assertEqual(self._upgrade(host), 1)
+                self.assertEqual(host.head, OLD)
+                self.assertFalse(any(" up " in command for command in host.commands()))
+                self.assertFalse(any("migrate" in command for command in host.commands()))
+                self.assertFalse((self.deploy / ".version").exists())
+
     def test_invalid_model_config_aborts_before_stopping_anything(self):
         host = FakeHost(fail_on=("infrastructure.agent.model_config",))
         self.assertEqual(self._upgrade(host), 1)
