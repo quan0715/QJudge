@@ -1,3 +1,4 @@
+import json
 from django.urls import reverse
 from django.conf import settings
 from django.test import override_settings
@@ -175,7 +176,7 @@ class EnhancedAuthTests(APITestCase):
             response = view(request)
             
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('access_token', response.json()['data'])
+        self.assertIn('access_token', json.loads(response.render().content)['data'])
         
         # Test invalid role
         from rest_framework.test import APIRequestFactory

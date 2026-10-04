@@ -60,7 +60,7 @@ class TeacherActivationInviteTests(APITestCase):
         self.assertTrue(token.startswith("qj_ta_"))
         self.assertIn("/invite/", response.json()["data"]["action_link_url"])
         self.assertEqual(response.json()["data"]["activation_url"], response.json()["data"]["action_link_url"])
-        self.assertIn("已產生", response.json()["message"])
+        self.assertEqual(set(response.json()), {"data", "meta"})
         self.assertEqual(TeacherActivationInvite.objects.count(), 1)
 
     def test_preview_returns_pending_invite_state(self):

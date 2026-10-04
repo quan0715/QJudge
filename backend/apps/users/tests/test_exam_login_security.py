@@ -75,9 +75,9 @@ class ExamLoginBlockedByOtherDeviceTests(APITestCase):
         )
         self.assertEqual(resp.status_code, status.HTTP_409_CONFLICT)
         self.assertEqual(set(resp.json()), {"errors", "meta"})
-        self.assertEqual(resp.json().get("code"), "active_exam_session_exists")
+        self.assertEqual(resp.json()["errors"][0]["code"], "active_exam_session_exists")
         self.assertNotIn("conflict_token", resp.json())
-        self.assertIn("active_exam", resp.json())
+        self.assertIn("active_exam", resp.json()["errors"][0]["details"])
         self.assertEqual(str(resp.json()["errors"][0]["details"]["active_exam"]["contest_id"]), str(self.contest.id))
         self.assertEqual(resp.json()["errors"][0]["details"]["active_exam"]["exam_status"], ExamStatus.IN_PROGRESS)
 

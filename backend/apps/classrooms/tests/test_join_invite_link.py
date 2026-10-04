@@ -349,6 +349,6 @@ def test_raw_invite_code_is_not_an_action_link_token(
         format="json",
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.data["error"]["code"] == "ACTION_LINK_NOT_FOUND"
+    assert response.json()["errors"][0]["code"] == "action_link_not_found"
 
 
