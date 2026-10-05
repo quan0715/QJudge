@@ -51,7 +51,9 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
+  // clip, not hidden: a hidden box can still be scrolled by scrollIntoView/focus,
+  // which pushes the whole page out of view with no way to scroll back.
+  overflow: clip;
 }
 
 // ── Right panel (desktop docked chat) ──

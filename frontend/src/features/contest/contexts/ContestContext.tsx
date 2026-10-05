@@ -69,7 +69,7 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
       : undefined,
   );
   const runtime = externalRuntime ?? ownRuntime;
-  const currentContest = useMemo(() => mergeExamRuntimeState(contest, runtime.state), [contest, runtime.state]);
+  const currentContest = useMemo(() => mergeExamRuntimeState(contest, runtime.state, runtime.confirmedStatus), [contest, runtime.state, runtime.confirmedStatus]);
 
   const fetchContest = useCallback(async () => {
     if (!contestId) {

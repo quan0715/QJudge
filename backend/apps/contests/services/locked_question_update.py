@@ -29,6 +29,11 @@ CONTENT_FIELDS = frozenset({
     "order_in_group",
     "answer_format",
 })
+OBJECTIVE_QUESTION_TYPES = frozenset({
+    ExamQuestionType.TRUE_FALSE,
+    ExamQuestionType.SINGLE_CHOICE,
+    ExamQuestionType.MULTIPLE_CHOICE,
+})
 OBJECTIVE_REGRADING_FIELDS = frozenset({"correct_answer", "score"})
 SUBJECTIVE_REVIEW_FIELDS = frozenset({
     "correct_answer",
@@ -65,11 +70,7 @@ def _validate_action(
     changes: set[str],
     action: ExistingGradesAction | None,
 ) -> None:
-    objective = question.question_type in {
-        ExamQuestionType.TRUE_FALSE,
-        ExamQuestionType.SINGLE_CHOICE,
-        ExamQuestionType.MULTIPLE_CHOICE,
-    }
+    objective = question.question_type in OBJECTIVE_QUESTION_TYPES
     objective_impact = objective and bool(changes & OBJECTIVE_REGRADING_FIELDS)
     subjective_impact = not objective and bool(changes & SUBJECTIVE_REVIEW_FIELDS)
 
@@ -110,6 +111,14 @@ def apply_locked_question_update(
         raise ContestQuestionEditLocked()
     if not changes:
         return locked_question
+    if (
+        "correct_answer" in changes
+        and validated_data["correct_answer"] is None
+        and locked_question.question_type in OBJECTIVE_QUESTION_TYPES
+    ):
+        raise DRFValidationError({
+            "correct_answer": "objective answer cannot be cleared after students have started",
+        })
 
     _validate_action(
         question=locked_question,

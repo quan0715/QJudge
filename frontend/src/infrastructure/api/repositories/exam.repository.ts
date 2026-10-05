@@ -130,10 +130,14 @@ export const startExam = async (
   contestId: string,
   payload?: StartExamPrecheckPayload,
 ): Promise<ExamSessionResponse> => {
-  return requestJson<ExamSessionResponse>(
+  const response = await requestJson<ExamSessionResponse>(
     httpClient.post(`/api/v1/contests/${contestId}/exam/start/`, payload ?? {}),
     "Failed to start exam"
   );
+  if (response.exam_status === "in_progress" && typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(EXAM_STARTED_EVENT, { detail: { contestId } }));
+  }
+  return response;
 };
 
 export const endExam = async (
@@ -150,6 +154,7 @@ export const endExam = async (
   return response;
 };
 
+export const EXAM_STARTED_EVENT = "qjudge:exam-started";
 export const EXAM_SUBMITTED_EVENT = "qjudge:exam-submitted";
 
 export const examSessionRepository: IExamSessionRepository = {

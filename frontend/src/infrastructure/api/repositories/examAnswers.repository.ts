@@ -161,7 +161,7 @@ const mapAnswerDetailDto = (dto: ExamAnswerDetailDto): ExamAnswerDetail => ({
 
 const DRAFT_PREFIX = "qjudge.exam.draft";
 
-const saveExamAnswerDraft = (
+export const saveExamAnswerDraft = (
   contestId: string,
   questionId: string,
   answer: Record<string, unknown>
@@ -193,9 +193,12 @@ export const getExamAnswerDraft = (
 
 const clearExamAnswerDraft = (
   contestId: string,
-  questionId: string
+  questionId: string,
+  savedAnswer: Record<string, unknown>
 ): void => {
   try {
+    // A previous write must not discard a newer unsent edit.
+    if (JSON.stringify(getExamAnswerDraft(contestId, questionId)) !== JSON.stringify(savedAnswer)) return;
     localStorage.removeItem(`${DRAFT_PREFIX}.${contestId}.${questionId}`);
   } catch {
     // Ignore storage errors (quota/private mode); draft cleanup is best-effort.
@@ -226,7 +229,7 @@ export const submitExamAnswer = async (
       if (response.ok) {
         const dto = (await response.json()) as ExamAnswerDto;
         // Answer is safely stored on the server – remove the local draft.
-        clearExamAnswerDraft(contestId, questionId);
+        clearExamAnswerDraft(contestId, questionId, answer);
         return mapAnswerDto(dto);
       }
 

@@ -13,6 +13,7 @@ import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import {
   deleteContest,
 } from "@/infrastructure/api/repositories";
+import { useExamPublishWarning } from "@/features/contest/hooks/useExamPublishWarning";
 import { ContestSettingsModal } from "@/features/contest/components/admin/settings";
 import type { ContestSettingsSectionId } from "@/features/contest/modules/types";
 
@@ -138,11 +139,16 @@ const ContestSettingsOverlay = ({
   const formRef = useRef(form);
   useEffect(() => { formRef.current = form; });
 
+  const loadPublishWarning = useExamPublishWarning(contestId, contest?.contestType);
+
   const handleConfirmedChange = useCallback(
     async (field: string, value: unknown, message: string) => {
       if (isValueEqual(formRef.current[field], value)) return;
+      const body =
+        field === "status" && value === "published" ? await loadPublishWarning() : undefined;
       const confirmed = await confirm({
         title: message,
+        body,
         confirmLabel: tc("button.confirm"),
         cancelLabel: tc("button.cancel"),
         danger: true,
@@ -156,7 +162,7 @@ const ContestSettingsOverlay = ({
       });
       autoSave.saveField(field, value);
     },
-    [autoSave, confirm, tc],
+    [autoSave, confirm, loadPublishWarning, tc],
   );
 
   const handleTimeChange = useCallback(

@@ -769,12 +769,11 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
 
         if question_type in {ExamQuestionType.TRUE_FALSE, ExamQuestionType.SINGLE_CHOICE, ExamQuestionType.MULTIPLE_CHOICE}:
             merged_answer = correct_answer if 'correct_answer' in attrs else getattr(self.instance, 'correct_answer', None)
-            if merged_answer in (None, ''):
-                raise serializers.ValidationError({'correct_answer': 'objective question requires correct_answer'})
 
+            # The answer may stay unset (None) while drafting; publishing warns about it.
             # Only re-check the format when this write touches it, so legacy rows
             # can still change unrelated fields such as score or score_policy.
-            if attrs.keys() & {'question_type', 'options', 'correct_answer'}:
+            if merged_answer is not None and attrs.keys() & {'question_type', 'options', 'correct_answer'}:
                 merged_options = options if options is not None else getattr(self.instance, 'options', [])
                 error = objective_answer_error(question_type, merged_options, merged_answer)
                 if error:
