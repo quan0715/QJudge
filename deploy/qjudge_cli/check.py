@@ -24,6 +24,7 @@ MOVED_AI_KEYS = {
 }
 URL_SAFE_PASSWORD_KEYS = {"POSTGRES_ADMIN_PASSWORD", "DB_PASSWORD", "AI_DB_PASSWORD"}
 URL_SAFE = re.compile(r"[A-Za-z0-9._~-]+")
+HOST_LABEL = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?")
 BUCKET_NAME = re.compile(r"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]")
 # The bucket becomes a top-level path on the main site in bundled mode.
 RESERVED_BUCKET_PATHS = {
@@ -72,11 +73,14 @@ def _value_problem(name: str, value: str, env: Env) -> str | None:
     if name in {"EMAIL_PORT", "EMAIL_TIMEOUT"}:
         if not value.isdigit() or not 1 <= int(value) <= (65535 if name == "EMAIL_PORT" else 120):
             return "must be a valid positive port or timeout (1–120 seconds)"
-    if name == "DEFAULT_FROM_EMAIL":
-        from email.utils import parseaddr
-        address = parseaddr(value)[1]
-        if "\n" in value or "\r" in value or "@" not in address or address.endswith("@example.com"):
-            return "must be a verified sender email address"
+    # The sender is only used when mail is enabled; an unused value must not block upgrades.
+    if name == "DEFAULT_FROM_EMAIL" and env.get("EMAIL_MODE", "").strip() == "external":
+        address = _sender_address(value)
+        domain = address.rpartition("@")[2] if address else ""
+        labels = domain.split(".")
+        if (len(labels) < 2 or not all(HOST_LABEL.fullmatch(label) for label in labels)
+                or domain.lower() == "example.com"):
+            return "must be a verified sender: noreply@mail.example.edu or QJudge <noreply@mail.example.edu>"
     if name == "QJUDGE_TRUSTED_PROXIES":
         for item in value.split(","):
             item = item.strip()
@@ -142,3 +146,17 @@ def _url_problem(value: str, schemes: tuple[str, ...], *, origin_only: bool = Fa
     if origin_only and (parts.path not in ("", "/") or parts.query or parts.fragment):
         return "must not include a path, query, or fragment"
     return None
+
+
+def _sender_address(value: str) -> str | None:
+    """Return the single mailbox in ``value``, parsed the way Django sends mail."""
+    from email._header_value_parser import get_mailbox  # Django's sanitize_address uses it too
+    from email.errors import HeaderParseError
+
+    try:
+        mailbox, rest = get_mailbox(value)
+    except HeaderParseError:
+        return None
+    if rest.strip() or mailbox.all_defects or "@" not in mailbox.addr_spec:
+        return None
+    return mailbox.addr_spec

@@ -5,7 +5,7 @@ QJudge 以 Docker Compose 在一台 Linux 主機上執行。設定、安裝、�
 - [網路入口與選用功能](deployment-options.md)
 - [設定檔案儲存](deployment-storage.md)
 - [設定即時監看](deployment-live-monitoring.md)
-- [設定寄信](deployment-email.md)
+- [設定寄信](#/docs/deployment-email)
 - [部署故障排除](deployment-troubleshooting.md)
 
 ## 1. 準備主機

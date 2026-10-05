@@ -22,8 +22,25 @@ class PasswordMailTests(unittest.TestCase):
         self.assertEqual(self.smtp_errors(EMAIL_USE_TLS='false', EMAIL_USE_SSL='true', EMAIL_PORT='465'), [])
 
     def test_invalid_values_and_unpaired_credentials(self):
-        for values in ({'EMAIL_PORT': 'bad'}, {'EMAIL_TIMEOUT': '0'}, {'EMAIL_HOST_USER': 'sender'}, {'DEFAULT_FROM_EMAIL': 'bad'}, {'EMAIL_MODE': 'maybe'}):
+        for values in ({'EMAIL_PORT': 'bad'}, {'EMAIL_TIMEOUT': '0'}, {'EMAIL_HOST_USER': 'sender'}, {'EMAIL_MODE': 'maybe'}):
             self.assertTrue(self.smtp_errors(**values))
+
+    def sender_errors(self, sender, mode='external'):
+        errors = self.smtp_errors(EMAIL_MODE=mode, EMAIL_HOST='smtp.provider.test', DEFAULT_FROM_EMAIL=sender)
+        return [error for error in errors if error.startswith('DEFAULT_FROM_EMAIL:')]
+
+    def test_sender_must_be_a_complete_mailbox_when_mail_is_enabled(self):
+        for sender in ('noreply@mail.q-judge.com', 'QJudge <noreply@mail.q-judge.com>', '"QJudge, NYCU" <noreply@nycu.edu.tw>',
+                       '"QJudge @ NYCU" <noreply@nycu.edu.tw>'):
+            self.assertEqual(self.sender_errors(sender), [], sender)
+        for sender in ('bad', 'not valid <sender@mail.q-judge.com', 'sender@mail.q-judge.com garbage',
+                       'QJudge <noreply@example.com>', 'noreply@localhost', 'a <b@c.d> <e@f.g>',
+                       'a,b@mail.example.edu', 'QJudge, NYCU <noreply@nycu.edu.tw>', 'x@y..com',
+                       '"QJudge <noreply@nycu.edu.tw>', 'noreply@mail/path.com', 'QJudge <noreply@nycu.edu.tw>\nBcc: x@y.com'):
+            self.assertTrue(self.sender_errors(sender), sender)
+
+    def test_unused_sender_does_not_block_disabled_mail(self):
+        self.assertEqual(self.sender_errors('noreply@example.com', mode='disabled'), [])
 
     def test_disabled_and_unset_mail_do_not_require_smtp(self):
         for mode in ('', 'disabled'):

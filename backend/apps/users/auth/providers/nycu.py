@@ -14,5 +14,7 @@ class NYCUOAuthService(BaseOAuthService):
             "email": raw.get("email"),
             "oauth_id": raw.get("sub") or raw.get("id"),
             "avatar_url": extract_avatar_url(raw),
-            "email_verified": raw.get("email_verified") is True,
+            # The profile API omits email_verified; NYCU itself verifies the
+            # institutional address, so only an explicit false is unverified.
+            "email_verified": raw.get("email_verified", True) is True,
         }
