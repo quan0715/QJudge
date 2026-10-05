@@ -23,7 +23,9 @@ export interface FieldAutoSaveReturn {
   retrySave: (field: string) => void;
   hasPendingChanges: boolean;
 }
-type PendingSave = { value: unknown; write: FieldAutoSaveOptions["write"] };
+// A queued value keeps the write and callbacks of the options that queued it, so a
+// flush after unmount or a target change still reports to the editor that made it.
+type PendingSave = Pick<FieldAutoSaveOptions, "write" | "onSaveSuccess" | "onSaveError"> & { value: unknown };
 
 export function useFieldAutoSave(options: FieldAutoSaveOptions): FieldAutoSaveReturn {
   const { target, debounceMs = 1500 } = options;
@@ -51,13 +53,13 @@ export function useFieldAutoSave(options: FieldAutoSaveOptions): FieldAutoSaveRe
         if (queue.pending.get(field) === pending) {
           queue.pending.delete(field);
           update(field, { status: "saved", lastSaved: new Date() });
-          if (queue.active) callbacks.current.onSaveSuccess?.(field, pending.value);
+          pending.onSaveSuccess?.(field, pending.value);
         }
       } catch (cause) {
         if (queue.pending.get(field) === pending) {
           const error = cause instanceof Error ? cause : new Error("儲存失敗");
           update(field, { status: "error", error: error.message });
-          if (queue.active) callbacks.current.onSaveError?.(field, error);
+          pending.onSaveError?.(field, error);
         }
       }
     });
@@ -87,7 +89,8 @@ export function useFieldAutoSave(options: FieldAutoSaveOptions): FieldAutoSaveRe
   }, [queue]);
 
   const storeValue = useCallback((field: string, value: unknown) => {
-    queue.pending.set(field, { value, write: callbacks.current.write });
+    const { write, onSaveSuccess, onSaveError } = callbacks.current;
+    queue.pending.set(field, { value, write, onSaveSuccess, onSaveError });
     update(field, { status: "saving" });
     cancelPendingSave(field);
   }, [queue, update, cancelPendingSave]);

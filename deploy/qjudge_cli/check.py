@@ -26,6 +26,10 @@ URL_SAFE_PASSWORD_KEYS = {"POSTGRES_ADMIN_PASSWORD", "DB_PASSWORD", "AI_DB_PASSW
 URL_SAFE = re.compile(r"[A-Za-z0-9._~-]+")
 BUCKET_NAME = re.compile(r"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]")
 # The bucket becomes a top-level path on the main site in bundled mode.
+# "addr" or "Display Name <addr>"; addr needs a dotted domain and no spaces or brackets.
+_ADDR_SPEC = r'[^\s<>@"]+@[^\s<>@".]+(?:\.[^\s<>@".]+)+'
+SENDER_PATTERN = re.compile(rf'[^<>@\r\n]*<({_ADDR_SPEC})>|({_ADDR_SPEC})')
+
 RESERVED_BUCKET_PATHS = {
     "api", "admin", "django-admin", "static", "media", "mcp", "assets", "livekit",
     "docs", "dev", "system", "dashboard", "classrooms", "question-banks", "chat",
@@ -72,11 +76,12 @@ def _value_problem(name: str, value: str, env: Env) -> str | None:
     if name in {"EMAIL_PORT", "EMAIL_TIMEOUT"}:
         if not value.isdigit() or not 1 <= int(value) <= (65535 if name == "EMAIL_PORT" else 120):
             return "must be a valid positive port or timeout (1–120 seconds)"
-    if name == "DEFAULT_FROM_EMAIL":
-        from email.utils import parseaddr
-        address = parseaddr(value)[1]
-        if "\n" in value or "\r" in value or "@" not in address or address.endswith("@example.com"):
-            return "must be a verified sender email address"
+    # The sender is only used when mail is enabled; an unused value must not block upgrades.
+    if name == "DEFAULT_FROM_EMAIL" and env.get("EMAIL_MODE", "").strip() == "external":
+        match = SENDER_PATTERN.fullmatch(value)
+        address = match and (match.group(1) or match.group(2))
+        if not address or address.lower().endswith("@example.com"):
+            return "must be a verified sender: noreply@mail.example.edu or QJudge <noreply@mail.example.edu>"
     if name == "QJUDGE_TRUSTED_PROXIES":
         for item in value.split(","):
             item = item.strip()

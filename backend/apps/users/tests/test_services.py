@@ -6,6 +6,7 @@ import base64
 import json
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 
@@ -748,3 +749,13 @@ class GoogleOAuthServiceTests(TestCase):
             data["user_info"]["avatar_url"],
             "https://lh3.googleusercontent.com/tokeninfo-avatar",
         )
+
+
+@pytest.mark.parametrize(("raw_flag", "expected"), [(None, True), (True, True), (False, False)])
+def test_nycu_profile_email_is_trusted_unless_marked_unverified(raw_flag, expected):
+    # NYCU's /api/profile/ payload has no email_verified claim; the institutional
+    # email is verified by NYCU, so first-time logins must still link by email.
+    raw = {"username": "student", "email": "student@nycu.edu.tw", "sub": "subject"}
+    if raw_flag is not None:
+        raw["email_verified"] = raw_flag
+    assert NYCUOAuthService._parse_user_info(raw)["email_verified"] is expected
