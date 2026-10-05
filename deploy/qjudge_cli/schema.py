@@ -167,7 +167,7 @@ KEYS: tuple[Key, ...] = (
     Key("EMAIL_TIMEOUT", "smtp", "SMTP connection timeout in seconds (default 10)."),
     Key("EMAIL_HOST", "smtp", "SMTP host.", required=lambda env: env.get("PASSWORD_RESET_ENABLED", "").lower() in {"true", "1", "yes", "on"}),
     Key("EMAIL_PORT", "smtp", "SMTP port."),
-    Key("DEFAULT_FROM_EMAIL", "smtp", "Verified sender address, e.g. QJudge <noreply@q-judge.com>.", required=lambda env: env.get("PASSWORD_RESET_ENABLED", "").lower() in {"true", "1", "yes", "on"}),
+    Key("DEFAULT_FROM_EMAIL", "smtp", "Verified sender on the provider-verified domain, e.g. QJudge <noreply@mail.q-judge.com>.", required=lambda env: env.get("PASSWORD_RESET_ENABLED", "").lower() in {"true", "1", "yes", "on"}),
     Key("EMAIL_HOST_USER", "smtp", "SMTP username.", required=_paired_with("EMAIL_HOST_PASSWORD")),
     Key("EMAIL_HOST_PASSWORD", "smtp", "SMTP password.",
         required=_paired_with("EMAIL_HOST_USER"), secret=True),

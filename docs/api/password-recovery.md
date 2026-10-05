@@ -32,7 +32,19 @@ DEFAULT_FROM_EMAIL=QJudge <noreply@mail.q-judge.com>
 
 For providers requiring port 465, set `EMAIL_USE_TLS=false` and `EMAIL_USE_SSL=true`. Never enable both modes. The deployment CLI requires a host and explicit sender when recovery is enabled, validates port/timeout/TLS values, and treats the SMTP password as a secret. `QJUDGE_PUBLIC_ORIGIN` determines the frontend link origin.
 
-Run `deploy/qjudge check`, then follow the ordinary reviewed release/deployment process. Apply migration `users.0003_password_reset_token` and restart both backend and the existing Django Celery worker (the `default` queue). The worker and backend receive the same mail settings. Validate delivery from the deployed worker using an explicitly approved test recipient, then set `PASSWORD_RESET_ENABLED=true`, run `deploy/qjudge check`, and recreate backend/worker to enable the production UI. Updating an environment file alone does not update an existing container. Creating a PR does not configure DNS, create a provider account, or authorize a deployment.
+Enable recovery in stages. Updating an environment file alone does not update an existing container. Creating a PR does not configure DNS, create a provider account, or authorize a deployment.
+
+1. With `PASSWORD_RESET_ENABLED=false`, run `deploy/qjudge check`, then follow the ordinary reviewed release/deployment process. It applies migration `users.0003_password_reset_token` and recreates backend and the Django Celery worker (`celery` service, `default` queue); both receive the same mail settings.
+2. Validate SMTP from the deployed worker with an explicitly approved test recipient. Recovery mail is not sent while the feature is disabled, so use Django's test command in the `celery` service of the deployed Compose project (the same project, directory and env file `deploy/qjudge upgrade` uses):
+
+   ```bash
+   docker compose --project-name <COMPOSE_PROJECT_NAME> --project-directory deploy --env-file deploy/.env -f deploy/compose.yml -f deploy/compose.build.yml exec celery python manage.py sendtestemail <approved-recipient>
+   ```
+
+   The command fails with the SMTP error if the host, credentials or sender domain are rejected.
+3. Set `PASSWORD_RESET_ENABLED=true`, run `deploy/qjudge check`, and recreate backend and celery to enable the production UI. Request a reset for an approved test account and complete it.
+
+Delivery failures in the worker are not shown to users, who always receive the generic acknowledgement. They appear in the `celery` container logs as `password_reset_delivery_failed` and `password_reset_job_failed`; throttled requests appear in backend logs as `password_reset_throttled`.
 
 Development uses Django's console email backend; tests use the in-memory backend. Enable `PASSWORD_RESET_ENABLED=true` in the development environment and run the normal Celery worker. No provider credentials or real emails are needed for tests.
 

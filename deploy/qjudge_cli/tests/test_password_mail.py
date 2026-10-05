@@ -15,7 +15,7 @@ class PasswordMailTests(unittest.TestCase):
         self.assertTrue(any(error.startswith('DEFAULT_FROM_EMAIL:') for error in errors))
 
     def test_valid_domain_sender_and_starttls(self):
-        self.assertEqual(self.smtp_errors(PASSWORD_RESET_ENABLED='true', EMAIL_HOST='smtp.provider.test', EMAIL_PORT='587', DEFAULT_FROM_EMAIL='QJudge <noreply@q-judge.com>', EMAIL_HOST_USER='sender', EMAIL_HOST_PASSWORD='test-secret'), [])
+        self.assertEqual(self.smtp_errors(PASSWORD_RESET_ENABLED='true', EMAIL_HOST='smtp.provider.test', EMAIL_PORT='587', DEFAULT_FROM_EMAIL='QJudge <noreply@mail.q-judge.com>', EMAIL_HOST_USER='sender', EMAIL_HOST_PASSWORD='test-secret'), [])
 
     def test_tls_modes_are_mutually_exclusive(self):
         self.assertTrue(self.smtp_errors(EMAIL_USE_TLS='true', EMAIL_USE_SSL='true'))

@@ -88,13 +88,19 @@ LOGGING = {
             'backupCount': 10,
             'formatter': 'verbose',
         },
+        # The log file is not on a volume; container logs keep recovery
+        # delivery failures visible to operators.
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
     },
     'root': {
         'handlers': ['file'],
         'level': 'WARNING',
     },
     'loggers': {
-        'qjudge.auth': {'handlers': ['file'], 'level': 'INFO', 'propagate': False},
+        'qjudge.auth': {'handlers': ['file', 'console'], 'level': 'INFO', 'propagate': False},
         'django': {
             'handlers': ['file'],
             'level': 'WARNING',
