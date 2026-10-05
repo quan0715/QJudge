@@ -158,7 +158,7 @@ class UserContractSchema(AutoSchema):
         self.registry.register_on_missing(error)
         for code in ('400' , '401', '403', '404', '405', '409', '429', '500', '503'):
             responses.setdefault(code, {'description': 'Canonical error', 'content': {'application/json': {'schema': error.ref}}})
-            responses[code]['content']['application/json']['examples'] = {
-                'Error': error_example(view_name, self.method, code),
-            }
+            example = error_example(view_name, self.method, code)
+            if example is not None:
+                responses[code]['content']['application/json']['examples'] = {'Error': example}
         return responses

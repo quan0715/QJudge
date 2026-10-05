@@ -67,11 +67,13 @@ def error_example(view_name, method, status):
     field, details = None, {}
     if status == '400' and view_name == 'UserPreferencesView' and method == 'PATCH':
         field, message = 'preferences.editor_tab_size', '3 is not a valid choice.'
-    if view_name == 'ProviderLoginView' and method == 'POST' and status == '401':
+    elif view_name == 'ProviderLoginView' and method == 'POST' and status == '401':
         code, message = 'auth_001', '帳號或密碼錯誤'
-    if view_name in {'ProviderLoginView', 'OAuthCallbackView'} and method == 'POST' and status == '409':
+    elif view_name in {'ProviderLoginView', 'OAuthCallbackView'} and method == 'POST' and status == '409':
         code, message = 'active_exam_session_exists', '請回到原本的裝置完成考試後再登入。'
         details = {'active_exam': {'contest_id': '00000000-0000-4000-8000-000000000001',
             'contest_name': 'Example exam', 'participant_id': 1, 'exam_status': 'in_progress'}}
+    elif view_name != 'CurrentUserView' or method != 'GET':
+        return None
     return {'value': {'errors': [{'code': code, 'message': message, 'field': field, 'details': details}],
                      'meta': {'request_id': None, 'timestamp': '2026-10-05T00:00:00Z'}}}
