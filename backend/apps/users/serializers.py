@@ -141,6 +141,7 @@ class LoginSerializer(serializers.Serializer):
 class OAuthCallbackSerializer(serializers.Serializer):
     """Serializer for OAuth callback."""
     code = serializers.CharField(required=True)
+    state = serializers.CharField(required=True, max_length=128)
     redirect_uri = serializers.URLField(required=True)
     device_id = serializers.CharField(required=False, allow_blank=True, max_length=128)
 

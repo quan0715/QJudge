@@ -30,7 +30,9 @@ class TokenRefreshView(SchemaAPIView):
 
         try:
             refresh = RefreshToken(refresh_token)
-            access_token = str(refresh.access_token)
+            access = refresh.access_token
+            access['session_jti'] = str(refresh['jti'])
+            access_token = str(access)
             tokens = {"access": access_token, "refresh": str(refresh)}
             response = Response({'access_token': access_token})
             set_jwt_cookies(response, tokens)

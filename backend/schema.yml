@@ -672,38 +672,6 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/v1/ai/sessions/{id}/clear/:
-    post:
-      operationId: v1_ai_sessions_clear_create
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateSessionRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/CreateSessionRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/CreateSessionRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreateSession'
-          description: ''
   /api/v1/ai/sessions/{id}/context/:
     get:
       operationId: v1_ai_sessions_context_retrieve

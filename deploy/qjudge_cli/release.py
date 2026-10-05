@@ -23,7 +23,7 @@ HttpStatus = Callable[[str, str, str], int]
 Sleep = Callable[[float], None]
 
 DATABASES = ("online_judge", "qjudge_ai")
-APP_SERVICES = ("backend", "ai-service", "integrity-resident", "celery", "ai-worker", "integrity-reconciler")
+APP_SERVICES = ("backend", "ai-service", "qjudge-mcp", "integrity-resident", "celery", "ai-worker", "integrity-reconciler")
 MIGRATIONS = (
     ("backend", ("python", "manage.py", "migrate", "--noinput")),
     ("ai-service", ("sh", "-c", "python -m alembic upgrade head && python -m infrastructure.checkpoints.langgraph_store setup")),
@@ -176,6 +176,14 @@ class _Stack:
             return False
         return self.wait(lambda: self.app_ready(version), APP_TIMEOUT)
 
+    def restore(self, sha: str) -> bool:
+        version = _version(sha)
+        if not (self.checkout(sha) and self.judge_image() and self.start(version)):
+            print(f"Recovery failed: {version} is not healthy; inspect service logs")
+            return False
+        print(f"Restored {version}; services are healthy")
+        return True
+
     def backup(self, version: str, sha: str) -> bool:
         backups = self.deploy_dir / "backups"
         backups.mkdir(mode=0o700, exist_ok=True)
@@ -279,10 +287,7 @@ def upgrade(
     if not stack.start(version):
         print(f"{version} is not healthy")
         if current:
-            stack.checkout(current)
-            stack.judge_image()
-            stack.compose(_version(current), "up", "-d", "--remove-orphans")
-            print(f"Started {_version(current)} again")
+            stack.restore(current)
         else:
             stack.checkout(restore)
         stack.restore_hint()
@@ -316,8 +321,7 @@ def rollback(
     if not stack.start(version):
         current = recorded["current"]
         print(f"{version} is not healthy; starting {_version(current)} again")
-        stack.checkout(current)
-        stack.compose(_version(current), "up", "-d", "--remove-orphans")
+        stack.restore(current)
         return 1
     _write_version(deploy_dir, previous, recorded.get("current"))
     print(f"Rolled back to {version}")

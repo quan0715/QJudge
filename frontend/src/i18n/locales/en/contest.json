@@ -194,6 +194,8 @@
         "published": "Published"
       },
       "grading": {
+    "saveFailed": "Could not save the grade. Please try again.",
+    "ungradeFailed": "Could not remove the grade. Please try again.",
         "noAnswers": "No answer data yet",
         "noData": "No grading data yet"
       },

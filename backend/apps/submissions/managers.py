@@ -67,12 +67,23 @@ class SubmissionQuerySet(models.QuerySet):
             return queryset.none()
 
         if source_type == "contest":
+            from apps.contests.models import Contest
+
+            if not user or not user.is_authenticated:
+                return queryset.none()
             queryset = queryset.filter(source_type="contest")
             if contest_id:
-                return queryset.filter(contest_id=contest_id)
-            if is_privileged_user:
-                return queryset
-            return queryset.none()
+                queryset = queryset.filter(contest_id=contest_id)
+            managed = Contest.objects.visible_to(user=user, scope="manage")
+            visible = Contest.objects.visible_to(user=user)
+            return queryset.filter(
+                models.Q(contest__in=managed)
+                | (models.Q(contest__in=visible) & (
+                    models.Q(user=user)
+                    | models.Q(contest__scoreboard_visible_during_contest=True)
+                    | models.Q(contest__end_time__lt=timezone.now())
+                ))
+            )
 
         if user and user.is_authenticated:
             return queryset.filter(user=user)

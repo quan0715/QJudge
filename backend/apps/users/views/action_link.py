@@ -11,7 +11,6 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from apps.core.api.envelope import contract_error_response
-from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.classrooms.models import Classroom, ClassroomMember
 from apps.classrooms.serializers import ClassroomDetailSerializer
@@ -285,8 +284,7 @@ class ActionLinkRedeemView(SchemaAPIView):
 
         user.refresh_from_db()
         tokens = JWTService.generate_tokens(user)
-        access_jti = str(AccessToken(tokens["access"]).get("jti", ""))
-        record_login(user, request, login_method="teacher_activation", jti=access_jti)
+        record_login(user, request, login_method="teacher_activation", tokens=tokens)
         return token_cookie_response(
             user,
             tokens,

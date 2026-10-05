@@ -100,13 +100,13 @@ export const getOAuthUrl = async (provider: string, redirect?: string): Promise<
   return response?.data?.authorization_url || "";
 };
 
-export const oauthCallback = async (provider: string, code: string): Promise<AuthResponseDto> => {
+export const oauthCallback = async (provider: string, code: string, state: string): Promise<AuthResponseDto> => {
   const redirectUri =
     typeof window !== "undefined"
       ? `${window.location.origin}/auth/${provider}/callback`
       : `http://localhost:5173/auth/${provider}/callback`;
   return fetchEnvelope<AuthResponseDto["data"]>(
-    httpClient.post(`/api/v1/auth/callback/${provider}`, { code, redirect_uri: redirectUri }),
+    httpClient.post(`/api/v1/auth/callback/${provider}`, { code, state, redirect_uri: redirectUri }),
     "OAuth callback failed"
   );
 };

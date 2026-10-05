@@ -588,6 +588,9 @@ const chatbotRepository: ChatbotRepository = {
 
   async deleteSession(sessionId: string | number): Promise<void> {
     const response = await httpClient.delete(`${BASE_URL}/${sessionId.toString()}/`);
+    if (response.status === 409) {
+      throw new Error("請先停止對話中的工作，完成取消後再刪除對話");
+    }
     if (!response.ok) {
       throw new Error("無法刪除對話");
     }
@@ -597,20 +600,6 @@ const chatbotRepository: ChatbotRepository = {
     const data = await requestJson<BackendSession>(
       httpClient.post(`${BASE_URL}/${sessionId.toString()}/rename/`, { title }),
       "無法重新命名對話"
-    );
-    return {
-      id: data.session_id,
-      title: data.title,
-      messages: [],
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
-    };
-  },
-
-  async clearSession(sessionId: string | number): Promise<ChatSession> {
-    const data = await requestJson<BackendSession>(
-      httpClient.post(`${BASE_URL}/${sessionId.toString()}/clear/`, {}),
-      "無法清除對話"
     );
     return {
       id: data.session_id,

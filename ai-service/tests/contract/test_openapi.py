@@ -24,7 +24,6 @@ def test_openapi_contains_only_canonical_public_surfaces() -> None:
     required = {
         "/v1/sessions",
         "/v1/sessions/{session_id}",
-        "/v1/sessions/{session_id}/clear",
         "/v1/sessions/{session_id}/runs",
         "/v1/runs",
         "/v1/runs/{run_id}",

@@ -81,13 +81,13 @@ class CppIntegrationTests(TestCase):
     def test_unicode_output(self):
         code = '#include<iostream>\nint main(){std::cout<<"你好世界"<<std::endl;}'
         r = self.judge.execute(code, "", "你好世界", 1000, 128)
-        self.assertIn(r["status"], ["AC", "WA", "RE"])  # at least no crash
+        self.assertEqual(r["status"], "AC")
 
     def test_mle(self):
         # Try to allocate 300 MB while limit is 128 MB
         code = "#include<vector>\nint main(){std::vector<int>v(75000000,1);}"
         r = self.judge.execute(code, "", "", 3000, 128)
-        self.assertIn(r["status"], ["MLE", "RE", "SE"])
+        self.assertIn(r["status"], ["MLE", "RE"])
 
     def test_empty_input(self):
         code = '#include<iostream>\nint main(){std::cout<<"OK";}'
@@ -97,13 +97,13 @@ class CppIntegrationTests(TestCase):
     def test_large_output_truncated(self):
         code = '#include<iostream>\nint main(){for(int i=0;i<10000;i++)std::cout<<"AAAA"<<std::endl;}'
         r = self.judge.execute(code, "", "DUMMY", 3000, 128)
-        self.assertIn(r["status"], ["AC", "WA"])
+        self.assertEqual(r["status"], "WA")
         self.assertLessEqual(len(r["output"]), 1000)
 
     def test_fork_bomb_protection(self):
         code = "#include<unistd.h>\nint main(){while(1)fork();}"
         r = self.judge.execute(code, "", "", 2000, 128)
-        self.assertIn(r["status"], ["RE", "TLE", "SE"])
+        self.assertIn(r["status"], ["RE", "TLE"])
 
     def test_time_measured(self):
         code = "#include<unistd.h>\nint main(){sleep(1);}"
@@ -308,7 +308,7 @@ class IOJudgeMockTests(TestCase):
         judge = IOJudge("cpp")
         judge._client = SimpleNamespace(
             containers=SimpleNamespace(
-                run=lambda **_kwargs: (_ for _ in ()).throw(
+                create=lambda **_kwargs: (_ for _ in ()).throw(
                     docker.errors.APIError("docker-api-secret")
                 )
             )
@@ -323,7 +323,7 @@ class IOJudgeMockTests(TestCase):
         judge = IOJudge("cpp")
         judge._client = SimpleNamespace(
             containers=SimpleNamespace(
-                run=lambda **_kwargs: (_ for _ in ()).throw(
+                create=lambda **_kwargs: (_ for _ in ()).throw(
                     ValueError("container-runtime-secret")
                 )
             )

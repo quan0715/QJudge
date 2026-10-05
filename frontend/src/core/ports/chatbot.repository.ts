@@ -13,7 +13,6 @@ export interface ChatbotRepository {
   createBackendSession(): Promise<{ id: string; status: string }>;
   deleteSession(sessionId: string | number): Promise<void>;
   renameSession(sessionId: string | number, title: string): Promise<ChatSession>;
-  clearSession(sessionId: string | number): Promise<ChatSession>;
   startRun(
     sessionId: string | number,
     content: string,

@@ -36,7 +36,7 @@ def upsert_external_identity(
         defaults={
             "user_id": user_id,
             "email": identity.email or "",
-            "email_verified": True,
+            "email_verified": identity.email_verified,
             "profile_snapshot": identity.raw_profile,
             "last_login_at": timezone.now(),
         },

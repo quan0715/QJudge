@@ -26,6 +26,7 @@ import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons"
 import type { Classroom } from "@/core/entities/classroom.entity";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { useCopilotSessions } from "@copilot";
+import { useToast } from "@/shared/contexts/ToastContext";
 import { ChatHistoryPanel } from "@/features/chatbot/components/chat-ui/ChatHistoryPanel";
 import { useOptionalContest } from "@/features/contest/contexts";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
@@ -77,6 +78,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [, startTransition] = useTransition();
 
   const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
@@ -217,7 +219,10 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   const handleDeleteSession = useCallback(async (id: string) => {
     try {
       const result = await removeSession(id);
-      if (!result.ok) return;
+      if (!result.ok) {
+        showToast({ kind: "error", title: t("message.deleteFailed"), subtitle: result.error.message });
+        return;
+      }
       if (id === currentSessionId) {
         if (result.activeSessionId) {
           goToChatSession(result.activeSessionId, { replace: true });
@@ -226,9 +231,9 @@ export const SideMenu: React.FC<SideMenuProps> = ({
         }
       }
     } catch {
-      // silently ignore
+      showToast({ kind: "error", title: t("message.deleteFailed") });
     }
-  }, [removeSession, currentSessionId, goToChatSession, navigate]);
+  }, [removeSession, currentSessionId, goToChatSession, navigate, showToast, t]);
 
   const handleRenameSession = useCallback(async (id: string, title: string) => {
     try {

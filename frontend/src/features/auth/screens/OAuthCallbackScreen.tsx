@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { Button } from '@carbon/react';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +16,7 @@ const OAuthCallbackPage = () => {
   const { provider = 'nycu' } = useParams<{ provider: string }>();
   const [searchParams] = useSearchParams();
   const code = searchParams.get('code');
+  const oauthState = searchParams.get('state') || '';
   const errorParam = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
 
@@ -27,6 +28,7 @@ const OAuthCallbackPage = () => {
 
   const [state, setState] = useState<CallbackState>(initialError ? 'error' : 'loading');
   const [error, setError] = useState(initialError);
+  const callbackStarted = useRef(false);
 
   // Dynamic header metadata
   const metadata = useMemo(() => {
@@ -46,7 +48,8 @@ const OAuthCallbackPage = () => {
   useAuthLayoutMetadata(metadata);
 
   useEffect(() => {
-    if (initialError || !code) return;
+    if (initialError || !code || callbackStarted.current) return;
+    callbackStarted.current = true;
 
     // We want the animation to run for at least 2.5 seconds for better UX
     const startTime = Date.now();
@@ -54,7 +57,7 @@ const OAuthCallbackPage = () => {
 
     const handleCallback = async () => {
       try {
-        const response = await oauthCallback(provider, code);
+        const response = await oauthCallback(provider, code, oauthState);
 
         if (response.data) {
           notifyAuthSessionChanged();
@@ -70,18 +73,17 @@ const OAuthCallbackPage = () => {
           setError(t("auth.callback.failed", "登入失敗"));
           setState('error');
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error(err);
         setError(
-
-          t("auth.callback.failed", "登入失敗，請稍後再試")
+          err instanceof Error ? err.message : t("auth.callback.failed", "登入失敗，請稍後再試")
         );
         setState('error');
       }
     };
 
     handleCallback();
-  }, [code, initialError, provider, t]);
+  }, [code, oauthState, initialError, provider, t]);
 
   return (
     <div className="auth-form-wrapper">

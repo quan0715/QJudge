@@ -11,7 +11,6 @@ from types import SimpleNamespace
 import httpx
 import pytest
 
-os.environ.setdefault("AI_INTERNAL_TOKEN", "test-ai-internal-token")
 os.environ.setdefault("DEEPSEEK_API_KEY", "test-deepseek-key")
 
 _deepseek_stub = types.ModuleType("langchain_deepseek")

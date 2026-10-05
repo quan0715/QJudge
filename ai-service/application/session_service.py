@@ -19,6 +19,10 @@ class SessionNotFound(LookupError):
         super().__init__(f"Session {session_id} was not found")
 
 
+class SessionBusy(ValueError):
+    """Stop active and queued runs before deleting their session."""
+
+
 class SessionService:
     def __init__(
         self,
@@ -104,20 +108,15 @@ class SessionService:
                 raise SessionNotFound(session_id)
             return updated
 
-    async def clear_session(
-        self, principal: Principal, session_id: UUID
-    ) -> Session:
-        async with self._uow_factory() as uow:
-            session = await uow.sessions.clear_for_owner(principal, session_id)
-            if session is None:
-                raise SessionNotFound(session_id)
-        await self._checkpoints.delete_session(session_id)
-        return session
-
     async def delete_session(self, principal: Principal, session_id: UUID) -> None:
         async with self._uow_factory() as uow:
-            session = await uow.sessions.get_for_owner(principal, session_id)
+            session = await uow.sessions.get_for_update(principal, session_id)
             if session is None:
                 raise SessionNotFound(session_id)
+            if (
+                await uow.runs.has_blocking_run(session_id)
+                or await uow.runs.oldest_queued(session_id) is not None
+            ):
+                raise SessionBusy("Cancel active runs before deleting the session")
             await uow.sessions.delete(principal, session_id)
         await self._checkpoints.delete_session(session_id)
