@@ -27,7 +27,7 @@ from .services.objective_answer import objective_answer_error
 from .services.open_answer_document import validate_open_answer_document
 from .services.question_edit_lock import is_contest_question_edit_locked
 from .services.participation import is_contest_candidate, roster_user_ids
-from apps.users.serializers import UserSerializer
+from apps.users.serializers import EmbeddedUserSerializer
 
 LEGACY_CONTEST_ACCESS_FIELDS = {"requires_password", "password"}
 MAX_SUBJECTIVE_ANSWER_TEXT_BYTES = 32 * 1024
@@ -952,7 +952,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     """
     Serializer for contest participants (for standings/scoreboard).
     """
-    user = UserSerializer(read_only=True)
+    user = EmbeddedUserSerializer(read_only=True)
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
     display_name = serializers.SerializerMethodField()
@@ -1205,7 +1205,7 @@ class ContestAnnouncementSerializer(serializers.ModelSerializer):
     """
     Serializer for contest announcements.
     """
-    created_by = UserSerializer(read_only=True)
+    created_by = EmbeddedUserSerializer(read_only=True)
     
     class Meta:
         model = ContestAnnouncement

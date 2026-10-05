@@ -91,6 +91,17 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      id: 1
+                      purpose: teacher_activation
+                      status: pending
+                      email: teacher@example.test
+                      expires_at: '2026-10-06T00:00:00Z'
+                      action_link_url: https://judge.example.test/invite/example-token
+                    meta: {}
           description: ''
         '201':
           content:
@@ -106,6 +117,17 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      id: 1
+                      purpose: teacher_activation
+                      status: pending
+                      email: teacher@example.test
+                      expires_at: '2026-10-06T00:00:00Z'
+                      action_link_url: https://judge.example.test/invite/example-token
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -113,54 +135,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/action-links/{token}:
     get:
       operationId: v1_action_links_retrieve
@@ -192,6 +313,17 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      id: 1
+                      purpose: teacher_activation
+                      status: pending
+                      email: teacher@example.test
+                      expires_at: '2026-10-06T00:00:00Z'
+                      action_link_url: https://judge.example.test/invite/example-token
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -199,54 +331,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/action-links/{token}/redeem:
     post:
       operationId: v1_action_links_redeem_create
@@ -277,6 +508,32 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      access_token: <example-access-token>
+                      refresh_token: <example-refresh-token>
+                      expires_in: 900
+                      user:
+                        id: 1
+                        username: ada
+                        email: ada@example.test
+                        role: student
+                        auth_provider: email
+                        last_login_at: null
+                        onboarding_completed_at: null
+                        profile:
+                          display_name: Ada
+                          avatar_url: null
+                      action_link:
+                        id: 1
+                        purpose: teacher_activation
+                        status: pending
+                        email: teacher@example.test
+                        expires_at: '2026-10-06T00:00:00Z'
+                        action_link_url: https://judge.example.test/invite/example-token
+                    meta: {}
           description: ''
         '201':
           content:
@@ -292,6 +549,32 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      access_token: <example-access-token>
+                      refresh_token: <example-refresh-token>
+                      expires_in: 900
+                      user:
+                        id: 1
+                        username: ada
+                        email: ada@example.test
+                        role: student
+                        auth_provider: email
+                        last_login_at: null
+                        onboarding_completed_at: null
+                        profile:
+                          display_name: Ada
+                          avatar_url: null
+                      action_link:
+                        id: 1
+                        purpose: teacher_activation
+                        status: pending
+                        email: teacher@example.test
+                        expires_at: '2026-10-06T00:00:00Z'
+                        action_link_url: https://judge.example.test/invite/example-token
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -299,54 +582,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/ai/artifacts/:
     get:
       operationId: v1_ai_artifacts_list
@@ -826,6 +1208,25 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      access_token: <example-access-token>
+                      refresh_token: <example-refresh-token>
+                      expires_in: 900
+                      user:
+                        id: 1
+                        username: ada
+                        email: ada@example.test
+                        role: student
+                        auth_provider: email
+                        last_login_at: null
+                        onboarding_completed_at: null
+                        profile:
+                          display_name: Ada
+                          avatar_url: null
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -833,54 +1234,158 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: active_exam_session_exists
+                      message: 請回到原本的裝置完成考試後再登入。
+                      field: null
+                      details:
+                        active_exam:
+                          contest_id: 00000000-0000-4000-8000-000000000001
+                          contest_name: Example exam
+                          participant_id: 1
+                          exam_status: in_progress
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/auth/login/{provider}:
     get:
       operationId: v1_auth_login_retrieve
@@ -912,6 +1417,12 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      authorization_url: https://identity.example.test/authorize?state=example-state
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -919,54 +1430,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
     post:
       operationId: v1_auth_login_create
       description: GET/POST /api/v1/auth/login/<provider> dispatches by provider kind.
@@ -1009,6 +1619,25 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      access_token: <example-access-token>
+                      refresh_token: <example-refresh-token>
+                      expires_in: 900
+                      user:
+                        id: 1
+                        username: ada
+                        email: ada@example.test
+                        role: student
+                        auth_provider: email
+                        last_login_at: null
+                        onboarding_completed_at: null
+                        profile:
+                          display_name: Ada
+                          avatar_url: null
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -1016,54 +1645,158 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: auth_001
+                      message: 帳號或密碼錯誤
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: active_exam_session_exists
+                      message: 請回到原本的裝置完成考試後再登入。
+                      field: null
+                      details:
+                        active_exam:
+                          contest_id: 00000000-0000-4000-8000-000000000001
+                          contest_name: Example exam
+                          participant_id: 1
+                          exam_status: in_progress
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/auth/logout:
     post:
       operationId: v1_auth_logout_create
@@ -1091,6 +1824,11 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data: null
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -1098,54 +1836,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/auth/password/reset-requests:
     post:
       operationId: v1_auth_password_reset_requests_create
@@ -1184,6 +2021,11 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data: null
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -1191,54 +2033,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/auth/password/resets/{token}:
     post:
       operationId: v1_auth_password_resets_create
@@ -1283,6 +2224,11 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data: null
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -1290,54 +2236,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/auth/providers:
     get:
       operationId: v1_auth_providers_retrieve
@@ -1363,6 +2408,19 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      password_enabled: true
+                      password_reset_enabled: true
+                      providers:
+                      - key: password
+                        type: credentials
+                        category: password
+                        display_name: Password credentials
+                        display_name_i18n_key: auth.providers.password
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -1370,54 +2428,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/auth/refresh:
     post:
       operationId: v1_auth_refresh_create
@@ -1454,6 +2611,12 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      access_token: <example-access-token>
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -1461,54 +2624,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/auth/register/password:
     post:
       operationId: v1_auth_register_password_create
@@ -1546,6 +2808,25 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      access_token: <example-access-token>
+                      refresh_token: <example-refresh-token>
+                      expires_in: 900
+                      user:
+                        id: 1
+                        username: ada
+                        email: ada@example.test
+                        role: student
+                        auth_provider: email
+                        last_login_at: null
+                        onboarding_completed_at: null
+                        profile:
+                          display_name: Ada
+                          avatar_url: null
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -1553,54 +2834,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/auth/sessions:
     get:
       operationId: v1_auth_sessions_list
@@ -1627,6 +3007,18 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                    - id: 1
+                      device_id: example-device
+                      ip_address: 192.0.2.1
+                      user_agent: Example browser
+                      login_method: password
+                      created_at: '2026-10-05T00:00:00Z'
+                      is_current: true
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -1634,54 +3026,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/auth/sessions/logout-others:
     post:
       operationId: v1_auth_sessions_logout_others_create
@@ -1707,6 +3198,12 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      blacklisted_count: 1
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -1714,54 +3211,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/classrooms/:
     get:
       operationId: v1_classrooms_list
@@ -6094,54 +7690,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/users/:
     get:
       operationId: v1_users_list
@@ -6173,6 +7868,21 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                    - id: 1
+                      username: ada
+                      email: ada@example.test
+                      role: student
+                      auth_provider: email
+                      last_login_at: null
+                      onboarding_completed_at: null
+                      profile:
+                        display_name: Ada
+                        avatar_url: null
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -6180,54 +7890,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/users/{id}/role:
     patch:
       operationId: v1_users_role_partial_update
@@ -6272,6 +8081,21 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      id: 1
+                      username: ada
+                      email: ada@example.test
+                      role: teacher
+                      auth_provider: email
+                      last_login_at: null
+                      onboarding_completed_at: null
+                      profile:
+                        display_name: Ada
+                        avatar_url: null
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -6279,54 +8103,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/users/me:
     get:
       operationId: v1_users_me_retrieve
@@ -6354,6 +8277,21 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      id: 1
+                      username: ada
+                      email: ada@example.test
+                      role: student
+                      auth_provider: email
+                      last_login_at: null
+                      onboarding_completed_at: null
+                      profile:
+                        display_name: Ada
+                        avatar_url: null
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -6361,54 +8299,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
     patch:
       operationId: v1_users_me_partial_update
       description: Update current user profile.
@@ -6443,6 +8480,21 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      id: 1
+                      username: ada
+                      email: ada@example.test
+                      role: student
+                      auth_provider: email
+                      last_login_at: null
+                      onboarding_completed_at: null
+                      profile:
+                        display_name: Ada
+                        avatar_url: null
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -6450,54 +8502,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/users/me/avatar:
     post:
       operationId: v1_users_me_avatar_create
@@ -6532,6 +8683,15 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      avatar_url: https://judge.example.test/media/avatar.png
+                      content_type: image/png
+                      size: 1024
+                      alt: avatar
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -6539,54 +8699,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
   /api/v1/users/me/preferences:
     get:
       operationId: v1_users_me_preferences_retrieve
@@ -6611,6 +8870,20 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      profile:
+                        display_name: Ada
+                        avatar_url: null
+                      preferences:
+                        preferred_language: zh-TW
+                        preferred_theme: system
+                        editor_font_size: 14
+                        editor_tab_size: 4
+                      onboarding_completed_at: null
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -6618,54 +8891,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
     patch:
       operationId: v1_users_me_preferences_partial_update
       description: Update user preferences.
@@ -6700,6 +9072,20 @@ paths:
                   meta:
                     type: object
                     additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      profile:
+                        display_name: Ada
+                        avatar_url: null
+                      preferences:
+                        preferred_language: zh-TW
+                        preferred_theme: system
+                        editor_font_size: 14
+                        editor_tab_size: 4
+                      onboarding_completed_at: null
+                    meta: {}
           description: ''
         '400':
           description: Canonical error
@@ -6707,54 +9093,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: 3 is not a valid choice.
+                      field: preferences.editor_tab_size
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '401':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '403':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '404':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '405':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '409':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '429':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '500':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
         '503':
           description: Canonical error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
 components:
   schemas:
     AccessTokenObject:
@@ -7361,7 +9846,7 @@ components:
           title: 內容
         created_by:
           allOf:
-          - $ref: '#/components/schemas/UserObject'
+          - $ref: '#/components/schemas/EmbeddedUserObject'
           readOnly: true
         created_at:
           type: string
@@ -8081,6 +10566,196 @@ components:
       - code
       - language
       - problem
+    EditorTabSize929Enum:
+      enum:
+      - 2
+      - 4
+      type: integer
+      description: |-
+        * `2` - 2 spaces
+        * `4` - 4 spaces
+    EmbeddedUserObject:
+      type: object
+      description: Preserve non-users domain contracts independently of UserObject.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: 使用者名稱
+          description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: 電子信箱
+          maxLength: 254
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role6b2Enum'
+          title: 角色
+        auth_provider:
+          allOf:
+          - $ref: '#/components/schemas/AuthProviderEnum'
+          readOnly: true
+          title: 認證方式
+        is_active:
+          type: boolean
+          title: 有效
+          description: 指定使用者是否有效。請取消選擇而不是刪除帳號。
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 加入日期
+        last_login_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: 最後登入時間
+        profile:
+          allOf:
+          - $ref: '#/components/schemas/EmbeddedUserProfileObject'
+          readOnly: true
+      required:
+      - auth_provider
+      - date_joined
+      - email
+      - id
+      - last_login_at
+      - profile
+      - username
+    EmbeddedUserObjectRequest:
+      type: object
+      description: Preserve non-users domain contracts independently of UserObject.
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: 使用者名稱
+          description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: 電子信箱
+          maxLength: 254
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role6b2Enum'
+          title: 角色
+        is_active:
+          type: boolean
+          title: 有效
+          description: 指定使用者是否有效。請取消選擇而不是刪除帳號。
+      required:
+      - email
+      - username
+    EmbeddedUserProfileObject:
+      type: object
+      description: Existing profile shape used outside the users API.
+      properties:
+        solved_count:
+          type: integer
+          readOnly: true
+          title: 已解題數
+        submission_count:
+          type: integer
+          readOnly: true
+          title: 提交次數
+        accept_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          readOnly: true
+          title: 通過率
+        display_name:
+          type: string
+          title: 顯示名稱
+          maxLength: 50
+        avatar_url:
+          nullable: true
+          title: 頭像 URL
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 500
+          - type: string
+            maxLength: 0
+        preferred_language:
+          allOf:
+          - $ref: '#/components/schemas/PreferredLanguageEnum'
+          title: 偏好語言
+        preferred_theme:
+          allOf:
+          - $ref: '#/components/schemas/PreferredThemeEnum'
+          title: 偏好主題
+        editor_font_size:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 編輯器字體大小
+        editor_tab_size:
+          allOf:
+          - $ref: '#/components/schemas/EditorTabSize929Enum'
+          title: Tab 寬度
+          minimum: -2147483648
+          maximum: 2147483647
+        onboarding_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: 完成 onboarding 時間
+      required:
+      - accept_rate
+      - solved_count
+      - submission_count
+    EmbeddedUserProfileObjectRequest:
+      type: object
+      description: Existing profile shape used outside the users API.
+      properties:
+        display_name:
+          type: string
+          title: 顯示名稱
+          maxLength: 50
+        avatar_url:
+          nullable: true
+          title: 頭像 URL
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 500
+          - type: string
+            maxLength: 0
+        preferred_language:
+          allOf:
+          - $ref: '#/components/schemas/PreferredLanguageEnum'
+          title: 偏好語言
+        preferred_theme:
+          allOf:
+          - $ref: '#/components/schemas/PreferredThemeEnum'
+          title: 偏好主題
+        editor_font_size:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 編輯器字體大小
+        editor_tab_size:
+          allOf:
+          - $ref: '#/components/schemas/EditorTabSize929Enum'
+          title: Tab 寬度
+          minimum: -2147483648
+          maximum: 2147483647
+        onboarding_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: 完成 onboarding 時間
     EventTypeEnum:
       enum:
       - blur
@@ -9334,6 +12009,16 @@ components:
       - password
       - password_confirm
       - username
+    Role6b2Enum:
+      enum:
+      - student
+      - teacher
+      - admin
+      type: string
+      description: |-
+        * `student` - 學生
+        * `teacher` - 教師
+        * `admin` - 管理員
     ScreenEvent:
       type: object
       description: Serializer for screen events.
@@ -9411,7 +12096,7 @@ components:
           readOnly: true
         user:
           allOf:
-          - $ref: '#/components/schemas/UserObject'
+          - $ref: '#/components/schemas/EmbeddedUserObject'
           readOnly: true
         problem:
           allOf:
@@ -9705,7 +12390,7 @@ components:
           title: 電子信箱
         role:
           allOf:
-          - $ref: '#/components/schemas/UserObjectRoleEnum'
+          - $ref: '#/components/schemas/Role6b2Enum'
           readOnly: true
           title: 角色
         auth_provider:
@@ -9739,16 +12424,6 @@ components:
       - profile
       - role
       - username
-    UserObjectRoleEnum:
-      enum:
-      - student
-      - teacher
-      - admin
-      type: string
-      description: |-
-        * `student` - 學生
-        * `teacher` - 教師
-        * `admin` - 管理員
     UserPreferencesObject:
       type: object
       properties:
@@ -9767,18 +12442,10 @@ components:
           title: 編輯器字體大小
         editor_tab_size:
           allOf:
-          - $ref: '#/components/schemas/UserPreferencesObjectEditorTabSizeEnum'
+          - $ref: '#/components/schemas/EditorTabSize929Enum'
           title: Tab 寬度
           minimum: -2147483648
           maximum: 2147483647
-    UserPreferencesObjectEditorTabSizeEnum:
-      enum:
-      - 2
-      - 4
-      type: integer
-      description: |-
-        * `2` - 2 spaces
-        * `4` - 4 spaces
     UserPreferencesPatchEditorTabSizeEnum:
       enum:
       - 2
@@ -9813,13 +12480,6 @@ components:
           readOnly: true
       required:
       - avatar_url
-    UserProfileObjectRequest:
-      type: object
-      properties:
-        display_name:
-          type: string
-          title: 顯示名稱
-          maxLength: 50
     UserProfileUpdateRequest:
       type: object
       properties:

@@ -9,7 +9,7 @@ from apps.contests.services.participation import attempted_participants
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
 from apps.users.models import User
-from apps.users.serializers import UserSerializer
+from apps.users.serializers import EmbeddedUserSerializer
 
 ScoreboardMode = Literal["scoreboard", "export"]
 
@@ -87,7 +87,7 @@ class ScoreboardService:
             )
 
             stats[participant.user.id] = {
-                "user": UserSerializer(participant.user).data,
+                "user": EmbeddedUserSerializer(participant.user).data,
                 "display_name": display_name,
                 "solved": 0,
                 "joined_at": participant.joined_at,

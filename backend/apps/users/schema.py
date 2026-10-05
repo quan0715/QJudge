@@ -4,6 +4,7 @@ from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.utils import PolymorphicProxySerializer
 from drf_spectacular.plumbing import ResolvedComponent
 from .serializers import UserSerializer, UserSettingsSerializer, UserLoginRecordSerializer, CurrentUserUpdateSerializer
+from .schema_examples import error_example, success_example
 
 
 class AuthSessionObject(serializers.Serializer):
@@ -141,6 +142,7 @@ class UserContractSchema(AutoSchema):
 
     def _get_response_bodies(self, direction='response'):
         responses = super()._get_response_bodies(direction)
+        view_name = type(self.view).__name__
         for code, response in responses.items():
             if not code.startswith('2'):
                 continue
@@ -149,8 +151,14 @@ class UserContractSchema(AutoSchema):
                     'type': 'object', 'required': ['data', 'meta'],
                     'properties': {'data': content['schema'], 'meta': {'type': 'object', 'additionalProperties': True}},
                 }
+                example = success_example(view_name, self.method)
+                if example is not None:
+                    content['examples'] = {'Success': example}
         error = ResolvedComponent(name='ApiErrorObject', type=ResolvedComponent.SCHEMA, schema=ERROR_SCHEMA, object=UserContractSchema)
         self.registry.register_on_missing(error)
         for code in ('400' , '401', '403', '404', '405', '409', '429', '500', '503'):
             responses.setdefault(code, {'description': 'Canonical error', 'content': {'application/json': {'schema': error.ref}}})
+            responses[code]['content']['application/json']['examples'] = {
+                'Error': error_example(view_name, self.method, code),
+            }
         return responses

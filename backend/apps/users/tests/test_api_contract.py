@@ -82,3 +82,39 @@ def test_openapi_users_routes_document_wrapped_named_responses():
                     assert set(body['required']) == {'data', 'meta'}
                 else:
                     assert body == {'$ref': '#/components/schemas/ApiErrorObject'}
+
+
+def test_openapi_users_auth_examples_follow_the_runtime_envelope():
+    from django.urls import include, path
+    from drf_spectacular.generators import SchemaGenerator
+    schema = SchemaGenerator(patterns=[
+        path('api/v1/users/', include('apps.users.urls')),
+        path('api/v1/auth/', include('apps.users.auth_urls')),
+    ]).get_schema(public=True)
+
+    def example(route, method, status):
+        body = schema['paths'][route][method]['responses'][status]['content']['application/json']
+        assert body.get('examples'), (route, method, status)
+        return next(iter(body['examples'].values()))['value']
+
+    for route, method, status in [
+        ('/api/v1/users/me', 'get', '200'),
+        ('/api/v1/users/', 'get', '200'),
+        ('/api/v1/users/{id}/role', 'patch', '200'),
+        ('/api/v1/users/me/preferences', 'patch', '200'),
+        ('/api/v1/auth/providers', 'get', '200'),
+        ('/api/v1/auth/login/{provider}', 'post', '200'),
+    ]:
+        assert set(example(route, method, status)) == {'data', 'meta'}
+    assert example('/api/v1/auth/password/reset-requests', 'post', '202')['data'] is None
+    assert example('/api/v1/auth/logout', 'post', '200')['data'] is None
+    validation = example('/api/v1/users/me/preferences', 'patch', '400')
+    assert set(validation) == {'errors', 'meta'}
+    assert validation['errors'][0]['field'] == 'preferences.editor_tab_size'
+    credentials = example('/api/v1/auth/login/{provider}', 'post', '401')
+    assert credentials['errors'][0]['code'] == 'auth_001'
+    assert set(credentials['errors'][0]) == {'code', 'message', 'field', 'details'}
+    assert set(credentials['meta']) == {'request_id', 'timestamp'}
+    conflict = example('/api/v1/auth/login/{provider}', 'post', '409')
+    assert conflict['errors'][0]['code'] == 'active_exam_session_exists'
+    assert 'active_exam' in conflict['errors'][0]['details']

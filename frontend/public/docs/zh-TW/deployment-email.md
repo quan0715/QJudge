@@ -54,11 +54,9 @@ deploy/qjudge upgrade "$(sed -n 's/^current=//p' deploy/.version)"
 在同一個 repository 根目錄，先建立指向已部署版本與 project 的 Compose 指令：
 
 ```bash
-qjudge_project="$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' deploy/.env)"
 qjudge_image_version="sha-$(sed -n 's/^current=//p' deploy/.version | cut -c1-12)"
 qjudge_dc() {
   QJUDGE_VERSION="$qjudge_image_version" docker compose \
-    --project-name "${qjudge_project:-qjudge}" \
     --project-directory deploy --env-file deploy/.env \
     -f deploy/compose.yml -f deploy/compose.build.yml "$@"
 }

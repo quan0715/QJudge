@@ -33,6 +33,7 @@ import {
   updateUserRole,
 } from "@/infrastructure/api/repositories/user.repository";
 import type { ManagedUser } from "@/core/entities/auth.entity";
+import { EnvelopeError } from "@/infrastructure/api/envelope";
 import { useCopyText } from "@/shared/hooks";
 
 const UserManagementScreen = () => {
@@ -64,12 +65,8 @@ const UserManagementScreen = () => {
       } else {
         setError(t("user.management.loadFailed"));
       }
-    } catch (err: any) {
-      if (err.response?.data?.error?.message) {
-        setError(err.response.data.error.message);
-      } else {
-        setError(t("user.management.loadFailed"));
-      }
+    } catch (err: unknown) {
+      setError(err instanceof EnvelopeError ? err.message : t("user.management.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -106,12 +103,8 @@ const UserManagementScreen = () => {
       } else {
         setError(t("user.management.searchFailed"));
       }
-    } catch (err: any) {
-      if (err.response?.data?.error?.message) {
-        setError(err.response.data.error.message);
-      } else {
-        setError(t("user.management.searchFailedRetry"));
-      }
+    } catch (err: unknown) {
+      setError(err instanceof EnvelopeError ? err.message : t("user.management.searchFailedRetry"));
     } finally {
       setLoading(false);
     }
@@ -142,12 +135,8 @@ const UserManagementScreen = () => {
       } else {
         setError(t("user.management.updateFailed"));
       }
-    } catch (err: any) {
-      if (err.response?.data?.error?.message) {
-        setError(err.response.data.error.message);
-      } else {
-        setError(t("user.management.updateFailedRetry"));
-      }
+    } catch (err: unknown) {
+      setError(err instanceof EnvelopeError ? err.message : t("user.management.updateFailedRetry"));
     } finally {
       setUpdating(false);
     }
@@ -164,15 +153,10 @@ const UserManagementScreen = () => {
       setLatestInviteUrl(response.data.activation_url || response.data.action_link_url || "");
       setLatestInviteExpiresAt(response.data.expires_at || null);
       await loadAllUsers();
-    } catch (err: any) {
-      if (err.response?.data?.error?.message) {
-        setError(err.response.data.error.message);
-      } else {
-        setError(
-          err?.message ||
-            t("user.management.activationInvite.failed", "產生教師開通連結失敗")
-        );
-      }
+    } catch (err: unknown) {
+      setError(err instanceof Error && err.message
+        ? err.message
+        : t("user.management.activationInvite.failed", "產生教師開通連結失敗"));
     } finally {
       setIssuingInvite(false);
     }

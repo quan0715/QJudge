@@ -4,7 +4,7 @@ Serializers for submissions app.
 from rest_framework import serializers
 from .models import Submission, SubmissionResult, ScreenEvent
 from apps.problems.serializers import ProblemListSerializer
-from apps.users.serializers import UserSerializer
+from apps.users.serializers import EmbeddedUserSerializer
 
 
 def _get_total_test_cases(submission: Submission) -> int:
@@ -113,7 +113,7 @@ class SubmissionListSerializer(serializers.ModelSerializer):
 
 class SubmissionDetailSerializer(serializers.ModelSerializer):
     """Serializer for submission detail."""
-    user = UserSerializer(read_only=True)
+    user = EmbeddedUserSerializer(read_only=True)
     problem = ProblemListSerializer(read_only=True)
     results = SubmissionResultSerializer(many=True, read_only=True)
     screen_events = ScreenEventSerializer(many=True, read_only=True)

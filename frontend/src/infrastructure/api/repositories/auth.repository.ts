@@ -27,7 +27,7 @@ export const login = async (
   credentials: LoginCredentials
 ): Promise<AuthResponseDto> => {
   return fetchEnvelope<AuthResponseDto["data"]>(
-    httpClient.post("/api/v1/auth/login/password", credentials),
+    httpClient.post("/api/v1/auth/login/password", credentials, { allowUnauthenticated: true }),
     "Login failed"
   );
 };
