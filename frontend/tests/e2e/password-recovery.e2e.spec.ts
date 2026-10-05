@@ -40,6 +40,7 @@ test.describe("Password recovery", () => {
         await page.emulateMedia({ colorScheme });
         await page.goto("/forgot-password");
         await expect(page.locator("#reset-identifier")).toBeVisible();
+        await expect(page.getByRole("heading", { name: "忘記密碼", exact: true })).toBeVisible();
         await expect(page.locator("html")).toHaveAttribute("data-carbon-theme", colorScheme === "dark" ? "g100" : "white");
         await page.getByRole("button", { name: "寄送重設連結" }).scrollIntoViewIfNeeded();
         await expect(page.getByRole("button", { name: "寄送重設連結" })).toBeInViewport();
@@ -50,6 +51,7 @@ test.describe("Password recovery", () => {
         await page.goto(`/reset-password#token=${"a".repeat(43)}`);
         await expect(page.locator("#reset-password")).toBeVisible();
         await expect(page.locator("#reset-confirmation")).toBeVisible();
+        await expect(page.getByRole("heading", { name: "重設密碼", exact: true })).toBeVisible();
         await page.getByRole("button", { name: "儲存密碼" }).scrollIntoViewIfNeeded();
         await expect(page.getByRole("button", { name: "儲存密碼" })).toBeInViewport();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

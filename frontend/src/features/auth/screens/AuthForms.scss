@@ -185,3 +185,9 @@
   color: $support-error;
   @include type.type-style("label-01");
 }
+
+.auth-recovery-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-04 $spacing-05;
+}
