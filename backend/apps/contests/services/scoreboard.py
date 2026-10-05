@@ -123,6 +123,9 @@ class ScoreboardService:
             if problem_stats["status"] == "AC":
                 continue
 
+            if submission.status == "SE":
+                continue
+
             if submission.status in ["pending", "judging"]:
                 problem_stats["pending"] = True
                 continue

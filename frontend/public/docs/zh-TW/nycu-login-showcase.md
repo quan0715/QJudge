@@ -97,7 +97,6 @@ register_oauth_provider(
 | `get_authorization_url(redirect_uri, state)` | `BaseOAuthService` | 組出 IdP authorization URL |
 | `exchange_code(code, redirect_uri)` | `BaseOAuthService` / subclass | 用 callback code 換 access token，取得 userinfo |
 | `normalize_identity(oauth_data)` | `BaseOAuthService` | 把 provider callback data 轉成 `NormalizedQAuthIdentity` |
-| `provider_token_set(oauth_data)` | `BaseOAuthService` | 把 provider token 包成 `ProviderTokenSet`，供後續 service 使用 |
 | `_parse_user_info(raw)` | `NYCUOAuthService` | 把 NYCU userinfo 轉成統一 profile 欄位 |
 
 NYCU 的 `_parse_user_info()` 目前輸出：
@@ -108,7 +107,7 @@ NYCU 的 `_parse_user_info()` 目前輸出：
     "email": raw.get("email"),
     "oauth_id": raw.get("sub") or raw.get("id"),
     "avatar_url": extract_avatar_url(raw),
-    "email_verified": raw.get("email_verified", True),
+    "email_verified": raw.get("email_verified") is True,
 }
 ```
 
@@ -388,11 +387,10 @@ Callback 階段的核心 function：
 
 | Function | 核心功能 |
 | --- | --- |
-| `oauthCallback(provider, code)` | 前端 repository 呼叫後端 callback API |
+| `oauthCallback(provider, code, state)` | 前端 repository 呼叫後端 callback API |
 | `OAuthCallbackView.post()` | 驗證 callback payload，串起 provider service、account linking、JWT response |
 | `service.exchange_code()` | 用 code 向 NYCU token endpoint 換 token，再抓 userinfo |
 | `service.normalize_identity()` | 產生 `NormalizedQAuthIdentity` |
-| `service.provider_token_set()` | 產生 `ProviderTokenSet` |
 | `link_qauth_identity()` | 找或建立 QJudge `User`，並 upsert `ExternalIdentity` |
 | `build_conflict_response()` | 檢查考試中的多裝置接管狀態 |
 | `JWTService.generate_tokens()` | 產生 QJudge access/refresh token |
@@ -406,6 +404,7 @@ Callback 階段的核心 function：
 | `provider_key` | `nycu` | account linking 使用的 provider 值 |
 | `provider_subject` | `sub` 或 `id` | provider 內穩定使用者識別值 |
 | `email` | `email` | 同 email user 合併與 user projection email |
+| `email_verified` | 明確的 `true` | 允許用 email 建立或合併帳號；未提供時不視為已驗證 |
 | `username` | `username` | 建立新 QJudge user 時的 username 基礎 |
 | `display_name` | `name` 或 `username` | 顯示名稱候選值 |
 | `avatar_url` | provider avatar 欄位 | 同步 `UserProfile.avatar_url` |
@@ -415,8 +414,8 @@ Account linking 的順序：
 
 1. 用 `(provider_key, provider_subject)` 查 `ExternalIdentity`。
 2. 找到連結時，使用該 `ExternalIdentity.user`。
-3. 沒有連結但 identity 有 email 時，找同 email 的 QJudge `User`。
-4. 沒有同 email user 時，建立新的 QJudge `User` projection。
+3. 沒有連結時，要求 provider 提供已驗證的 email，再找同 email 的 QJudge `User`。
+4. 已驗證 email 沒有對應 user 時，建立新的 QJudge `User` projection。
 5. 同步 `User.auth_provider`、`User.oauth_id`、avatar 等 projection 欄位。
 6. Upsert `ExternalIdentity`，保存 profile snapshot 與最後登入時間。
 7. 產生 QJudge JWT cookie。

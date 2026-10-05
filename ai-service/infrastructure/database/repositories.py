@@ -234,31 +234,6 @@ class SqlAlchemySessionRepository:
             return None
         return _session_from_row(row, message_count=session.message_count)
 
-    async def clear_for_owner(
-        self, principal: Principal, session_id: UUID
-    ) -> Session | None:
-        row = await self._db_session.scalar(
-            select(SessionRow)
-            .where(
-                SessionRow.session_id == session_id,
-                SessionRow.owner_issuer == principal.issuer,
-                SessionRow.owner_subject == principal.subject,
-            )
-            .with_for_update()
-        )
-        if row is None:
-            return None
-
-        await self._db_session.execute(
-            delete(MessageRow).where(
-                MessageRow.session_id.in_(_owned_session_ids(principal, session_id))
-            )
-        )
-        row.next_message_ordinal = 1
-        await self._db_session.flush()
-        await self._db_session.refresh(row)
-        return _session_from_row(row, message_count=0)
-
     async def delete(self, principal: Principal, session_id: UUID) -> None:
         await self._db_session.execute(
             delete(SessionRow).where(
@@ -396,13 +371,13 @@ class SqlAlchemyRunRepository:
         return _run_from_row(row)
 
     async def has_blocking_run(
-        self, session_id: UUID, excluding: UUID
+        self, session_id: UUID, excluding: UUID | None = None
     ) -> bool:
         blocking = await self._session.scalar(
             select(RunRow.run_id)
             .where(
                 RunRow.session_id == session_id,
-                RunRow.run_id != excluding,
+                RunRow.run_id != excluding if excluding is not None else True,
                 RunRow.status.in_(
                     [status.value for status in ACTIVE_EXECUTION_STATUSES]
                 ),
@@ -583,11 +558,6 @@ class SqlAlchemyMessageRepository:
             )
         ).all()
         return [_message_from_row(row) for row in rows]
-
-    async def clear_for_session(self, session_id: UUID) -> None:
-        await self._session.execute(
-            delete(MessageRow).where(MessageRow.session_id == session_id)
-        )
 
     async def append_pair(
         self,

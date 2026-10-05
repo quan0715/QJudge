@@ -241,6 +241,12 @@ services:
   qjudge-mcp:
     image: qjudge/mcp:${QJUDGE_VERSION}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; r = httpx.get('http://127.0.0.1:9000/mcp', timeout=3); r.status_code == 401 or exit(1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
     environment:
       DJANGO_BASE_URL: http://backend:8000
       QJUDGE_PUBLIC_ORIGIN: ${QJUDGE_PUBLIC_ORIGIN}
@@ -261,8 +267,10 @@ services:
     ports:
       - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}:80"
     depends_on:
-      - backend
-      - qjudge-mcp
+      backend:
+        condition: service_healthy
+      qjudge-mcp:
+        condition: service_healthy
 
   cloudflared:
     image: cloudflare/cloudflared:2025.9.1

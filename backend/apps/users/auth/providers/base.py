@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 
 import requests
 
-from ..contracts import NormalizedQAuthIdentity, ProviderTokenSet
+from ..contracts import NormalizedQAuthIdentity
 from ..provider_connections import load_provider_connections, resolve_provider_credentials
 
 logger = logging.getLogger(__name__)
@@ -60,16 +60,12 @@ class BaseOAuthService(ABC):
             provider_key=cls.provider_key,
             provider_subject=oauth_id,
             email=user_info.get("email"),
+            email_verified=user_info.get("email_verified") is True,
             username=user_info.get("username") or "",
             display_name=user_info.get("name") or user_info.get("username") or "",
             avatar_url=oauth_avatar_url,
             raw_profile=user_info,
         )
-
-    @classmethod
-    def provider_token_set(cls, oauth_data: dict) -> ProviderTokenSet:
-        """Return transient provider tokens from callback data."""
-        return ProviderTokenSet(access_token=oauth_data.get("access_token", ""))
 
     @classmethod
     def _default_avatar_url(cls, user_info: dict) -> str:

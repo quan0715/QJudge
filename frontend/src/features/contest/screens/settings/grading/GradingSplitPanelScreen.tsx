@@ -28,12 +28,13 @@ import { isSubjectiveType } from "./gradingTypes";
 import { useTranslation } from "react-i18next";
 import { getSubmission } from "@/infrastructure/api/repositories/submission.repository";
 import type { SubmissionDetail } from "@/core/entities/submission.entity";
+import { useToast } from "@/shared/contexts/ToastContext";
 import styles from "./GradingPanel.module.scss";
 
 interface GradingSplitPanelScreenProps {
   answer: GradingAnswerRow | null;
-  onGrade: (answerId: string, score: number, feedback: string) => void;
-  onUngrade?: (answerId: string) => void;
+  onGrade: (answerId: string, score: number, feedback: string) => Promise<void>;
+  onUngrade?: (answerId: string) => Promise<void>;
   isFlagged?: boolean;
   onToggleFlag?: (answerId: string) => void;
   flowMode?: "byQuestion" | "byStudent";
@@ -65,9 +66,11 @@ export default function GradingSplitPanelScreen({
   const [score, setScore] = useState<number>(0);
   const [feedback, setFeedback] = useState("");
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { showToast } = useToast();
+  const activeAnswerId = useRef(answer?.id);
   const scoreInputBufferRef = useRef("");
   const scoreInputBufferTimerRef = useRef<number | null>(null);
-  const saveCooldownRef = useRef<number | null>(null);
   const saveLockedRef = useRef(false);
   const panelBodyRef = useRef<HTMLDivElement>(null);
   const [submissionDetail, setSubmissionDetail] =
@@ -133,26 +136,21 @@ export default function GradingSplitPanelScreen({
   // ── Lifecycle ──
 
   useEffect(() => {
+    activeAnswerId.current = answer?.id;
     if (answer) {
       setScore(answer.score ?? 0);
       setFeedback(answer.feedback ?? "");
       setSaved(false);
       scoreInputBufferRef.current = "";
     }
-    saveLockedRef.current = false;
-    if (saveCooldownRef.current !== null) {
-      window.clearTimeout(saveCooldownRef.current);
-      saveCooldownRef.current = null;
-    }
     panelBodyRef.current?.scrollTo?.({ top: 0, behavior: "smooth" });
   }, [answer?.id]);
 
   useEffect(() => {
     return () => {
+      activeAnswerId.current = undefined;
       if (scoreInputBufferTimerRef.current !== null)
         window.clearTimeout(scoreInputBufferTimerRef.current);
-      if (saveCooldownRef.current !== null)
-        window.clearTimeout(saveCooldownRef.current);
     };
   }, []);
 
@@ -254,6 +252,7 @@ export default function GradingSplitPanelScreen({
     if (!answer || !isSubjective) return;
     const handleScoreKeyboardShortcut = (event: KeyboardEvent) => {
       if (
+        saveLockedRef.current ||
         event.defaultPrevented ||
         event.metaKey ||
         event.ctrlKey ||
@@ -320,22 +319,25 @@ export default function GradingSplitPanelScreen({
 
   // ── Save / Next ──
 
-  const doSave = useCallback((): boolean => {
-    if (!answer || !isSubjective) return false;
-    if (saveLockedRef.current) return false;
+  const doSave = useCallback(async (): Promise<boolean> => {
+    if (!answer || !isSubjective || saveLockedRef.current) return false;
     saveLockedRef.current = true;
-    if (saveCooldownRef.current !== null)
-      window.clearTimeout(saveCooldownRef.current);
-    saveCooldownRef.current = window.setTimeout(() => {
+    setSaving(true);
+    setSaved(false);
+    try {
+      await onGrade(answer.id, score, feedback);
+      return activeAnswerId.current === answer.id;
+    } catch {
+      showToast({ kind: "error", title: t("grading.saveFailed", "儲存評分失敗，請重試") });
+      return false;
+    } finally {
       saveLockedRef.current = false;
-      saveCooldownRef.current = null;
-    }, 350);
-    onGrade(answer.id, score, feedback);
-    return true;
-  }, [answer, feedback, isSubjective, onGrade, score]);
+      setSaving(false);
+    }
+  }, [answer, feedback, isSubjective, onGrade, score, showToast, t]);
 
-  const handleSaveAndNext = useCallback(() => {
-    if (!doSave()) return;
+  const handleSaveAndNext = useCallback(async () => {
+    if (!(await doSave())) return;
     if (hasNextQuestion || hasNextStudent) {
       goNext();
       return;
@@ -343,10 +345,28 @@ export default function GradingSplitPanelScreen({
     setSaved(true);
   }, [doSave, goNext, hasNextQuestion, hasNextStudent]);
 
-  const handleSaveOnly = useCallback(() => {
-    if (!doSave()) return;
-    setSaved(true);
+  const handleSaveOnly = useCallback(async () => {
+    if (await doSave()) setSaved(true);
   }, [doSave]);
+
+  const handleUngrade = async () => {
+    if (!answer || !onUngrade || saveLockedRef.current) return;
+    saveLockedRef.current = true;
+    setSaving(true);
+    try {
+      await onUngrade(answer.id);
+      if (activeAnswerId.current === answer.id) {
+        setScore(0);
+        setFeedback("");
+        setSaved(false);
+      }
+    } catch {
+      showToast({ kind: "error", title: t("grading.ungradeFailed", "撤回批改失敗，請重試") });
+    } finally {
+      saveLockedRef.current = false;
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (!answer) return;
@@ -572,7 +592,7 @@ export default function GradingSplitPanelScreen({
                   value={score}
                   max={maxScore}
                   step={scoreStep}
-                  disabled={!isSubjective}
+                  disabled={!isSubjective || saving}
                   onChange={updateScore}
                 />
               </div>
@@ -590,7 +610,7 @@ export default function GradingSplitPanelScreen({
                 id="panel-feedback"
                 labelText={t("grading.feedback", "評語（選填）")}
                 value={feedback}
-                disabled={!isSubjective}
+                disabled={!isSubjective || saving}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                   setFeedback(e.target.value);
                   setSaved(false);
@@ -610,7 +630,8 @@ export default function GradingSplitPanelScreen({
                 kind="danger--ghost"
                 size="lg"
                 renderIcon={Undo}
-                onClick={() => onUngrade(answer.id)}
+                disabled={saving}
+                onClick={handleUngrade}
               >
                 {t("grading.ungrade", "撤回批改")}
               </Button>
@@ -620,6 +641,7 @@ export default function GradingSplitPanelScreen({
                 kind="secondary"
                 size="lg"
                 renderIcon={ArrowRight}
+                disabled={saving}
                 onClick={onNextQuestion}
               >
                 {t("grading.nextQuestion", "下一題")}
@@ -630,6 +652,7 @@ export default function GradingSplitPanelScreen({
                 kind="secondary"
                 size="lg"
                 renderIcon={UserFollow}
+                disabled={saving}
                 onClick={onNextStudent}
               >
                 {t("grading.nextStudent", "下一位學生")}
@@ -643,6 +666,7 @@ export default function GradingSplitPanelScreen({
                 size="lg"
                 renderIcon={Save}
                 data-testid="grading-save-score-btn"
+                disabled={saving}
                 onClick={handleSaveOnly}
               >
                 {saved
@@ -655,6 +679,7 @@ export default function GradingSplitPanelScreen({
                   kind="primary"
                   size="lg"
                   renderIcon={Checkmark}
+                  disabled={saving}
                   onClick={handleSaveAndNext}
                 >
                   {flowMode === "byQuestion"

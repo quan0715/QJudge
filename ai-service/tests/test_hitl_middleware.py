@@ -13,7 +13,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-os.environ.setdefault("AI_INTERNAL_TOKEN", "test-ai-internal-token")
 os.environ.setdefault("DEEPSEEK_API_KEY", "test-deepseek-key")
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage  # noqa: E402

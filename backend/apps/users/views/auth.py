@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import secrets
+import time
 
 from django.conf import settings
 from django.utils.decorators import method_decorator
@@ -14,8 +15,6 @@ from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from apps.core.api.envelope import contract_error_response
-
-from rest_framework_simplejwt.tokens import AccessToken
 
 from ..auth.account_linking import link_qauth_identity
 from ..auth.options import get_auth_options, is_password_auth_enabled
@@ -94,8 +93,7 @@ def _password_provider_login(request):
         return conflict_response
 
     tokens = JWTService.generate_tokens(user)
-    access_jti = str(AccessToken(tokens["access"]).get("jti", ""))
-    record_login(user, request, login_method="password", jti=access_jti)
+    record_login(user, request, login_method="password", tokens=tokens)
     return token_cookie_response(user, tokens)
 
 
@@ -201,6 +199,7 @@ class ProviderLoginView(SchemaAPIView):
         except OAuthProviderConfigurationError:
             logger.error("OAuth provider is not configured provider=%s", provider)
             return contract_error_response(request, 'OAUTH_PROVIDER_NOT_CONFIGURED', f'OAuth provider is not configured: {provider}', status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        request.session[f"oauth_state:{provider}"] = {"value": state, "issued_at": time.time()}
         return Response({'authorization_url': auth_url})
 
     @extend_schema(request=LoginSerializer)
@@ -232,22 +231,26 @@ class OAuthCallbackView(SchemaAPIView):
         if not serializer.is_valid():
             return validation_error_response(request, "OAuth 參數驗證失敗", serializer.errors)
 
+        expected = request.session.pop(f"oauth_state:{provider}", None)
+        if (not expected or time.time() - expected["issued_at"] > 600
+                or not secrets.compare_digest(expected["value"], serializer.validated_data["state"])):
+            return contract_error_response(
+                request, "OAUTH_STATE_INVALID", "登入請求已失效，請重新登入",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             oauth_data = service.exchange_code(
                 code=serializer.validated_data["code"],
                 redirect_uri=serializer.validated_data["redirect_uri"],
             )
-            user = link_qauth_identity(
-                service.normalize_identity(oauth_data),
-                service.provider_token_set(oauth_data),
-            )
+            user = link_qauth_identity(service.normalize_identity(oauth_data))
             conflict_response = build_active_exam_login_block_response(user, request, provider="oauth")
             if conflict_response is not None:
                 return conflict_response
 
             tokens = JWTService.generate_tokens(user)
-            access_jti = str(AccessToken(tokens["access"]).get("jti", ""))
-            record_login(user, request, login_method=provider, jti=access_jti)
+            record_login(user, request, login_method=provider, tokens=tokens)
             return token_cookie_response(user, tokens)
         except OAuthProviderConfigurationError:
             logger.error("OAuth provider is not configured provider=%s", provider)

@@ -139,13 +139,27 @@ class EnhancedAuthTests(APITestCase):
         self.assertEqual(response.json()['data']['authorization_url'], "http://oauth.com/auth")
 
     @patch('apps.users.views.auth.get_oauth_service')
+    def test_oauth_callback_requires_session_state_with_contract_error(self, mock_get_service):
+        response = self.client.post(
+            reverse('auth:oauth-callback', kwargs={'provider': 'github'}),
+            {'code': 'valid_code', 'state': 'unsolicited', 'redirect_uri': 'http://localhost'},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(set(response.json()), {'errors', 'meta'})
+        self.assertEqual(response.json()['errors'][0]['code'], 'oauth_state_invalid')
+        mock_get_service.return_value.exchange_code.assert_not_called()
+
+    @patch('apps.users.views.auth.get_oauth_service')
     def test_oauth_callback_exception(self, mock_get_service):
         """Test OAuth callback error handling"""
         mock_service = mock_get_service.return_value
         mock_service.exchange_code.side_effect = Exception("OAuth error")
+        mock_service.get_authorization_url.return_value = "http://oauth.com/auth"
+        self.client.get(reverse('auth:provider-login', kwargs={'provider': 'github'}))
+        state = self.client.session['oauth_state:github']['value']
         
         url = reverse('auth:oauth-callback', kwargs={'provider': 'github'})
-        response = self.client.post(url, {'code': 'valid_code', 'redirect_uri': 'http://localhost'})
+        response = self.client.post(url, {'code': 'valid_code', 'state': state, 'redirect_uri': 'http://localhost'})
         
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(response.json()["errors"][0]['code'], 'auth_003')

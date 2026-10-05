@@ -86,14 +86,3 @@ async def delete_session(
 ) -> Response:
     await service.delete_session(principal, session_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@router.post("/sessions/{session_id}/clear", response_model=SessionResponse)
-async def clear_session(
-    session_id: UUID,
-    principal: Annotated[Principal, Depends(current_principal)],
-    service: Annotated[Any, Depends(get_session_service)],
-) -> SessionResponse:
-    return SessionResponse.from_domain(
-        await service.clear_session(principal, session_id)
-    )

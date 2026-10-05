@@ -4,6 +4,7 @@ from rest_framework import generics, serializers, status
 from rest_framework.response import Response
 from apps.core.api.envelope import contract_error_response, contract_validation_error_response
 from apps.core.api.renderer import ContractJSONRenderer
+from rest_framework_simplejwt.tokens import AccessToken
 
 from ..schema import UserContractSchema
 
@@ -15,6 +16,7 @@ from apps.contests.services.activity_log import log_contest_activity
 from apps.contests.services.anti_cheat_session import (
     find_exam_conflict,
     get_device_id,
+    renew_exam_login,
 )
 
 class SchemaAPIView(generics.GenericAPIView):
@@ -52,12 +54,14 @@ def token_cookie_response(
     return response
 
 
-def record_login(user, request, login_method: str, jti: str = "") -> UserLoginRecord:
+def record_login(user, request, login_method: str, tokens: dict) -> UserLoginRecord:
     """Create a UserLoginRecord for the given login event."""
     from apps.contests.services.anti_cheat_session import get_client_ip
     device_id = get_device_id(request)
     ip = get_client_ip(request)
     ua = request.META.get("HTTP_USER_AGENT", "")[:512]
+    access = AccessToken(tokens["access"])
+    renew_exam_login(user.id, device_id, access["session_jti"])
 
     # Mark all previous records for this user as not current
     UserLoginRecord.objects.filter(user=user, is_current=True).update(is_current=False)
@@ -68,7 +72,7 @@ def record_login(user, request, login_method: str, jti: str = "") -> UserLoginRe
         ip_address=ip or "0.0.0.0",
         user_agent=ua,
         login_method=login_method,
-        jti=jti,
+        jti=str(access["jti"]),
         is_current=True,
     )
 

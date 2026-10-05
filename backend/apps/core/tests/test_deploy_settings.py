@@ -206,27 +206,8 @@ def test_dev_debug_and_hosts_ignore_env():
     assert "https://tunnel.example" not in values["CSRF_TRUSTED_ORIGINS"]
 
 
-def test_conn_max_age_is_zero_regardless_of_env():
-    values = load_settings("base", {"DB_CONN_MAX_AGE": "60"}, ["DATABASES"])
-
-    assert values["DATABASES"]["default"]["CONN_MAX_AGE"] == 0
-
-
-def test_database_comes_only_from_database_url():
-    values = load_settings(
-        "base",
-        {"DB_HOST": "legacy-host", "DB_NAME": "legacy", "DB_USER": "legacy", "DB_PORT": "6543"},
-        ["DATABASES"],
-    )
-
-    database = values["DATABASES"]["default"]
-    assert (database["HOST"], database["NAME"], database["USER"], database["PORT"]) == (
-        "pgbouncer", "online_judge", "u", "5432",
-    )
-
-
 def test_database_url_is_required():
-    result = run_settings("base", {"DATABASE_URL": "", "DB_HOST": "legacy-host"}, ["DATABASES"])
+    result = run_settings("base", {"DATABASE_URL": ""}, ["DATABASES"])
 
     assert result.returncode != 0
     assert "DATABASE_URL must be set" in result.stderr

@@ -185,15 +185,6 @@ class SessionViewSet(viewsets.ViewSet):
             json_body={"title": title},
         )
 
-    @action(detail=True, methods=["post"])
-    def clear(self, request, pk=None):
-        return _proxy_json(
-            request,
-            method="POST",
-            path=f"/v1/sessions/{pk}/clear",
-            json_body={},
-        )
-
     @action(detail=True, methods=["get"])
     def context(self, request, pk=None):
         return _proxy_json(

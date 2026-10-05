@@ -27,13 +27,15 @@ class JWTService:
     def generate_tokens(user):
         """Generate access and refresh tokens for user."""
         refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+        access['session_jti'] = str(refresh['jti'])
         
         # Update last login time
         user.last_login_at = timezone.now()
         user.save(update_fields=['last_login_at'])
         
         return {
-            'access': str(refresh.access_token),
+            'access': str(access),
             'refresh': str(refresh),
             'expires_in': int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
         }
@@ -69,7 +71,6 @@ class EmailAuthService:
             # Check if input is email or username
             user = User.objects.get(
                 Q(email=identifier) | Q(username=identifier),
-                auth_provider='email'
             )
         except User.DoesNotExist:
             return None
