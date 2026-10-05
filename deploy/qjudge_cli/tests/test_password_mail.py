@@ -33,7 +33,8 @@ class PasswordMailTests(unittest.TestCase):
         for sender in ('noreply@mail.q-judge.com', 'QJudge <noreply@mail.q-judge.com>', '"QJudge, NYCU" <noreply@nycu.edu.tw>'):
             self.assertEqual(self.sender_errors(sender), [], sender)
         for sender in ('bad', 'not valid <sender@mail.q-judge.com', 'sender@mail.q-judge.com garbage',
-                       'QJudge <noreply@example.com>', 'noreply@localhost', 'a <b@c.d> <e@f.g>'):
+                       'QJudge <noreply@example.com>', 'noreply@localhost', 'a <b@c.d> <e@f.g>',
+                       'a,b@mail.example.edu', 'QJudge, NYCU <noreply@nycu.edu.tw>', 'x@y..com'):
             self.assertTrue(self.sender_errors(sender), sender)
 
     def test_unused_sender_does_not_block_disabled_mail(self):
