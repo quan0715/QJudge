@@ -198,6 +198,8 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
       headers: teacherHeaders, data: { user_id: Number(studentId) },
     }));
     await gotoExamAnsweringThroughPrecheck(student, contestId);
+    // A transient solve URL is not admission if a stale snapshot clears the gate.
+    await expect(input).toBeVisible();
     await expect.poll(async () => (await studentEvents()).some((event) =>
       event.event_type === "exam_entered" && !previousEventIds.has(event.id)), { timeout: 45_000 }).toBe(true);
     await expect.poll(() => getContestExamStatus(student, contestId)).toBe("in_progress");

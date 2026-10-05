@@ -26,7 +26,7 @@ export function useContestLayoutState() {
 
   const [loadedContest, setContest] = useState<ContestDetail | null>(null);
   const runtime = useExamRuntimeState(loadedContest?.hasJoined ? contestId : undefined);
-  const contest = useMemo(() => mergeExamRuntimeState(loadedContest, runtime.state), [loadedContest, runtime.state]);
+  const contest = useMemo(() => mergeExamRuntimeState(loadedContest, runtime.state, runtime.confirmedStatus), [loadedContest, runtime.state, runtime.confirmedStatus]);
   const [contestLoading, setContestLoading] = useState(true);
   const [contestNotFound, setContestNotFound] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
