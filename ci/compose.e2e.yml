@@ -24,6 +24,7 @@ x-fake-ai-service: &fake_ai_service
 x-django-test: &django_test
   environment:
     DJANGO_SETTINGS_MODULE: config.settings.e2e
+    EMAIL_MODE: external
     CELERY_TASK_ALWAYS_EAGER: "false"
 
 services:

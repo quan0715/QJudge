@@ -1,6 +1,7 @@
 """Public authentication option metadata for frontend rendering."""
 
 from django.conf import settings
+from apps.core.services.mail import mail_enabled
 
 from .provider_registry import get_oauth_provider_options
 
@@ -29,7 +30,7 @@ def get_auth_options() -> dict:
 
     return {
         "password_enabled": password_enabled,
-        "password_reset_enabled": password_enabled and settings.PASSWORD_RESET_ENABLED,
+        "password_reset_enabled": password_enabled and mail_enabled(),
         "providers": providers,
     }
 

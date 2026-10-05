@@ -4,6 +4,7 @@ Base settings shared across all environments.
 """
 
 import os
+from django.core.exceptions import ImproperlyConfigured
 from config.env import env
 from pathlib import Path
 from datetime import timedelta
@@ -312,7 +313,9 @@ CACHE_KEYS = {
 # Email defaults (provider-agnostic; EMAIL_BACKEND set per environment)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "noreply@example.com")
 EMAIL_SUBJECT_PREFIX = "[QJudge] "
-PASSWORD_RESET_ENABLED = env("PASSWORD_RESET_ENABLED", "False").lower() in {"1", "true", "yes", "on"}
+EMAIL_MODE = env("EMAIL_MODE", "disabled")
+if EMAIL_MODE not in {"disabled", "external"}:
+    raise ImproperlyConfigured("EMAIL_MODE must be disabled or external")
 
 # Celery settings
 CELERY_BROKER_URL = env("REDIS_URL", "redis://localhost:6379/0")

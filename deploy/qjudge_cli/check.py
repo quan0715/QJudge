@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 from .schema import KEYS, KEYS_BY_NAME, Env, uses_public_origin
 
 ENUMS = {
+    "EMAIL_MODE": ("disabled", "external"),
     "STORAGE_MODE": ("bundled", "external"),
     "MEDIA_MODE": ("disabled", "bundled", "external"),
 }
@@ -39,7 +40,9 @@ def check_env(env: Env) -> list[str]:
     """Return one message per problem; an empty list means the env is valid."""
     errors: list[str] = []
     for name in sorted(set(env) - set(KEYS_BY_NAME)):
-        if name in MOVED_AI_KEYS:
+        if name == "PASSWORD_RESET_ENABLED":
+            errors.append(f"{name}: removed; delete this key and set EMAIL_MODE=disabled or external")
+        elif name in MOVED_AI_KEYS:
             errors.append(
                 f"{name}: moved; put API keys in deploy/ai/keys.env and base URLs in deploy/ai/models.yml"
             )
@@ -63,7 +66,7 @@ def check_env(env: Env) -> list[str]:
 
 
 def _value_problem(name: str, value: str, env: Env) -> str | None:
-    if name in {"PASSWORD_RESET_ENABLED", "EMAIL_USE_TLS", "EMAIL_USE_SSL"}:
+    if name in {"EMAIL_USE_TLS", "EMAIL_USE_SSL"}:
         if value.lower() not in {"true", "false", "1", "0", "yes", "no", "on", "off"}:
             return "must be a boolean"
     if name in {"EMAIL_PORT", "EMAIL_TIMEOUT"}:

@@ -23,7 +23,7 @@ PASSWORD = 'AnEntirelyNewPassword93!'
 @pytest.fixture(autouse=True)
 def recovery_settings(settings):
     settings.CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache", "LOCATION": "password-reset-tests"}}
-    settings.PASSWORD_RESET_ENABLED = True
+    settings.EMAIL_MODE = 'external'
     settings.AUTH_EMAIL_PASSWORD_ENABLED = True
     settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
     cache.clear()
@@ -137,7 +137,7 @@ def test_rate_limits_identifier_across_ips_and_ip_across_identifiers():
 
 
 def test_feature_disabled_does_not_queue_mail(settings):
-    settings.PASSWORD_RESET_ENABLED = False
+    settings.EMAIL_MODE = 'disabled'
     with patch('apps.users.views.password_reset.deliver_password_reset.delay') as enqueue:
         response = APIClient().post(REQUEST_URL, {'identifier': 'someone@example.test'}, format='json')
         assert response.status_code == 202
@@ -195,9 +195,9 @@ def test_request_to_eager_worker_delivers_locmem_mail_by_username(user, settings
     assert PasswordResetToken.objects.filter(user=user, consumed_at__isnull=True).count() == 1
 
 
-@pytest.mark.parametrize('password_enabled,reset_flag,expected', [(True, True, True), (True, False, False), (False, True, False)])
-def test_public_provider_options_advertise_configured_recovery(settings, password_enabled, reset_flag, expected):
+@pytest.mark.parametrize('password_enabled,email_mode,expected', [(True, 'external', True), (True, 'disabled', False), (False, 'external', False), (False, 'disabled', False)])
+def test_public_provider_options_advertise_configured_recovery(settings, password_enabled, email_mode, expected):
     from apps.users.auth.options import get_auth_options
     settings.AUTH_EMAIL_PASSWORD_ENABLED = password_enabled
-    settings.PASSWORD_RESET_ENABLED = reset_flag
+    settings.EMAIL_MODE = email_mode
     assert get_auth_options()['password_reset_enabled'] is expected

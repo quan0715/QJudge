@@ -19,6 +19,7 @@
       "classroom-roster": "学生名簿を管理",
       "classroom-setup": "クラスルームを作成",
       "deployment": "1台のホストからデプロイ",
+      "deployment-email": "メール送信の設定",
       "deployment-live-monitoring": "セルフホスト型ライブ監視をデプロイ",
       "deployment-options": "オプション機能を追加",
       "deployment-storage": "ファイルストレージを準備",

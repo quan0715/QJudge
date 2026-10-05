@@ -12,51 +12,43 @@ Tokens contain 256 bits of randomness, last 15 minutes, and are stored only as S
 
 Links use `/reset-password#token=...` so the secret is absent from the initial page request and referrer. The shipped nginx reset API location suppresses raw token URI logs; Django request logs redact it. Daphne's duplicate access log is disabled because it bypasses Django's filters. The Auth CI probe checks both container logs for a synthetic reset token and confirms ordinary access requests are still logged. If adding another reverse proxy or request tracing service, redact `/api/v1/auth/password/resets/*` there too. Never log request bodies for these endpoints.
 
-## Production configuration
+## Platform mail capability and deployment
 
-Use a dedicated sender on a verified QJudge domain. For this installation the intended sender is **QJudge <noreply@mail.q-judge.com>**. A sender address does not itself provide a mail service: first register and verify the domain with the chosen transactional email provider, add its DNS verification/DKIM/SPF records, and provision SMTP credentials. Keep existing domain mail records intact.
+`EMAIL_MODE` is the shared platform mail switch: unset or `disabled` keeps
+application mail off; `external` enables configured SMTP. Invalid modes fail
+settings startup and deployment validation. `apps.core.services.mail.mail_enabled()`
+uses the supported mode explicitly. Password recovery additionally requires
+`AUTH_EMAIL_PASSWORD_ENABLED`; `/api/v1/auth/providers.password_reset_enabled`
+is derived from both capabilities, preserving the frontend API contract.
 
-Set these keys in the deployment secret/environment file (never commit credentials):
+`PASSWORD_RESET_ENABLED` has been removed. Delete it from the deployment env
+and choose `EMAIL_MODE=disabled` or `external`; the CLI returns an actionable
+migration error rather than silently mapping the old setting.
 
-```dotenv
-PASSWORD_RESET_ENABLED=false
-EMAIL_HOST=<provider SMTP hostname>
-EMAIL_PORT=587
-EMAIL_USE_TLS=true
-EMAIL_USE_SSL=false
-EMAIL_TIMEOUT=10
-EMAIL_HOST_USER=<provider SMTP username>
-EMAIL_HOST_PASSWORD=<provider SMTP credential>
-DEFAULT_FROM_EMAIL=QJudge <noreply@mail.q-judge.com>
-```
+The public operator guides are [Traditional Chinese](../../frontend/public/docs/zh-TW/deployment-email.md)
+and [English](../../frontend/public/docs/en/deployment-email.md), served at
+`/docs/deployment-email`. They cover SMTP and sender preparation, operator-only
+credential entry, configuration with mail disabled, a manual celery
+`sendtestemail` probe, enablement, disabling and troubleshooting. The probe
+bypasses the application mail gate deliberately. Both backend and celery receive
+`EMAIL_MODE` and the same SMTP settings. Environment changes require container
+recreation, not a simple restart.
 
-For providers requiring port 465, set `EMAIL_USE_TLS=false` and `EMAIL_USE_SSL=true`. Never enable both modes. The deployment CLI requires a host and explicit sender when recovery is enabled, validates port/timeout/TLS values, and treats the SMTP password as a secret. `QJUDGE_PUBLIC_ORIGIN` determines the frontend link origin.
+Development uses Django's console email backend; unit tests use the in-memory
+backend. Set `EMAIL_MODE=external` to exercise recovery in development without
+provider credentials. CI E2E selects external mode and uses Mailpit rather than
+an outbound provider. No mail is sent automatically by setting SMTP values while
+mode is disabled.
 
-Enable recovery in stages. Updating an environment file alone does not update an existing container. Creating a PR does not configure DNS, create a provider account, or authorize a deployment.
+Delivery failures are audited as `password_reset_delivery_failed` and
+`password_reset_job_failed`; throttling appears as `password_reset_throttled`.
+The additive token table may remain during rollback. Completed password changes
+must not be reversed.
 
-1. With `PASSWORD_RESET_ENABLED=false`, run `deploy/qjudge check`, then follow the ordinary reviewed release/deployment process. It applies migration `users.0003_password_reset_token` and recreates backend and the Django Celery worker (`celery` service, `default` queue); both receive the same mail settings.
-2. Validate SMTP from the deployed worker with an explicitly approved test recipient. Recovery mail is not sent while the feature is disabled, so use Django's test command in the `celery` service of the deployed Compose project (the same project, directory and env file `deploy/qjudge upgrade` uses):
-
-   ```bash
-   docker compose --project-name <COMPOSE_PROJECT_NAME> --project-directory deploy --env-file deploy/.env -f deploy/compose.yml -f deploy/compose.build.yml exec celery python manage.py sendtestemail <approved-recipient>
-   ```
-
-   The command fails with the SMTP error if the host, credentials or sender domain are rejected.
-3. Set `PASSWORD_RESET_ENABLED=true`, run `deploy/qjudge check`, and recreate backend and celery to enable the production UI. Request a reset for an approved test account and complete it.
-
-Delivery failures in the worker are not shown to users, who always receive the generic acknowledgement. They appear in the `celery` container logs as `password_reset_delivery_failed` and `password_reset_job_failed`; throttled requests appear in backend logs as `password_reset_throttled`.
-
-Development uses Django's console email backend; tests use the in-memory backend. Enable `PASSWORD_RESET_ENABLED=true` in the development environment and run the normal Celery worker. No provider credentials or real emails are needed for tests.
-
-To disable recovery, set `PASSWORD_RESET_ENABLED=false` and restart backend/worker. The additive token table can remain during an application rollback. Password changes already completed by users must not be reversed.
-
-
-### Example: Resend SMTP
-
-Resend is one compatible provider; selecting it does not change the application code. Its [official SMTP settings](https://resend.com/docs/send-with-smtp) are `EMAIL_HOST=smtp.resend.com`, `EMAIL_PORT=587`, `EMAIL_USE_TLS=true`, `EMAIL_USE_SSL=false`, `EMAIL_HOST_USER=resend`, and an API key as `EMAIL_HOST_PASSWORD`. Set the API key through the deployment secret file, not a chat message or committed example.
-
-Verify the sending domain first using the provider's [domain setup](https://resend.com/docs/dashboard/domains/introduction). Configure the actual records provided by its dashboard rather than copying example DNS values. Keep click tracking disabled for password-reset mail. These instructions do not imply a provider account or DNS records have been created.
-
+Exam publication and results notifications require a separate specification.
+Postal addon integration and its `bundled` mode are outside this change. An
+independently hosted Postal server can be configured as external SMTP; direct
+Postal delivery does not verify QJudge SMTP authentication or celery delivery.
 
 ## Browser verification in CI
 
@@ -76,9 +68,3 @@ token revocation and limits. Unit tests retain Django's in-memory mail backend.
 The CI inbox API defaults to `http://127.0.0.1:8025`; an independently prepared
 test stack may set `E2E_MAILPIT_URL`. Never expose this inbox or use the E2E
 settings/Compose overlay for a production installation.
-
-For this installation, `mail.q-judge.com` was verified in Resend and a direct
-SMTP test to the operator's approved inbox succeeded on 2026-10-05. This verifies
-the provider and sender only. Production SMTP installation, worker delivery,
-feature enablement and the complete production recovery flow remain separate
-checks. The API key is entered by the operator and must not be committed here.

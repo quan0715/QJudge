@@ -12,6 +12,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+from apps.core.services.mail import mail_enabled
 
 from .auth.options import is_password_auth_enabled
 from .models import PasswordResetToken, User, UserLoginRecord
@@ -21,7 +22,7 @@ TOKEN_PATTERN = re.compile(r'^[A-Za-z0-9_-]{43}$')
 
 
 def reset_enabled():
-    return is_password_auth_enabled() and settings.PASSWORD_RESET_ENABLED
+    return is_password_auth_enabled() and mail_enabled()
 
 
 def token_digest(token):
