@@ -61,14 +61,23 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
   test.setTimeout(300_000);
   const teacherContext = await browser.newContext({ baseURL: testInfo.project.use.baseURL });
   const studentContext = await browser.newContext({ baseURL: testInfo.project.use.baseURL });
-  // Real Screen Details checks require permission; headless contexts cannot
-  // answer the OS permission prompt. Keep the API and monitor checks real.
-  await studentContext.grantPermissions(["window-management"]);
   const teacher = await teacherContext.newPage();
   const student = await studentContext.newPage();
   await installSyntheticScreen(student);
 
   try {
+    // Playwright's permission names omit window-management. Grant it through
+    // Chromium in this isolated context, retaining real Screen Details checks.
+    // Keep the session attached until context cleanup; detach resets overrides.
+    const permissions = await studentContext.newCDPSession(student);
+    const { targetInfo } = await permissions.send("Target.getTargetInfo");
+    expect(targetInfo.browserContextId).toBeTruthy();
+    await permissions.send("Browser.setPermission", {
+      permission: { name: "window-management" },
+      setting: "granted",
+      origin: new URL(testInfo.project.use.baseURL!).origin,
+      browserContextId: targetInfo.browserContextId,
+    });
     await loginViaAPI(teacher, "teacher");
     // A failed monitored attempt intentionally blocks cross-device login.
     // Register an isolated student instead of resetting another run's records.
