@@ -83,7 +83,7 @@ deploy/qjudge check
 deploy/qjudge upgrade "$(sed -n 's/^current=//p' deploy/.version)"
 ```
 
-Backend and celery receive the same mail settings. Use a dedicated test account to verify password recovery, worker delivery and redemption. Accounts using only third-party login cannot reset a local password. A successful SMTP probe alone does not verify the worker flow.
+Backend and celery receive the same mail settings. Use a dedicated test account to verify password recovery, worker delivery and redemption. Accounts using only third-party login without a usable local password cannot recover one; accounts with an existing local password remain eligible after linking OAuth. Match the identifier's case as you would for password login. A successful SMTP probe alone does not verify the worker flow.
 
 `EMAIL_MODE` is shared by application mail features. Future notifications will use this capability check and document their individual notification rules separately.
 

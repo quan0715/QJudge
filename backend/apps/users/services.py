@@ -59,7 +59,7 @@ class EmailAuthService:
     """Service for local password credential authentication."""
     
     @staticmethod
-    def login(identifier, password):
+    def login(identifier, password, *, lock=False):
         """
         Authenticate user with an email or username identifier and password.
         
@@ -69,10 +69,11 @@ class EmailAuthService:
         from django.db.models import Q
         try:
             # Check if input is email or username
-            user = User.objects.get(
+            users = User.objects.select_for_update() if lock else User.objects
+            user = users.get(
                 Q(email=identifier) | Q(username=identifier),
             )
-        except User.DoesNotExist:
+        except (User.DoesNotExist, User.MultipleObjectsReturned):
             return None
         
         # Check password

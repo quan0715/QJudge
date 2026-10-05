@@ -85,7 +85,7 @@ deploy/qjudge check
 deploy/qjudge upgrade "$(sed -n 's/^current=//p' deploy/.version)"
 ```
 
-backend 與 celery 會取得同一組 mail 設定。以專用測試帳號驗證「忘記密碼」、收信與重設流程；只支援第三方登入的帳號不能使用密碼重設。SMTP 測試通過仍需完成這項 worker 流程驗收。
+backend 與 celery 會取得同一組 mail 設定。以專用測試帳號驗證「忘記密碼」、收信與重設流程。只有第三方登入、沒有可用本機密碼的帳號不能使用密碼重設；原本有本機密碼的帳號連結 OAuth 後仍可使用。輸入帳號或 email 時，大小寫須與密碼登入一致。SMTP 測試通過仍需完成這項 worker 流程驗收。
 
 `EMAIL_MODE` 是所有應用寄信功能共用的開關。未來加入的通知功能也會使用此判斷，個別通知規則將另外提供設定說明。
 

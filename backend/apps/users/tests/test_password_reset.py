@@ -68,7 +68,8 @@ def test_mail_only_for_active_password_accounts_and_only_digest_persisted(user):
     assert mail.outbox[0].to == [user.email]
     assert '/reset-password#token=' in mail.outbox[0].body
     for provider, active in [('google', True), ('email', False)]:
-        other = User.objects.create_user(username=f'{provider}-{active}', email=f'{provider}-{active}@example.test', auth_provider=provider, is_active=active, password='secret')
+        other = User.objects.create_user(username=f'{provider}-{active}', email=f'{provider}-{active}@example.test', auth_provider=provider, is_active=active,
+            password=None if provider == 'google' else 'secret')
         send_password_reset(other.email)
     send_password_reset('missing@example.test')
     assert len(mail.outbox) == 1
@@ -487,3 +488,124 @@ def test_pure_oauth_projection_cannot_create_a_password_through_recovery(credent
     send_password_reset(oauth.email)
     assert len(mail.outbox) == 0
     assert not PasswordResetToken.objects.filter(user=oauth).exists()
+
+
+@pytest.mark.parametrize('credential', ['blank', 'unusable', 'unsupported', 'valid'])
+def test_recovery_eligibility_matches_existing_local_password_capability(credential):
+    from apps.users.password_reset import _has_local_password
+    account = User(auth_provider='google')
+    if credential == 'unusable':
+        account.set_unusable_password()
+    elif credential == 'unsupported':
+        account.password = 'unsupported$not-a-local-password'
+    elif credential == 'valid':
+        account.set_password(PASSWORD)
+    assert _has_local_password(account) is (credential == 'valid')
+    assert account.check_password(PASSWORD) is (credential == 'valid')
+
+
+def test_blocked_password_login_writes_exam_audit_after_user_transaction():
+    """The audit storage seam must run after the credential transaction commits."""
+    from contextlib import contextmanager
+    from types import SimpleNamespace
+    from django.db import transaction
+    from rest_framework.parsers import JSONParser
+    from rest_framework.request import Request
+    from rest_framework.test import APIRequestFactory
+    from apps.users.views.auth import _password_provider_login
+    account = User(id=42, username='student', email='student@example.test')
+    conflict = SimpleNamespace(contest=SimpleNamespace(id='exam', name='Exam'),
+        participant=SimpleNamespace(id=7, exam_status='in_progress'),
+        active_session={'device_id': 'original-device'})
+    state, callbacks, audits = {'in_transaction': False}, [], []
+
+    @contextmanager
+    def credential_transaction():
+        state['in_transaction'] = True
+        try:
+            yield
+        finally:
+            state['in_transaction'] = False
+            for callback in callbacks:
+                callback()
+
+    def after_commit(callback):
+        assert state['in_transaction']
+        callbacks.append(callback)
+
+    def write_audit(kind):
+        assert not state['in_transaction'], 'Exam audit must not hold the password user lock'
+        audits.append(kind)
+
+    request = Request(APIRequestFactory().post('/api/v1/auth/login/password',
+        {'identifier': account.email, 'password': 'OriginalPassword98!'}, format='json'), parsers=[JSONParser()])
+    with patch.object(transaction, 'atomic', credential_transaction), patch.object(transaction, 'on_commit', after_commit), \
+         patch('apps.users.views.auth.EmailAuthService.login', return_value=account), \
+         patch('apps.users.views.common.find_exam_conflict', return_value=conflict), \
+         patch('apps.users.views.common.ExamEvent.objects.create', side_effect=lambda **kwargs: write_audit('event')), \
+         patch('apps.users.views.common.log_contest_activity', side_effect=lambda **kwargs: write_audit('activity')), \
+         patch('apps.users.views.auth.JWTService.generate_tokens') as issue:
+        response = _password_provider_login(request)
+    assert response.status_code == 409
+    assert response.data['errors'][0]['details']['active_exam']['participant_id'] == 7
+    assert audits == ['event', 'activity']
+    issue.assert_not_called()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_blocked_password_login_does_not_deadlock_with_integrity_lock_order(user):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    from django.db import close_old_connections, transaction
+    from apps.contests.models import Contest, ContestActivity, ContestParticipant, ExamEvent
+    from apps.users.services import EmailAuthService
+    teacher = User.objects.create_user(username='lock-teacher', email='lock-teacher@example.test',
+        password='TeacherPassword98!', role='teacher')
+    now = timezone.now()
+    contest = Contest.objects.create(name='Lock order exam', owner=teacher, status='published',
+        cheat_detection_enabled=True, start_time=now - timedelta(minutes=5), end_time=now + timedelta(hours=1))
+    participant = ContestParticipant.objects.create(contest=contest, user=user,
+        exam_status='in_progress', started_at=now)
+    contest_locked, user_locked, integrity_join_attempted = Event(), Event(), Event()
+    password_login = EmailAuthService.login
+
+    def pause_after_user_lock(*args, **kwargs):
+        account = password_login(*args, **kwargs)
+        user_locked.set()
+        assert integrity_join_attempted.wait(timeout=5)
+        return account
+
+    def integrity_locks():
+        close_old_connections()
+        try:
+            with transaction.atomic():
+                Contest.objects.select_for_update().get(pk=contest.pk)
+                contest_locked.set()
+                assert user_locked.wait(timeout=5)
+                integrity_join_attempted.set()
+                # The real integrity command locks its participant and joined user.
+                ContestParticipant.objects.select_for_update().select_related('contest', 'user').get(pk=participant.pk)
+        finally:
+            close_old_connections()
+
+    def blocked_login():
+        close_old_connections()
+        try:
+            return APIClient().post('/api/v1/auth/login/password',
+                {'identifier': user.email, 'password': 'OriginalPassword98!'}, format='json',
+                HTTP_X_DEVICE_ID='other-device')
+        finally:
+            close_old_connections()
+
+    with patch('apps.users.views.auth.EmailAuthService.login', side_effect=pause_after_user_lock):
+        with ThreadPoolExecutor(max_workers=2) as workers:
+            integrity_result = workers.submit(integrity_locks)
+            assert contest_locked.wait(timeout=5)
+            login_result = workers.submit(blocked_login)
+            response = login_result.result(timeout=10)
+            integrity_result.result(timeout=10)
+    assert response.status_code == 409
+    assert response.json()['errors'][0]['code'] == 'active_exam_session_exists'
+    assert ExamEvent.objects.filter(contest=contest, user=user, event_type='concurrent_login_detected').count() == 1
+    assert ContestActivity.objects.filter(contest=contest, user=user, action_type='concurrent_login_detected').count() == 1
+    assert not OutstandingToken.objects.filter(user=user).exists()
