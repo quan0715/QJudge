@@ -142,9 +142,12 @@ class EnhancedAuthTests(APITestCase):
         """Test OAuth callback error handling"""
         mock_service = mock_get_service.return_value
         mock_service.exchange_code.side_effect = Exception("OAuth error")
+        mock_service.get_authorization_url.return_value = "http://oauth.com/auth"
+        self.client.get(reverse('auth:provider-login', kwargs={'provider': 'github'}))
+        state = self.client.session['oauth_state:github']['value']
         
         url = reverse('auth:oauth-callback', kwargs={'provider': 'github'})
-        response = self.client.post(url, {'code': 'valid_code', 'redirect_uri': 'http://localhost'})
+        response = self.client.post(url, {'code': 'valid_code', 'state': state, 'redirect_uri': 'http://localhost'})
         
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(response.data['error']['code'], 'AUTH_003')

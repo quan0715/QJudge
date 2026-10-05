@@ -26,38 +26,32 @@ class GitHubOAuthService(BaseOAuthService):
             "email": raw.get("email"),
             "oauth_id": str(raw.get("id", "")),
             "avatar_url": extract_avatar_url(raw),
-            "email_verified": raw.get("email_verified", True),
+            "email_verified": False,
         }
 
     @classmethod
     def _fetch_user_info(cls, access_token: str) -> dict:
-        """Also fetch private email from GitHub /user/emails when needed."""
+        """Use GitHub's verified primary email for account linking."""
         info = super()._fetch_user_info(access_token)
-
-        if not info.get("email"):
-            try:
-                resp = requests.get(
-                    GITHUB_USER_EMAILS_URL,
-                    headers={
-                        "Authorization": f"Bearer {access_token}",
-                        "Accept": "application/json",
-                    },
-                    timeout=(5, 15),
-                )
-                if resp.status_code == 200:
-                    emails = resp.json()
-                    primary = next(
-                        (
-                            email["email"]
-                            for email in emails
-                            if email.get("primary") and email.get("verified")
-                        ),
-                        None,
-                    )
-                    if primary:
-                        info["email"] = primary
-                        info["email_verified"] = True
-            except requests.RequestException:
-                logger.warning("Failed to fetch GitHub user emails")
+        try:
+            resp = requests.get(
+                GITHUB_USER_EMAILS_URL,
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/json",
+                },
+                timeout=(5, 15),
+            )
+            resp.raise_for_status()
+            primary = next(
+                (email["email"] for email in resp.json()
+                 if email.get("primary") and email.get("verified") is True),
+                None,
+            )
+            if primary:
+                info["email"] = primary
+                info["email_verified"] = True
+        except requests.RequestException:
+            logger.warning("Failed to fetch GitHub user emails")
 
         return info

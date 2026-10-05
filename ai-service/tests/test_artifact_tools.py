@@ -10,7 +10,6 @@ from types import SimpleNamespace
 
 import pypdf
 
-os.environ.setdefault("AI_INTERNAL_TOKEN", "test-ai-internal-token")
 os.environ.setdefault("DEEPSEEK_API_KEY", "test-deepseek-key")
 
 _deepseek_stub = types.ModuleType("langchain_deepseek")

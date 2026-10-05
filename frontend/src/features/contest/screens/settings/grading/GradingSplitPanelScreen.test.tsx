@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import GradingSplitPanelScreen from "./GradingSplitPanelScreen";
 import type { GradingAnswerRow } from "./gradingTypes";
@@ -64,6 +64,10 @@ const nextAnswer: GradingAnswerRow = {
   questionPrompt: "Next question prompt",
 };
 
+vi.mock("@/shared/contexts/ToastContext", () => ({
+  useToast: () => ({ showToast: vi.fn() }),
+}));
+
 describe("GradingSplitPanelScreen", () => {
   it("keeps the header focused on the current question", () => {
     render(
@@ -120,8 +124,8 @@ describe("GradingSplitPanelScreen", () => {
     expect(screen.getByText("直接輸入")).toBeVisible();
   });
 
-  it("grades and advances without switching button label to saved in save-next flow", () => {
-    const onGrade = vi.fn();
+  it("grades and advances without switching button label to saved in save-next flow", async () => {
+    const onGrade = vi.fn().mockResolvedValue(undefined);
     const onNextStudent = vi.fn();
 
     render(
@@ -137,14 +141,14 @@ describe("GradingSplitPanelScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: "儲存並下一位學生" }));
 
     expect(onGrade).toHaveBeenCalledWith("a-1", 3, "");
-    expect(onNextStudent).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onNextStudent).toHaveBeenCalledTimes(1));
     expect(
       screen.queryByRole("button", { name: "已儲存" }),
     ).not.toBeInTheDocument();
   });
 
   it("smoothly scrolls the answer pane back to top when switching students", () => {
-    const onGrade = vi.fn();
+    const onGrade = vi.fn().mockResolvedValue(undefined);
     const scrollTo = vi.fn();
     Object.defineProperty(HTMLElement.prototype, "scrollTo", {
       configurable: true,

@@ -194,6 +194,8 @@
         "published": "已發布"
       },
       "grading": {
+    "saveFailed": "儲存評分失敗，請重試",
+    "ungradeFailed": "撤回批改失敗，請重試",
         "noAnswers": "尚無作答資料",
         "noData": "尚無批改資料"
       },

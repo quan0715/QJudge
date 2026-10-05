@@ -20,7 +20,7 @@ from application.run_service import (
 from application.run_service import (
     SessionNotFound as RunSessionNotFound,
 )
-from application.session_service import SessionNotFound
+from application.session_service import SessionBusy, SessionNotFound
 from domain.model_catalog import ModelConfigInvalid, ModelNotAvailable
 from domain.ports import McpReadinessError
 from infrastructure.artifacts.s3_artifact_store import ArtifactStorageError
@@ -75,6 +75,15 @@ def error_response(
 
 
 def install_error_handlers(app: FastAPI) -> None:
+    @app.exception_handler(SessionBusy)
+    async def session_busy(request: Request, _exc: SessionBusy) -> JSONResponse:
+        return error_response(
+            request,
+            status_code=409,
+            code="SESSION_BUSY",
+            message="Cancel active runs before deleting this session.",
+        )
+
     @app.exception_handler(AuthError)
     async def auth_error(request: Request, exc: AuthError) -> JSONResponse:
         denied = exc.code == "AI_SCOPE_DENIED"

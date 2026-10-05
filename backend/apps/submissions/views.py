@@ -60,7 +60,8 @@ class SubmissionViewSet(viewsets.ModelViewSet):
            - Admins/Teachers can see all.
            
         2. Contest Submissions (source_type='contest'):
-           - Users can see ALL submissions (Scoreboard view).
+           - Managers can see all submissions in their contests.
+           - Members can see their own, or others when the scoreboard is visible.
            - But detail view (code) is restricted (handled in retrieve).
         """
         queryset = super().get_queryset()

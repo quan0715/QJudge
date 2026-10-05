@@ -125,6 +125,8 @@ docker compose -p qjudge exec backend python manage.py createsuperuser
 
 ## 8. 升級、套用設定與回退
 
+請在沒有進行中考試的時段升級。考試登入鎖定值已改用 refresh session JTI，舊版開始的考試在換發 token 時可能需要重新登入。
+
 升級到新版本：
 
 ```bash

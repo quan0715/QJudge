@@ -194,6 +194,8 @@
         "published": "공개됨"
       },
       "grading": {
+    "saveFailed": "채점을 저장하지 못했습니다. 다시 시도해 주세요.",
+    "ungradeFailed": "채점을 취소하지 못했습니다. 다시 시도해 주세요.",
         "noAnswers": "아직 답안 데이터 없음",
         "noData": "아직 채점 데이터 없음"
       },

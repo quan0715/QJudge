@@ -51,7 +51,6 @@ class FakeSessionService:
         timestamp = datetime(2026, 8, 6, tzinfo=UTC)
         self.timestamp = timestamp
         self.updated_timestamp = timestamp + timedelta(minutes=1)
-        self.cleared_timestamp = timestamp + timedelta(minutes=2)
         self.session = Session(
             SESSION_ID,
             OWNER,
@@ -122,13 +121,6 @@ class FakeSessionService:
             title=title if title is not None else self.session.title,
             context=next_context,
             updated_at=self.updated_timestamp,
-        )
-        return self.session
-
-    async def clear_session(self, principal, session_id):
-        await self.get_session(principal, session_id)
-        self.session = replace(
-            self.session, updated_at=self.cleared_timestamp, message_count=0
         )
         return self.session
 
@@ -364,7 +356,6 @@ def test_session_list_and_mutations_return_authoritative_summary_fields() -> Non
         f"/v1/sessions/{SESSION_ID}",
         json={"context": {"locale": "en"}, "context_mode": "replace"},
     )
-    cleared = client.post(f"/v1/sessions/{SESSION_ID}/clear")
 
     assert listed.json()["results"][0] == {
         "session_id": str(SESSION_ID),
@@ -387,9 +378,6 @@ def test_session_list_and_mutations_return_authoritative_summary_fields() -> Non
     assert updated.json()["updated_at"] == "2026-08-06T00:01:00Z"
     assert updated.json()["message_count"] == 2
     assert replaced.json()["context"] == {"locale": "en"}
-    assert cleared.json()["created_at"] == "2026-08-06T00:00:00Z"
-    assert cleared.json()["updated_at"] == "2026-08-06T00:02:00Z"
-    assert cleared.json()["message_count"] == 0
 
 
 def test_session_update_requires_a_title_or_context() -> None:

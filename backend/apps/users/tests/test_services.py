@@ -61,10 +61,12 @@ ALL_PROVIDER_CONNECTIONS = json.dumps([
 
 
 def link_oauth_user(service, user_info, access_token=""):
-    oauth_data = {"access_token": access_token, "user_info": user_info}
+    oauth_data = {
+        "access_token": access_token,
+        "user_info": {"email_verified": True, "oauth_id": f"subject-{user_info['email']}", **user_info},
+    }
     return link_qauth_identity(
         service.normalize_identity(oauth_data),
-        service.provider_token_set(oauth_data),
     )
 
 

@@ -11,7 +11,7 @@ are never mocked. The test verifies:
   appears in submission history, opens its detail, and survives a reload.
 
 Each attempt creates its own classroom, contest and problem. Cleanup uses the
-application's delete/archive APIs, including on failure.
+application's delete APIs, including on failure.
 
 ## CI
 
@@ -19,9 +19,8 @@ application's delete/archive APIs, including on failure.
 filter) and on manual dispatch; its `coding` group calls `e2e-coding.yml`. Dev pull requests and branch pushes do not run E2E. Coding no longer runs `tag-management.e2e.spec.ts`, which tests tag API
 permissions rather than student code execution.
 
-The workflow first runs `auth.e2e.spec.ts` to verify login, registration, onboarding,
-session persistence and logout. Coding submissions run only after authentication passes.
-Both Playwright reports are retained separately.
+Authentication runs in the auth group. The coding scenario performs its own login.
+The exam group includes `resident-integrity.e2e.spec.ts` for checkpoint delivery and recovery.
 
 The workflow installs a fresh stack with `ci/e2e-stack.sh` (`deploy/qjudge init`
 + `upgrade`, then `ci/compose.e2e.yml`: test settings, non-eager Celery with both

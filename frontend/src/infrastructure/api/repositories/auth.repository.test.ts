@@ -149,7 +149,7 @@ describe("auth repository endpoints", () => {
       );
 
     await getOAuthUrl("github", "/contests");
-    await oauthCallback("github", "code-123");
+    await oauthCallback("github", "code-123", "state-123");
 
     expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/auth/login/github?redirect=%2Fcontests");
     expect(fetchMock.mock.calls[1][0]).toBe("/api/v1/auth/callback/github");

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -20,6 +20,7 @@ import { QJudgeEditor } from "@/shared/ui/editor/QJudgeEditor";
 import type { BankQuestion, CodingQuestionExt } from "@/core/entities/question-bank.entity";
 import type { UpsertBankQuestionPayload } from "@/core/ports/questionBank.repository";
 import { updateQuestion } from "@/infrastructure/api/repositories/questionBank.repository";
+import { useFieldAutoSave } from "@/shared/hooks/useFieldAutoSave";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { getModalPortalRoot } from "@/shared/ui/theme/portalRoot";
 import { GlobalSaveIndicator } from "./GlobalSaveIndicator";
@@ -176,72 +177,25 @@ function useCodingAutoSave(bankId: string, question: BankQuestion, onSaved?: () 
   const { showToast } = useToast();
   const { t } = useTranslation("common");
   const [form, setForm] = useState<CodingFormState>(() => toFormState(question));
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-
   const latestRef = useRef(form);
-  const savingRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const next = toFormState(question);
-    setForm(next);
-    latestRef.current = next;
-    setSaveStatus("idle");
-  }, [question.bankItemId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const saveFields = useCallback(async () => {
-    if (savingRef.current) return;
-    savingRef.current = true;
-    setSaveStatus("saving");
-    try {
-      const payload = buildPayload(latestRef.current, question);
-      await updateQuestion(bankId, question.bankItemId, payload);
-      setSaveStatus("saved");
-      onSaved?.();
-      setTimeout(() => setSaveStatus((s) => (s === "saved" ? "idle" : s)), 2000);
-    } catch {
-      setSaveStatus("error");
-      showToast({ kind: "error", title: t("message.error"), subtitle: t("message.saveFailed", "儲存失敗") });
-    } finally {
-      savingRef.current = false;
-    }
-  }, [bankId, question, onSaved, showToast, t]);
-
-  const scheduleSave = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      void saveFields();
-    }, AUTO_SAVE_DELAY);
-  }, [saveFields]);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-        void saveFields();
-      }
-    };
-  }, [saveFields]);
+  const { globalStatus: saveStatus, debouncedSaveField } = useFieldAutoSave({
+    target: `${bankId}:${question.bankItemId}`,
+    debounceMs: AUTO_SAVE_DELAY,
+    write: (_field, payload) => updateQuestion(bankId, question.bankItemId, payload as UpsertBankQuestionPayload),
+    onSaveSuccess: () => onSaved?.(),
+    onSaveError: () => showToast({ kind: "error", title: t("message.error"), subtitle: t("message.saveFailed", "儲存失敗") }),
+  });
 
   const update = useCallback((patch: Partial<CodingFormState>) => {
-    setForm((prev) => {
-      const next = { ...prev, ...patch };
-      latestRef.current = next;
-      return next;
-    });
-    scheduleSave();
-  }, [scheduleSave]);
+    const next = { ...latestRef.current, ...patch };
+    latestRef.current = next;
+    setForm(next);
+    debouncedSaveField("question", buildPayload(next, question));
+  }, [debouncedSaveField, question]);
 
   const updateTranslation = useCallback((patch: Partial<TranslationForm>) => {
-    setForm((prev) => {
-      const next = { ...prev, translationZh: { ...prev.translationZh, ...patch } };
-      latestRef.current = next;
-      return next;
-    });
-    scheduleSave();
-  }, [scheduleSave]);
+    update({ translationZh: { ...latestRef.current.translationZh, ...patch } });
+  }, [update]);
 
   return { form, update, updateTranslation, saveStatus };
 }

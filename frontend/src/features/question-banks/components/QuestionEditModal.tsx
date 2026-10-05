@@ -282,16 +282,16 @@ const QuestionEditModal = ({
 
         if (activeId === "edit") {
           return isExam
-            ? <ExamQuestionEditPanel bankId={bank.id} question={question} onSaved={onSaved} />
-            : <CodingQuestionEditPanel bankId={bank.id} question={question} onSaved={onSaved} activeTab="edit" />;
+            ? <ExamQuestionEditPanel key={`${bank.id}:${question.bankItemId}`} bankId={bank.id} question={question} onSaved={onSaved} />
+            : <CodingQuestionEditPanel key={`${bank.id}:${question.bankItemId}`} bankId={bank.id} question={question} onSaved={onSaved} activeTab="edit" />;
         }
 
         if (activeId === "validation" && isCoding) {
-          return <CodingQuestionEditPanel bankId={bank.id} question={question} onSaved={onSaved} activeTab="validation" />;
+          return <CodingQuestionEditPanel key={`${bank.id}:${question.bankItemId}`} bankId={bank.id} question={question} onSaved={onSaved} activeTab="validation" />;
         }
 
         if (activeId === "languages" && isCoding) {
-          return <CodingQuestionEditPanel bankId={bank.id} question={question} onSaved={onSaved} activeTab="languages" />;
+          return <CodingQuestionEditPanel key={`${bank.id}:${question.bankItemId}`} bankId={bank.id} question={question} onSaved={onSaved} activeTab="languages" />;
         }
 
         if (activeId === "actions") {

@@ -3,6 +3,10 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { SideMenu } from "./SideMenu";
 
+vi.mock("@/shared/contexts/ToastContext", () => ({
+  useToast: () => ({ showToast: vi.fn() }),
+}));
+
 const mockGetClassrooms = vi.fn();
 const mockGetQuestionBanks = vi.fn();
 const mockGetContest = vi.fn();

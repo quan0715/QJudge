@@ -50,8 +50,8 @@ interface GradingByStudentTabScreenProps {
     username: string;
     displayName?: string;
   }[];
-  onGrade: (answerId: string, score: number, feedback: string) => void;
-  onUngrade?: (answerId: string) => void;
+  onGrade: (answerId: string, score: number, feedback: string) => Promise<void>;
+  onUngrade?: (answerId: string) => Promise<void>;
   flaggedIds?: Set<string>;
   onToggleFlag?: (answerId: string) => void;
   searchQuery: string;

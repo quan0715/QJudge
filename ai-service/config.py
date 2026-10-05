@@ -119,15 +119,6 @@ class Settings(BaseSettings):
         "http://backend:8000/api/oauth/token-exchange/"
     )
 
-    # Backend→AI-Service auth token
-    ai_internal_token: str = Field(
-        default="",
-        validation_alias=AliasChoices(
-            "AI_INTERNAL_TOKEN",
-            "AI_SERVICE_INTERNAL_TOKEN",  # backward-compatible fallback
-        ),
-    )
-
     # MCP tool source
     qjudge_mcp_url: str = "http://qjudge-mcp:9000/mcp"
     qjudge_public_origin: str = Field(

@@ -259,7 +259,8 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
   // ── Actions ──
   const gradeAnswer = useCallback(
     async (answerId: string, score: number, feedback: string) => {
-      // Optimistic update
+      if (!contestId) throw new Error("Contest not found");
+      await gradeExamAnswer(contestId, answerId, { score, feedback });
       setAnswers((prev) =>
         prev.map((a) =>
           a.id === answerId
@@ -274,24 +275,14 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
             : a
         )
       );
-
-      if (contestId) {
-        try {
-          await gradeExamAnswer(contestId, answerId, {
-            score,
-            feedback: feedback || undefined,
-          });
-        } catch {
-          // Revert on failure would go here
-        }
-      }
     },
     [contestId]
   );
 
   const ungradeAnswer = useCallback(
     async (answerId: string) => {
-      // Optimistic update
+      if (!contestId) throw new Error("Contest not found");
+      await ungradeExamAnswer(contestId, answerId);
       setAnswers((prev) =>
         prev.map((a) =>
           a.id === answerId
@@ -306,17 +297,8 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
             : a
         )
       );
-
-      if (contestId) {
-        try {
-          await ungradeExamAnswer(contestId, answerId);
-        } catch {
-          // Revert on failure — refetch
-          void fetchData();
-        }
-      }
     },
-    [contestId, fetchData]
+    [contestId]
   );
 
   const refreshData = useCallback(() => {

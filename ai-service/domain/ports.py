@@ -120,10 +120,6 @@ class SessionRepository(Protocol):
         self, principal: Principal, session: Session
     ) -> Session | None: ...
 
-    async def clear_for_owner(
-        self, principal: Principal, session_id: UUID
-    ) -> Session | None: ...
-
     async def delete(self, principal: Principal, session_id: UUID) -> None: ...
 
 
@@ -149,7 +145,7 @@ class RunRepository(Protocol):
     ) -> Run: ...
 
     async def has_blocking_run(
-        self, session_id: UUID, excluding: UUID
+        self, session_id: UUID, excluding: UUID | None = None
     ) -> bool: ...
 
     async def oldest_queued(
@@ -173,8 +169,6 @@ class MessageRepository(Protocol):
     async def append(self, message: Message) -> Message: ...
 
     async def list_for_session(self, session_id: UUID) -> list[Message]: ...
-
-    async def clear_for_session(self, session_id: UUID) -> None: ...
 
     async def append_pair(
         self,
