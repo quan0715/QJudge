@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { InlineNotification } from "@carbon/react";
 
 
 import { useContest } from "@/features/contest/contexts/ContestContext";
@@ -12,7 +13,9 @@ import {
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import {
   deleteContest,
+  getExamPaper,
 } from "@/infrastructure/api/repositories";
+import { getExamPublishIssues } from "@/features/contest/domain/examPublishIssues";
 import { ContestSettingsModal } from "@/features/contest/components/admin/settings";
 import type { ContestSettingsSectionId } from "@/features/contest/modules/types";
 
@@ -138,11 +141,46 @@ const ContestSettingsOverlay = ({
   const formRef = useRef(form);
   useEffect(() => { formRef.current = form; });
 
+  /** Warn (without blocking) about unset answers and placeholder questions before publishing. */
+  const loadPublishWarning = useCallback(async (): Promise<ReactNode> => {
+    if (!contestId || contest?.contestType !== "paper_exam") return undefined;
+    let lines: string[];
+    try {
+      const { questions } = await getExamPaper(contestId);
+      const issues = getExamPublishIssues(questions);
+      lines = [
+        ...(issues.missingAnswer.length
+          ? [t("settings.publishCheck.missingAnswer", { questions: issues.missingAnswer.join(", ") })]
+          : []),
+        ...(issues.defaultContent.length
+          ? [t("settings.publishCheck.defaultContent", { questions: issues.defaultContent.join(", ") })]
+          : []),
+      ];
+    } catch (error) {
+      console.error("Failed to load exam questions for publish check", error);
+      lines = [t("settings.publishCheck.loadFailed")];
+    }
+    if (!lines.length) return undefined;
+    return (
+      <InlineNotification
+        kind="warning"
+        lowContrast
+        hideCloseButton
+        title={t("settings.publishCheck.title")}
+      >
+        {lines.map((line) => <div key={line}>{line}</div>)}
+      </InlineNotification>
+    );
+  }, [contest?.contestType, contestId, t]);
+
   const handleConfirmedChange = useCallback(
     async (field: string, value: unknown, message: string) => {
       if (isValueEqual(formRef.current[field], value)) return;
+      const body =
+        field === "status" && value === "published" ? await loadPublishWarning() : undefined;
       const confirmed = await confirm({
         title: message,
+        body,
         confirmLabel: tc("button.confirm"),
         cancelLabel: tc("button.cancel"),
         danger: true,
@@ -156,7 +194,7 @@ const ContestSettingsOverlay = ({
       });
       autoSave.saveField(field, value);
     },
-    [autoSave, confirm, tc],
+    [autoSave, confirm, loadPublishWarning, tc],
   );
 
   const handleTimeChange = useCallback(

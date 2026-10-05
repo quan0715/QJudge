@@ -23,6 +23,7 @@ from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.types import ToolAnnotations
+from pydantic import StrictInt
 from starlette.routing import Route
 
 
@@ -560,6 +561,35 @@ def _normalize_body_text(body: dict[str, Any]) -> dict[str, Any]:
     return body
 
 
+_OBJECTIVE_QUESTION_TYPES = frozenset({"single_choice", "multiple_choice", "true_false"})
+
+
+def _has_index_string(answer: Any) -> bool:
+    if isinstance(answer, list):
+        return any(isinstance(value, str) for value in answer)
+    return isinstance(answer, str)
+
+
+def _coerce_objective_answer(question_type: str | None, answer: Any) -> Any:
+    """Turn index strings such as ``"1"`` or ``["0", "2"]`` into ints for objective questions.
+
+    Some MCP clients send scalar arguments as strings and FastMCP only JSON-decodes
+    lists/objects, so ``"1"`` would otherwise reach Django, which accepts only ints.
+    Subjective answers stay strings.
+    """
+    if question_type not in _OBJECTIVE_QUESTION_TYPES:
+        return answer
+
+    def to_index(value: Any) -> Any:
+        if isinstance(value, str) and value.strip().isascii() and value.strip().isdigit():
+            return int(value)
+        return value
+
+    if isinstance(answer, list):
+        return [to_index(value) for value in answer]
+    return to_index(answer)
+
+
 def _build_exam_question_body(
     *,
     question_type: str | None = None,
@@ -581,7 +611,7 @@ def _build_exam_question_body(
     if options is not None:
         body["options"] = options
     if correct_answer is not None:
-        body["correct_answer"] = correct_answer
+        body["correct_answer"] = _coerce_objective_answer(question_type, correct_answer)
     return body
 
 
@@ -667,7 +697,7 @@ _TOOL_HELP = {
             "multiple_choice": "list of distinct 0-based int indices (e.g. [0, 2])",
             "true_false": "int 0 (true) or 1 (false) — NOT a boolean; options should be ['True', 'False']",
             "short_answer": "string",
-            "rejected": "letters ('B'), option text, numeric strings ('1') and out-of-range indexes return 400",
+            "rejected": "letters ('B'), option text and out-of-range indexes return 400",
         },
     },
     "common_mistakes": {
@@ -1127,7 +1157,7 @@ async def qjudge_exam(
     explanation: str | None = None,
     score: int | None = None,
     options: list[str] | None = None,
-    correct_answer: Any | None = None,
+    correct_answer: StrictInt | list[StrictInt] | str | None = None,
     items: list[dict] | None = None,
     mode: str | None = None,
     existing_grades_action: Literal["regrade", "keep", "mark_pending"] | None = None,
@@ -1155,7 +1185,9 @@ async def qjudge_exam(
       single_choice   → one int, e.g. 0 (first option)
       multiple_choice → list of distinct ints, e.g. [0, 2]
       true_false      → 0 (true) or 1 (false); NOT a boolean
-    Letters ("B"), option text, strings ("1") and out-of-range indexes are rejected.
+    Index strings ("1", ["0", "2"]) are converted to ints; letters ("B"), option text
+    and out-of-range indexes are rejected. Omitting correct_answer leaves it unset; the
+    teacher is warned about unset answers when publishing, so set it whenever known.
 
     Once any student has started, the contest content is locked: prompt/options/type
     cannot change, but correct_answer, score and explanation can be updated with
@@ -1240,6 +1272,14 @@ async def qjudge_exam(
         return await django_api("POST", f"{base}/", ctx, json_body=body)
 
     if action == "update":
+        if question_type is None and _has_index_string(body.get("correct_answer")):
+            current = await django_api("GET", f"{base}/{_quote(question_id)}/", ctx)
+            if isinstance(current, dict) and current.get("error"):
+                return current
+            body["correct_answer"] = _coerce_objective_answer(
+                current.get("question_type") if isinstance(current, dict) else None,
+                body["correct_answer"],
+            )
         return await django_api("PATCH", f"{base}/{_quote(question_id)}/", ctx, json_body=body)
 
     if action == "delete":

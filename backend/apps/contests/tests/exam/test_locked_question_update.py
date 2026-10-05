@@ -135,6 +135,20 @@ def test_objective_change_rejects_keep(locked_exam):
 
 
 @pytest.mark.django_db
+def test_locked_objective_answer_cannot_be_cleared(locked_exam):
+    response = locked_exam["client"].patch(
+        question_url(locked_exam, locked_exam["objective"]),
+        {"correct_answer": None, "existing_grades_action": "regrade"},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "correct_answer" in response.data
+    locked_exam["objective"].refresh_from_db()
+    assert locked_exam["objective"].correct_answer == 0
+
+
+@pytest.mark.django_db
 def test_regrade_uses_live_rule_recalculates_total_and_unpublishes(locked_exam):
     response = locked_exam["client"].patch(
         question_url(locked_exam, locked_exam["objective"]),

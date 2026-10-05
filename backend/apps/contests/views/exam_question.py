@@ -376,7 +376,8 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
 
             question_type = self._normalize_exam_question_type_from_bank_item(bank_item)
             options = payload.get("options") or []
-            answer_error = objective_answer_error(question_type, options, payload.get("correct_answer"))
+            answer = payload.get("correct_answer")
+            answer_error = None if answer is None else objective_answer_error(question_type, options, answer)
             if answer_error:
                 raise DRFValidationError({
                     'correct_answer': f'Imported question {bank_item.id}: {answer_error}',

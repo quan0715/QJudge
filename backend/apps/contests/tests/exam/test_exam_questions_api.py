@@ -349,12 +349,34 @@ class TestValidation:
         }, format="json")
         assert res.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_choice_requires_correct_answer(self, api_client, teacher, contest):
+    def test_choice_allows_unset_correct_answer(self, api_client, teacher, contest):
         api_client.force_authenticate(user=teacher)
         res = api_client.post(url(contest.id), {
             "question_type": "single_choice",
             "prompt": "Pick",
             "options": ["A", "B"],
+            "score": 2,
+        }, format="json")
+        assert res.status_code == status.HTTP_201_CREATED
+        assert res.data["correct_answer"] is None
+
+        res = api_client.post(url(contest.id), {
+            "question_type": "multiple_choice",
+            "prompt": "Pick many",
+            "options": ["A", "B"],
+            "correct_answer": None,
+            "score": 2,
+        }, format="json")
+        assert res.status_code == status.HTTP_201_CREATED
+        assert res.data["correct_answer"] is None
+
+    def test_choice_rejects_empty_multiple_choice_list(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "multiple_choice",
+            "prompt": "Pick many",
+            "options": ["A", "B"],
+            "correct_answer": [],
             "score": 2,
         }, format="json")
         assert res.status_code == status.HTTP_400_BAD_REQUEST
@@ -527,6 +549,29 @@ class TestObjectiveAnswerFormat:
         )
         assert res.status_code == status.HTTP_400_BAD_REQUEST
         assert not ExamQuestion.objects.filter(contest=contest).exists()
+
+    def test_import_from_bank_allows_unset_choice_answer(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        bank = QuestionBank.objects.create(
+            owner=teacher,
+            name="Draft Bank",
+            category=QuestionBank.Category.EXAM,
+        )
+        _asset, membership = _create_exam_bank_item(
+            bank=bank,
+            owner=teacher,
+            prompt="Pick",
+            question_type="single_choice",
+            options=["A", "B"],
+            correct_answer=None,
+        )
+        res = api_client.post(
+            url(contest.id) + "import-from-bank/",
+            {"items": [{"question_bank_id": str(bank.uuid), "question_id": str(membership.id)}]},
+            format="json",
+        )
+        assert res.status_code == status.HTTP_201_CREATED
+        assert ExamQuestion.objects.get(contest=contest).correct_answer is None
 
 
 @pytest.mark.django_db

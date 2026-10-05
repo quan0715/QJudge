@@ -1853,6 +1853,12 @@
     "scoreboardSettings": "점수판 설정",
     "showDuringContest": "대회 중 점수판 표시",
     "showDuringContestHelp": "참가자가 대회 중 실시간 점수판을 볼 수 있도록 허용",
+    "publishCheck": {
+      "title": "공개 전 점검",
+      "missingAnswer": "{{questions}}번 문제에 정답이 설정되지 않았습니다",
+      "defaultContent": "{{questions}}번 문제가 추가 시 기본 내용 그대로입니다 (New question / Option A, B)",
+      "loadFailed": "문제를 불러오지 못해 공개 전 점검을 실행하지 못했습니다"
+    },
     "statusLabel": "상태 (초안/게시)",
     "title": "대회 설정",
     "updateFailed": "업데이트 실패, 필드를 확인하세요",

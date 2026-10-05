@@ -1853,6 +1853,12 @@
     "scoreboardSettings": "スコアボード設定",
     "showDuringContest": "コンテスト中にスコアボードを表示",
     "showDuringContestHelp": "参加者がコンテスト中にリアルタイムスコアボードを表示できるようにする",
+    "publishCheck": {
+      "title": "公開前チェック",
+      "missingAnswer": "第 {{questions}} 問に正解が設定されていません",
+      "defaultContent": "第 {{questions}} 問は追加時の初期内容のままです（New question / Option A、B）",
+      "loadFailed": "問題を読み込めなかったため、公開前チェックを実行できませんでした"
+    },
     "statusLabel": "ステータス (下書き/公開)",
     "title": "コンテスト設定",
     "updateFailed": "更新に失敗しました。フィールドを確認してください",
