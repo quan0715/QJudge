@@ -8324,6 +8324,10 @@ components:
         code:
           type: string
           minLength: 1
+        state:
+          type: string
+          minLength: 1
+          maxLength: 128
         redirect_uri:
           type: string
           format: uri
@@ -8334,6 +8338,7 @@ components:
       required:
       - code
       - redirect_uri
+      - state
     PaginatedAppealInputList:
       type: object
       required:
