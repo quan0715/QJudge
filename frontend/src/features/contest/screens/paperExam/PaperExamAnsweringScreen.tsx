@@ -176,6 +176,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     const success = await submitProgress.run({
       handlers: {
         checking: async () => {
+          await autoSave.flushAll();
           await flushAll();
         },
         uploading: () => flushUploadsForSubmit(flushPendingUploads),
@@ -202,6 +203,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     return success;
   }, [
     anticheatUploadSessionId,
+    autoSave.flushAll,
     contestId,
     flushAll,
     flushPendingUploads,

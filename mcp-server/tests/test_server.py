@@ -835,6 +835,108 @@ def test_qjudge_exam_update_passes_existing_grades_action(monkeypatch):
     assert captured["json_body"] == {"correct_answer": 2, "existing_grades_action": "regrade"}
 
 
+def test_qjudge_exam_correct_answer_schema_advertises_integer_indexes():
+    schema = server.mcp._tool_manager.get_tool("qjudge_exam").parameters["properties"]["correct_answer"]
+
+    assert {"type": "integer"} in schema["anyOf"]
+    array_schema = next(variant for variant in schema["anyOf"] if variant.get("type") == "array")
+    assert {"type": "integer"} in array_schema["items"]["anyOf"]
+    assert {"type": "string"} in array_schema["items"]["anyOf"]
+
+
+def test_qjudge_exam_create_converts_index_strings_for_objective_questions(monkeypatch):
+    bodies = []
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        if path == "/api/v1/contests/11111111-1111-1111-1111-111111111111/":
+            return contest_detail()
+        bodies.append(json_body)
+        return {"id": "eq-new"}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    run(
+        server.qjudge_exam(
+            "create",
+            "11111111-1111-1111-1111-111111111111",
+            DummyContext(),
+            question_type="single_choice",
+            prompt="Pick",
+            options=["a", "b"],
+            correct_answer="1",
+        )
+    )
+    run(
+        server.qjudge_exam(
+            "create",
+            "11111111-1111-1111-1111-111111111111",
+            DummyContext(),
+            question_type="short_answer",
+            prompt="1 + 0 = ?",
+            correct_answer="1",
+        )
+    )
+
+    assert bodies[0]["correct_answer"] == 1
+    assert bodies[1]["correct_answer"] == "1"
+
+
+def test_qjudge_exam_update_converts_index_string_using_current_question_type(monkeypatch):
+    calls = []
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        if path == "/api/v1/contests/11111111-1111-1111-1111-111111111111/":
+            return contest_detail()
+        calls.append((method, json_body))
+        if method == "GET":
+            return {"id": "eq-1", "question_type": "single_choice"}
+        return {"id": "eq-1"}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    run(
+        server.qjudge_exam(
+            "update",
+            "11111111-1111-1111-1111-111111111111",
+            DummyContext(),
+            question_id="eq-1",
+            correct_answer="2",
+            existing_grades_action="regrade",
+        )
+    )
+
+    assert calls == [
+        ("GET", None),
+        ("PATCH", {"correct_answer": 2, "existing_grades_action": "regrade"}),
+    ]
+
+
+def test_qjudge_exam_batch_create_converts_index_strings(monkeypatch):
+    bodies = []
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        if path == "/api/v1/contests/11111111-1111-1111-1111-111111111111/":
+            return contest_detail()
+        bodies.append(json_body)
+        return {"id": f"eq-{len(bodies)}"}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    run(
+        server.qjudge_exam(
+            "batch_create",
+            "11111111-1111-1111-1111-111111111111",
+            DummyContext(),
+            items=[
+                {"question_type": "multiple_choice", "prompt": "Pick", "options": ["a", "b", "c"], "correct_answer": ["0", "2"]},
+                {"question_type": "true_false", "prompt": "Sky is blue", "options": ["True", "False"], "correct_answer": "0"},
+            ],
+        )
+    )
+
+    assert [body["correct_answer"] for body in bodies] == [[0, 2], 0]
+
+
 def test_qjudge_exam_rejects_existing_grades_action_outside_update():
     result = run(
         server.qjudge_exam(
@@ -1710,3 +1812,42 @@ def test_protected_resource_metadata_advertises_only_mcp_scope():
 
     assert response.status_code == 200
     assert response.json()["scopes_supported"] == ["mcp"]
+
+
+@pytest.mark.parametrize("action", ["create", "update"])
+def test_exam_tool_validation_allows_numeric_string_lists(monkeypatch, action):
+    bodies = []
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        if path.endswith("/contests/11111111-1111-1111-1111-111111111111/"):
+            return contest_detail()
+        if method == "GET":
+            return {"question_type": "multiple_choice", "options": ["a", "b", "c"]}
+        bodies.append(json_body)
+        return {"id": "eq-new"}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+    run(server.mcp._tool_manager.call_tool("qjudge_exam", {
+        "action": action,
+        "contest_id": "11111111-1111-1111-1111-111111111111",
+        "question_id": "eq-1",
+        "question_type": "multiple_choice",
+        "prompt": "Pick",
+        "options": ["a", "b", "c"],
+        "correct_answer": ["0", "2"],
+    }, context=DummyContext()))
+    assert bodies[-1]["correct_answer"] == [0, 2]
+
+
+@pytest.mark.parametrize("answer", [True, [True], ["0", False]])
+def test_exam_tool_validation_rejects_boolean_answers(answer):
+    from mcp.server.fastmcp.exceptions import ToolError
+    with pytest.raises(ToolError):
+        run(server.mcp._tool_manager.call_tool("qjudge_exam", {
+            "action": "create",
+            "contest_id": "11111111-1111-1111-1111-111111111111",
+            "question_type": "multiple_choice",
+            "prompt": "Pick",
+            "options": ["a", "b", "c"],
+            "correct_answer": answer,
+        }, context=DummyContext()))

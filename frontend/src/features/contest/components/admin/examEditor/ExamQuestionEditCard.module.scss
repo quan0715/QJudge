@@ -203,6 +203,7 @@
 
 .editToolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   padding: layout.$spacing-03 layout.$spacing-05;
@@ -220,6 +221,7 @@
   display: flex;
   align-items: center;
   gap: layout.$spacing-03;
+  margin-inline-start: auto;
 }
 
 .autoSaveHint {

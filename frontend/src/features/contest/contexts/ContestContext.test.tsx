@@ -13,6 +13,7 @@ vi.mock("@/infrastructure/api/repositories", () => ({
 }));
 
 vi.mock("@/infrastructure/api/repositories/exam.repository", () => ({
+  EXAM_STARTED_EVENT: "qjudge:exam-started",
   EXAM_SUBMITTED_EVENT: "qjudge:exam-submitted",
   getRuntimeState: (...args: unknown[]) => mockGetRuntimeState(...args),
 }));

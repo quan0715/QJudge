@@ -35,6 +35,10 @@ import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { usePublishPageContext } from "@/shared/contexts/PageContextProvider";
 import { examBlockPageContext } from "./editorPageContext";
 import { useContest } from "@/features/contest/contexts/ContestContext";
+import {
+  DEFAULT_CHOICE_OPTIONS,
+  DEFAULT_QUESTION_PROMPT,
+} from "@/features/contest/domain/examPublishIssues";
 import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
 import { useToast } from "@/shared/contexts";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave";
@@ -70,35 +74,34 @@ const DEFAULT_PAYLOADS: Record<
     score: number;
   }
 > = {
+  // Choice questions start without a correct answer so a placeholder is never
+  // mistaken for the real key; publishing warns about unset answers.
   single_choice: {
     question_type: "single_choice",
-    prompt: "New question",
+    prompt: DEFAULT_QUESTION_PROMPT,
     score: 5,
-    options: ["Option A", "Option B"],
-    correct_answer: 0,
+    options: [...DEFAULT_CHOICE_OPTIONS],
   },
   multiple_choice: {
     question_type: "multiple_choice",
-    prompt: "New question",
+    prompt: DEFAULT_QUESTION_PROMPT,
     score: 5,
-    options: ["Option A", "Option B"],
-    correct_answer: [0],
+    options: [...DEFAULT_CHOICE_OPTIONS],
   },
   true_false: {
     question_type: "true_false",
-    prompt: "New question",
+    prompt: DEFAULT_QUESTION_PROMPT,
     score: 5,
     options: ["True", "False"],
-    correct_answer: 0,
   },
   short_answer: {
     question_type: "short_answer",
-    prompt: "New question",
+    prompt: DEFAULT_QUESTION_PROMPT,
     score: 5,
   },
   essay: {
     question_type: "essay",
-    prompt: "New question",
+    prompt: DEFAULT_QUESTION_PROMPT,
     score: 5,
   },
 };
