@@ -12408,6 +12408,7 @@ components:
           type: string
           format: date-time
           readOnly: true
+          nullable: true
         profile:
           allOf:
           - $ref: '#/components/schemas/UserProfileObject'

@@ -70,6 +70,7 @@ def test_openapi_users_routes_document_wrapped_named_responses():
     schema = SchemaGenerator(patterns=urlpatterns).get_schema(public=True)
     schemas = schema['components']['schemas']
     assert set(schemas['UserObject']['properties']) == {'id', 'username', 'email', 'role', 'auth_provider', 'last_login_at', 'onboarding_completed_at', 'profile'}
+    assert schemas['UserObject']['properties']['onboarding_completed_at'].get('nullable') is True
     assert set(schemas['UserSettingsObject']['properties']) == {'profile', 'preferences', 'onboarding_completed_at'}
     for path in schema['paths'].values():
         for operation in path.values():

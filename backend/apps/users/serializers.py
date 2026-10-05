@@ -31,7 +31,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 @extend_schema_serializer(component_name="UserObject")
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(read_only=True, default={"display_name": "", "avatar_url": None})
-    onboarding_completed_at = serializers.DateTimeField(source="profile.onboarding_completed_at", read_only=True, default=None)
+    onboarding_completed_at = serializers.DateTimeField(source="profile.onboarding_completed_at", read_only=True, default=None, allow_null=True)
 
     class Meta:
         model = User
