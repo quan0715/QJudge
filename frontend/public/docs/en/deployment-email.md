@@ -85,6 +85,8 @@ deploy/qjudge upgrade "$(sed -n 's/^current=//p' deploy/.version)"
 
 Backend and celery receive the same mail settings. Use a dedicated test account to verify password recovery, worker delivery and redemption. Accounts using only third-party login without a usable local password cannot recover one; accounts with an existing local password remain eligible after linking OAuth. Match the identifier's case as you would for password login. A successful SMTP probe alone does not verify the worker flow.
 
+A password reset signs the browser that completed it out, and other devices can no longer renew their sessions. Sessions already open on other devices stay valid until their current access expires (up to 8 hours), so a user who suspects a stolen session should also expect up to 8 hours before it ends.
+
 `EMAIL_MODE` is shared by application mail features. Future notifications will use this capability check and document their individual notification rules separately.
 
 ## Disable mail and troubleshoot
