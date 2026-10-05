@@ -14,12 +14,12 @@ Links use `/reset-password#token=...` so the secret is absent from the initial p
 
 ## Production configuration
 
-Use a dedicated sender on a verified QJudge domain. For this installation the intended sender is **QJudge <noreply@q-judge.com>**. A sender address does not itself provide a mail service: first register and verify the domain with the chosen transactional email provider, add its DNS verification/DKIM/SPF records, and provision SMTP credentials. Keep existing domain mail records intact.
+Use a dedicated sender on a verified QJudge domain. For this installation the intended sender is **QJudge <noreply@mail.q-judge.com>**. A sender address does not itself provide a mail service: first register and verify the domain with the chosen transactional email provider, add its DNS verification/DKIM/SPF records, and provision SMTP credentials. Keep existing domain mail records intact.
 
 Set these keys in the deployment secret/environment file (never commit credentials):
 
 ```dotenv
-PASSWORD_RESET_ENABLED=true
+PASSWORD_RESET_ENABLED=false
 EMAIL_HOST=<provider SMTP hostname>
 EMAIL_PORT=587
 EMAIL_USE_TLS=true
@@ -27,12 +27,12 @@ EMAIL_USE_SSL=false
 EMAIL_TIMEOUT=10
 EMAIL_HOST_USER=<provider SMTP username>
 EMAIL_HOST_PASSWORD=<provider SMTP credential>
-DEFAULT_FROM_EMAIL=QJudge <noreply@q-judge.com>
+DEFAULT_FROM_EMAIL=QJudge <noreply@mail.q-judge.com>
 ```
 
 For providers requiring port 465, set `EMAIL_USE_TLS=false` and `EMAIL_USE_SSL=true`. Never enable both modes. The deployment CLI requires a host and explicit sender when recovery is enabled, validates port/timeout/TLS values, and treats the SMTP password as a secret. `QJUDGE_PUBLIC_ORIGIN` determines the frontend link origin.
 
-Run `deploy/qjudge check`, then follow the ordinary reviewed release/deployment process. Apply migration `users.0003_password_reset_token` and restart both backend and the existing Django Celery worker (the `default` queue). The worker and backend receive the same mail settings. Validate delivery using an explicitly approved test recipient before enabling the production UI. Creating a PR does not configure DNS, create a provider account, or authorize a deployment.
+Run `deploy/qjudge check`, then follow the ordinary reviewed release/deployment process. Apply migration `users.0003_password_reset_token` and restart both backend and the existing Django Celery worker (the `default` queue). The worker and backend receive the same mail settings. Validate delivery from the deployed worker using an explicitly approved test recipient, then set `PASSWORD_RESET_ENABLED=true`, run `deploy/qjudge check`, and recreate backend/worker to enable the production UI. Updating an environment file alone does not update an existing container. Creating a PR does not configure DNS, create a provider account, or authorize a deployment.
 
 Development uses Django's console email backend; tests use the in-memory backend. Enable `PASSWORD_RESET_ENABLED=true` in the development environment and run the normal Celery worker. No provider credentials or real emails are needed for tests.
 
@@ -44,3 +44,29 @@ To disable recovery, set `PASSWORD_RESET_ENABLED=false` and restart backend/work
 Resend is one compatible provider; selecting it does not change the application code. Its [official SMTP settings](https://resend.com/docs/send-with-smtp) are `EMAIL_HOST=smtp.resend.com`, `EMAIL_PORT=587`, `EMAIL_USE_TLS=true`, `EMAIL_USE_SSL=false`, `EMAIL_HOST_USER=resend`, and an API key as `EMAIL_HOST_PASSWORD`. Set the API key through the deployment secret file, not a chat message or committed example.
 
 Verify the sending domain first using the provider's [domain setup](https://resend.com/docs/dashboard/domains/introduction). Configure the actual records provided by its dashboard rather than copying example DNS values. Keep click tracking disabled for password-reset mail. These instructions do not imply a provider account or DNS records have been created.
+
+
+## Browser verification in CI
+
+Run the **E2E** workflow on the recovery branch with `group=auth`. It runs
+`frontend/tests/e2e/password-recovery.e2e.spec.ts` alongside the existing auth
+and pending-action checks. The fresh-install overlay uses `config.settings.e2e`
+and a pinned Mailpit SMTP inbox. The real backend enqueues the real Celery job;
+Playwright retrieves the delivered message from the loopback-only inbox API and
+follows its link. No production SMTP credentials or external recipients are used.
+
+The test verifies generic request acknowledgements, mismatched and weak password
+rejection, successful reset, cleared browser cookies, old-password rejection,
+new-password login and refusal to reuse a consumed link while signed in. Unit
+tests additionally cover expiry, superseded links, concurrent redemption, refresh
+token revocation and limits. Unit tests retain Django's in-memory mail backend.
+
+The CI inbox API defaults to `http://127.0.0.1:8025`; an independently prepared
+test stack may set `E2E_MAILPIT_URL`. Never expose this inbox or use the E2E
+settings/Compose overlay for a production installation.
+
+For this installation, `mail.q-judge.com` was verified in Resend and a direct
+SMTP test to the operator's approved inbox succeeded on 2026-10-05. This verifies
+the provider and sender only. Production SMTP installation, worker delivery,
+feature enablement and the complete production recovery flow remain separate
+checks. The API key is entered by the operator and must not be committed here.
