@@ -21,10 +21,11 @@ class PasswordRecoveryThrottle(BaseThrottle):
             identifier = request.data.get('identifier', '') if isinstance(request.data, dict) else ''
             checks.append(('identifier', str(identifier).strip().casefold(), 3, 3600))
         self.retry_after = 0
+        operation = 'request' if getattr(view, 'limit_identifier', False) else 'redeem'
         for kind, identity, limit, seconds in checks:
             fingerprint = salted_hmac('password-reset-throttle', identity).hexdigest()
             bucket = int(time.time()) // seconds
-            key = f'password-reset:{kind}:{fingerprint}:{bucket}'
+            key = f'password-reset:{operation}:{kind}:{fingerprint}:{bucket}'
             if cache.add(key, 1, timeout=seconds + 1):
                 count = 1
             else:

@@ -327,6 +327,17 @@ def test_recovery_preserves_exact_case_distinct_login_identifiers(identifier_fie
 
 
 @pytest.mark.django_db
+def test_ambiguous_email_and_username_identifier_does_not_select_an_account():
+    from apps.users.services import EmailAuthService
+    first = User.objects.create_user(username='first', email='shared@example.test', password='OriginalPassword98!')
+    User.objects.create_user(username=first.email, email='second@example.test', password='OriginalPassword98!')
+    send_password_reset(first.email)
+    assert len(mail.outbox) == 0
+    assert PasswordResetToken.objects.count() == 0
+    assert EmailAuthService.login(first.email, 'OriginalPassword98!') is None
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize('link_before_issuance', [True, False])
 def test_oauth_link_does_not_remove_password_recovery_eligibility(user, link_before_issuance):
     from apps.users.auth.contracts import NormalizedQAuthIdentity
@@ -348,9 +359,9 @@ def test_oauth_link_does_not_remove_password_recovery_eligibility(user, link_bef
 
 @pytest.mark.django_db(transaction=True)
 def test_inflight_old_password_login_cannot_leave_refresh_token_after_reset(user):
-    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+    from concurrent.futures import ThreadPoolExecutor
     from threading import Event
-    from django.db import close_old_connections, connection
+    from django.db import close_old_connections, connection, DatabaseError, transaction
     from apps.users.password_reset import complete_password_reset
 
     token = emailed_token(user)
@@ -388,14 +399,19 @@ def test_inflight_old_password_login_cannot_leave_refresh_token_after_reset(user
             login_result = workers.submit(login)
             try:
                 assert credentials_validated.wait(timeout=5)
+                login_holds_user_lock = False
+                try:
+                    with transaction.atomic():
+                        User.objects.select_for_update(nowait=True).get(pk=user.pk)
+                except DatabaseError as exc:
+                    assert getattr(exc.__cause__, 'sqlstate', getattr(exc.__cause__, 'pgcode', None)) == '55P03'
+                    login_holds_user_lock = True
                 reset_result = workers.submit(reset)
                 assert reset_lock_attempted.wait(timeout=5)
-                try:
-                    # On the vulnerable implementation reset finishes before issuance;
-                    # with the shared lock it waits until the login commits.
-                    reset_result.result(timeout=1)
-                except FutureTimeout:
-                    pass
+                if not login_holds_user_lock:
+                    # Deterministically finish the reset before vulnerable issuance.
+                    # With the shared lock, release login so reset can acquire it.
+                    reset_result.result(timeout=10)
             finally:
                 release_login.set()
             response = login_result.result(timeout=10)
@@ -405,3 +421,69 @@ def test_inflight_old_password_login_cannot_leave_refresh_token_after_reset(user
     assert APIClient().post('/api/v1/auth/refresh', {'refresh': refresh}, format='json').status_code == 401
     user.refresh_from_db()
     assert user.check_password(PASSWORD)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_password_login_waiting_on_reset_rechecks_the_committed_password(user):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    from django.db import close_old_connections, connection, transaction
+    from apps.users.password_reset import complete_password_reset
+    token = emailed_token(user)
+    lookup_attempted, old_password_checked = Event(), Event()
+    locking_lookup = []
+    check_password = User.check_password
+
+    def observe_lookup(execute, sql, params, many, context):
+        if sql.lstrip().startswith('SELECT') and 'FROM "users"' in sql and not lookup_attempted.is_set():
+            locking_lookup.append('FOR UPDATE' in sql)
+            lookup_attempted.set()
+        return execute(sql, params, many, context)
+
+    def observe_password_check(login_user, raw_password):
+        result = check_password(login_user, raw_password)
+        if login_user.pk == user.pk and raw_password == 'OriginalPassword98!':
+            old_password_checked.set()
+        return result
+
+    def login():
+        close_old_connections()
+        try:
+            with connection.execute_wrapper(observe_lookup):
+                return APIClient().post('/api/v1/auth/login/password',
+                    {'identifier': user.email, 'password': 'OriginalPassword98!'}, format='json')
+        finally:
+            close_old_connections()
+
+    with patch.object(User, 'check_password', observe_password_check):
+        with ThreadPoolExecutor(max_workers=1) as workers:
+            with transaction.atomic():
+                complete_password_reset(token, PASSWORD)
+                login_result = workers.submit(login)
+                assert lookup_attempted.wait(timeout=5)
+                if not locking_lookup[0]:
+                    assert old_password_checked.wait(timeout=5)
+            response = login_result.result(timeout=10)
+    assert response.status_code == 401
+    assert response.json()['errors'][0]['code'] == 'auth_001'
+    assert not OutstandingToken.objects.filter(user=user).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('credential', ['blank', 'unusable', 'unsupported'])
+def test_pure_oauth_projection_cannot_create_a_password_through_recovery(credential):
+    from apps.users.auth.contracts import NormalizedQAuthIdentity
+    from apps.users.auth.user_projection import create_user_for_identity
+    from apps.users.services import EmailAuthService
+    identity = NormalizedQAuthIdentity(provider_key='google', provider_subject='oauth-only',
+        email='oauth-only@example.test', username='oauth-only', email_verified=True)
+    oauth = create_user_for_identity(identity)
+    if credential == 'unusable':
+        oauth.set_unusable_password()
+    elif credential == 'unsupported':
+        oauth.password = 'unsupported$not-a-local-password'
+    oauth.save(update_fields=['password'])
+    assert EmailAuthService.login(oauth.email, 'sample-password') is None
+    send_password_reset(oauth.email)
+    assert len(mail.outbox) == 0
+    assert not PasswordResetToken.objects.filter(user=oauth).exists()
