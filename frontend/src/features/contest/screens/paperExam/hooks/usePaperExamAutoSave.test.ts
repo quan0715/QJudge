@@ -310,4 +310,29 @@ describe("usePaperExamAutoSave", () => {
     expect(mockedSubmitExamAnswer).toHaveBeenLastCalledWith("new-contest", "q1", { text: "new answer" });
   });
 
+  it("keeps the newest server answer when older and newer saves overlap before submission", async () => {
+    let resolveOld!: () => void;
+    let serverAnswer = "";
+    mockedSubmitExamAnswer.mockImplementation((_contest, _question, payload) => {
+      const text = String(payload.text);
+      if (text === "older answer") return new Promise((resolve) => {
+        resolveOld = () => { serverAnswer = text; resolve({} as never); };
+      });
+      serverAnswer = text;
+      return Promise.resolve({} as never);
+    });
+    const { result } = renderHook(() => usePaperExamAutoSave({
+      contestId: "contest-reset", setAnswers: vi.fn() as never,
+    }));
+    act(() => result.current.handleAnswerChange("q1", "older answer", "essay"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    act(() => result.current.handleAnswerChange("q1", "newest answer", "essay"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    let flush!: Promise<void>;
+    await act(async () => { flush = result.current.flushAll(); });
+    await act(async () => { resolveOld(); await flush; });
+    expect(serverAnswer).toBe("newest answer");
+    expect(mockedSubmitExamAnswer).toHaveBeenCalledTimes(2);
+  });
+
 });

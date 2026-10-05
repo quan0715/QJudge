@@ -65,6 +65,7 @@ export function usePaperExamAutoSave({
   const pendingSaves = useRef(new Map<string, PendingSave>());
   const latestEdits = useRef(new Map<string, PendingSave>());
   const inFlightSaves = useRef(new Set<Promise<void>>());
+  const savesByQuestion = useRef(new Map<string, Promise<void>>());
   const flushing = useRef(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
@@ -94,18 +95,26 @@ export function usePaperExamAutoSave({
     const pending = pendingSaves.current;
     const running = inFlightSaves.current;
     const latest = latestEdits.current;
+    const byQuestion = savesByQuestion.current;
     if (entry.timeout) clearTimeout(entry.timeout);
     entry.timeout = undefined;
     if (pending.get(questionId) === entry) pending.delete(questionId);
-    const request = submitExamAnswer(contestId!, questionId, entry.payload).then(
+    // Writes for the same answer must reach the server in edit order.
+    saveExamAnswerDraft(contestId!, questionId, entry.payload);
+    const previous = byQuestion.get(questionId);
+    const send = () => submitExamAnswer(contestId!, questionId, entry.payload);
+    const response = previous ? previous.catch(() => {}).then(send) : send();
+    const request = response.then(
       () => {
         running.delete(request);
+        if (byQuestion.get(questionId) === request) byQuestion.delete(questionId);
         if (pendingSaves.current === pending) {
           setSaveStatus(hasPendingWork() ? "saving" : "saved");
         }
       },
       (error: unknown) => {
         running.delete(request);
+        if (byQuestion.get(questionId) === request) byQuestion.delete(questionId);
         // A failed save remains retryable without replacing a newer edit.
         if (latest.get(questionId) === entry) pending.set(questionId, entry);
         if (pendingSaves.current === pending) setSaveStatus("error");
@@ -113,6 +122,7 @@ export function usePaperExamAutoSave({
       },
     );
     running.add(request);
+    byQuestion.set(questionId, request);
     return request;
   }, [contestId, hasPendingWork]);
 
@@ -146,6 +156,7 @@ export function usePaperExamAutoSave({
     pendingSaves.current = new Map();
     latestEdits.current = new Map();
     inFlightSaves.current = new Set();
+    savesByQuestion.current = new Map();
     flushing.current = false;
   }, [contestId]);
 
