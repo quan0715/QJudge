@@ -114,9 +114,8 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
     }));
     // Keep unique fixtures for failed-run inspection; never reset shared exams.
     await testInfo.attach("resident-fixture", { body: JSON.stringify({ classroomId: classroom.uuid, contestId, startsAt }), contentType: "application/json" });
-    // The normal entry API establishes classroom membership participation and
-    // is idempotent if publication already enrolled the classroom's students.
-    await json(await student.request.post(`/api/v1/contests/${contestId}/enter/`, { headers: studentHeaders }));
+    // Classroom membership establishes eligibility; precheck's exam/start
+    // creates the attempt. There is no separate contest entry API.
     await expect.poll(() => Date.now() >= startsAt, { timeout: 20_000 }).toBe(true);
 
     const checkpointPath = `/api/v1/contests/${contestId}/exam/integrity/checkpoints/`;
