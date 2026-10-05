@@ -64,7 +64,7 @@ def test_mcp_resource_token_authenticates_as_original_user(
     )
 
     assert response.status_code == 200
-    assert response.data["data"]["id"] == teacher.pk
+    assert response.json()["data"]["id"] == teacher.pk
 
 
 def test_non_resource_jwt_falls_through_to_existing_authentication(

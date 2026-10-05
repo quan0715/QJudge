@@ -23,7 +23,7 @@ export interface BaseMeta {
 
 export interface ApiEnvelope<TData, TMeta extends BaseMeta = BaseMeta> {
   data: TData;
-  meta?: TMeta;
+  meta: TMeta;
 }
 
 export interface ApiErrorItem {
@@ -35,7 +35,7 @@ export interface ApiErrorItem {
 
 export interface ApiErrorEnvelope {
   errors: ApiErrorItem[];
-  meta?: BaseMeta;
+  meta: BaseMeta;
 }
 
 export class EnvelopeError extends Error {
@@ -67,21 +67,12 @@ const readJsonBody = async (response: Response): Promise<unknown> => {
   }
 };
 
-const coerceErrors = (body: unknown, fallbackMessage: string): ApiErrorItem[] => {
-  if (body && typeof body === "object" && "errors" in body) {
-    const errors = (body as ApiErrorEnvelope).errors;
-    if (Array.isArray(errors) && errors.length > 0) return errors;
-  }
-  // Fall back to the legacy `{success, error}` shape so migration-period
-  // failures surface a useful message instead of "Request failed".
-  if (body && typeof body === "object" && "error" in body) {
-    const err = (body as { error?: { code?: string; message?: string } }).error;
-    if (err?.message) {
-      return [{ code: err.code ?? "error", message: err.message, field: null }];
-    }
-  }
-  return [{ code: "error", message: fallbackMessage, field: null }];
-};
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+const malformed = (status: number, message: string) => new EnvelopeError(status, [
+  { code: "envelope_malformed", message, field: null, details: {} },
+]);
 
 /**
  * Fetch a response wrapped in the standard envelope.
@@ -96,23 +87,20 @@ export const fetchEnvelope = async <TData, TMeta extends BaseMeta = BaseMeta>(
   const response = await request;
   const body = await readJsonBody(response);
 
+  if (!isObject(body) || !isObject(body.meta)) {
+    throw malformed(response.status, fallbackMessage);
+  }
   if (!response.ok) {
-    const meta: BaseMeta =
-      (body && typeof body === "object" && "meta" in body
-        ? ((body as ApiErrorEnvelope).meta ?? {})
-        : {});
-    throw new EnvelopeError(response.status, coerceErrors(body, fallbackMessage), meta);
+    if (Object.keys(body).some((key) => key !== "errors" && key !== "meta") || !Array.isArray(body.errors) || body.errors.length === 0 ||
+        !body.errors.every((item: unknown) => isObject(item) &&
+          typeof item.code === "string" && typeof item.message === "string" &&
+          (item.field === null || typeof item.field === "string") && isObject(item.details))) {
+      throw malformed(response.status, fallbackMessage);
+    }
+    throw new EnvelopeError(response.status, body.errors as ApiErrorItem[], body.meta);
   }
-
-  if (!body || typeof body !== "object" || !("data" in body)) {
-    throw new EnvelopeError(response.status, [
-      { code: "envelope_malformed", message: fallbackMessage, field: null },
-    ]);
+  if (!("data" in body) || Object.keys(body).some((key) => key !== "data" && key !== "meta")) {
+    throw malformed(response.status, fallbackMessage);
   }
-
-  const envelope = body as ApiEnvelope<TData, TMeta>;
-  return {
-    data: envelope.data,
-    meta: (envelope.meta ?? ({} as TMeta)) as TMeta,
-  };
+  return { data: body.data as TData, meta: body.meta as TMeta };
 };

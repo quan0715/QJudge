@@ -10,6 +10,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from apps.core.api.envelope import contract_error_response
 
 from apps.classrooms.models import Classroom, ClassroomMember
 from apps.classrooms.serializers import ClassroomDetailSerializer
@@ -28,11 +29,8 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
-def _error_response(code: str, message: str, http_status: int, details: dict | None = None):
-    error = {"code": code, "message": message}
-    if details is not None:
-        error["details"] = details
-    return Response({"success": False, "error": error}, status=http_status)
+def _error_response(request, code, message, http_status, details=None):
+    return contract_error_response(request, code, message, status=http_status, details=details)
 
 
 def _teacher_action_link_payload(invite, request):
@@ -92,6 +90,7 @@ class ActionLinkIssueView(SchemaAPIView):
         serializer = self.serializer_class(data=request.data)
         if not serializer.is_valid():
             return _error_response(
+                request,
                 "VALIDATION_ERROR",
                 "Action link request validation failed.",
                 status.HTTP_400_BAD_REQUEST,
@@ -104,6 +103,7 @@ class ActionLinkIssueView(SchemaAPIView):
         if purpose == "classroom_join":
             return self._issue_classroom_join(request, serializer.validated_data["classroom_id"])
         return _error_response(
+                request,
             "UNSUPPORTED_ACTION_LINK_PURPOSE",
             "Unsupported action link purpose.",
             status.HTTP_400_BAD_REQUEST,
@@ -112,6 +112,7 @@ class ActionLinkIssueView(SchemaAPIView):
     def _issue_teacher_activation(self, request):
         if not IsSuperAdmin().has_permission(request, self):
             return _error_response(
+                request,
                 "PERMISSION_DENIED",
                 "只有超級管理員可以產生教師開通連結",
                 status.HTTP_403_FORBIDDEN,
@@ -124,6 +125,7 @@ class ActionLinkIssueView(SchemaAPIView):
         except ValueError as exc:
             logger.warning("Teacher activation action link not allowed: %s", exc)
             return _error_response(
+                request,
                 "ACTION_LINK_NOT_ISSUABLE",
                 "Action link cannot be issued for this purpose.",
                 status.HTTP_400_BAD_REQUEST,
@@ -138,14 +140,7 @@ class ActionLinkIssueView(SchemaAPIView):
                 "existing_user": None,
             }
         )
-        return Response(
-            {
-                "success": True,
-                "data": payload,
-                "message": "已產生教師開通連結",
-            },
-            status=status.HTTP_201_CREATED,
-        )
+        return Response(payload, status=status.HTTP_201_CREATED)
 
     def _issue_classroom_join(self, request, classroom_id):
         classroom = (
@@ -156,18 +151,21 @@ class ActionLinkIssueView(SchemaAPIView):
         )
         if classroom is None:
             return _error_response(
+                request,
                 "CLASSROOM_NOT_FOUND",
                 "Classroom not found.",
                 status.HTTP_404_NOT_FOUND,
             )
         if classroom.owner_id != request.user.id and not classroom.admins.filter(pk=request.user.pk).exists():
             return _error_response(
+                request,
                 "PERMISSION_DENIED",
                 "Only classroom managers can issue classroom invite action links.",
                 status.HTTP_403_FORBIDDEN,
             )
         if not classroom.invite_code_enabled:
             return _error_response(
+                request,
                 "ACTION_LINK_NOT_ISSUABLE",
                 "Classroom invite links are disabled.",
                 status.HTTP_400_BAD_REQUEST,
@@ -175,23 +173,7 @@ class ActionLinkIssueView(SchemaAPIView):
 
         action_token = EmailAuthService.classroom_action_token(classroom.invite_code)
         action_link_url = EmailAuthService.build_action_link_url(action_token)
-        return Response(
-            {
-                "success": True,
-                "data": {
-                    "purpose": "classroom_join",
-                    "token": action_token,
-                    "action_link_url": action_link_url,
-                    "target": {
-                        "type": "classroom",
-                        "id": str(classroom.uuid),
-                        "name": classroom.name,
-                    },
-                },
-                "message": "已產生教室邀請連結",
-            },
-            status=status.HTTP_200_OK,
-        )
+        return Response({'purpose': 'classroom_join', 'token': action_token, 'action_link_url': action_link_url, 'target': {'type': 'classroom', 'id': str(classroom.uuid), 'name': classroom.name}}, status=status.HTTP_200_OK)
 
 
 class ActionLinkInspectView(SchemaAPIView):
@@ -204,6 +186,7 @@ class ActionLinkInspectView(SchemaAPIView):
         token = (token or "").strip()
         if not token:
             return _error_response(
+                request,
                 "TOKEN_REQUIRED",
                 "Missing action link token.",
                 status.HTTP_400_BAD_REQUEST,
@@ -211,13 +194,14 @@ class ActionLinkInspectView(SchemaAPIView):
 
         invite = EmailAuthService.get_teacher_activation_invite_by_token(token)
         if invite is not None:
-            return Response({"success": True, "data": _teacher_action_link_payload(invite, request)})
+            return Response(_teacher_action_link_payload(invite, request))
 
         classroom = _find_classroom_by_token(token)
         if classroom is not None:
-            return Response({"success": True, "data": _classroom_action_link_payload(classroom, request)})
+            return Response(_classroom_action_link_payload(classroom, request))
 
         return _error_response(
+                request,
             "ACTION_LINK_NOT_FOUND",
             "Action link not found.",
             status.HTTP_404_NOT_FOUND,
@@ -234,6 +218,7 @@ class ActionLinkRedeemView(SchemaAPIView):
         token = (token or "").strip()
         if not token:
             return _error_response(
+                request,
                 "TOKEN_REQUIRED",
                 "Missing action link token.",
                 status.HTTP_400_BAD_REQUEST,
@@ -248,6 +233,7 @@ class ActionLinkRedeemView(SchemaAPIView):
             return self._redeem_classroom_join(request, classroom)
 
         return _error_response(
+                request,
             "ACTION_LINK_NOT_FOUND",
             "Action link not found.",
             status.HTTP_404_NOT_FOUND,
@@ -256,12 +242,14 @@ class ActionLinkRedeemView(SchemaAPIView):
     def _redeem_teacher_activation(self, request, invite):
         if invite.consumed_at:
             return _error_response(
+                request,
                 "ACTION_LINK_ALREADY_REDEEMED",
                 "這個教師開通連結已經使用過了",
                 status.HTTP_400_BAD_REQUEST,
             )
         if invite.expires_at <= timezone.now():
             return _error_response(
+                request,
                 "ACTION_LINK_EXPIRED",
                 "這個教師開通連結已過期",
                 status.HTTP_400_BAD_REQUEST,
@@ -271,12 +259,14 @@ class ActionLinkRedeemView(SchemaAPIView):
             locked_invite = type(invite).objects.select_for_update().get(pk=invite.pk)
             if locked_invite.consumed_at:
                 return _error_response(
+                request,
                     "ACTION_LINK_ALREADY_REDEEMED",
                     "這個教師開通連結已經使用過了",
                     status.HTTP_400_BAD_REQUEST,
                 )
             if locked_invite.expires_at <= timezone.now():
                 return _error_response(
+                request,
                     "ACTION_LINK_EXPIRED",
                     "這個教師開通連結已過期",
                     status.HTTP_400_BAD_REQUEST,
@@ -308,6 +298,7 @@ class ActionLinkRedeemView(SchemaAPIView):
     def _redeem_classroom_join(self, request, classroom: Classroom):
         if not classroom.invite_code_enabled:
             return _error_response(
+                request,
                 "ACTION_LINK_REVOKED",
                 "Classroom invite link is disabled.",
                 status.HTTP_403_FORBIDDEN,

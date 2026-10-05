@@ -25,7 +25,7 @@ class AuthTests(APITestCase):
         response = self.client.post(self.register_url, self.user_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(User.objects.filter(email='test@example.com').exists())
-        self.assertIn('access_token', response.data['data'])
+        self.assertIn('access_token', response.json()['data'])
 
     def test_register_duplicate_email(self):
         """Test registration with existing email"""
@@ -44,7 +44,7 @@ class AuthTests(APITestCase):
         }
         response = self.client.post(self.login_url, login_data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('access_token', response.data['data'])
+        self.assertIn('access_token', response.json()['data'])
 
     def test_login_user_uses_role_without_subscription(self):
         """Account authorization is represented by role, not a billing tier."""
@@ -62,7 +62,7 @@ class AuthTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        user = response.data["data"]["user"]
+        user = response.json()["data"]["user"]
         self.assertEqual(user["role"], "teacher")
         self.assertNotIn("subscription", user)
 
@@ -95,11 +95,11 @@ class AuthTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
-            response.data['data']['user']['profile']['display_name'],
+            response.json()['data']['user']['profile']['display_name'],
             'Onboarded User',
         )
         self.assertIsNotNone(
-            response.data['data']['user']['profile']['onboarding_completed_at']
+            response.json()['data']['user']["onboarding_completed_at"]
         )
 
     def test_login_invalid_credentials(self):
@@ -128,14 +128,8 @@ class AuthTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        profile = response.data["data"]["user"]["profile"]
-        required_keys = {
-            "solved_count", "submission_count", "accept_rate",
-            "display_name", "avatar_url",
-            "preferred_language", "preferred_theme",
-            "editor_font_size", "editor_tab_size",
-            "onboarding_completed_at",
-        }
+        profile = response.json()["data"]["user"]["profile"]
+        required_keys = {"display_name", "avatar_url"}
         self.assertTrue(
             required_keys.issubset(set(profile.keys())),
             f"Missing keys: {required_keys - set(profile.keys())}",
@@ -150,7 +144,7 @@ class AuthTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        lang = response.data["data"]["user"]["profile"]["preferred_language"]
+        lang = UserProfile.objects.get(user_id=response.json()["data"]["user"]["id"]).preferred_language
         self.assertEqual(lang, "zh-TW")
         self.assertNotEqual(lang, "zh-hant")
 
@@ -158,7 +152,7 @@ class AuthTests(APITestCase):
         """Register response must contain success, data.access_token, data.user."""
         response = self.client.post(self.register_url, self.user_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(response.data["success"])
-        self.assertIn("access_token", response.data["data"])
-        self.assertIn("user", response.data["data"])
-        self.assertIn("profile", response.data["data"]["user"])
+        self.assertEqual(set(response.json()), {"data", "meta"})
+        self.assertIn("access_token", response.json()["data"])
+        self.assertIn("user", response.json()["data"])
+        self.assertIn("profile", response.json()["data"]["user"])

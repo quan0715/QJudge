@@ -2,7 +2,11 @@
 
 from rest_framework import generics, serializers, status
 from rest_framework.response import Response
+from apps.core.api.envelope import contract_error_response, contract_validation_error_response
+from apps.core.api.renderer import ContractJSONRenderer
 from rest_framework_simplejwt.tokens import AccessToken
+
+from ..schema import UserContractSchema
 
 from ..authentication import set_jwt_cookies
 from ..services import JWTService
@@ -18,34 +22,19 @@ from apps.contests.services.anti_cheat_session import (
 class SchemaAPIView(generics.GenericAPIView):
     """APIView with serializer support for schema generation."""
 
+    schema = UserContractSchema()
+    pagination_class = None
+    api_contract_enabled = True
+    renderer_classes = [ContractJSONRenderer]
     serializer_class = serializers.Serializer
 
 
-def validation_error_response(message: str, details) -> Response:
-    return Response(
-        {
-            "success": False,
-            "error": {
-                "code": "VALIDATION_ERROR",
-                "message": message,
-                "details": details,
-            },
-        },
-        status=status.HTTP_400_BAD_REQUEST,
-    )
+def validation_error_response(request, message: str, details) -> Response:
+    return contract_validation_error_response(request, message, details)
 
 
-def password_auth_disabled_response() -> Response:
-    return Response(
-        {
-            "success": False,
-            "error": {
-                "code": "PASSWORD_AUTH_DISABLED",
-                "message": "密碼憑證登入已停用，請使用學校 SSO 或其他已啟用的登入方式",
-            },
-        },
-        status=status.HTTP_403_FORBIDDEN,
-    )
+def password_auth_disabled_response(request) -> Response:
+    return contract_error_response(request, 'PASSWORD_AUTH_DISABLED', '密碼憑證登入已停用，請使用學校 SSO 或其他已啟用的登入方式', status=status.HTTP_403_FORBIDDEN)
 
 
 def token_cookie_response(
@@ -58,9 +47,7 @@ def token_cookie_response(
 ) -> Response:
     payload = JWTService.get_user_response_data(user, tokens)
     if extra_data:
-        payload.setdefault("data", {}).update(extra_data)
-    if message:
-        payload["message"] = message
+        payload.update(extra_data)
 
     response = Response(payload, status=status_code)
     set_jwt_cookies(response, tokens)
@@ -119,17 +106,13 @@ def build_active_exam_login_block_response(user, request, provider: str):
         ),
     )
 
-    return Response(
-        {
-            "success": False,
-            "code": "ACTIVE_EXAM_SESSION_EXISTS",
-            "message": "偵測到你有進行中的考試，請回到原本的裝置完成考試後再登入。",
-            "active_exam": {
-                "contest_id": str(contest.id),
-                "contest_name": contest.name,
-                "participant_id": conflict.participant.id,
-                "exam_status": conflict.participant.exam_status,
-            },
-        },
+    return contract_error_response(
+        request, "active_exam_session_exists",
+        "偵測到你有進行中的考試，請回到原本的裝置完成考試後再登入。",
         status=status.HTTP_409_CONFLICT,
+        details={"active_exam": {
+            "contest_id": str(contest.id), "contest_name": contest.name,
+            "participant_id": conflict.participant.id,
+            "exam_status": conflict.participant.exam_status,
+        }},
     )

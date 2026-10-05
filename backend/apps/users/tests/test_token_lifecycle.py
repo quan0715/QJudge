@@ -40,7 +40,7 @@ def test_refresh_token_issues_a_new_access_token(api_client):
     response = api_client.post("/api/v1/auth/refresh", {"refresh": refresh_token}, format="json")
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json()["success"] is True
+    assert set(response.json()) == {"data", "meta"}
     assert "access_token" in response.json()["data"]
 
 

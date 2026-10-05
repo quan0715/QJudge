@@ -14,16 +14,22 @@ import {
 import type {
   ThemePreference,
   UserPreferences,
+  UserSettings,
   UserProfile,
-  UpdatePreferencesRequest,
   UpdateAccountProfileRequest,
 } from "@/core/entities/auth.entity";
 import { notifyAuthSessionChanged } from "@/infrastructure/api/http.client";
 
+// Flat presentation state; the API boundary remains the nested UserSettings contract.
+type PreferencesFormState = UserPreferences & Partial<UserProfile>;
+const toFormState = (settings: UserSettings): PreferencesFormState => ({
+  ...settings.preferences, ...settings.profile,
+});
+
 // Module-level state to prevent multiple instances from loading simultaneously
 let globalLoadedForUserId: number | null = null;
-let globalPreferencesCache: UserPreferences | null = null;
-let globalLoadPromise: Promise<UserPreferences | null> | null = null;
+let globalPreferencesCache: PreferencesFormState | null = null;
+let globalLoadPromise: Promise<PreferencesFormState | null> | null = null;
 let globalPreferencesMutationEpoch = 0;
 
 export const __resetUserPreferencesCacheForTests = () => {
@@ -35,7 +41,7 @@ export const __resetUserPreferencesCacheForTests = () => {
 
 export interface UseUserPreferencesReturn {
   // Current preferences
-  preferences: UserPreferences | null;
+  preferences: PreferencesFormState | null;
   loading: boolean;
   error: Error | null;
 
@@ -76,25 +82,23 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
   const { preference, setPreference, theme } = useTheme();
   const { setContentLanguage, contentLanguage } = useContentLanguage();
 
-  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const [preferences, setPreferences] = useState<PreferencesFormState | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const resolvedDisplayName =
-    (preferences?.display_name && preferences.display_name.trim()) ||
-    user?.profile?.display_name ||
-    "";
-  const resolvedAvatarUrl =
-    (preferences?.avatar_url && preferences.avatar_url.trim()) ||
-    user?.profile?.avatar_url ||
-    "";
+  const resolvedDisplayName = preferences
+    ? preferences.display_name?.trim() || ""
+    : user?.profile?.display_name || "";
+  const resolvedAvatarUrl = preferences
+    ? preferences.avatar_url?.trim() || ""
+    : user?.profile?.avatar_url || "";
 
   // Derive effectiveTheme from ThemeContext's resolved theme
   const effectiveTheme: "light" | "dark" =
     theme === "g100" || theme === "g90" ? "dark" : "light";
 
   const applyPreferencesToState = useCallback(
-    (nextPreferences: UserPreferences) => {
+    (nextPreferences: PreferencesFormState) => {
       setPreferences(nextPreferences);
       // Sync backend preference into ThemeContext (single source of truth)
       setPreference(nextPreferences.preferred_theme);
@@ -106,15 +110,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
   const syncAuthUserProfile = useCallback(
     (nextProfile: Partial<UserProfile>) => {
       if (!user) return;
-      const currentProfile: UserProfile = user.profile ?? {
-        solved_count: 0,
-        submission_count: 0,
-        accept_rate: 0,
-        preferred_language: contentLanguage,
-        preferred_theme: preference,
-        editor_font_size: preferences?.editor_font_size ?? 12,
-        editor_tab_size: preferences?.editor_tab_size ?? 4,
-      };
+      const currentProfile: UserProfile = user.profile ?? { display_name: "", avatar_url: null };
       const nextUser = {
         ...user,
         profile: {
@@ -160,8 +156,8 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     if (!globalLoadPromise) {
       globalLoadPromise = (async () => {
         const response = await getUserPreferences();
-        if (response.success && response.data) {
-          return response.data;
+        if (response.data) {
+          return toFormState(response.data);
         }
         return null;
       })();
@@ -208,7 +204,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
 
       if (user) {
         try {
-          await updateUserPreferences({ preferred_theme: newPref });
+          await updateUserPreferences({ preferences: { preferred_theme: newPref } });
           setPreferences((prev) => {
             const base = prev ?? globalPreferencesCache;
             if (!base) return prev;
@@ -250,7 +246,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
 
       if (user) {
         try {
-          await updateUserPreferences({ preferred_language: lang });
+          await updateUserPreferences({ preferences: { preferred_language: lang } });
           setPreferences((prev) => {
             const base = prev ?? globalPreferencesCache;
             if (!base) return prev;
@@ -270,7 +266,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
   // Update editor settings
   const updateEditorSettings = useCallback(
     async (settings: { fontSize?: number; tabSize?: 2 | 4 }) => {
-      const updates: UpdatePreferencesRequest = {};
+      const updates: Partial<UserPreferences> = {};
 
       if (settings.fontSize !== undefined) {
         updates.editor_font_size = settings.fontSize;
@@ -306,7 +302,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
 
       if (user) {
         try {
-          await updateUserPreferences(updates);
+          await updateUserPreferences({ preferences: updates });
         } catch (err) {
           console.error("Failed to update editor settings:", err);
           throw err;
@@ -321,7 +317,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     async (name: string) => {
       if (user) {
         try {
-          await updateUserPreferences({ display_name: name });
+          await updateUserPreferences({ profile: { display_name: name } });
           setPreferences((prev) => {
             const base =
               prev ??
@@ -350,7 +346,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
       if (!user) {
         throw new Error("Must be logged in to update avatar");
       }
-      await updateUserPreferences({ avatar_url: url });
+      await updateUserPreferences({ profile: { avatar_url: url || null } });
       setPreferences((prev) => {
         const base =
           prev ??

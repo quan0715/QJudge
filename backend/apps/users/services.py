@@ -47,14 +47,12 @@ class JWTService:
         user = User.objects.select_related("profile").get(pk=user.pk)
 
         return {
-            'success': True,
-            'data': {
-                'access_token': tokens['access'],
-                'refresh_token': tokens['refresh'],
-                'expires_in': tokens['expires_in'],
-                'user': UserSerializer(user).data,
-            }
+            'access_token': tokens['access'],
+            'refresh_token': tokens['refresh'],
+            'expires_in': tokens['expires_in'],
+            'user': UserSerializer(user).data,
         }
+
 
 
 class EmailAuthService:

@@ -59,7 +59,7 @@ const OAuthCallbackPage = () => {
       try {
         const response = await oauthCallback(provider, code, oauthState);
 
-        if (response.success) {
+        if (response.data) {
           notifyAuthSessionChanged();
           const nextPath = getAuthedLandingPath(response.data.user);
 

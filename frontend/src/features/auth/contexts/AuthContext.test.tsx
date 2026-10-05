@@ -34,7 +34,7 @@ describe("AuthProvider", () => {
 
   it("hydrates identity from the cookie-backed current-user endpoint", async () => {
     vi.mocked(getCurrentUser).mockResolvedValue({
-      success: true,
+      meta: {},
       data: { id: 7, username: "alice", role: "student" },
     });
 
@@ -68,7 +68,7 @@ describe("AuthProvider", () => {
 
   it("clears the current identity when signing out", async () => {
     vi.mocked(getCurrentUser).mockResolvedValue({
-      success: true,
+      meta: {},
       data: { id: 7, username: "alice", role: "student" },
     });
     vi.mocked(logout).mockResolvedValue(undefined);

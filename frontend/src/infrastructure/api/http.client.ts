@@ -1,3 +1,4 @@
+import { fetchEnvelope } from "./envelope";
 const AUTH_SESSION_EVENT_KEY = "qjudge.auth.session_changed_at";
 
 /** Notify other tabs that the cookie-backed session state changed. */
@@ -200,12 +201,12 @@ let refreshPromise: Promise<boolean> | null = null;
 
 const refreshAuthSession = async (): Promise<boolean> => {
   if (!refreshPromise) {
-    refreshPromise = performFetch(AUTH_REFRESH_ENDPOINT, {
+    refreshPromise = fetchEnvelope<{ access_token: string }>(performFetch(AUTH_REFRESH_ENDPOINT, {
       method: "POST",
       body: JSON.stringify({}),
       headers: { "Content-Type": "application/json" },
-    })
-      .then((response) => response.ok)
+    }))
+      .then(({ data }) => typeof data.access_token === "string" && data.access_token.length > 0)
       .catch(() => false)
       .finally(() => {
         refreshPromise = null;

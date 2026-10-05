@@ -14,6 +14,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from apps.core.api.envelope import contract_error_response
 
 from ..auth.account_linking import link_qauth_identity
 from ..auth.options import get_auth_options, is_password_auth_enabled
@@ -52,11 +53,11 @@ class RegisterView(SchemaAPIView):
 
     def post(self, request):
         if not is_password_auth_enabled():
-            return password_auth_disabled_response()
+            return password_auth_disabled_response(request)
 
         serializer = RegisterSerializer(data=request.data)
         if not serializer.is_valid():
-            return validation_error_response("註冊資料驗證失敗", serializer.errors)
+            return validation_error_response(request, "註冊資料驗證失敗", serializer.errors)
 
         try:
             user = serializer.save()
@@ -69,41 +70,23 @@ class RegisterView(SchemaAPIView):
             )
         except Exception as exc:
             logger.exception("Registration failed: %s", exc)
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "REGISTRATION_FAILED",
-                        "message": "註冊失敗，請稍後再試",
-                    },
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            return contract_error_response(request, 'REGISTRATION_FAILED', '註冊失敗，請稍後再試', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 def _password_provider_login(request):
     if not is_password_auth_enabled():
-        return password_auth_disabled_response()
+        return password_auth_disabled_response(request)
 
     serializer = LoginSerializer(data=request.data)
     if not serializer.is_valid():
-        return validation_error_response("登入資料驗證失敗", serializer.errors)
+        return validation_error_response(request, "登入資料驗證失敗", serializer.errors)
 
     user = EmailAuthService.login(
         serializer.validated_data["identifier"],
         serializer.validated_data["password"],
     )
     if not user:
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": "AUTH_001",
-                    "message": "帳號或密碼錯誤",
-                },
-            },
-            status=status.HTTP_401_UNAUTHORIZED,
-        )
+        return contract_error_response(request, 'AUTH_001', '帳號或密碼錯誤', status=status.HTTP_401_UNAUTHORIZED)
 
     conflict_response = build_active_exam_login_block_response(user, request, provider="password")
     if conflict_response is not None:
@@ -121,7 +104,7 @@ class AuthOptionsView(SchemaAPIView):
     serializer_class = serializers.Serializer
 
     def get(self, request):
-        return Response({"success": True, "data": get_auth_options()})
+        return Response(get_auth_options())
 
 
 @extend_schema(exclude=True)
@@ -141,10 +124,7 @@ class DevTokenView(SchemaAPIView):
         role = request.data.get("role", "student")
         want_superuser = bool(request.data.get("superuser", False))
         if role not in ["student", "teacher", "admin"]:
-            return Response(
-                {"detail": "Invalid role. Use student, teacher, or admin."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return contract_error_response(request, "invalid_role", "Invalid role. Use student, teacher, or admin.", status=400)
 
         email = request.data.get("email") or f"dev-{role}@local.test"
         username = request.data.get("username") or f"dev_{role}"
@@ -207,47 +187,20 @@ class ProviderLoginView(SchemaAPIView):
     @extend_schema(request=None)
     def get(self, request, provider: str):
         if provider == "password":
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "PASSWORD_PROVIDER_REQUIRES_POST",
-                        "message": "password provider login requires POST credentials",
-                    },
-                },
-                status=status.HTTP_405_METHOD_NOT_ALLOWED,
-            )
+            return contract_error_response(request, 'PASSWORD_PROVIDER_REQUIRES_POST', 'password provider login requires POST credentials', status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
         service = get_oauth_service(provider)
         if service is None:
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "UNKNOWN_PROVIDER",
-                        "message": f"Unknown login provider: {provider}",
-                    },
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return contract_error_response(request, 'UNKNOWN_PROVIDER', f'Unknown login provider: {provider}', status=status.HTTP_400_BAD_REQUEST)
         redirect_uri = f"{settings.FRONTEND_URL}/auth/{provider}/callback"
         state = secrets.token_urlsafe(16)
         try:
             auth_url = service.get_authorization_url(redirect_uri, state)
         except OAuthProviderConfigurationError:
             logger.error("OAuth provider is not configured provider=%s", provider)
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "OAUTH_PROVIDER_NOT_CONFIGURED",
-                        "message": f"OAuth provider is not configured: {provider}",
-                    },
-                },
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            return contract_error_response(request, 'OAUTH_PROVIDER_NOT_CONFIGURED', f'OAuth provider is not configured: {provider}', status=status.HTTP_503_SERVICE_UNAVAILABLE)
         request.session[f"oauth_state:{provider}"] = {"value": state, "issued_at": time.time()}
-        return Response({"success": True, "data": {"authorization_url": auth_url}})
+        return Response({'authorization_url': auth_url})
 
     @extend_schema(request=LoginSerializer)
     def post(self, request, provider: str):
@@ -256,27 +209,9 @@ class ProviderLoginView(SchemaAPIView):
 
         service = get_oauth_service(provider)
         if service is None:
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "UNKNOWN_PROVIDER",
-                        "message": f"Unknown login provider: {provider}",
-                    },
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return contract_error_response(request, 'UNKNOWN_PROVIDER', f'Unknown login provider: {provider}', status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": "OAUTH_PROVIDER_REQUIRES_REDIRECT",
-                    "message": "OAuth providers must start with GET /api/v1/auth/login/{provider}",
-                },
-            },
-            status=status.HTTP_405_METHOD_NOT_ALLOWED,
-        )
+        return contract_error_response(request, 'OAUTH_PROVIDER_REQUIRES_REDIRECT', 'OAuth providers must start with GET /api/v1/auth/login/{provider}', status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 @method_decorator(ensure_csrf_cookie, name="dispatch")
@@ -290,26 +225,17 @@ class OAuthCallbackView(SchemaAPIView):
     def post(self, request, provider: str):
         service = get_oauth_service(provider)
         if service is None:
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "UNKNOWN_PROVIDER",
-                        "message": f"Unknown OAuth provider: {provider}",
-                    },
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return contract_error_response(request, 'UNKNOWN_PROVIDER', f'Unknown OAuth provider: {provider}', status=status.HTTP_400_BAD_REQUEST)
 
         serializer = OAuthCallbackSerializer(data=request.data)
         if not serializer.is_valid():
-            return validation_error_response("OAuth 參數驗證失敗", serializer.errors)
+            return validation_error_response(request, "OAuth 參數驗證失敗", serializer.errors)
 
         expected = request.session.pop(f"oauth_state:{provider}", None)
         if (not expected or time.time() - expected["issued_at"] > 600
                 or not secrets.compare_digest(expected["value"], serializer.validated_data["state"])):
-            return Response(
-                {"success": False, "error": {"code": "OAUTH_STATE_INVALID", "message": "登入請求已失效，請重新登入"}},
+            return contract_error_response(
+                request, "OAUTH_STATE_INVALID", "登入請求已失效，請重新登入",
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -328,28 +254,10 @@ class OAuthCallbackView(SchemaAPIView):
             return token_cookie_response(user, tokens)
         except OAuthProviderConfigurationError:
             logger.error("OAuth provider is not configured provider=%s", provider)
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "OAUTH_PROVIDER_NOT_CONFIGURED",
-                        "message": f"OAuth provider is not configured: {provider}",
-                    },
-                },
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            return contract_error_response(request, 'OAUTH_PROVIDER_NOT_CONFIGURED', f'OAuth provider is not configured: {provider}', status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except Exception as exc:
             logger.exception("%s OAuth callback failed: %s", provider, exc)
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "AUTH_003",
-                        "message": f"{provider} OAuth 授權失敗",
-                    },
-                },
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+            return contract_error_response(request, 'AUTH_003', f'{provider} OAuth 授權失敗', status=status.HTTP_401_UNAUTHORIZED)
 
 
 __all__ = [

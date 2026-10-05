@@ -9,6 +9,7 @@ from rest_framework import serializers, status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from apps.core.api.envelope import contract_error_response
 
 from apps.core.services import (
     InvalidImageError,
@@ -54,71 +55,26 @@ class UserAvatarUploadView(SchemaAPIView):
     def post(self, request):
         uploaded = request.FILES.get("file")
         if not uploaded:
-            return Response(
-                {
-                    "success": False,
-                    "error": {"code": "FILE_REQUIRED", "message": "file is required"},
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return contract_error_response(request, 'FILE_REQUIRED', 'file is required', status=status.HTTP_400_BAD_REQUEST)
 
         max_bytes = int(getattr(settings, "MARKDOWN_IMAGE_MAX_BYTES", 5 * 1024 * 1024))
         if uploaded.size > max_bytes:
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "FILE_TOO_LARGE",
-                        "message": f"File is too large (max {max_bytes} bytes)",
-                    },
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return contract_error_response(request, 'FILE_TOO_LARGE', f'File is too large (max {max_bytes} bytes)', status=status.HTTP_400_BAD_REQUEST)
 
         payload = uploaded.read()
         if not payload:
-            return Response(
-                {
-                    "success": False,
-                    "error": {"code": "EMPTY_FILE", "message": "Uploaded file is empty"},
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return contract_error_response(request, 'EMPTY_FILE', 'Uploaded file is empty', status=status.HTTP_400_BAD_REQUEST)
 
         try:
             image = inspect_image(payload)
         except InvalidImageError:
-            return Response(
-                {
-                    "success": False,
-                    "error": {"code": "UNSUPPORTED_IMAGE", "message": "Unsupported image file"},
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return contract_error_response(request, 'UNSUPPORTED_IMAGE', 'Unsupported image file', status=status.HTTP_400_BAD_REQUEST)
 
         if image.width * image.height > self.MAX_IMAGE_PIXELS:
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "IMAGE_TOO_LARGE",
-                        "message": "Image dimensions exceed allowed pixel count",
-                    },
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return contract_error_response(request, 'IMAGE_TOO_LARGE', 'Image dimensions exceed allowed pixel count', status=status.HTTP_400_BAD_REQUEST)
 
         if image.format not in self.SUPPORTED_IMAGE_FORMATS:
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "UNSUPPORTED_IMAGE_FORMAT",
-                        "message": "Unsupported image format. Use png/jpg/jpeg/webp/gif",
-                    },
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return contract_error_response(request, 'UNSUPPORTED_IMAGE_FORMAT', 'Unsupported image format. Use png/jpg/jpeg/webp/gif', status=status.HTTP_400_BAD_REQUEST)
 
         extension, content_type = self.SUPPORTED_IMAGE_FORMATS[image.format]
         object_key = build_markdown_image_object_key(extension)
@@ -126,13 +82,7 @@ class UserAvatarUploadView(SchemaAPIView):
         try:
             store_markdown_image(content=payload, object_key=object_key, content_type=content_type)
         except MarkdownImageStorageError:
-            return Response(
-                {
-                    "success": False,
-                    "error": {"code": "UPLOAD_FAILED", "message": "Failed to upload image"},
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            return contract_error_response(request, 'UPLOAD_FAILED', 'Failed to upload image', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         image_url = self._build_image_url(request, object_key)
 
@@ -142,21 +92,9 @@ class UserAvatarUploadView(SchemaAPIView):
         profile.avatar_url = image_url
         profile.avatar_source = "manual"
         profile.save(update_fields=["avatar_url", "avatar_source", "updated_at"])
-        cache.delete(f"user_preferences:v1:{request.user.id}")
+        cache.delete(f"user_preferences:v2:{request.user.id}")
 
-        return Response(
-            {
-                "success": True,
-                "data": {
-                    "avatar_url": image_url,
-                    "content_type": content_type,
-                    "size": len(payload),
-                    "alt": self._build_alt_text(uploaded.name),
-                },
-                "message": "頭像已上傳",
-            },
-            status=status.HTTP_201_CREATED,
-        )
+        return Response({'avatar_url': image_url, 'content_type': content_type, 'size': len(payload), 'alt': self._build_alt_text(uploaded.name)}, status=status.HTTP_201_CREATED)
 
 
 __all__ = [

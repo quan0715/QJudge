@@ -34,7 +34,7 @@ vi.mock("@/shared/contexts/ContentLanguageContext", () => ({
 }));
 
 const authOptions = {
-  success: true,
+  meta: {},
   data: {
     password_enabled: false,
     providers: [

@@ -4,6 +4,7 @@ Serializers for user authentication and profile management.
 from urllib.parse import urlparse
 
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_serializer
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -15,48 +16,28 @@ from .models import (
 )
 
 
+@extend_schema_serializer(component_name="UserProfileObject")
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Serializer for user profile."""
-    
+    avatar_url = serializers.SerializerMethodField()
+
+    def get_avatar_url(self, obj) -> str | None:
+        return obj.avatar_url or None
+
     class Meta:
         model = UserProfile
-        fields = [
-            'solved_count',
-            'submission_count',
-            'accept_rate',
-            'display_name',
-            'avatar_url',
-            'preferred_language',
-            'preferred_theme',
-            'editor_font_size',
-            'editor_tab_size',
-            'onboarding_completed_at',
-        ]
-        read_only_fields = ['solved_count', 'submission_count', 'accept_rate']
+        fields = ['display_name', 'avatar_url']
 
 
+@extend_schema_serializer(component_name="UserObject")
 class UserSerializer(serializers.ModelSerializer):
-    """Serializer for user model."""
-    profile = UserProfileSerializer(read_only=True)
+    profile = UserProfileSerializer(read_only=True, default={"display_name": "", "avatar_url": None})
+    onboarding_completed_at = serializers.DateTimeField(source="profile.onboarding_completed_at", read_only=True, default=None)
+
     class Meta:
         model = User
-        fields = [
-            'id',
-            'username',
-            'email',
-            'role',
-            'auth_provider',
-            'is_active',
-            'date_joined',
-            'last_login_at',
-            'profile',
-        ]
-        read_only_fields = [
-            'id',
-            'auth_provider',
-            'date_joined',
-            'last_login_at',
-        ]
+        fields = ['id', 'username', 'email', 'role', 'auth_provider', 'last_login_at',
+                  'onboarding_completed_at', 'profile']
+        read_only_fields = fields
 
 
 class CurrentUserUpdateSerializer(serializers.ModelSerializer):
@@ -170,39 +151,6 @@ class TokenRefreshSerializer(serializers.Serializer):
     refresh = serializers.CharField(required=False, allow_blank=True)
 
 
-class UserSearchSerializer(serializers.ModelSerializer):
-    """Serializer for user search results in admin interface."""
-    display_name = serializers.SerializerMethodField()
-    onboarding_completed_at = serializers.SerializerMethodField()
-
-    def get_display_name(self, obj):
-        try:
-            return obj.profile.display_name
-        except UserProfile.DoesNotExist:
-            return ''
-
-    def get_onboarding_completed_at(self, obj):
-        try:
-            return obj.profile.onboarding_completed_at
-        except UserProfile.DoesNotExist:
-            return None
-    
-    class Meta:
-        model = User
-        fields = [
-            'id',
-            'username',
-            'email',
-            'role',
-            'auth_provider',
-            'last_login_at',
-            'is_active',
-            'display_name',
-            'onboarding_completed_at',
-        ]
-        read_only_fields = fields
-
-
 class UserRoleUpdateSerializer(serializers.Serializer):
     """Serializer for updating user role."""
     role = serializers.ChoiceField(
@@ -271,50 +219,59 @@ class TeacherActivationInviteSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class UserPreferencesUpdateSerializer(serializers.Serializer):
-    """Serializer for updating user preferences."""
-    display_name = serializers.CharField(
-        max_length=50,
-        required=False,
-        allow_blank=True
-    )
-    avatar_url = serializers.CharField(
-        max_length=500,
-        required=False,
-        allow_blank=True
-    )
-    preferred_language = serializers.ChoiceField(
-        choices=[c[0] for c in UserProfile.LANGUAGE_CHOICES],
-        required=False
-    )
-    preferred_theme = serializers.ChoiceField(
-        choices=[c[0] for c in UserProfile.THEME_CHOICES],
-        required=False
-    )
-    editor_font_size = serializers.IntegerField(
-        min_value=12,
-        max_value=20,
-        required=False
-    )
-    editor_tab_size = serializers.ChoiceField(
-        choices=[2, 4],
-        required=False
-    )
-    onboarding_completed_at = serializers.DateTimeField(
-        required=False,
-        allow_null=True
-    )
-    
+class StrictSettingsSerializer(serializers.Serializer):
+    def to_internal_value(self, data):
+        if isinstance(data, dict):
+            unknown = data.keys() - self.fields.keys()
+            if unknown:
+                raise serializers.ValidationError({key: "Unknown settings field." for key in sorted(unknown)})
+        return super().to_internal_value(data)
+
+
+class UserProfileUpdateSerializer(StrictSettingsSerializer):
+    display_name = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    avatar_url = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+
     def validate_avatar_url(self, value):
-        if value == "":
-            return value
+        if not value:
+            return ""
         parsed = urlparse(value)
-        if parsed.scheme not in {"http", "https"}:
-            raise serializers.ValidationError("頭像連結僅支援 http/https")
-        if not parsed.netloc:
-            raise serializers.ValidationError("頭像連結格式無效")
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise serializers.ValidationError("頭像連結僅支援有效的 http/https 網址")
         return value
 
+
+@extend_schema_serializer(component_name="UserPreferencesObject")
+class UserPreferencesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ['preferred_language', 'preferred_theme', 'editor_font_size', 'editor_tab_size']
+
+
+class UserPreferencesPatchSerializer(StrictSettingsSerializer):
+    preferred_language = serializers.ChoiceField(choices=UserProfile.LANGUAGE_CHOICES, required=False)
+    preferred_theme = serializers.ChoiceField(choices=UserProfile.THEME_CHOICES, required=False)
+    editor_font_size = serializers.IntegerField(min_value=12, max_value=20, required=False)
+    editor_tab_size = serializers.ChoiceField(choices=[2, 4], required=False)
+
+
+@extend_schema_serializer(component_name="UserSettingsPatchRequest")
+class UserPreferencesUpdateSerializer(StrictSettingsSerializer):
+    profile = UserProfileUpdateSerializer(required=False)
+    preferences = UserPreferencesPatchSerializer(required=False)
+    onboarding_completed_at = serializers.DateTimeField(required=False, allow_null=True)
+
+@extend_schema_serializer(component_name="UserSettingsObject")
+class UserSettingsSerializer(serializers.ModelSerializer):
+    profile = UserProfileSerializer(source="*", read_only=True)
+    preferences = UserPreferencesSerializer(source="*", read_only=True)
+
+    class Meta:
+        model = UserProfile
+        fields = ['profile', 'preferences', 'onboarding_completed_at']
+
+
+@extend_schema_serializer(component_name="LoginRecordObject")
 class UserLoginRecordSerializer(serializers.ModelSerializer):
     """Read-only serializer for login history entries."""
 

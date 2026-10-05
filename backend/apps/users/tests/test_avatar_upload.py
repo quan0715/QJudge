@@ -50,15 +50,15 @@ class UserAvatarUploadViewTests(TestCase):
         response = self.client.post(self.url, {"file": file_obj}, format="multipart")
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(response.data["success"])
-        self.assertIn("/api/v1/markdown/images/markdown/2026/03/", response.data["data"]["avatar_url"])
-        self.assertEqual(response.data["data"]["content_type"], "image/png")
-        self.assertEqual(response.data["data"]["size"], len(payload))
+        self.assertEqual(set(response.json()), {"data", "meta"})
+        self.assertIn("/api/v1/markdown/images/markdown/2026/03/", response.json()["data"]["avatar_url"])
+        self.assertEqual(response.json()["data"]["content_type"], "image/png")
+        self.assertEqual(response.json()["data"]["size"], len(payload))
         mock_store.assert_called_once()
 
         profile = UserProfile.objects.get(user=self.user)
         self.assertEqual(profile.avatar_source, "manual")
-        self.assertEqual(profile.avatar_url, response.data["data"]["avatar_url"])
+        self.assertEqual(profile.avatar_url, response.json()["data"]["avatar_url"])
 
     def test_upload_avatar_rejects_non_image(self):
         self.client.force_authenticate(user=self.user)
@@ -66,7 +66,7 @@ class UserAvatarUploadViewTests(TestCase):
         file_obj.name = "avatar.txt"
         response = self.client.post(self.url, {"file": file_obj}, format="multipart")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["error"]["code"], "UNSUPPORTED_IMAGE")
+        self.assertEqual(response.json()["errors"][0]["code"], 'unsupported_image')
 
     def test_upload_avatar_rejects_corrupt_png(self):
         self.client.force_authenticate(user=self.user)
@@ -76,4 +76,4 @@ class UserAvatarUploadViewTests(TestCase):
         file_obj.name = "avatar.png"
         response = self.client.post(self.url, {"file": file_obj}, format="multipart")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["error"]["code"], "UNSUPPORTED_IMAGE")
+        self.assertEqual(response.json()["errors"][0]["code"], 'unsupported_image')

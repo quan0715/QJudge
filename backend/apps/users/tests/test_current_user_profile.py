@@ -33,8 +33,8 @@ class CurrentUserProfileUpdateTests(TestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["success"])
-        self.assertEqual(response.data["data"]["role"], "student")
+        self.assertEqual(set(response.json()), {"data", "meta"})
+        self.assertEqual(response.json()["data"]["role"], "student")
         self.email_user.refresh_from_db()
         self.assertEqual(self.email_user.username, "email_user_new")
         self.assertEqual(self.email_user.email, "email_user_new@example.com")
@@ -53,8 +53,8 @@ class CurrentUserProfileUpdateTests(TestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertFalse(response.data["success"])
-        self.assertIn("username", response.data["error"]["details"])
+        self.assertEqual(set(response.json()), {"errors", "meta"})
+        self.assertIn("username", {item["field"] for item in response.json()["errors"]})
 
     def test_oauth_user_cannot_update_username_or_email(self):
         self.client.force_authenticate(user=self.oauth_user)
@@ -64,23 +64,23 @@ class CurrentUserProfileUpdateTests(TestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertFalse(response.data["success"])
-        self.assertEqual(response.data["error"]["code"], "ACCOUNT_FIELDS_LOCKED")
+        self.assertEqual(set(response.json()), {"errors", "meta"})
+        self.assertEqual(response.json()["errors"][0]["code"], 'account_fields_locked')
 
     def test_empty_patch_returns_current_user(self):
         self.client.force_authenticate(user=self.email_user)
         response = self.client.patch(self.url, {}, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["success"])
-        self.assertEqual(response.data["data"]["username"], self.email_user.username)
+        self.assertEqual(set(response.json()), {"data", "meta"})
+        self.assertEqual(response.json()["data"]["username"], self.email_user.username)
 
     def test_get_current_user_works_on_canonical_path(self):
         self.client.force_authenticate(user=self.email_user)
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["success"])
-        self.assertEqual(response.data["data"]["username"], self.email_user.username)
+        self.assertEqual(set(response.json()), {"data", "meta"})
+        self.assertEqual(response.json()["data"]["username"], self.email_user.username)
 
     def test_get_current_user_with_trailing_slash_returns_404(self):
         self.client.force_authenticate(user=self.email_user)

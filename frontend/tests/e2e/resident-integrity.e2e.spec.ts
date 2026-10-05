@@ -76,7 +76,7 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
     }));
     const registrationHeaders = { Authorization: `Bearer ${registered.data.access_token}` };
     await json(await student.request.patch("/api/v1/users/me/preferences", {
-      headers: registrationHeaders, data: { display_name: username, onboarding_completed_at: new Date().toISOString() },
+      headers: registrationHeaders, data: { profile: { display_name: username }, onboarding_completed_at: new Date().toISOString() },
     }));
     const currentStudent = await json<{ data: unknown }>(await student.request.get(API_ENDPOINTS.users.me, { headers: registrationHeaders }));
     await student.goto("/", { waitUntil: "domcontentloaded" });
