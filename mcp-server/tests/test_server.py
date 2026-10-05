@@ -839,7 +839,9 @@ def test_qjudge_exam_correct_answer_schema_advertises_integer_indexes():
     schema = server.mcp._tool_manager.get_tool("qjudge_exam").parameters["properties"]["correct_answer"]
 
     assert {"type": "integer"} in schema["anyOf"]
-    assert {"type": "array", "items": {"type": "integer"}} in schema["anyOf"]
+    array_schema = next(variant for variant in schema["anyOf"] if variant.get("type") == "array")
+    assert {"type": "integer"} in array_schema["items"]["anyOf"]
+    assert {"type": "string"} in array_schema["items"]["anyOf"]
 
 
 def test_qjudge_exam_create_converts_index_strings_for_objective_questions(monkeypatch):

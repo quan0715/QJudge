@@ -59,7 +59,7 @@ describe("overview publication", () => {
     expect(screen.getByText(/settings.publishCheck.defaultContent|第 1 題仍是新增時的預設內容|Question 1: still has placeholder content/)).toBeInTheDocument();
     expect(mocks.updateContest).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: /取消|Cancel|button.cancel/ }));
-    await waitFor(() => expect(screen.queryByText(/settings.publishCheck.missingAnswer|第 1 題尚未設定正確答案|Question 1: no correct answer set/)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /^(發布競賽|Publish contest|adminOverview.actions.publishContest)$/ })).toBeEnabled());
     expect(mocks.updateContest).not.toHaveBeenCalled();
   });
 

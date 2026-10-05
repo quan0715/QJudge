@@ -1157,7 +1157,7 @@ async def qjudge_exam(
     explanation: str | None = None,
     score: int | None = None,
     options: list[str] | None = None,
-    correct_answer: StrictInt | list[StrictInt] | str | None = None,
+    correct_answer: StrictInt | list[StrictInt | str] | str | None = None,
     items: list[dict] | None = None,
     mode: str | None = None,
     existing_grades_action: Literal["regrade", "keep", "mark_pending"] | None = None,

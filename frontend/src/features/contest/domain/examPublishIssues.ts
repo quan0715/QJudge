@@ -11,7 +11,7 @@ const OBJECTIVE_TYPES: ReadonlySet<ExamQuestionType> = new Set([
 ]);
 
 export interface ExamPublishIssues {
-  /** Display numbers (order + 1) of objective questions without a correct answer. */
+  /** Positions in the sorted editor list, starting at 1. */
   missingAnswer: number[];
   /** Display numbers of questions whose prompt or options are still placeholders. */
   defaultContent: number[];
@@ -22,16 +22,17 @@ const hasAnswer = (answer: unknown): boolean =>
 
 export const getExamPublishIssues = (questions: ExamQuestion[]): ExamPublishIssues => {
   const sorted = [...questions].sort((a, b) => a.order - b.order);
+  const numbered = sorted.map((question, index) => ({ question, number: index + 1 }));
   return {
-    missingAnswer: sorted
-      .filter((q) => OBJECTIVE_TYPES.has(q.questionType) && !hasAnswer(q.correctAnswer))
-      .map((q) => q.order + 1),
-    defaultContent: sorted
+    missingAnswer: numbered
+      .filter(({ question: q }) => OBJECTIVE_TYPES.has(q.questionType) && !hasAnswer(q.correctAnswer))
+      .map(({ number }) => number),
+    defaultContent: numbered
       .filter(
-        (q) =>
+        ({ question: q }) =>
           q.prompt.trim() === DEFAULT_QUESTION_PROMPT ||
           q.options.some((option) => DEFAULT_CHOICE_OPTIONS.includes(option.trim())),
       )
-      .map((q) => q.order + 1),
+      .map(({ number }) => number),
   };
 };

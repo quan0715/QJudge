@@ -143,7 +143,7 @@ def test_locked_objective_answer_cannot_be_cleared(locked_exam):
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "correct_answer" in response.data
+    assert "correct_answer" in response.data["error"]["details"]
     locked_exam["objective"].refresh_from_db()
     assert locked_exam["objective"].correct_answer == 0
 
