@@ -22,11 +22,11 @@ describe("OAuth callback route", () => {
       : null;
 
     render(
-      <MemoryRouter initialEntries={["/auth/nycu/callback?code=short-lived-code"]}>
+      <MemoryRouter initialEntries={["/auth/nycu/callback?code=short-lived-code&state=session-state"]}>
         {callbackElement}
       </MemoryRouter>,
     );
 
-    expect(oauthCallback).toHaveBeenCalledWith("nycu", "short-lived-code");
+    expect(oauthCallback).toHaveBeenCalledWith("nycu", "short-lived-code", "session-state");
   });
 });
