@@ -56,6 +56,8 @@ jobs:
           cmd=(npm run test:e2e -- tests/e2e/auth.e2e.spec.ts tests/e2e/password-recovery.e2e.spec.ts tests/e2e/pending-actions-classroom-join.e2e.spec.ts tests/e2e/pending-actions-register-redirect.e2e.spec.ts)
           if [[ -n "$E2E_GREP" ]]; then cmd+=("--grep" "$E2E_GREP"); fi
           "${cmd[@]}"
+      - name: Verify reset tokens stay out of container logs
+        run: python3 ci/check-password-reset-logs.py
       - name: Collect logs
         if: always() && env.QJ_DC != ''
         run: $QJ_DC logs --no-color > e2e-auth.log

@@ -10,7 +10,7 @@ This feature depends on the users API contract in #204. It is disabled by defaul
 
 Tokens contain 256 bits of randomness, last 15 minutes, and are stored only as SHA-256 digests. Issuance and redemption lock the same user row, so concurrent requests cannot redeem twice. A newer request invalidates older links. Request limits are 10 per client IP per 15-minute window and 3 per normalized identifier per hour; redemption is limited to 10 per IP per 15 minutes. Counters use atomic cache add/increment. Identifier keys are HMAC digests. Keep the backend behind the shipped ingress, which replaces untrusted forwarded IP headers.
 
-Links use `/reset-password#token=...` so the secret is absent from the initial page request and referrer. The shipped nginx reset API location suppresses raw token URI logs; Django request logs redact it. If adding another reverse proxy or request tracing service, redact `/api/v1/auth/password/resets/*` there too. Never log request bodies for these endpoints.
+Links use `/reset-password#token=...` so the secret is absent from the initial page request and referrer. The shipped nginx reset API location suppresses raw token URI logs; Django request logs redact it. Daphne's duplicate access log is disabled because it bypasses Django's filters. The Auth CI probe checks both container logs for a synthetic reset token and confirms ordinary access requests are still logged. If adding another reverse proxy or request tracing service, redact `/api/v1/auth/password/resets/*` there too. Never log request bodies for these endpoints.
 
 ## Production configuration
 

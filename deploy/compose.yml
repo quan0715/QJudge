@@ -140,7 +140,9 @@ services:
   backend:
     image: qjudge/backend:${QJUDGE_VERSION}
     restart: always
-    command: ["sh", "-c", "python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 config.asgi:application"]
+    # Nginx owns access logs and suppresses reset-token paths. Daphne's raw
+    # stdout access log bypasses Django redaction, so do not duplicate it.
+    command: ["sh", "-c", "python manage.py collectstatic --noinput && daphne --access-log /dev/null -b 0.0.0.0 -p 8000 config.asgi:application"]
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media

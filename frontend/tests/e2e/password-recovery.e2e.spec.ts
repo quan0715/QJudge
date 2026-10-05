@@ -31,6 +31,8 @@ async function receivedResetLink(request: APIRequestContext, email: string) {
 }
 
 test.describe("Password recovery", () => {
+  // Each CI stack gets a real IP throttle bucket; retries would exhaust it.
+  test.describe.configure({ retries: 0 });
   for (const colorScheme of ["light", "dark"] as const) {
     for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
       test(`recovery forms are reachable at ${viewport.width}px in ${colorScheme} mode`, async ({ page }, testInfo) => {
@@ -91,6 +93,13 @@ test.describe("Password recovery", () => {
     const link = await receivedResetLink(request, email);
     expect(link.origin).toBe(new URL(baseURL!).origin);
     expect(link.search).toBe("");
+    const loggedIn = await page.request.post("/api/v1/auth/login/password", {
+      data: { identifier: email, password: originalPassword },
+    });
+    expect(loggedIn.ok()).toBe(true);
+    const existingCookies = (await page.context().cookies()).map(cookie => cookie.name);
+    expect(existingCookies).toContain("access_token");
+    expect(existingCookies).toContain("refresh_token");
     await page.goto(link.href);
     await page.locator("#reset-password").fill(newPassword);
     await page.locator("#reset-confirmation").fill("DifferentPassword93!");
