@@ -1421,16 +1421,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
-  /api/v1/auth/password/resets/{token}:
+  /api/v1/auth/password/resets:
     post:
       operationId: v1_auth_password_resets_create
       description: APIView with serializer support for schema generation.
-      parameters:
-      - in: path
-        name: token
-        schema:
-          type: string
-        required: true
       tags:
       - v1
       requestBody:
@@ -9143,6 +9137,16 @@ components:
     PasswordResetCompleteRequest:
       type: object
       properties:
+        uid:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 64
+        token:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
         password:
           type: string
           writeOnly: true
@@ -9156,6 +9160,8 @@ components:
       required:
       - password
       - password_confirm
+      - token
+      - uid
     PasswordResetRequestRequest:
       type: object
       properties:

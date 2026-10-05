@@ -95,7 +95,7 @@ backend 與 celery 會取得同一組 mail 設定。以專用測試帳號驗證�
 
 - 看不到「忘記密碼」：確認 mail 模式與 `AUTH_EMAIL_PASSWORD_ENABLED`，並確認容器已重新建立。`/api/v1/auth/providers` 的 `password_reset_enabled` 反映兩者的組合。
 - SMTP 測試失敗：依錯誤確認 hostname、容器網路、port、TLS、帳密與寄件地址授權。
-- SMTP 測試成功，重設信沒收到：確認 celery 正在處理 `default` queue，查看 `qjudge_dc logs --tail 100 celery` 與寄信服務投遞紀錄。worker 的失敗事件為 `password_reset_delivery_failed`、`password_reset_job_failed`；使用者收到的回覆仍保持一致。
+- SMTP 測試成功，重設信沒收到：確認 celery 正在處理 `default` queue，查看 `qjudge_dc logs --tail 100 celery` 與寄信服務投遞紀錄。worker 的失敗事件為 `password_reset_job_failed`；使用者收到的回覆仍保持一致。
 
 ### 從舊版設定升級
 

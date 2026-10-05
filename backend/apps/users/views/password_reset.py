@@ -16,6 +16,8 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
 
 class PasswordResetCompleteSerializer(serializers.Serializer):
+    uid = serializers.CharField(max_length=64, write_only=True)
+    token = serializers.CharField(max_length=128, write_only=True)
     password = serializers.CharField(max_length=128, trim_whitespace=False, write_only=True)
     password_confirm = serializers.CharField(max_length=128, trim_whitespace=False, write_only=True)
 
@@ -52,12 +54,13 @@ class PasswordResetCompleteView(SchemaAPIView):
     throttle_classes = [PasswordRecoveryThrottle]
     serializer_class = PasswordResetCompleteSerializer
 
-    def post(self, request, token):
+    def post(self, request):
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid():
             return contract_validation_error_response(request, '資料驗證失敗', serializer.errors)
+        data = serializer.validated_data
         try:
-            complete_password_reset(token, serializer.validated_data['password'])
+            complete_password_reset(data['uid'], data['token'], data['password'])
         except InvalidResetToken:
             return contract_error_response(request, 'invalid_reset_token', '連結無效或已過期，請重新申請。', status=400)
         except DjangoValidationError as exc:

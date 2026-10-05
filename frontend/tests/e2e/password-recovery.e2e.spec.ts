@@ -25,7 +25,7 @@ async function receivedResetLink(request: APIRequestContext, email: string) {
   const message = await response.json();
   expect(message.From.Address).toBe("noreply@qjudge.test");
   expect(message.To.map((recipient: { Address: string }) => recipient.Address)).toEqual([email]);
-  const match = message.Text.match(/https?:\/\/[^\s]+\/reset-password#token=[A-Za-z0-9_-]{43}/);
+  const match = message.Text.match(/https?:\/\/[^\s]+\/reset-password#uid=[A-Za-z0-9_-]+&token=[0-9a-z]+-[0-9a-f]+/);
   expect(match, "Recovery email includes a fragment-only reset link").not.toBeNull();
   return new URL(match![0]);
 }
@@ -47,8 +47,8 @@ test.describe("Password recovery", () => {
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
         await page.screenshot({ path: testInfo.outputPath("forgot-password.png"), fullPage: true });
 
-        // A synthetic token renders the form without generating any mail.
-        await page.goto(`/reset-password#token=${"a".repeat(43)}`);
+        // A synthetic link renders the form without generating any mail.
+        await page.goto(`/reset-password#uid=MQ&token=cqx1ab-${"a".repeat(32)}`);
         await expect(page.locator("#reset-password")).toBeVisible();
         await expect(page.locator("#reset-confirmation")).toBeVisible();
         await expect(page.getByRole("heading", { name: "重設密碼", exact: true })).toBeVisible();
@@ -57,7 +57,7 @@ test.describe("Password recovery", () => {
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
         await page.screenshot({ path: testInfo.outputPath("reset-password.png"), fullPage: true });
 
-        await page.goto("/reset-password#token=malformed");
+        await page.goto("/reset-password#uid=MQ&token=malformed");
         await expect(page.getByRole("alert")).toHaveText("連結無效或已過期。");
         await expect(page.getByRole("button", { name: "儲存密碼" })).toHaveCount(0);
       });
@@ -110,7 +110,7 @@ test.describe("Password recovery", () => {
 
     await page.locator("#reset-password").fill("123");
     await page.locator("#reset-confirmation").fill("123");
-    const weak = page.waitForResponse(response => response.url().includes("/auth/password/resets/"));
+    const weak = page.waitForResponse(response => response.url().endsWith("/auth/password/resets"));
     await page.getByRole("button", { name: "儲存密碼" }).click();
     expect((await weak).status()).toBe(400);
     await expect(page.getByRole("alert")).toBeVisible();
@@ -140,7 +140,7 @@ test.describe("Password recovery", () => {
     await page.goto(link.href);
     await page.locator("#reset-password").fill("Another-Recovery-Pass23!");
     await page.locator("#reset-confirmation").fill("Another-Recovery-Pass23!");
-    const reused = page.waitForResponse(response => response.url().includes("/auth/password/resets/"));
+    const reused = page.waitForResponse(response => response.url().endsWith("/auth/password/resets"));
     await page.getByRole("button", { name: "儲存密碼" }).click();
     const reusedResponse = await reused;
     expect(reusedResponse.status()).toBe(400);

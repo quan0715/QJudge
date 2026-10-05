@@ -10,8 +10,10 @@ vi.mock("../contexts/AuthContext", () => ({ useAuth: () => ({ setUser: mocks.set
 vi.mock("../contexts/AuthLayoutContext", () => ({ useAuthLayoutMetadata: vi.fn() }));
 vi.mock("../hooks/useAuthOptions", () => ({ useAuthOptions: () => ({ options: mocks.options, loading: false, error: null }) }));
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-const token = "a".repeat(43);
-const reset = (fragment = `#token=${token}`) => render(<MemoryRouter initialEntries={[`/reset-password${fragment}`]}><ResetPasswordScreen /></MemoryRouter>);
+const uid = "MQ";
+const token = "cqx1ab-0123456789abcdef0123456789abcdef";
+const link = (linkToken = token) => `#uid=${uid}&token=${linkToken}`;
+const reset = (fragment = link()) => render(<MemoryRouter initialEntries={[`/reset-password${fragment}`]}><ResetPasswordScreen /></MemoryRouter>);
 const fill = (password = "StrongPassword98!", confirm = password) => {
   fireEvent.change(screen.getByLabelText("auth.passwordReset.password"), { target: { value: password } });
   fireEvent.change(screen.getByLabelText("auth.passwordReset.confirmation"), { target: { value: confirm } });
@@ -46,10 +48,10 @@ describe("password recovery", () => {
     expect(screen.getByRole("status")).toHaveTextContent("auth.passwordReset.disabled");
     expect(screen.queryByRole("textbox")).toBeNull();
   });
-  it("uses the fragment token, resets the password and clears local identity", async () => {
+  it("uses the fragment uid and token, resets the password and clears local identity", async () => {
     reset(); fill();
     await screen.findByText("auth.passwordReset.completed");
-    expect(mocks.complete).toHaveBeenCalledWith(token, "StrongPassword98!", "StrongPassword98!");
+    expect(mocks.complete).toHaveBeenCalledWith(uid, token, "StrongPassword98!", "StrongPassword98!");
     expect(mocks.setUser).toHaveBeenCalledWith(null);
   });
   it("rejects mismatched confirmation before sending", async () => {
@@ -63,14 +65,14 @@ describe("password recovery", () => {
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Link expired"));
     expect(mocks.setUser).not.toHaveBeenCalled();
   });
-  it("does not submit malformed or missing tokens", () => {
-    reset("#token=bad");
+  it.each([link("bad"), `#token=${token}`, `#uid=${uid}`])("does not submit malformed or incomplete link %s", (fragment) => {
+    reset(fragment);
     expect(screen.getByRole("alert")).toHaveTextContent("auth.passwordReset.invalidLink");
     expect(screen.queryByRole("button", { name: "auth.passwordReset.reset" })).toBeNull();
   });
   it("rejects a malformed link opened while a valid form is already mounted", () => {
-    render(<MemoryRouter initialEntries={[`/reset-password#token=${token}`]}>
-      <Link to="/reset-password#token=bad">Open another link</Link>
+    render(<MemoryRouter initialEntries={[`/reset-password${link()}`]}>
+      <Link to={`/reset-password${link("bad")}`}>Open another link</Link>
       <ResetPasswordScreen />
     </MemoryRouter>);
     fireEvent.click(screen.getByRole("link", { name: "Open another link" }));
@@ -78,9 +80,9 @@ describe("password recovery", () => {
     expect(screen.queryByRole("button", { name: "auth.passwordReset.reset" })).toBeNull();
   });
   it("starts a fresh form and submits the new token when another link opens", async () => {
-    const nextToken = "b".repeat(43);
-    render(<MemoryRouter initialEntries={[`/reset-password#token=${token}`]}>
-      <Link to={`/reset-password#token=${nextToken}`}>Open another link</Link>
+    const nextToken = "cqx1ac-fedcba9876543210fedcba9876543210";
+    render(<MemoryRouter initialEntries={[`/reset-password${link()}`]}>
+      <Link to={`/reset-password${link(nextToken)}`}>Open another link</Link>
       <ResetPasswordScreen />
     </MemoryRouter>);
     fill("password-one", "password-two");
@@ -91,6 +93,6 @@ describe("password recovery", () => {
     expect(screen.getByLabelText("auth.passwordReset.confirmation")).toHaveValue("");
     fill();
     await screen.findByText("auth.passwordReset.completed");
-    expect(mocks.complete).toHaveBeenCalledWith(nextToken, "StrongPassword98!", "StrongPassword98!");
+    expect(mocks.complete).toHaveBeenCalledWith(uid, nextToken, "StrongPassword98!", "StrongPassword98!");
   });
 });

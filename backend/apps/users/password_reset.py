@@ -1,33 +1,27 @@
-"""Password recovery with opaque tokens and atomic, single-use redemption."""
-import hashlib
+"""Password recovery with Django's signed, self-expiring reset tokens."""
 import logging
-import re
-import secrets
-from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.hashers import identify_hasher
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Q
-from django.utils import timezone
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from apps.core.services.mail import mail_enabled
 
 from .auth.options import is_password_auth_enabled
-from .models import PasswordResetToken, User, UserLoginRecord
+from .models import User, UserLoginRecord
 
 logger = logging.getLogger('qjudge.auth')
-TOKEN_PATTERN = re.compile(r'^[A-Za-z0-9_-]{43}$')
+MAX_USER_ID = 2**63 - 1
 
 
 def reset_enabled():
     return is_password_auth_enabled() and mail_enabled()
-
-
-def token_digest(token):
-    return hashlib.sha256(token.encode('ascii')).hexdigest()
 
 
 class InvalidResetToken(Exception):
@@ -46,6 +40,14 @@ def _has_local_password(user):
     return True
 
 
+def _decode_user_id(uid):
+    try:
+        user_id = int(urlsafe_base64_decode(uid).decode())
+    except (TypeError, ValueError, UnicodeDecodeError):
+        return None
+    return user_id if 0 < user_id <= MAX_USER_ID else None
+
+
 def send_password_reset(identifier):
     """Executed in the mail worker for every identifier, including unknown ones."""
     if not reset_enabled():
@@ -56,47 +58,34 @@ def send_password_reset(identifier):
         return
     if not user.is_active or not _has_local_password(user):
         return
-    token = secrets.token_urlsafe(32)
-    now = timezone.now()
-    with transaction.atomic():
-        user = User.objects.select_for_update().get(pk=user.pk)
-        if not user.is_active or not _has_local_password(user):
-            return
-        PasswordResetToken.objects.filter(user=user, consumed_at__isnull=True).update(consumed_at=now)
-        reset = PasswordResetToken.objects.create(user=user, token_digest=token_digest(token), expires_at=now + timedelta(minutes=15))
-    # A URL fragment keeps the email token out of SPA request/referrer URLs.
-    link = f'{settings.FRONTEND_URL.rstrip("/")}/reset-password#token={token}'
-    try:
-        send_mail('[QJudge] 重設密碼 / Reset your password',
-                  f'請在 15 分鐘內開啟以下連結重設密碼：\n{link}\n\n'
-                  '此連結只能使用一次。若你沒有提出申請，請忽略此郵件。\n'
-                  'Use this link within 15 minutes. If you did not request it, ignore this email.',
-                  settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
-    except Exception:
-        PasswordResetToken.objects.filter(pk=reset.pk, consumed_at__isnull=True).update(consumed_at=timezone.now())
-        # Do not log SMTP exception bodies: some providers include the email contents.
-        logger.warning('password_reset_delivery_failed user_id=%s', user.pk)
-        raise
+    # The token signs the current password hash and last login, so it stops
+    # working once used and expires after PASSWORD_RESET_TIMEOUT. Nothing is stored.
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    minutes = settings.PASSWORD_RESET_TIMEOUT // 60
+    # A URL fragment keeps the secret out of SPA request/referrer URLs.
+    link = f'{settings.FRONTEND_URL.rstrip("/")}/reset-password#uid={uid}&token={token}'
+    send_mail('[QJudge] 重設密碼 / Reset your password',
+              f'請在 {minutes} 分鐘內開啟以下連結重設密碼：\n{link}\n\n'
+              '此連結只能使用一次。若你沒有提出申請，請忽略此郵件。\n'
+              f'Use this link within {minutes} minutes. If you did not request it, ignore this email.',
+              settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
 
 
-def complete_password_reset(token, password):
-    if not reset_enabled() or not TOKEN_PATTERN.fullmatch(token):
-        raise InvalidResetToken()
-    digest = token_digest(token)
-    owner = PasswordResetToken.objects.filter(token_digest=digest).values_list('user_id', flat=True).first()
-    if owner is None:
+def complete_password_reset(uid, token, password):
+    user_id = _decode_user_id(uid)
+    if not reset_enabled() or user_id is None:
         raise InvalidResetToken()
     with transaction.atomic():
-        # Issuance and redemption share the user lock, including different links.
-        user = User.objects.select_for_update().get(pk=owner)
-        reset = PasswordResetToken.objects.select_for_update().get(token_digest=digest)
-        now = timezone.now()
-        if reset.consumed_at or reset.expires_at <= now or not user.is_active or not _has_local_password(user):
+        # Password login and redemption share the user lock. Checking the token
+        # against the locked row makes a second redemption see the new hash.
+        user = User.objects.select_for_update().filter(pk=user_id).first()
+        if (user is None or not user.is_active or not _has_local_password(user)
+                or not default_token_generator.check_token(user, token)):
             raise InvalidResetToken()
         validate_password(password, user=user)
         user.set_password(password)
         user.save(update_fields=['password', 'updated_at'])
-        PasswordResetToken.objects.filter(user=user, consumed_at__isnull=True).update(consumed_at=now)
         for outstanding in OutstandingToken.objects.filter(user=user):
             BlacklistedToken.objects.get_or_create(token=outstanding)
         UserLoginRecord.objects.filter(user=user, is_current=True).update(is_current=False)

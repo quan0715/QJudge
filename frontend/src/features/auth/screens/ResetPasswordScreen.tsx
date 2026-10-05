@@ -8,11 +8,13 @@ import { clearAuthStorage } from "@/infrastructure/api/http.client";
 
 const ResetPasswordScreen = () => {
   const location = useLocation();
-  const token = new URLSearchParams(location.hash.slice(1)).get("token") || "";
-  return <ResetPasswordForm key={token} token={token} />;
+  const params = new URLSearchParams(location.hash.slice(1));
+  const uid = params.get("uid") || "";
+  const token = params.get("token") || "";
+  return <ResetPasswordForm key={`${uid}:${token}`} uid={uid} token={token} />;
 };
 
-const ResetPasswordForm = ({ token }: { token: string }) => {
+const ResetPasswordForm = ({ uid, token }: { uid: string; token: string }) => {
   const { t } = useTranslation("common");
   const { setUser } = useAuth();
   const [password, setPassword] = useState("");
@@ -20,7 +22,8 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
-  const validToken = /^[A-Za-z0-9_-]{43}$/.test(token);
+  // Shape check only (base64 user id, Django "<timestamp>-<hmac>" token); the API validates the link.
+  const validToken = /^[A-Za-z0-9_-]+$/.test(uid) && /^[0-9a-z]+-[0-9a-f]+$/.test(token);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -29,7 +32,7 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
     setLoading(true);
     setError("");
     try {
-      await completePasswordReset(token, password, confirmation);
+      await completePasswordReset(uid, token, password, confirmation);
       clearAuthStorage();
       setUser(null);
       setPassword("");

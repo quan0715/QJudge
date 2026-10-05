@@ -314,6 +314,8 @@ CACHE_KEYS = {
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "noreply@example.com")
 EMAIL_SUBJECT_PREFIX = "[QJudge] "
 EMAIL_MODE = env("EMAIL_MODE", "disabled")
+# Django's signed reset tokens expire after this many seconds.
+PASSWORD_RESET_TIMEOUT = 15 * 60
 if EMAIL_MODE not in {"disabled", "external"}:
     raise ImproperlyConfigured("EMAIL_MODE must be disabled or external")
 

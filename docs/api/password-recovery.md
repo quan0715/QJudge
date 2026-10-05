@@ -5,14 +5,14 @@ This feature depends on the users API contract in #204. It is disabled by defaul
 ## API
 
 - `POST /api/v1/auth/password/reset-requests` accepts `{"identifier":"email or username"}`. Every valid identifier receives HTTP 202, `{"data":null,"meta":{}}`, including unknown, inactive, and SSO-only accounts. Each enabled request enqueues the same worker job before any account lookup. Broker failures return a generic 503. Mail-provider failures are audited without leaking message contents.
-- `POST /api/v1/auth/password/resets/{token}` accepts `{"password":"...","password_confirm":"..."}`. A successful reset returns HTTP 200 with `data:null`, clears auth cookies, and blacklists all outstanding refresh tokens. Existing access tokens expire at their configured lifetime; password recovery does not mutate active exams or external OAuth grants. Django sessions are invalidated by the changed password hash.
-- Unknown, expired, consumed, superseded, and malformed secrets return `invalid_reset_token`. Password confirmation/policy failures are structured field errors and do not consume a valid token.
+- `POST /api/v1/auth/password/resets` accepts `{"uid":"...","token":"...","password":"...","password_confirm":"..."}`. A successful reset returns HTTP 200 with `data:null`, clears auth cookies, and blacklists all outstanding refresh tokens. Existing access tokens expire at their configured lifetime; password recovery does not mutate active exams or external OAuth grants. Django sessions are invalidated by the changed password hash.
+- Unknown, expired, used, and malformed links return `invalid_reset_token`. Password confirmation/policy failures are structured field errors and do not consume a valid token.
 
 Recovery resolves email and username with the same exact comparisons as password login. An identifier matching multiple accounts is acknowledged without choosing a recipient. Eligibility requires an active account with an existing, usable, supported local password hash; linking OAuth does not remove that capability. Recovery cannot create a local credential for a pure OAuth account with an empty, unusable or unsupported hash.
 
-Tokens contain 256 bits of randomness, last 15 minutes, and are stored only as SHA-256 digests. Issuance, redemption and password login use the same user row lock. Password login reads and checks the password under that lock and commits token issuance and its login record before releasing it; reset therefore revokes a concurrent old-password login's refresh token, or the waiting login checks the new hash and fails. Concurrent resets cannot redeem twice. A newer request invalidates older links. Request limits are 10 per client IP per 15-minute window and 3 per normalized identifier per hour; redemption independently allows 10 per IP per 15 minutes. Counters use atomic cache add/increment. Identifier keys are HMAC digests. Keep the backend behind the shipped ingress, which replaces untrusted forwarded IP headers.
+Links use Django's `default_token_generator`: an HMAC over the user id, current password hash, last login and issue time, signed with `SECRET_KEY`. Nothing is stored. A link expires after `PASSWORD_RESET_TIMEOUT` (15 minutes); changing the password invalidates it and every other outstanding link. Requesting a new link does not invalidate an older one before it expires. Redemption and password login use the same user row lock, and the token is checked against the locked row. Password login reads and checks the password under that lock and commits token issuance and its login record before releasing it; reset therefore revokes a concurrent old-password login's refresh token, or the waiting login checks the new hash and fails. Concurrent resets cannot redeem twice. Request limits are 10 per client IP per 15-minute window and 3 per normalized identifier per hour; redemption independently allows 10 per IP per 15 minutes. Counters use atomic cache add/increment. Identifier keys are HMAC digests. Keep the backend behind the shipped ingress, which replaces untrusted forwarded IP headers.
 
-Links use `/reset-password#token=...` so the secret is absent from the initial page request and referrer. The shipped nginx reset API location suppresses raw token URI logs; Django request logs redact it. Development Uvicorn access logging redacts the path while preserving its native formatter arguments and ordinary access records; a regression starts the real ASGI server and checks both. Daphne's duplicate access log is disabled because it bypasses Django's filters. The Auth CI probe checks both container logs for a synthetic reset token and confirms ordinary access requests are still logged. If adding another reverse proxy or request tracing service, redact `/api/v1/auth/password/resets/*` there too. Never log request bodies for these endpoints.
+Links use `/reset-password#uid=...&token=...` so the secret is absent from the initial page request and referrer, and the frontend sends both values in the request body, so URL access logs never contain them. Never log request bodies for these endpoints.
 
 ## Platform mail capability and deployment
 
@@ -42,10 +42,9 @@ provider credentials. CI E2E selects external mode and uses Mailpit rather than
 an outbound provider. No mail is sent automatically by setting SMTP values while
 mode is disabled.
 
-Delivery failures are audited as `password_reset_delivery_failed` and
-`password_reset_job_failed`; throttling appears as `password_reset_throttled`.
-The additive token table may remain during rollback. Completed password changes
-must not be reversed.
+Delivery failures are audited as `password_reset_job_failed`; throttling
+appears as `password_reset_throttled`. Completed password changes must not be
+reversed.
 
 Exam publication and results notifications require a separate specification.
 Postal addon integration and its `bundled` mode are outside this change. An
@@ -63,9 +62,9 @@ follows its link. No production SMTP credentials or external recipients are used
 
 The test verifies generic request acknowledgements, mismatched and weak password
 rejection, successful reset, cleared browser cookies, old-password rejection,
-new-password login and refusal to reuse a consumed link while signed in. Unit
-tests additionally cover expiry, superseded links, concurrent redemption, refresh
-token revocation and limits. Unit tests retain Django's in-memory mail backend.
+new-password login and refusal to reuse a used link while signed in. Unit
+tests additionally cover expiry, links from other accounts, concurrent redemption,
+refresh token revocation and limits. Unit tests retain Django's in-memory mail backend.
 
 The CI inbox API defaults to `http://127.0.0.1:8025`; an independently prepared
 test stack may set `E2E_MAILPIT_URL`. Never expose this inbox or use the E2E

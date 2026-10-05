@@ -93,7 +93,7 @@ Set `EMAIL_MODE=disabled`, then run the same `check` and `upgrade` commands to u
 
 - Missing “Forgot password”: check mail mode, `AUTH_EMAIL_PASSWORD_ENABLED`, and whether containers were recreated. `/api/v1/auth/providers` exposes their combined result as `password_reset_enabled`.
 - SMTP probe failure: check the reported error against hostname, container connectivity, port, TLS, credentials and sender authorization.
-- Probe succeeded but recovery mail is absent: confirm celery consumes the `default` queue, inspect `qjudge_dc logs --tail 100 celery` and SMTP delivery records. Worker failures appear as `password_reset_delivery_failed` or `password_reset_job_failed`; user acknowledgements stay generic.
+- Probe succeeded but recovery mail is absent: confirm celery consumes the `default` queue, inspect `qjudge_dc logs --tail 100 celery` and SMTP delivery records. Worker failures appear as `password_reset_job_failed`; user acknowledgements stay generic.
 
 ### Migrate the old setting
 
