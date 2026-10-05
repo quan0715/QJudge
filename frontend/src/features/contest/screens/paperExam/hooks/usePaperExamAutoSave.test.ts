@@ -4,11 +4,12 @@ import {
   buildExamAnswerPayload,
   usePaperExamAutoSave,
 } from "./usePaperExamAutoSave";
-import { submitExamAnswer } from "@/infrastructure/api/repositories/examAnswers.repository";
+import { submitExamAnswer, saveExamAnswerDraft } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { createEmptyOpenAnswerDocument } from "@/shared/ui/editor";
 
 vi.mock("@/infrastructure/api/repositories/examAnswers.repository", () => ({
   submitExamAnswer: vi.fn().mockResolvedValue({}),
+  saveExamAnswerDraft: vi.fn(),
 }));
 
 const mockedSubmitExamAnswer = vi.mocked(submitExamAnswer);
@@ -40,7 +41,8 @@ describe("buildExamAnswerPayload", () => {
 describe("usePaperExamAutoSave", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    mockedSubmitExamAnswer.mockClear();
+    mockedSubmitExamAnswer.mockReset().mockResolvedValue({} as never);
+    vi.mocked(saveExamAnswerDraft).mockClear();
   });
 
   afterEach(() => {
@@ -185,4 +187,127 @@ describe("usePaperExamAutoSave", () => {
 
     expect(result.current.saveStatus).toBe("saving");
   });
+
+  it("flushes a debounced answer before final submission and leaves no later write", async () => {
+    const { result } = renderHook(() => usePaperExamAutoSave({
+      contestId: "contest-reset", setAnswers: vi.fn() as never,
+    }));
+    act(() => result.current.handleAnswerChange("q1", "final answer", "essay"));
+    await act(async () => { await result.current.flushAll(); });
+    expect(mockedSubmitExamAnswer).toHaveBeenCalledExactlyOnceWith(
+      "contest-reset", "q1", { text: "final answer" },
+    );
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(mockedSubmitExamAnswer).toHaveBeenCalledOnce();
+    expect(result.current.saveStatus).toBe("saved");
+  });
+
+  it("waits for an already running save before the submission can finish", async () => {
+    let resolveSave!: () => void;
+    mockedSubmitExamAnswer.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveSave = () => resolve({} as never);
+    }));
+    const { result } = renderHook(() => usePaperExamAutoSave({
+      contestId: "contest-reset", setAnswers: vi.fn() as never,
+    }));
+    act(() => result.current.handleAnswerChange("q1", "final answer", "essay"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    let completed = false;
+    let flush!: Promise<void>;
+    await act(async () => { flush = result.current.flushAll().then(() => { completed = true; }); });
+    expect(completed).toBe(false);
+    await act(async () => { resolveSave(); await flush; });
+    expect(completed).toBe(true);
+    expect(mockedSubmitExamAnswer).toHaveBeenCalledOnce();
+  });
+
+  it("rejects final submission when a pending answer cannot be saved", async () => {
+    mockedSubmitExamAnswer.mockRejectedValueOnce(new Error("network down"));
+    const { result } = renderHook(() => usePaperExamAutoSave({
+      contestId: "contest-reset", setAnswers: vi.fn() as never,
+    }));
+    act(() => result.current.handleAnswerChange("q1", "keep my answer", "essay"));
+    await act(async () => { await expect(result.current.flushAll()).rejects.toThrow("network down"); });
+    expect(result.current.saveStatus).toBe("error");
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(mockedSubmitExamAnswer).toHaveBeenCalledOnce();
+    await act(async () => { await result.current.flushAll(); });
+    expect(mockedSubmitExamAnswer).toHaveBeenCalledTimes(2);
+    expect(mockedSubmitExamAnswer).toHaveBeenLastCalledWith("contest-reset", "q1", { text: "keep my answer" });
+    expect(result.current.saveStatus).toBe("saved");
+  });
+
+  it("cancels timers on unmount without losing the unsaved answer", async () => {
+    const { result, unmount } = renderHook(() => usePaperExamAutoSave({
+      contestId: "contest-reset", setAnswers: vi.fn() as never,
+    }));
+    act(() => result.current.handleAnswerChange("q1", "unsaved answer", "essay"));
+    unmount();
+    expect(saveExamAnswerDraft).toHaveBeenCalledWith("contest-reset", "q1", { text: "unsaved answer" });
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(mockedSubmitExamAnswer).not.toHaveBeenCalled();
+  });
+
+  it("saves the newer pending edit after an older in-flight write finishes", async () => {
+    let resolveSave!: () => void;
+    mockedSubmitExamAnswer.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveSave = () => resolve({} as never);
+    }));
+    const { result } = renderHook(() => usePaperExamAutoSave({
+      contestId: "contest-reset", setAnswers: vi.fn() as never,
+    }));
+    act(() => result.current.handleAnswerChange("q1", "older answer", "essay"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    act(() => result.current.handleAnswerChange("q1", "latest answer", "essay"));
+    let flush!: Promise<void>;
+    await act(async () => { flush = result.current.flushAll(); });
+    act(() => result.current.handleAnswerChange("q1", "latest answer during flush", "essay"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(mockedSubmitExamAnswer).toHaveBeenCalledOnce();
+    await act(async () => { resolveSave(); await flush; });
+    expect(mockedSubmitExamAnswer).toHaveBeenCalledTimes(2);
+    expect(mockedSubmitExamAnswer).toHaveBeenLastCalledWith("contest-reset", "q1", { text: "latest answer during flush" });
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(mockedSubmitExamAnswer).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry an older failed write over a newer successful answer", async () => {
+    let rejectOld!: (error: Error) => void;
+    mockedSubmitExamAnswer.mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectOld = reject; }));
+    const { result } = renderHook(() => usePaperExamAutoSave({
+      contestId: "contest-reset", setAnswers: vi.fn() as never,
+    }));
+    act(() => result.current.handleAnswerChange("q1", "older answer", "essay"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    act(() => result.current.handleAnswerChange("q1", "newer saved answer", "essay"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    await act(async () => { rejectOld(new Error("old request failed")); await Promise.resolve(); });
+    await act(async () => { await result.current.flushAll(); });
+    expect(mockedSubmitExamAnswer).toHaveBeenCalledTimes(2);
+    expect(mockedSubmitExamAnswer).toHaveBeenLastCalledWith("contest-reset", "q1", { text: "newer saved answer" });
+  });
+
+  it.each([true, false])("rejects an old flush after a contest switch (save already running=%s)", async (alreadyRunning) => {
+    let resolveOld!: () => void;
+    mockedSubmitExamAnswer.mockImplementationOnce(() => new Promise((resolve) => { resolveOld = () => resolve({} as never); }));
+    const setAnswers = vi.fn();
+    const { result, rerender } = renderHook(({ contestId }) => usePaperExamAutoSave({
+      contestId, setAnswers: setAnswers as never,
+    }), { initialProps: { contestId: "old-contest" } });
+    act(() => result.current.handleAnswerChange("q1", "old answer", "essay"));
+    if (alreadyRunning) await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    let flush!: Promise<void>;
+    let rejection!: Promise<void>;
+    await act(async () => {
+      flush = result.current.flushAll();
+      rejection = expect(flush).rejects.toThrow("Exam changed while saving answers");
+    });
+    rerender({ contestId: "new-contest" });
+    act(() => result.current.handleAnswerChange("q1", "new answer", "essay"));
+    await act(async () => { resolveOld(); await rejection; });
+    await act(async () => { await result.current.flushAll(); });
+    expect(mockedSubmitExamAnswer).toHaveBeenCalledTimes(2);
+    expect(mockedSubmitExamAnswer).toHaveBeenLastCalledWith("new-contest", "q1", { text: "new answer" });
+  });
+
 });

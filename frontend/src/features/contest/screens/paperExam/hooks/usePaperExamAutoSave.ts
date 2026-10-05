@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   submitExamAnswer,
   getExamAnswerDraft,
+  saveExamAnswerDraft,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import type {
   ExamQuestionAnswerFormat,
@@ -13,6 +14,8 @@ import { isOpenAnswerDocument } from "@/shared/ui/editor/openAnswerDocument";
 const AUTO_SAVE_DELAY = 2000;
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+type PendingSave = { payload: ExamAnswerPayload; timeout?: ReturnType<typeof setTimeout> };
 
 type ExamAnswerPayload = { selected: unknown } | { text: string } | { document: OpenAnswerDocument };
 
@@ -59,12 +62,14 @@ export function usePaperExamAutoSave({
   questionIds?: string[];
   setAnswers: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
 }) {
-  const pendingSaves = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const inFlightSaveCount = useRef(0);
+  const pendingSaves = useRef(new Map<string, PendingSave>());
+  const latestEdits = useRef(new Map<string, PendingSave>());
+  const inFlightSaves = useRef(new Set<Promise<void>>());
+  const flushing = useRef(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
   const hasPendingWork = useCallback(
-    () => pendingSaves.current.size > 0 || inFlightSaveCount.current > 0,
+    () => pendingSaves.current.size > 0 || inFlightSaves.current.size > 0,
     [],
   );
 
@@ -85,6 +90,65 @@ export function usePaperExamAutoSave({
     });
   }, [contestId, questionIds, setAnswers]);
 
+  const savePendingAnswer = useCallback((questionId: string, entry: PendingSave) => {
+    const pending = pendingSaves.current;
+    const running = inFlightSaves.current;
+    const latest = latestEdits.current;
+    if (entry.timeout) clearTimeout(entry.timeout);
+    entry.timeout = undefined;
+    if (pending.get(questionId) === entry) pending.delete(questionId);
+    const request = submitExamAnswer(contestId!, questionId, entry.payload).then(
+      () => {
+        running.delete(request);
+        if (pendingSaves.current === pending) {
+          setSaveStatus(hasPendingWork() ? "saving" : "saved");
+        }
+      },
+      (error: unknown) => {
+        running.delete(request);
+        // A failed save remains retryable without replacing a newer edit.
+        if (latest.get(questionId) === entry) pending.set(questionId, entry);
+        if (pendingSaves.current === pending) setSaveStatus("error");
+        throw error;
+      },
+    );
+    running.add(request);
+    return request;
+  }, [contestId, hasPendingWork]);
+
+  const flushAll = useCallback(async () => {
+    const pending = pendingSaves.current;
+    const running = inFlightSaves.current;
+    flushing.current = true;
+    try {
+      // Freeze debounce timers while old writes drain, then save the latest edits.
+      while (pending.size > 0 || running.size > 0) {
+        for (const entry of pending.values()) {
+          if (entry.timeout) clearTimeout(entry.timeout);
+          entry.timeout = undefined;
+        }
+        await Promise.all(running);
+        if (pendingSaves.current !== pending) throw new Error("Exam changed while saving answers");
+        await Promise.all(Array.from(pending, ([id, entry]) => savePendingAnswer(id, entry)));
+        if (pendingSaves.current !== pending) throw new Error("Exam changed while saving answers");
+      }
+    } finally {
+      if (pendingSaves.current === pending) flushing.current = false;
+    }
+  }, [savePendingAnswer]);
+
+  useEffect(() => () => {
+    // Preserve unsent edits before dropping timers on navigation or a new contest.
+    for (const [id, entry] of pendingSaves.current) {
+      if (entry.timeout) clearTimeout(entry.timeout);
+      if (contestId) saveExamAnswerDraft(contestId, id, entry.payload);
+    }
+    pendingSaves.current = new Map();
+    latestEdits.current = new Map();
+    inFlightSaves.current = new Set();
+    flushing.current = false;
+  }, [contestId]);
+
   const handleAnswerChange = useCallback(
     (
       questionId: string,
@@ -96,27 +160,20 @@ export function usePaperExamAutoSave({
 
       if (!contestId) return;
       const existing = pendingSaves.current.get(questionId);
-      if (existing) clearTimeout(existing);
+      if (existing?.timeout) clearTimeout(existing.timeout);
 
       setSaveStatus("saving");
-      const timeout = setTimeout(() => {
-        const answerPayload = buildExamAnswerPayload(value, questionType, answerFormat);
-        pendingSaves.current.delete(questionId);
-        inFlightSaveCount.current += 1;
-        submitExamAnswer(contestId, questionId, answerPayload)
-          .then(() => {
-            inFlightSaveCount.current = Math.max(0, inFlightSaveCount.current - 1);
-            setSaveStatus(hasPendingWork() ? "saving" : "saved");
-          })
-          .catch(() => {
-            inFlightSaveCount.current = Math.max(0, inFlightSaveCount.current - 1);
-            setSaveStatus("error");
-          });
-      }, AUTO_SAVE_DELAY);
-      pendingSaves.current.set(questionId, timeout);
+      const entry: PendingSave = { payload: buildExamAnswerPayload(value, questionType, answerFormat) };
+      if (!flushing.current) {
+        entry.timeout = setTimeout(() => {
+          void savePendingAnswer(questionId, entry).catch(() => {});
+        }, AUTO_SAVE_DELAY);
+      }
+      latestEdits.current.set(questionId, entry);
+      pendingSaves.current.set(questionId, entry);
     },
-    [contestId, hasPendingWork, setAnswers],
+    [contestId, savePendingAnswer, setAnswers],
   );
 
-  return { handleAnswerChange, saveStatus };
+  return { handleAnswerChange, saveStatus, flushAll };
 }

@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   setPageHeaderActions: vi.fn(),
   submitExam: vi.fn().mockResolvedValue(true),
   flushAll: vi.fn().mockResolvedValue(undefined),
+  flushAutoSaves: vi.fn().mockResolvedValue(undefined),
   flushPendingUploads: vi.fn().mockResolvedValue(undefined),
   cheatDetectionEnabled: false,
 }));
@@ -54,6 +55,7 @@ vi.mock("./hooks", () => ({
   usePaperExamAutoSave: () => ({
     saveStatus: "idle",
     handleAnswerChange: vi.fn(),
+    flushAll: mocks.flushAutoSaves,
   }),
   usePaperExamQuestions: () => ({
     items: [{ kind: "question", data: { id: "q1", order: 0, questionType: "true_false",
@@ -98,6 +100,7 @@ describe("PaperExamAnsweringScreen contest refresh ownership", () => {
     mocks.setPageHeaderActions.mockClear();
     mocks.submitExam.mockClear();
     mocks.flushAll.mockClear();
+    mocks.flushAutoSaves.mockReset().mockResolvedValue(undefined);
     mocks.flushPendingUploads.mockReset().mockResolvedValue(undefined);
     mocks.cheatDetectionEnabled = false;
   });
@@ -197,4 +200,22 @@ describe("PaperExamAnsweringScreen contest refresh ownership", () => {
     expect(mocks.flushAll.mock.invocationCallOrder[0]).toBeLessThan(mocks.submitExam.mock.invocationCallOrder[0]);
     expect(mocks.flushPendingUploads.mock.invocationCallOrder[0]).toBeLessThan(mocks.submitExam.mock.invocationCallOrder[0]);
   });
+
+  it("drains debounced saves before ending the exam", async () => {
+    let resolveSave!: () => void;
+    mocks.flushAutoSaves.mockReturnValue(new Promise<void>((resolve) => { resolveSave = resolve; }));
+    render(<MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/solve"]}>
+      <Routes><Route path="/classrooms/:classroomId/contest/:contestId/solve" element={<PaperExamAnsweringScreen />} />
+        <Route path="/classrooms/:classroomId/contest/:contestId" element={<p>Submitted</p>} /></Routes>
+    </MemoryRouter>);
+    fireEvent.click(screen.getByTestId("paper-exam-open-submit-review-btn"));
+    fireEvent.click(screen.getByTestId("paper-exam-submit-confirm-btn"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
+    expect(mocks.flushAutoSaves).toHaveBeenCalledOnce();
+    expect(mocks.submitExam).not.toHaveBeenCalled();
+    await act(async () => { resolveSave(); await vi.advanceTimersByTimeAsync(4000); });
+    expect(mocks.submitExam).toHaveBeenCalledOnce();
+    expect(mocks.flushAutoSaves.mock.invocationCallOrder[0]).toBeLessThan(mocks.submitExam.mock.invocationCallOrder[0]);
+  });
+
 });
