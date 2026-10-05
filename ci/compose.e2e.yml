@@ -23,10 +23,19 @@ x-fake-ai-service: &fake_ai_service
 # go through the real judge workers.
 x-django-test: &django_test
   environment:
-    DJANGO_SETTINGS_MODULE: config.settings.test
+    DJANGO_SETTINGS_MODULE: config.settings.e2e
+    EMAIL_MODE: external
     CELERY_TASK_ALWAYS_EAGER: "false"
 
 services:
+  # Captures real worker SMTP delivery without provider credentials or outbound
+  # mail. Only the runner can access the inbox API; SMTP stays on the network.
+  mailpit:
+    image: axllent/mailpit:v1.31.4
+    restart: "no"
+    ports:
+      - "127.0.0.1:8025:8025"
+
   fake-ai-adapters:
     image: qjudge/ai-service:${QJUDGE_VERSION}
     restart: "no"

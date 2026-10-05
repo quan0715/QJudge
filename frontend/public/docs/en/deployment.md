@@ -6,6 +6,7 @@ Details regarding networking, file storage, live monitoring, and troubleshooting
 - [Network Ingress and Optional Features](deployment-options.md)
 - [Prepare File Storage](deployment-storage.md)
 - [Deploy Live Monitoring](deployment-live-monitoring.md)
+- [Configure email delivery](deployment-email.md)
 - [Troubleshoot Deployment](deployment-troubleshooting.md)
 
 ## 1. Prerequisites

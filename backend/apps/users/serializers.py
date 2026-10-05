@@ -31,13 +31,36 @@ class UserProfileSerializer(serializers.ModelSerializer):
 @extend_schema_serializer(component_name="UserObject")
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(read_only=True, default={"display_name": "", "avatar_url": None})
-    onboarding_completed_at = serializers.DateTimeField(source="profile.onboarding_completed_at", read_only=True, default=None)
+    onboarding_completed_at = serializers.DateTimeField(source="profile.onboarding_completed_at", read_only=True, default=None, allow_null=True)
 
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'role', 'auth_provider', 'last_login_at',
                   'onboarding_completed_at', 'profile']
         read_only_fields = fields
+
+
+@extend_schema_serializer(component_name="EmbeddedUserProfileObject")
+class EmbeddedUserProfileSerializer(serializers.ModelSerializer):
+    """Existing profile shape used outside the users API."""
+    class Meta:
+        model = UserProfile
+        fields = ['solved_count', 'submission_count', 'accept_rate', 'display_name', 'avatar_url',
+                  'preferred_language', 'preferred_theme', 'editor_font_size', 'editor_tab_size',
+                  'onboarding_completed_at']
+        read_only_fields = ['solved_count', 'submission_count', 'accept_rate']
+
+
+@extend_schema_serializer(component_name="EmbeddedUserObject")
+class EmbeddedUserSerializer(serializers.ModelSerializer):
+    """Preserve non-users domain contracts independently of UserObject."""
+    profile = EmbeddedUserProfileSerializer(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'role', 'auth_provider', 'is_active', 'date_joined',
+                  'last_login_at', 'profile']
+        read_only_fields = ['id', 'auth_provider', 'date_joined', 'last_login_at']
 
 
 class CurrentUserUpdateSerializer(serializers.ModelSerializer):

@@ -7,6 +7,7 @@ import secrets
 import time
 
 from django.conf import settings
+from django.db import transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django_ratelimit.decorators import ratelimit
@@ -81,20 +82,24 @@ def _password_provider_login(request):
     if not serializer.is_valid():
         return validation_error_response(request, "登入資料驗證失敗", serializer.errors)
 
-    user = EmailAuthService.login(
-        serializer.validated_data["identifier"],
-        serializer.validated_data["password"],
-    )
-    if not user:
-        return contract_error_response(request, 'AUTH_001', '帳號或密碼錯誤', status=status.HTTP_401_UNAUTHORIZED)
+    with transaction.atomic():
+        # Read and validate the current password under the reset's user lock.
+        # Keep it until tokens and the login record commit together.
+        user = EmailAuthService.login(
+            serializer.validated_data["identifier"],
+            serializer.validated_data["password"],
+            lock=True,
+        )
+        if not user:
+            return contract_error_response(request, 'AUTH_001', '帳號或密碼錯誤', status=status.HTTP_401_UNAUTHORIZED)
 
-    conflict_response = build_active_exam_login_block_response(user, request, provider="password")
-    if conflict_response is not None:
-        return conflict_response
+        conflict_response = build_active_exam_login_block_response(user, request, provider="password")
+        if conflict_response is not None:
+            return conflict_response
 
-    tokens = JWTService.generate_tokens(user)
-    record_login(user, request, login_method="password", tokens=tokens)
-    return token_cookie_response(user, tokens)
+        tokens = JWTService.generate_tokens(user)
+        record_login(user, request, login_method="password", tokens=tokens)
+        return token_cookie_response(user, tokens)
 
 
 class AuthOptionsView(SchemaAPIView):

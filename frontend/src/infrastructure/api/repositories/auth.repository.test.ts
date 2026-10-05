@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { EnvelopeError } from "@/infrastructure/api/envelope";
+
 import {
   getAuthSessions,
   getAuthOptions,
@@ -111,6 +113,17 @@ describe("auth repository endpoints", () => {
       identifier: "alice@example.com",
       password: "secret",
     });
+  });
+
+  it("preserves the canonical invalid-credentials 401 without refreshing", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      errors: [{ code: "auth_001", message: "帳號或密碼錯誤", field: null, details: {} }],
+      meta: { request_id: null, timestamp: "2026-10-05T00:00:00Z" },
+    }), { status: 401, headers: { "Content-Type": "application/json" } }));
+    const error = await login({ identifier: "alice@example.test", password: "wrong-test-password" }).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(EnvelopeError);
+    expect(error).toMatchObject({ status: 401, code: "auth_001", message: "帳號或密碼錯誤" });
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it("register uses the password credentials endpoint", async () => {

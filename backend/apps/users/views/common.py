@@ -1,6 +1,7 @@
 """Shared helpers for split user view modules."""
 
 from rest_framework import generics, serializers, status
+from django.db import transaction
 from rest_framework.response import Response
 from apps.core.api.envelope import contract_error_response, contract_validation_error_response
 from apps.core.api.renderer import ContractJSONRenderer
@@ -86,25 +87,30 @@ def build_active_exam_login_block_response(user, request, provider: str):
 
     contest = conflict.contest
 
-    ExamEvent.objects.create(
-        contest=contest,
-        user=user,
-        event_type="concurrent_login_detected",
-        metadata={
-            "source": f"auth_{provider}",
-            "incoming_device_id": device_id,
-            "existing_device_id": (conflict.active_session or {}).get("device_id", ""),
-        },
-    )
-    log_contest_activity(
-        contest=contest,
-        user=user,
-        action_type="concurrent_login_detected",
-        details=(
-            f"Blocked login from another device during exam "
-            f"(provider={provider}, device_id={device_id})"
-        ),
-    )
+    def write_conflict_audit():
+        ExamEvent.objects.create(
+            contest=contest,
+            user=user,
+            event_type="concurrent_login_detected",
+            metadata={
+                "source": f"auth_{provider}",
+                "incoming_device_id": device_id,
+                "existing_device_id": (conflict.active_session or {}).get("device_id", ""),
+            },
+        )
+        log_contest_activity(
+            contest=contest,
+            user=user,
+            action_type="concurrent_login_detected",
+            details=(
+                f"Blocked login from another device during exam "
+                f"(provider={provider}, device_id={device_id})"
+            ),
+        )
+
+    # Integrity commands lock Contest before User. Write Contest FK audits only
+    # after the password User transaction releases its lock; retain this decision.
+    transaction.on_commit(write_conflict_audit)
 
     return contract_error_response(
         request, "active_exam_session_exists",

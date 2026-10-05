@@ -10,6 +10,7 @@ import MainLayout from "@/features/app/components/MainLayout";
 import ErrorBoundary from "@/features/app/components/ErrorBoundary";
 import {
   guestRoutes,
+  passwordRecoveryRoutes,
   oauthCallbackRoute,
   onboardingRoute,
   inviteLinkRoute,
@@ -106,6 +107,7 @@ function App() {
                           <Route element={<RequireGuest />}>
                             {guestRoutes}
                           </Route>
+                          {passwordRecoveryRoutes}
                           {oauthCallbackRoute}
                           {oauthAuthorizeRoute}
                           {inviteLinkRoute}

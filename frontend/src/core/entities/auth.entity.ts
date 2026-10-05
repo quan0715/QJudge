@@ -85,6 +85,7 @@ export interface AuthProviderOption {
 
 export interface AuthOptions {
   password_enabled: boolean;
+  password_reset_enabled?: boolean;
   providers: AuthProviderOption[];
 }
 
