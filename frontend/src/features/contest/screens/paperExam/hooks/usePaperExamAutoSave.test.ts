@@ -335,4 +335,22 @@ describe("usePaperExamAutoSave", () => {
     expect(mockedSubmitExamAnswer).toHaveBeenCalledTimes(2);
   });
 
+  it("cancels a queued write after unmount so the newest unsent draft survives", async () => {
+    let resolveOld!: () => void;
+    mockedSubmitExamAnswer.mockImplementationOnce(() => new Promise((resolve) => { resolveOld = () => resolve({} as never); }));
+    const { result, unmount } = renderHook(() => usePaperExamAutoSave({
+      contestId: "contest-reset", setAnswers: vi.fn() as never,
+    }));
+    act(() => result.current.handleAnswerChange("q1", "running answer", "essay"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    act(() => result.current.handleAnswerChange("q1", "queued answer", "essay"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    act(() => result.current.handleAnswerChange("q1", "newest unsent draft", "essay"));
+    unmount();
+    expect(saveExamAnswerDraft).toHaveBeenLastCalledWith("contest-reset", "q1", { text: "newest unsent draft" });
+    await act(async () => { resolveOld(); await Promise.resolve(); });
+    expect(mockedSubmitExamAnswer).toHaveBeenCalledOnce();
+    expect(saveExamAnswerDraft).toHaveBeenLastCalledWith("contest-reset", "q1", { text: "newest unsent draft" });
+  });
+
 });

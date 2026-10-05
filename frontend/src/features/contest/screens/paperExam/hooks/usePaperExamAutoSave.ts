@@ -102,7 +102,10 @@ export function usePaperExamAutoSave({
     // Writes for the same answer must reach the server in edit order.
     saveExamAnswerDraft(contestId!, questionId, entry.payload);
     const previous = byQuestion.get(questionId);
-    const send = () => submitExamAnswer(contestId!, questionId, entry.payload);
+    const send = () => {
+      if (pendingSaves.current !== pending) throw new Error("Exam changed while saving answers");
+      return submitExamAnswer(contestId!, questionId, entry.payload);
+    };
     const response = previous ? previous.catch(() => {}).then(send) : send();
     const request = response.then(
       () => {
