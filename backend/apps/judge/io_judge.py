@@ -12,14 +12,18 @@ from __future__ import annotations
 
 import logging
 import uuid
+from contextlib import suppress
 from dataclasses import dataclass
+from threading import Event, Timer
 from typing import Any, Dict, Optional
 
 import docker
 from django.conf import settings
 
 _CE_SENTINEL = "QJUDGE_CE_7f3a"
+_RESOURCE_SENTINEL = "\nQJUDGE_RESOURCES_7f3a "
 _PUBLIC_SYSTEM_ERROR = "Judge system error"
+_OUTPUT_LIMIT_BYTES = 1024 * 1024
 logger = logging.getLogger(__name__)
 
 
@@ -177,7 +181,10 @@ class IOJudge:
 
         timeout_s = time_limit / 1000.0 + 0.5
         run_cmd = spec.run_cmd.format(mem=memory_limit)
-        parts.append(f"timeout {timeout_s:.3f}s {run_cmd} < input.txt 2>&1")
+        parts.append(
+            f"LC_ALL=C /usr/bin/time -q -f '{_RESOURCE_SENTINEL}%e %M' "
+            f"timeout {timeout_s:.3f}s {run_cmd} < input.txt 2>&1"
+        )
 
         return "\n\n".join(parts)
 
@@ -202,9 +209,9 @@ class IOJudge:
     def _run_in_container(
         self, command: str, timeout: float, mem_limit: int
     ) -> Dict[str, Any]:
-        import time as _time
-
         container = None
+        stream = None
+        deadline = None
         try:
             security_opts = ["no-new-privileges"]
             if settings.DOCKER_SECCOMP_PROFILE:
@@ -215,7 +222,6 @@ class IOJudge:
                 if os.path.exists(profile):
                     security_opts.append(f"seccomp={profile}")
 
-            start = _time.time()
             run_kwargs = {
                 "image": self.image,
                 "command": ["/bin/bash", "-c", command],
@@ -233,21 +239,51 @@ class IOJudge:
                 ],
                 "security_opt": security_opts,
                 "tmpfs": {"/tmp": f"size={self.tmpfs_size},mode=1777,exec"},
-                "detach": True,
-                "remove": False,
+                "log_config": docker.types.LogConfig(type="none"),
             }
             if self.platform:
                 run_kwargs["platform"] = self.platform
 
-            container = self._client.containers.run(**run_kwargs)
-            result = container.wait(timeout=int(timeout) + 5)
-            elapsed_ms = int((_time.time() - start) * 1000)
-            output = container.logs().decode("utf-8", errors="ignore")
+            container = self._client.containers.create(**run_kwargs)
+            # Attach before starting so even fast writers cannot lose the prefix.
+            stream = container.attach(stdout=True, stderr=True, stream=True)
+            timed_out = Event()
+
+            def expire():
+                timed_out.set()
+                with suppress(docker.errors.APIError):
+                    container.kill()
+
+            container.start()
+            deadline = Timer(timeout + 5, expire)
+            deadline.daemon = True
+            deadline.start()
+            output = bytearray()
+            output_limit_exceeded = False
+            for chunk in stream:
+                # Reserve space for GNU time's trailer before checking program output.
+                remaining = _OUTPUT_LIMIT_BYTES + 256 - len(output)
+                output.extend(chunk[:remaining])
+                if len(chunk) > remaining:
+                    output_limit_exceeded = True
+                    with suppress(docker.errors.APIError):
+                        container.kill()
+                    break
+            result = container.wait(timeout=5)
+            deadline.cancel()
+            decoded = output.decode("utf-8", errors="ignore")
+            elapsed_ms, memory_kb = 0, 0
+            if _RESOURCE_SENTINEL in decoded and not output_limit_exceeded:
+                decoded, _, resources = decoded.rpartition(_RESOURCE_SENTINEL)
+                seconds, memory = resources.split()
+                elapsed_ms, memory_kb = round(float(seconds) * 1000), int(memory)
+            output_limit_exceeded |= len(decoded.encode("utf-8")) > _OUTPUT_LIMIT_BYTES
             return {
-                "exit_code": result["StatusCode"],
-                "output": output,
+                "exit_code": 124 if timed_out.is_set() else result["StatusCode"],
+                "output": decoded,
+                "output_limit_exceeded": output_limit_exceeded,
                 "time": elapsed_ms,
-                "memory": 4096,
+                "memory": memory_kb,
             }
         except docker.errors.APIError:
             logger.exception("Judge container API failure")
@@ -256,6 +292,11 @@ class IOJudge:
             logger.exception("Unexpected judge container failure")
             return {"exit_code": -1, "output": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
         finally:
+            if deadline:
+                deadline.cancel()
+            if stream:
+                with suppress(Exception):
+                    stream.close()
             if container:
                 try:
                     container.remove(force=True)
@@ -273,12 +314,18 @@ class IOJudge:
         elapsed = result["time"]
         memory = result["memory"]
 
+        if exit_code == -1:
+            return {"status": "SE", "output": "", "error": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
+
+        if result.get("output_limit_exceeded"):
+            return {"status": "RE", "output": output[:1000], "error": "Output limit exceeded (1 MiB)", "time": elapsed, "memory": memory}
+
         if output.startswith(_CE_SENTINEL):
             error_detail = output[len(_CE_SENTINEL):].strip()
             return {"status": "CE", "output": "", "error": error_detail[:2000], "time": 0, "memory": 0}
 
         if exit_code == 124:
-            return {"status": "TLE", "output": output[:1000], "error": f"Time Limit Exceeded (>{time_limit}ms)", "time": time_limit, "memory": memory}
+            return {"status": "TLE", "output": output[:1000], "error": f"Time Limit Exceeded (>{time_limit}ms)", "time": elapsed, "memory": memory}
 
         if exit_code != 0:
             return {"status": "RE", "output": output[:1000], "error": f"Runtime Error (exit code: {exit_code})", "time": elapsed, "memory": memory}

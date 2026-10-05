@@ -5,6 +5,7 @@ QJudge 以 Docker Compose 在一台 Linux 主機上執行。設定、安裝、�
 - [網路入口與選用功能](deployment-options.md)
 - [設定檔案儲存](deployment-storage.md)
 - [設定即時監看](deployment-live-monitoring.md)
+- [設定寄信](deployment-email.md)
 - [部署故障排除](deployment-troubleshooting.md)
 
 ## 1. 準備主機
@@ -124,6 +125,8 @@ docker compose -p qjudge exec backend python manage.py createsuperuser
 四項都通過才算完成安裝；container 全部 running 不代表使用者流程可用。
 
 ## 8. 升級、套用設定與回退
+
+請在沒有進行中考試的時段升級。考試登入鎖定值已改用 refresh session JTI，舊版開始的考試在換發 token 時可能需要重新登入。
 
 升級到新版本：
 

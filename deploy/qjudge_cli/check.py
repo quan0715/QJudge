@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 from .schema import KEYS, KEYS_BY_NAME, Env, uses_public_origin
 
 ENUMS = {
+    "EMAIL_MODE": ("disabled", "external"),
     "STORAGE_MODE": ("bundled", "external"),
     "MEDIA_MODE": ("disabled", "bundled", "external"),
 }
@@ -28,7 +29,7 @@ BUCKET_NAME = re.compile(r"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]")
 RESERVED_BUCKET_PATHS = {
     "api", "admin", "django-admin", "static", "media", "mcp", "assets", "livekit",
     "docs", "dev", "system", "dashboard", "classrooms", "question-banks", "chat",
-    "login", "register", "auth", "onboarding", "invite", "oauth", "error", "not-found",
+    "forgot-password", "reset-password", "login", "register", "auth", "onboarding", "invite", "oauth", "error", "not-found",
     "brand", "fonts", "illustrations", "logos", "videos", "index.html", "robots.txt",
     "manifest.json", "sitemap.xml", "pwa-192x192.png", "pwa-512x512.png",
     "example-1.png", "example-2.png",
@@ -39,7 +40,9 @@ def check_env(env: Env) -> list[str]:
     """Return one message per problem; an empty list means the env is valid."""
     errors: list[str] = []
     for name in sorted(set(env) - set(KEYS_BY_NAME)):
-        if name in MOVED_AI_KEYS:
+        if name == "PASSWORD_RESET_ENABLED":
+            errors.append(f"{name}: removed; delete this key and set EMAIL_MODE=disabled or external")
+        elif name in MOVED_AI_KEYS:
             errors.append(
                 f"{name}: moved; put API keys in deploy/ai/keys.env and base URLs in deploy/ai/models.yml"
             )
@@ -54,10 +57,26 @@ def check_env(env: Env) -> list[str]:
         problem = _value_problem(key.name, value, env)
         if problem:
             errors.append(f"{key.name}: {problem}")
+    truthy = {"true", "1", "yes", "on"}
+    tls = env.get("EMAIL_USE_TLS", "true").strip().lower() or "true"
+    ssl = env.get("EMAIL_USE_SSL", "false").strip().lower()
+    if tls in truthy and ssl in truthy:
+        errors.append("EMAIL_USE_TLS / EMAIL_USE_SSL: choose STARTTLS or implicit TLS, not both")
     return errors
 
 
 def _value_problem(name: str, value: str, env: Env) -> str | None:
+    if name in {"EMAIL_USE_TLS", "EMAIL_USE_SSL"}:
+        if value.lower() not in {"true", "false", "1", "0", "yes", "no", "on", "off"}:
+            return "must be a boolean"
+    if name in {"EMAIL_PORT", "EMAIL_TIMEOUT"}:
+        if not value.isdigit() or not 1 <= int(value) <= (65535 if name == "EMAIL_PORT" else 120):
+            return "must be a valid positive port or timeout (1–120 seconds)"
+    if name == "DEFAULT_FROM_EMAIL":
+        from email.utils import parseaddr
+        address = parseaddr(value)[1]
+        if "\n" in value or "\r" in value or "@" not in address or address.endswith("@example.com"):
+            return "must be a verified sender email address"
     if name == "QJUDGE_TRUSTED_PROXIES":
         for item in value.split(","):
             item = item.strip()

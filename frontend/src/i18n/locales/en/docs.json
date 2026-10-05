@@ -19,6 +19,7 @@
       "classroom-roster": "Manage the student roster",
       "classroom-setup": "Create a classroom",
       "deployment": "Deploy from a single host",
+      "deployment-email": "Configure email delivery",
       "deployment-live-monitoring": "Deploy self-hosted live monitoring",
       "deployment-options": "Add optional features",
       "deployment-storage": "Prepare file storage",

@@ -55,7 +55,6 @@ function createRepository(
     createBackendSession: vi.fn().mockResolvedValue({ id: legacySession.id, status: "ready" }),
     deleteSession: vi.fn().mockResolvedValue(undefined),
     renameSession: vi.fn().mockResolvedValue(legacySession),
-    clearSession: vi.fn().mockResolvedValue(legacySession),
     startRun: vi.fn().mockResolvedValue(legacyRun),
     getActiveRuns: vi.fn().mockResolvedValue([legacyRun]),
     subscribeRunEvents: vi.fn().mockResolvedValue(undefined),
@@ -104,9 +103,6 @@ function createQJudgeContractSubject(): CopilotTransportContractSubject {
     },
     async renameSession(sessionId, title) {
       await memory.renameSession(String(sessionId), title);
-      return toLegacySession(await memory.getSession(String(sessionId)));
-    },
-    async clearSession(sessionId) {
       return toLegacySession(await memory.getSession(String(sessionId)));
     },
     async startRun(sessionId, content, options) {

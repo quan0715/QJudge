@@ -185,7 +185,7 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 | `explanation` | string? | create, update |
 | `score` | int? | create, update |
 | `options` | list[str]? | create, update |
-| `correct_answer` | any? | create, update |
+| `correct_answer` | int / list[int] / string? | create, update |
 | `items` | list[dict]? | batch_create, import_from_bank |
 | `mode` | string? | batch_create |
 | `existing_grades_action` | `"regrade"` / `"keep"` / `"mark_pending"`? | update |
@@ -212,7 +212,7 @@ existing_grades_action → update only
 
 ### correct_answer 格式
 
-客觀題一律使用 0-based 選項索引，與學生作答送出的值相同；字母、選項文字、數字字串與越界索引都會回 400。
+客觀題一律使用 0-based 選項索引，與學生作答送出的值相同；MCP 會把索引字串（`"1"`、`["0", "2"]`）轉成 int，字母、選項文字與越界索引都會回 400。不帶 `correct_answer` 會讓答案保持未設定，教師發布時會看到警告。
 
 | 題型 | 格式 |
 |---|---|

@@ -143,12 +143,17 @@ jobs:
         run: npm run test:api
         working-directory: frontend
 
+      - name: Database credential isolation
+        run: |
+          web_database_url="$($QJ_DC exec -T backend python -c 'import os; print(os.environ["DATABASE_URL"])')"
+          $QJ_DC exec -T -e DJANGO_DATABASE_URL="$web_database_url" ai-service python - < ci/test_database_credentials.py
+
       - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
       - name: Install MCP Server dependencies
-        run: pip install "mcp[cli]>=1.9.0,<2.0" "httpx>=0.27.0" "PyJWT[crypto]>=2.9,<3.0" pytest
+        run: pip install . pytest
         working-directory: mcp-server
 
       - name: MCP Server Integration Tests
@@ -264,7 +269,7 @@ jobs:
           cache-dependency-path: mcp-server/pyproject.toml
 
       - name: Install MCP Server dependencies
-        run: pip install "mcp[cli]>=1.9.0,<2.0" "httpx>=0.27.0" "PyJWT[crypto]>=2.9,<3.0" pytest
+        run: pip install . pytest
         working-directory: mcp-server
 
       - name: Run MCP Server Tests

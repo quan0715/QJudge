@@ -55,8 +55,12 @@ def get_token_jti(request) -> str:
 
 
 def get_refresh_jti(request) -> str:
-    """Extract the JTI from the refresh-token cookie (if present)."""
+    """Read the authenticated session identity, or its refresh cookie."""
     from django.conf import settings
+
+    token = getattr(request, "auth", None)
+    if token is not None and token.get("session_jti"):
+        return str(token["session_jti"])
 
     cookie_name = getattr(settings, "JWT_AUTH_REFRESH_COOKIE", "refresh_token")
     raw = request.COOKIES.get(cookie_name)
@@ -197,10 +201,10 @@ def _save_exam_jti_index(user_id: int, contest_ids: list[str]) -> None:
 
 
 def set_exam_allowed_jti(user_id: int, contest_id, jti: str) -> None:
-    """Pin this user's allowed access-token JTI in Redis.
+    """Pin this user's allowed session JTI in Redis.
 
     While this key exists, ``is_access_token_allowed`` will reject any
-    access token whose JTI does not match.
+    access token whose session JTI does not match.
     """
     cache.set(_exam_allowed_jti_key(user_id, contest_id), jti, timeout=_EXAM_JTI_LOCK_TTL_SECONDS)
     contest_ids = _load_exam_jti_index(user_id)
@@ -235,7 +239,7 @@ def clear_exam_allowed_jti(user_id: int, contest_id=None) -> None:
 
 
 def is_access_token_allowed(user_id: int, jti: str) -> bool:
-    """Check whether the given access-token JTI is allowed.
+    """Check whether the access token's session JTI is allowed.
 
     * If no pin exists → all tokens are allowed (normal operation).
     * If a pin exists → only the pinned JTI is allowed.
@@ -270,16 +274,22 @@ def is_access_token_allowed(user_id: int, jti: str) -> bool:
     return True
 
 
+def renew_exam_login(user_id: int, device_id: str, session_jti: str) -> None:
+    """Allow an authenticated re-login on the device already taking the exam."""
+    for contest_id in _load_exam_jti_index(user_id):
+        active = get_active_session(contest_id, user_id)
+        if active and active.get("device_id") == device_id:
+            set_exam_allowed_jti(user_id, contest_id, session_jti)
+
+
 def blacklist_other_tokens(user, access_jti: str, refresh_jti: str = "", contest_id=None) -> int:
     """Blacklist all outstanding JWT tokens for *user* except the current
-    session's refresh token **and** pin the allowed access-token JTI in Redis
+    session's refresh token **and** pin the allowed session JTI in Redis
     so that other devices' access tokens are immediately rejected at the
     authentication layer.
 
-    *access_jti* is used for the Redis pin (``set_exam_allowed_jti``) when
-    *contest_id* is provided.
     *refresh_jti* is used to exclude the current session's refresh token from
-    blacklisting (``OutstandingToken.jti`` stores refresh-token JTIs).
+    blacklisting and as the exam identity. Access-only tokens use *access_jti*.
 
     Returns the number of refresh tokens that were newly blacklisted.
     """
@@ -301,7 +311,7 @@ def blacklist_other_tokens(user, access_jti: str, refresh_jti: str = "", contest
 
     # 2) Pin allowed JTI (immediately rejects other access tokens)
     if contest_id is not None:
-        set_exam_allowed_jti(user.id, contest_id, access_jti)
+        set_exam_allowed_jti(user.id, contest_id, refresh_jti or access_jti)
 
     return count
 

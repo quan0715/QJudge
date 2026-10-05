@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getExamResults } from "./examAnswers.repository";
+import { getExamResults, getExamAnswerDraft, saveExamAnswerDraft, submitExamAnswer } from "./examAnswers.repository";
 
 describe("getExamResults", () => {
   const fetchMock = vi.fn();
@@ -57,5 +57,38 @@ describe("getExamResults", () => {
     });
     expect(results.answers[0]).not.toHaveProperty("questionSnapshot");
     expect(results).toMatchObject({ totalScore: 12, maxTotalScore: 15 });
+  });
+});
+
+
+describe("exam answer draft lifetime", () => {
+  const fetchMock = vi.fn();
+  beforeEach(() => {
+    const storage = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockReset();
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("preserves a newer unsent draft when an earlier save completes", async () => {
+    let resolveSave!: (response: Response) => void;
+    fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => { resolveSave = resolve; }));
+    const oldAnswer = { text: "already sending" };
+    const save = submitExamAnswer("contest-1", "q1", oldAnswer);
+    const newAnswer = { text: "latest unsent edit" };
+    saveExamAnswerDraft("contest-1", "q1", newAnswer);
+    resolveSave(new Response(JSON.stringify({ id: 1, question_id: "q1", answer: oldAnswer,
+      created_at: "2026-10-05T00:00:00Z", updated_at: "2026-10-05T00:00:00Z" }), { status: 200 }));
+    await save;
+    expect(getExamAnswerDraft("contest-1", "q1")).toEqual(newAnswer);
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ id: 1, question_id: "q1", answer: newAnswer,
+      created_at: "2026-10-05T00:00:00Z", updated_at: "2026-10-05T00:00:00Z" }), { status: 200 }));
+    await submitExamAnswer("contest-1", "q1", newAnswer);
+    expect(getExamAnswerDraft("contest-1", "q1")).toBeNull();
   });
 });

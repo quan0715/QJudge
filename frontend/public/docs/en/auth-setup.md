@@ -78,3 +78,7 @@ docker compose -p qjudge up -d backend frontend
 - **Teacher Qualification Must Be Promoted by an Admin**: Even if the account belongs to a professor or lecturer's institutional email, it will not automatically become a Teacher. If they need to create classrooms and author exams, a site administrator must search for their account in User Management and promote them according to [Managing Teacher Qualifications](#/docs/teacher-qualification).
 
 [Previous: Configuring MCP Connections](#/docs/mcp-setup) · [Return to Platform Overview](#/docs/overview)
+
+## Password recovery and mail
+
+Password recovery requires both password login and `EMAIL_MODE=external`. See [Configure email delivery](deployment-email.md) for SMTP settings, a probe while mail is disabled, and staged enablement.

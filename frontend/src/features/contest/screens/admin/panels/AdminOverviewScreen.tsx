@@ -46,6 +46,7 @@ import {
   type PreparationItemKey,
 } from "./adminOverviewDashboard.model";
 import styles from "./AdminOverviewScreen.module.scss";
+import { useExamPublishWarning } from "@/features/contest/hooks/useExamPublishWarning";
 
 export default function AdminOverviewScreen({
   onOpenSettings,
@@ -68,6 +69,7 @@ export default function AdminOverviewScreen({
   const { showToast } = useToast();
   const { confirm, modalProps: confirmModalProps } = useConfirmModal();
   const { contest, refreshContest } = useContest();
+  const loadPublishWarning = useExamPublishWarning(contest?.id, contest?.contestType);
   const queryClient = useQueryClient();
   const {
     participants,
@@ -313,6 +315,16 @@ export default function AdminOverviewScreen({
 
     setPublishingContest(true);
     try {
+      const warning = await loadPublishWarning();
+      if (warning) {
+        const confirmed = await confirm({
+          title: t("settings.publishCheck.title"),
+          body: warning,
+          confirmLabel: t("adminOverview.preparation.confirm.publishAnyway", "仍要發布"),
+          cancelLabel: tc("button.cancel"),
+        });
+        if (!confirmed) return;
+      }
       await updateContest(contest.id, { status: "published" });
       await refreshContest();
       showToast({
@@ -332,6 +344,7 @@ export default function AdminOverviewScreen({
     confirm,
     contest?.id,
     openSettings,
+    loadPublishWarning,
     preparationData,
     publishingContest,
     refreshContest,

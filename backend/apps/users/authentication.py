@@ -44,8 +44,8 @@ class CookieJWTAuthentication(JWTAuthentication):
     - Browser requests using cookies must include valid CSRF token
 
     Exam JTI pinning:
-    When an exam is started, a per-user "allowed JTI" is pinned in Redis.
-    Any access token whose JTI doesn't match is immediately rejected (401),
+    When an exam starts, its refresh session JTI is pinned in Redis.
+    Any access token from a different session is immediately rejected (401),
     forcing the other device to re-login.
     """
 
@@ -90,7 +90,7 @@ class CookieJWTAuthentication(JWTAuthentication):
         """Reject access tokens not matching the exam-pinned JTI."""
         from apps.contests.services.anti_cheat_session import is_access_token_allowed
 
-        jti = str(token.get("jti", ""))
+        jti = str(token.get("session_jti") or token.get("jti", ""))
         if not jti:
             return
         if not is_access_token_allowed(user.id, jti):

@@ -27,13 +27,15 @@ class JWTService:
     def generate_tokens(user):
         """Generate access and refresh tokens for user."""
         refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+        access['session_jti'] = str(refresh['jti'])
         
         # Update last login time
         user.last_login_at = timezone.now()
         user.save(update_fields=['last_login_at'])
         
         return {
-            'access': str(refresh.access_token),
+            'access': str(access),
             'refresh': str(refresh),
             'expires_in': int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
         }
@@ -45,21 +47,19 @@ class JWTService:
         user = User.objects.select_related("profile").get(pk=user.pk)
 
         return {
-            'success': True,
-            'data': {
-                'access_token': tokens['access'],
-                'refresh_token': tokens['refresh'],
-                'expires_in': tokens['expires_in'],
-                'user': UserSerializer(user).data,
-            }
+            'access_token': tokens['access'],
+            'refresh_token': tokens['refresh'],
+            'expires_in': tokens['expires_in'],
+            'user': UserSerializer(user).data,
         }
+
 
 
 class EmailAuthService:
     """Service for local password credential authentication."""
     
     @staticmethod
-    def login(identifier, password):
+    def login(identifier, password, *, lock=False):
         """
         Authenticate user with an email or username identifier and password.
         
@@ -69,11 +69,11 @@ class EmailAuthService:
         from django.db.models import Q
         try:
             # Check if input is email or username
-            user = User.objects.get(
+            users = User.objects.select_for_update() if lock else User.objects
+            user = users.get(
                 Q(email=identifier) | Q(username=identifier),
-                auth_provider='email'
             )
-        except User.DoesNotExist:
+        except (User.DoesNotExist, User.MultipleObjectsReturned):
             return None
         
         # Check password

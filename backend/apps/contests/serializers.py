@@ -27,7 +27,7 @@ from .services.objective_answer import objective_answer_error
 from .services.open_answer_document import validate_open_answer_document
 from .services.question_edit_lock import is_contest_question_edit_locked
 from .services.participation import is_contest_candidate, roster_user_ids
-from apps.users.serializers import UserSerializer
+from apps.users.serializers import EmbeddedUserSerializer
 
 LEGACY_CONTEST_ACCESS_FIELDS = {"requires_password", "password"}
 MAX_SUBJECTIVE_ANSWER_TEXT_BYTES = 32 * 1024
@@ -769,12 +769,11 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
 
         if question_type in {ExamQuestionType.TRUE_FALSE, ExamQuestionType.SINGLE_CHOICE, ExamQuestionType.MULTIPLE_CHOICE}:
             merged_answer = correct_answer if 'correct_answer' in attrs else getattr(self.instance, 'correct_answer', None)
-            if merged_answer in (None, ''):
-                raise serializers.ValidationError({'correct_answer': 'objective question requires correct_answer'})
 
+            # The answer may stay unset (None) while drafting; publishing warns about it.
             # Only re-check the format when this write touches it, so legacy rows
             # can still change unrelated fields such as score or score_policy.
-            if attrs.keys() & {'question_type', 'options', 'correct_answer'}:
+            if merged_answer is not None and attrs.keys() & {'question_type', 'options', 'correct_answer'}:
                 merged_options = options if options is not None else getattr(self.instance, 'options', [])
                 error = objective_answer_error(question_type, merged_options, merged_answer)
                 if error:
@@ -953,7 +952,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     """
     Serializer for contest participants (for standings/scoreboard).
     """
-    user = UserSerializer(read_only=True)
+    user = EmbeddedUserSerializer(read_only=True)
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
     display_name = serializers.SerializerMethodField()
@@ -1206,7 +1205,7 @@ class ContestAnnouncementSerializer(serializers.ModelSerializer):
     """
     Serializer for contest announcements.
     """
-    created_by = UserSerializer(read_only=True)
+    created_by = EmbeddedUserSerializer(read_only=True)
     
     class Meta:
         model = ContestAnnouncement

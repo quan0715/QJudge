@@ -6,6 +6,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from apps.core.api.envelope import contract_error_response, contract_validation_error_response
 
 from ..serializers import CurrentUserUpdateSerializer, UserSerializer
 from .common import SchemaAPIView
@@ -25,10 +26,7 @@ class CurrentUserView(SchemaAPIView):
 
     def get(self, request):
         serializer = UserSerializer(request.user)
-        return Response({
-            'success': True,
-            'data': serializer.data
-        })
+        return Response(serializer.data)
 
     def patch(self, request):
         """Update current user profile."""
@@ -37,43 +35,22 @@ class CurrentUserView(SchemaAPIView):
         requested_mutable_fields = mutable_fields.intersection(request.data.keys())
 
         if user.auth_provider != 'email' and requested_mutable_fields:
-            return Response({
-                'success': False,
-                'error': {
-                    'code': 'ACCOUNT_FIELDS_LOCKED',
-                    'message': 'SSO/OAuth 帳號無法修改使用者名稱或電子郵件，僅可編輯顯示名稱'
-                }
-            }, status=status.HTTP_403_FORBIDDEN)
+            return contract_error_response(request, 'ACCOUNT_FIELDS_LOCKED', 'SSO/OAuth 帳號無法修改使用者名稱或電子郵件，僅可編輯顯示名稱', status=status.HTTP_403_FORBIDDEN)
 
         if not requested_mutable_fields:
             serializer = UserSerializer(user)
-            return Response({
-                'success': True,
-                'data': serializer.data,
-                'message': '無更新欄位'
-            })
+            return Response(serializer.data)
 
         serializer = CurrentUserUpdateSerializer(user, data=request.data, partial=True)
 
         if not serializer.is_valid():
-            return Response({
-                'success': False,
-                'error': {
-                    'code': 'VALIDATION_ERROR',
-                    'message': '更新資料驗證失敗',
-                    'details': serializer.errors
-                }
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return contract_validation_error_response(request, '更新資料驗證失敗', serializer.errors)
 
         serializer.save()
         refreshed_user = User.objects.get(pk=user.pk)
         response_serializer = UserSerializer(refreshed_user)
 
-        return Response({
-            'success': True,
-            'data': response_serializer.data,
-            'message': '個人資料已更新'
-        })
+        return Response(response_serializer.data)
 
 
 __all__ = ["CurrentUserView"]

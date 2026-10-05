@@ -78,3 +78,7 @@ docker compose -p qjudge up -d backend frontend
 - **教師資格需由管理員開通**：即使該帳號是學校教授或講師的外部信箱，登入後也不會自動成為教師。若該人員需要開課出題，仍請站台管理員依照[管理教師資格](#/docs/teacher-qualification)，在使用者管理頁搜尋該帳號並手動確認開通。
 
 [上一步：配置 MCP 工具連線](#/docs/mcp-setup) · [返回平台概覽](#/docs/overview)
+
+## 密碼重設與寄信
+
+密碼重設需要帳密登入與 `EMAIL_MODE=external` 同時啟用。SMTP 設定、停用狀態下的測試信與分階段啟用步驟，見[設定寄信](deployment-email.md)。

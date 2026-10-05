@@ -61,10 +61,12 @@ ALL_PROVIDER_CONNECTIONS = json.dumps([
 
 
 def link_oauth_user(service, user_info, access_token=""):
-    oauth_data = {"access_token": access_token, "user_info": user_info}
+    oauth_data = {
+        "access_token": access_token,
+        "user_info": {"email_verified": True, "oauth_id": f"subject-{user_info['email']}", **user_info},
+    }
     return link_qauth_identity(
         service.normalize_identity(oauth_data),
-        service.provider_token_set(oauth_data),
     )
 
 
@@ -98,13 +100,13 @@ class JWTServiceTests(TestCase):
         tokens = {"access": "a", "refresh": "r", "expires_in": 3600}
         payload = JWTService.get_user_response_data(self.user, tokens)
 
-        self.assertTrue(payload["success"])
-        self.assertEqual(payload["data"]["access_token"], "a")
-        self.assertEqual(payload["data"]["refresh_token"], "r")
-        self.assertEqual(payload["data"]["expires_in"], 3600)
-        self.assertEqual(payload["data"]["user"]["email"], self.user.email)
-        self.assertEqual(payload["data"]["user"]["profile"]["display_name"], "JWT User")
-        self.assertIsNotNone(payload["data"]["user"]["profile"]["onboarding_completed_at"])
+        self.assertEqual(set(payload), {"access_token", "refresh_token", "expires_in", "user"})
+        self.assertEqual(payload["access_token"], "a")
+        self.assertEqual(payload["refresh_token"], "r")
+        self.assertEqual(payload["expires_in"], 3600)
+        self.assertEqual(payload["user"]["email"], self.user.email)
+        self.assertEqual(payload["user"]["profile"]["display_name"], "JWT User")
+        self.assertIsNotNone(payload["user"]["onboarding_completed_at"])
 
 
 class EmailAuthServiceTests(TestCase):

@@ -109,6 +109,16 @@ class StandingsAPITests(APITestCase):
         response = self.client.get(url)
         return response
 
+    def test_standings_preserve_embedded_user_contract(self):
+        response = self.get_standings(self.teacher)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        row = next(row for row in response.data['standings'] if row['user']['id'] == self.student.id)
+        self.assertEqual(set(row['user']), {'id', 'username', 'email', 'role', 'auth_provider',
+                                          'is_active', 'date_joined', 'last_login_at', 'profile'})
+        self.assertIn('solved_count', row['user']['profile'])
+        self.assertIn('preferred_language', row['user']['profile'])
+        self.assertNotIn('onboarding_completed_at', row['user'])
+
     # ===== Problem ID Visibility Tests =====
 
     def test_student_can_see_problem_ids(self):

@@ -233,7 +233,9 @@ const buildPayload = (
   const options = form.options.map((o) => o.trim());
   payload.options = options;
   if (form.questionType === "multiple_choice") {
-    payload.correct_answer = form.multiAnswerIndexes.map(Number);
+    payload.correct_answer = form.multiAnswerIndexes.length
+      ? form.multiAnswerIndexes.map(Number)
+      : null;
     return payload;
   }
   if (form.singleAnswerIndex !== "") {

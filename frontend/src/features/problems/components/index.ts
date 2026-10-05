@@ -5,7 +5,6 @@ export * from "./solve";
 
 // Edit components
 export * from "./edit";
-export * from "./codingEditor";
 
 // List components
 export * from "./list";

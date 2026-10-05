@@ -1,3 +1,4 @@
+import json
 from django.urls import reverse
 from django.conf import settings
 from django.test import override_settings
@@ -36,7 +37,7 @@ class EnhancedAuthTests(APITestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.post(self.logout_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data['success'])
+        self.assertEqual(set(response.json()), {"data", "meta"})
 
     def test_logout_unauthenticated(self):
         """Test logout for unauthenticated user should return 401"""
@@ -47,38 +48,39 @@ class EnhancedAuthTests(APITestCase):
         """Test token refresh without refresh token"""
         response = self.client.post(self.refresh_url, {})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data['error']['code'], 'MISSING_TOKEN')
+        self.assertEqual(response.json()["errors"][0]['code'], 'missing_token')
 
     def test_token_refresh_invalid_token(self):
         """Test token refresh with invalid token"""
         response = self.client.post(self.refresh_url, {'refresh': 'invalid_token'})
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertEqual(response.data['error']['code'], 'INVALID_TOKEN')
+        self.assertEqual(response.json()["errors"][0]['code'], 'invalid_token')
 
     def test_oauth_login_unknown_provider(self):
         """Test OAuth login with unknown provider"""
         url = reverse('auth:provider-login', kwargs={'provider': 'unknown'})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data['error']['code'], 'UNKNOWN_PROVIDER')
+        self.assertEqual(response.json()["errors"][0]['code'], 'unknown_provider')
 
     def test_oauth_callback_unknown_provider(self):
         """Test OAuth callback with unknown provider"""
         url = reverse('auth:oauth-callback', kwargs={'provider': 'unknown'})
         response = self.client.post(url, {'code': 'some_code', 'redirect_uri': 'http://localhost'})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data['error']['code'], 'UNKNOWN_PROVIDER')
+        self.assertEqual(response.json()["errors"][0]['code'], 'unknown_provider')
 
     @override_settings(AUTH_EMAIL_PASSWORD_ENABLED=False)
     def test_auth_options_returns_login_configuration(self):
         response = self.client.get(self.auth_options_url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["success"])
+        self.assertEqual(set(response.json()), {"data", "meta"})
         self.assertEqual(
-            response.data["data"],
+            response.json()["data"],
             {
                 "password_enabled": False,
+                "password_reset_enabled": False,
                 "providers": [],
             },
         )
@@ -90,15 +92,15 @@ class EnhancedAuthTests(APITestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
-        self.assertEqual(response.data["error"]["code"], "OAUTH_PROVIDER_NOT_CONFIGURED")
+        self.assertEqual(response.json()["errors"][0]["code"], 'oauth_provider_not_configured')
 
     @override_settings(AUTH_EMAIL_PASSWORD_ENABLED=False)
     def test_password_register_is_rejected_when_disabled(self):
         response = self.client.post(self.register_url, self.user_data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertFalse(response.data["success"])
-        self.assertEqual(response.data["error"]["code"], "PASSWORD_AUTH_DISABLED")
+        self.assertEqual(set(response.json()), {"errors", "meta"})
+        self.assertEqual(response.json()["errors"][0]["code"], 'password_auth_disabled')
         self.assertFalse(User.objects.filter(email=self.user_data["email"]).exists())
 
     @override_settings(AUTH_EMAIL_PASSWORD_ENABLED=False)
@@ -110,8 +112,8 @@ class EnhancedAuthTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertFalse(response.data["success"])
-        self.assertEqual(response.data["error"]["code"], "PASSWORD_AUTH_DISABLED")
+        self.assertEqual(set(response.json()), {"errors", "meta"})
+        self.assertEqual(response.json()["errors"][0]["code"], 'password_auth_disabled')
 
 
     def test_session_routes_are_canonical(self):
@@ -119,11 +121,11 @@ class EnhancedAuthTests(APITestCase):
 
         list_response = self.client.get(self.session_list_url)
         self.assertEqual(list_response.status_code, status.HTTP_200_OK)
-        self.assertTrue(list_response.data["success"])
+        self.assertEqual(set(list_response.json()), {"data", "meta"})
 
         logout_others_response = self.client.post(self.session_logout_others_url)
         self.assertEqual(logout_others_response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(logout_others_response.data["error"]["code"], "NO_JTI")
+        self.assertEqual(logout_others_response.json()["errors"][0]["code"], 'no_jti')
 
     @patch('apps.users.views.auth.get_oauth_service')
     def test_oauth_login_success(self, mock_get_service):
@@ -135,19 +137,33 @@ class EnhancedAuthTests(APITestCase):
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['data']['authorization_url'], "http://oauth.com/auth")
+        self.assertEqual(response.json()['data']['authorization_url'], "http://oauth.com/auth")
+
+    @patch('apps.users.views.auth.get_oauth_service')
+    def test_oauth_callback_requires_session_state_with_contract_error(self, mock_get_service):
+        response = self.client.post(
+            reverse('auth:oauth-callback', kwargs={'provider': 'github'}),
+            {'code': 'valid_code', 'state': 'unsolicited', 'redirect_uri': 'http://localhost'},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(set(response.json()), {'errors', 'meta'})
+        self.assertEqual(response.json()['errors'][0]['code'], 'oauth_state_invalid')
+        mock_get_service.return_value.exchange_code.assert_not_called()
 
     @patch('apps.users.views.auth.get_oauth_service')
     def test_oauth_callback_exception(self, mock_get_service):
         """Test OAuth callback error handling"""
         mock_service = mock_get_service.return_value
         mock_service.exchange_code.side_effect = Exception("OAuth error")
+        mock_service.get_authorization_url.return_value = "http://oauth.com/auth"
+        self.client.get(reverse('auth:provider-login', kwargs={'provider': 'github'}))
+        state = self.client.session['oauth_state:github']['value']
         
         url = reverse('auth:oauth-callback', kwargs={'provider': 'github'})
-        response = self.client.post(url, {'code': 'valid_code', 'redirect_uri': 'http://localhost'})
+        response = self.client.post(url, {'code': 'valid_code', 'state': state, 'redirect_uri': 'http://localhost'})
         
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertEqual(response.data['error']['code'], 'AUTH_003')
+        self.assertEqual(response.json()["errors"][0]['code'], 'auth_003')
 
     @patch('apps.users.serializers.RegisterSerializer.save')
     def test_register_exception(self, mock_save):
@@ -155,7 +171,7 @@ class EnhancedAuthTests(APITestCase):
         mock_save.side_effect = Exception("Registration error")
         response = self.client.post(self.register_url, self.user_data)
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
-        self.assertEqual(response.data['error']['code'], 'REGISTRATION_FAILED')
+        self.assertEqual(response.json()["errors"][0]['code'], 'registration_failed')
 
     @patch('apps.users.views.auth.settings')
     def test_dev_token_view(self, mock_settings):
@@ -175,7 +191,7 @@ class EnhancedAuthTests(APITestCase):
             response = view(request)
             
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('access_token', response.data['data'])
+        self.assertIn('access_token', json.loads(response.render().content)['data'])
         
         # Test invalid role
         from rest_framework.test import APIRequestFactory

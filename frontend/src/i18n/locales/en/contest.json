@@ -194,6 +194,8 @@
         "published": "Published"
       },
       "grading": {
+    "saveFailed": "Could not save the grade. Please try again.",
+    "ungradeFailed": "Could not remove the grade. Please try again.",
         "noAnswers": "No answer data yet",
         "noData": "No grading data yet"
       },
@@ -1851,6 +1853,12 @@
     "scoreboardSettings": "Scoreboard Settings",
     "showDuringContest": "Show scoreboard during contest",
     "showDuringContestHelp": "Allow participants to view live scoreboard during contest",
+    "publishCheck": {
+      "title": "Pre-publish check",
+      "missingAnswer": "Question {{questions}}: no correct answer set",
+      "defaultContent": "Question {{questions}}: still has placeholder content (New question / Option A, B)",
+      "loadFailed": "Couldn't load the questions, so the pre-publish check didn't run"
+    },
     "statusLabel": "Status (Draft/Published)",
     "title": "Contest Settings",
     "updateFailed": "Update failed, please check fields",

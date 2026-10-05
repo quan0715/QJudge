@@ -34,7 +34,7 @@ vi.mock("@/shared/contexts/ContentLanguageContext", () => ({
 }));
 
 const authOptions = {
-  success: true,
+  meta: {},
   data: {
     password_enabled: false,
     providers: [
@@ -107,6 +107,17 @@ describe("auth provider options", () => {
     vi.clearAllMocks();
     mockGetAuthOptions.mockResolvedValue(authOptions);
     mockGetOAuthUrl.mockResolvedValue("#campus-sso");
+  });
+
+  it.each([true, false])("shows password recovery only when deployment enables it (%s)", async (enabled) => {
+    mockGetAuthOptions.mockResolvedValue({ meta: {}, data: {
+      ...authOptions.data, password_enabled: true, password_reset_enabled: enabled,
+    } });
+    renderWithRouter(<LoginScreen />);
+    await screen.findByTestId("auth-login-form");
+    const link = screen.queryByRole("link", { name: "auth.passwordReset.requestTitle" });
+    if (enabled) expect(link).toHaveAttribute("href", "/forgot-password");
+    else expect(link).not.toBeInTheDocument();
   });
 
   it("shows a recoverable error instead of presenting password-only login when auth options fail", async () => {

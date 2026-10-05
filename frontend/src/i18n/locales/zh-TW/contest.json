@@ -194,6 +194,8 @@
         "published": "已發布"
       },
       "grading": {
+    "saveFailed": "儲存評分失敗，請重試",
+    "ungradeFailed": "撤回批改失敗，請重試",
         "noAnswers": "尚無作答資料",
         "noData": "尚無批改資料"
       },
@@ -1851,6 +1853,12 @@
     "scoreboardSettings": "排行榜與數據顯示",
     "showDuringContest": "競賽期間顯示排行榜",
     "showDuringContestHelp": "允許參賽者在考試進行中查看即時排名與進度",
+    "publishCheck": {
+      "title": "發布前檢查",
+      "missingAnswer": "第 {{questions}} 題尚未設定正確答案",
+      "defaultContent": "第 {{questions}} 題仍是新增時的預設內容（New question / Option A、B）",
+      "loadFailed": "無法載入題目，未完成發布前檢查"
+    },
     "statusLabel": "發布狀態 (草稿 / 已發布)",
     "title": "競賽設定",
     "updateFailed": "更新失敗，請檢查欄位",

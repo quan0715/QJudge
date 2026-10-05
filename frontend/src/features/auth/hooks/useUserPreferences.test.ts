@@ -1,3 +1,7 @@
+const asSettings = (value: Record<string, unknown>) => {
+  const { display_name, avatar_url, ...preferences } = value;
+  return { profile: { display_name, avatar_url }, preferences, onboarding_completed_at: null };
+};
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
@@ -104,8 +108,8 @@ describe("useUserPreferences", () => {
     });
 
     vi.mocked(getPreferences).mockResolvedValue({
-      success: true,
-      data: mockPreferences,
+      meta: {},
+      data: asSettings(mockPreferences),
     });
   });
 
@@ -146,8 +150,8 @@ describe("useUserPreferences", () => {
     });
 
     vi.mocked(getPreferences).mockResolvedValue({
-      success: true,
-      data: mockPreferences,
+      meta: {},
+      data: asSettings(mockPreferences),
     });
 
     const { result } = renderHook(() => useUserPreferences());
@@ -196,13 +200,13 @@ describe("useUserPreferences", () => {
     });
 
     vi.mocked(getPreferences).mockResolvedValue({
-      success: true,
-      data: mockPreferences,
+      meta: {},
+      data: asSettings(mockPreferences),
     });
 
     vi.mocked(updatePreferences).mockResolvedValue({
-      success: true,
-      data: { ...mockPreferences, preferred_theme: "light" },
+      meta: {},
+      data: asSettings({ ...mockPreferences, preferred_theme: "light" }),
     });
 
     const { result } = renderHook(() => useUserPreferences());
@@ -215,9 +219,9 @@ describe("useUserPreferences", () => {
       await result.current.updateTheme("light");
     });
 
-    expect(updatePreferences).toHaveBeenCalledWith({
+    expect(updatePreferences).toHaveBeenCalledWith({ preferences: {
       preferred_theme: "light",
-    });
+    } });
   });
 
   it("should update language preference", async () => {
@@ -265,12 +269,12 @@ describe("useUserPreferences", () => {
     });
 
     vi.mocked(updatePreferences).mockResolvedValue({
-      success: true,
-      data: { ...mockPreferences, preferred_language: "en" },
+      meta: {},
+      data: asSettings({ ...mockPreferences, preferred_language: "en" }),
     });
 
-    let resolvePreferences: ((value: { success: true; data: typeof mockPreferences }) => void) | null = null;
-    const delayedPreferences = new Promise<{ success: true; data: typeof mockPreferences }>((resolve) => {
+    let resolvePreferences: ((value: { meta: {}; data: typeof mockPreferences }) => void) | null = null;
+    const delayedPreferences = new Promise<{ meta: {}; data: typeof mockPreferences }>((resolve) => {
       resolvePreferences = resolve;
     });
     vi.mocked(getPreferences).mockReturnValue(delayedPreferences as any);
@@ -282,7 +286,7 @@ describe("useUserPreferences", () => {
     });
 
     await act(async () => {
-      resolvePreferences?.({ success: true, data: mockPreferences });
+      resolvePreferences?.({ meta: {}, data: asSettings(mockPreferences) });
       await delayedPreferences;
     });
 
@@ -309,13 +313,13 @@ describe("useUserPreferences", () => {
     });
 
     vi.mocked(getPreferences).mockResolvedValue({
-      success: true,
-      data: mockPreferences,
+      meta: {},
+      data: asSettings(mockPreferences),
     });
 
     vi.mocked(updatePreferences).mockResolvedValue({
-      success: true,
-      data: { ...mockPreferences, editor_font_size: 16, editor_tab_size: 2 },
+      meta: {},
+      data: asSettings({ ...mockPreferences, editor_font_size: 16, editor_tab_size: 2 }),
     });
 
     const { result } = renderHook(() => useUserPreferences());
@@ -328,10 +332,10 @@ describe("useUserPreferences", () => {
       await result.current.updateEditorSettings({ fontSize: 16, tabSize: 2 });
     });
 
-    expect(updatePreferences).toHaveBeenCalledWith({
+    expect(updatePreferences).toHaveBeenCalledWith({ preferences: {
       editor_font_size: 16,
       editor_tab_size: 2,
-    });
+    } });
   });
 
   it("should update account profile and sync local user cache", async () => {
@@ -350,7 +354,7 @@ describe("useUserPreferences", () => {
     });
 
     vi.mocked(updateCurrentUserProfile).mockResolvedValue({
-      success: true,
+      meta: {},
       data: {
         id: 1,
         username: "next-user",
@@ -452,8 +456,8 @@ describe("useUserPreferences", () => {
     });
 
     vi.mocked(getPreferences).mockResolvedValue({
-      success: true,
-      data: { ...mockPreferences, display_name: "Cached Name" },
+      meta: {},
+      data: asSettings({ ...mockPreferences, display_name: "Cached Name" }),
     });
 
     const first = renderHook(() => useUserPreferences());
@@ -501,8 +505,8 @@ describe("useUserPreferences", () => {
       logout: vi.fn(),
     });
     vi.mocked(getPreferences).mockResolvedValue({
-      success: true,
-      data: { ...mockPreferences, preferred_language: "en" },
+      meta: {},
+      data: asSettings({ ...mockPreferences, preferred_language: "en" }),
     });
 
     renderHook(() => useUserPreferences());
@@ -526,12 +530,12 @@ describe("useUserPreferences", () => {
       logout: vi.fn(),
     });
     vi.mocked(getPreferences).mockResolvedValue({
-      success: true,
-      data: mockPreferences,
+      meta: {},
+      data: asSettings(mockPreferences),
     });
     vi.mocked(updatePreferences).mockResolvedValue({
-      success: true,
-      data: { ...mockPreferences, preferred_language: "ja" },
+      meta: {},
+      data: asSettings({ ...mockPreferences, preferred_language: "ja" }),
     });
 
     const { result } = renderHook(() => useUserPreferences());
@@ -541,6 +545,6 @@ describe("useUserPreferences", () => {
       await result.current.updateLanguage("ja");
     });
 
-    expect(updatePreferences).toHaveBeenCalledWith({ preferred_language: "ja" });
+    expect(updatePreferences).toHaveBeenCalledWith({ preferences: { preferred_language: "ja" } });
   });
 });

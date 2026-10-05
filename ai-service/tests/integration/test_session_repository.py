@@ -102,8 +102,6 @@ async def test_session_list_and_mutations_are_scoped_to_owner(
             context={"task_manifest": {"schema_version": 1}},
         )
     with pytest.raises(SessionNotFound):
-        await session_service.clear_session(principal_a, hidden.id)
-    with pytest.raises(SessionNotFound):
         await session_service.delete_session(principal_a, hidden.id)
 
     assert (await session_service.get_session(principal_b, hidden.id)).title == "New chat"
@@ -121,8 +119,6 @@ async def test_session_list_and_mutations_are_scoped_to_owner(
             hidden.id,
             context={"task_manifest": {"schema_version": 1}},
         )
-    with pytest.raises(SessionNotFound):
-        await session_service.clear_session(another_issuer, hidden.id)
     with pytest.raises(SessionNotFound):
         await session_service.delete_session(another_issuer, hidden.id)
 
@@ -177,63 +173,6 @@ async def test_session_summary_and_context_update_are_authoritative(
     assert updated.updated_at is not None and updated.updated_at >= created.updated_at
     assert updated.message_count == 1
     assert listed == [updated]
-
-
-async def test_clear_session_deletes_only_owned_messages_and_resets_ordinal(
-    session_service: SessionService,
-    checkpoint_lifecycle: RecordingCheckpointLifecycle,
-    session_factory,
-    principal_a: Principal,
-    principal_b: Principal,
-) -> None:
-    owned = await session_service.create_session(principal_a, {})
-    hidden = await session_service.create_session(principal_b, {})
-
-    async with session_factory.begin() as db_session:
-        owned_row = await db_session.get(SessionRow, owned.id)
-        hidden_row = await db_session.get(SessionRow, hidden.id)
-        assert owned_row is not None
-        assert hidden_row is not None
-        owned_row.next_message_ordinal = 3
-        hidden_row.next_message_ordinal = 2
-        db_session.add_all(
-            [
-                MessageRow(
-                    session_id=owned.id,
-                    ordinal=1,
-                    role="user",
-                    content="owned",
-                ),
-                MessageRow(
-                    session_id=hidden.id,
-                    ordinal=1,
-                    role="user",
-                    content="hidden",
-                ),
-            ]
-        )
-
-    cleared = await session_service.clear_session(principal_a, owned.id)
-    assert cleared.id == owned.id
-    assert cleared.created_at == owned.created_at
-    assert cleared.updated_at is not None and cleared.updated_at >= owned.updated_at
-    assert cleared.message_count == 0
-
-    async with session_factory() as db_session:
-        messages = (
-            await db_session.scalars(
-                select(MessageRow).order_by(MessageRow.session_id)
-            )
-        ).all()
-        owned_row = await db_session.get(SessionRow, owned.id)
-        hidden_row = await db_session.get(SessionRow, hidden.id)
-
-    assert [(row.session_id, row.content) for row in messages] == [
-        (hidden.id, "hidden")
-    ]
-    assert owned_row is not None and owned_row.next_message_ordinal == 1
-    assert hidden_row is not None and hidden_row.next_message_ordinal == 2
-    assert checkpoint_lifecycle.deleted_session_ids == [owned.id]
 
 
 async def test_delete_owned_session_removes_row_then_checkpoint(

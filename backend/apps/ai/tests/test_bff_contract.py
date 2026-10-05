@@ -255,7 +255,7 @@ def test_session_list_preserves_ai_owned_timestamps_and_message_count(
     assert response.json()["results"][0]["message_count"] == 11
 
 
-def test_session_create_and_clear_preserve_ai_owned_summary_fields(
+def test_session_create_preserves_ai_owned_summary_fields(
     api_client, teacher, ai_transport
 ) -> None:
     ai_transport.respond_json(
@@ -269,17 +269,6 @@ def test_session_create_and_clear_preserve_ai_owned_summary_fields(
             "message_count": 0,
         },
     )
-    ai_transport.respond_json(
-        200,
-        {
-            "session_id": SESSION_ID,
-            "title": "New chat",
-            "context": {"course_id": "course-1"},
-            "created_at": "2026-08-05T01:02:03Z",
-            "updated_at": "2026-08-06T04:05:06Z",
-            "message_count": 0,
-        },
-    )
     api_client.force_authenticate(teacher)
 
     created = api_client.post(
@@ -287,14 +276,10 @@ def test_session_create_and_clear_preserve_ai_owned_summary_fields(
         {"context": {"course_id": "course-1"}},
         format="json",
     )
-    cleared = api_client.post(f"/api/v1/ai/sessions/{SESSION_ID}/clear/")
 
     assert created.status_code == 201
     assert created.json()["created_at"] == "2026-08-05T01:02:03Z"
     assert created.json()["message_count"] == 0
-    assert cleared.status_code == 200
-    assert cleared.json()["updated_at"] == "2026-08-06T04:05:06Z"
-    assert cleared.json()["message_count"] == 0
 
 
 @pytest.mark.parametrize(
@@ -347,20 +332,6 @@ def test_session_create_and_clear_preserve_ai_owned_summary_fields(
                 "context": {},
                 "created_at": "2026-08-05T00:00:00Z",
                 "updated_at": "2026-08-05T01:00:00Z",
-                "message_count": 0,
-            },
-        ),
-        (
-            "post",
-            f"/api/v1/ai/sessions/{SESSION_ID}/clear/",
-            f"/v1/sessions/{SESSION_ID}/clear",
-            200,
-            {
-                "session_id": SESSION_ID,
-                "title": "Chat",
-                "context": {},
-                "created_at": "2026-08-05T00:00:00Z",
-                "updated_at": "2026-08-05T02:00:00Z",
                 "message_count": 0,
             },
         ),

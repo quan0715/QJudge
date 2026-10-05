@@ -22,14 +22,14 @@ import type { SupportedLanguage } from "@/i18n";
 const OnboardingScreen = () => {
   const navigate = useNavigate();
   const { user, setUser } = useAuth();
-  const { setPreference } = useTheme();
-  const { setContentLanguage } = useContentLanguage();
+  const { setPreference, preference } = useTheme();
+  const { setContentLanguage, contentLanguage } = useContentLanguage();
   const [displayName, setDisplayName] = useState(user?.profile?.display_name ?? user?.username ?? "");
   const [preferredLanguage, setPreferredLanguage] = useState(
-    user?.profile?.preferred_language ?? "zh-TW"
+    contentLanguage
   );
   const [preferredTheme, setPreferredTheme] = useState<ThemePreference>(
-    user?.profile?.preferred_theme ?? "system"
+    preference
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -54,9 +54,8 @@ const OnboardingScreen = () => {
 
     try {
       const response = await updatePreferences({
-        display_name: trimmedDisplayName,
-        preferred_language: preferredLanguage,
-        preferred_theme: preferredTheme,
+        profile: { display_name: trimmedDisplayName },
+        preferences: { preferred_language: preferredLanguage, preferred_theme: preferredTheme },
         onboarding_completed_at: new Date().toISOString(),
       });
 
@@ -64,22 +63,17 @@ const OnboardingScreen = () => {
 
       const nextUser: User = {
         ...user,
-        profile: {
-          solved_count: user.profile?.solved_count ?? 0,
-          submission_count: user.profile?.submission_count ?? 0,
-          accept_rate: user.profile?.accept_rate ?? 0,
-          ...preferences,
-        },
+        profile: preferences.profile,
+        onboarding_completed_at: preferences.onboarding_completed_at,
       };
 
-      setPreference(preferences.preferred_theme);
-      setContentLanguage(preferences.preferred_language as SupportedLanguage);
+      setPreference(preferences.preferences.preferred_theme);
+      setContentLanguage(preferences.preferences.preferred_language as SupportedLanguage);
       setUser(nextUser);
       notifyAuthSessionChanged();
       navigate(getAuthedLandingPath(nextUser), { replace: true });
     } catch (err: any) {
       setError(
-        err?.response?.data?.error?.message ||
           err?.message ||
           "無法完成初始設定，請稍後再試"
       );

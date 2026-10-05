@@ -64,7 +64,9 @@ SECURE_HSTS_PRELOAD = _PUBLIC_ORIGIN_USES_HTTPS
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = env('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(env('EMAIL_PORT', '587'))
-EMAIL_USE_TLS = True
+EMAIL_USE_TLS = env("EMAIL_USE_TLS", "True").lower() in {"1", "true", "yes", "on"}
+EMAIL_USE_SSL = env("EMAIL_USE_SSL", "False").lower() in {"1", "true", "yes", "on"}
+EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "10"))
 EMAIL_HOST_USER = env('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', '')
 
@@ -86,12 +88,19 @@ LOGGING = {
             'backupCount': 10,
             'formatter': 'verbose',
         },
+        # The log file is not on a volume; container logs keep recovery
+        # delivery failures visible to operators.
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
     },
     'root': {
         'handlers': ['file'],
         'level': 'WARNING',
     },
     'loggers': {
+        'qjudge.auth': {'handlers': ['file', 'console'], 'level': 'INFO', 'propagate': False},
         'django': {
             'handlers': ['file'],
             'level': 'WARNING',

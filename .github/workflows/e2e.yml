@@ -53,14 +53,14 @@ jobs:
           E2E_GREP: ${{ inputs.grep }}
         run: |
           set -euo pipefail
-          cmd=(npm run test:e2e -- tests/e2e/auth.e2e.spec.ts tests/e2e/pending-actions-classroom-join.e2e.spec.ts tests/e2e/pending-actions-register-redirect.e2e.spec.ts)
+          cmd=(npm run test:e2e -- tests/e2e/auth.e2e.spec.ts tests/e2e/password-recovery.e2e.spec.ts tests/e2e/pending-actions-classroom-join.e2e.spec.ts tests/e2e/pending-actions-register-redirect.e2e.spec.ts)
           if [[ -n "$E2E_GREP" ]]; then cmd+=("--grep" "$E2E_GREP"); fi
           "${cmd[@]}"
       - name: Collect logs
         if: always() && env.QJ_DC != ''
         run: $QJ_DC logs --no-color > e2e-auth.log
       - name: Upload artifacts
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: e2e-auth-artifacts
@@ -94,7 +94,7 @@ jobs:
           E2E_GREP: ${{ inputs.grep }}
         run: |
           set -euo pipefail
-          cmd=(npm run test:e2e -- tests/e2e/exam-full-lifecycle.e2e.spec.ts tests/e2e/exam-login-dual-device.e2e.spec.ts)
+          cmd=(npm run test:e2e -- tests/e2e/exam-full-lifecycle.e2e.spec.ts tests/e2e/exam-login-dual-device.e2e.spec.ts tests/e2e/resident-integrity.e2e.spec.ts)
           if [[ -n "$E2E_GREP" ]]; then cmd+=("--grep" "$E2E_GREP"); fi
           "${cmd[@]}"
       - name: Collect logs

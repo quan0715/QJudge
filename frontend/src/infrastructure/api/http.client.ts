@@ -1,3 +1,4 @@
+import { fetchEnvelope } from "./envelope";
 const AUTH_SESSION_EVENT_KEY = "qjudge.auth.session_changed_at";
 
 /** Notify other tabs that the cookie-backed session state changed. */
@@ -90,6 +91,7 @@ const isAuthFlowPath = (): boolean => {
 
 const shouldAttemptTokenRefresh = (endpoint: string): boolean => {
   if (isAuthFlowPath()) return false;
+  if (endpoint.startsWith("/api/v1/auth/password/")) return false;
   if (endpoint === AUTH_REFRESH_ENDPOINT) return false;
   if (endpoint.startsWith("/api/v1/auth/login/")) return false;
   if (endpoint.startsWith("/api/v1/auth/register/")) return false;
@@ -200,12 +202,12 @@ let refreshPromise: Promise<boolean> | null = null;
 
 const refreshAuthSession = async (): Promise<boolean> => {
   if (!refreshPromise) {
-    refreshPromise = performFetch(AUTH_REFRESH_ENDPOINT, {
+    refreshPromise = fetchEnvelope<{ access_token: string }>(performFetch(AUTH_REFRESH_ENDPOINT, {
       method: "POST",
       body: JSON.stringify({}),
       headers: { "Content-Type": "application/json" },
-    })
-      .then((response) => response.ok)
+    }))
+      .then(({ data }) => typeof data.access_token === "string" && data.access_token.length > 0)
       .catch(() => false)
       .finally(() => {
         refreshPromise = null;

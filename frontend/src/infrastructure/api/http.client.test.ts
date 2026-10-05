@@ -27,7 +27,7 @@ describe("httpClient auth refresh", () => {
         }),
       )
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ success: true, data: { access_token: "next" } }), {
+        new Response(JSON.stringify({ meta: {}, data: { access_token: "next" } }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         }),

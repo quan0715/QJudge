@@ -63,7 +63,7 @@ def judge_submission(submission_id):
         
         legacy_total_score = 0
         passed_weight_sum = 0
-        total_weight_sum = 0
+        total_weight_sum = sum(_resolve_test_case_weight(tc) for tc in test_cases)
         has_weight_percent = any(
             isinstance(tc, TestCase) and tc.weight_percent is not None
             for tc in test_cases
@@ -103,7 +103,6 @@ def judge_submission(submission_id):
             
             # Calculate score
             tc_weight = _resolve_test_case_weight(tc)
-            total_weight_sum += tc_weight
             if status == 'AC':
                 legacy_total_score += tc.score
                 passed_weight_sum += tc_weight
@@ -163,7 +162,7 @@ def judge_submission(submission_id):
 
         # Update submission
         submission.status = final_status
-        submission.score = total_score
+        submission.score = 0 if final_status == 'SE' else total_score
         submission.exec_time = max_exec_time
         submission.memory_usage = max_memory
         submission.save()
@@ -179,7 +178,7 @@ def judge_submission(submission_id):
             )
         
         # Update problem stats (only for official submissions, not test runs)
-        if not submission.is_test:
+        if not submission.is_test and final_status != 'SE':
             counts = {"submission_count": F("submission_count") + 1}
             status_field = {
                 "AC": "accepted_count", "WA": "wa_count", "TLE": "tle_count",

@@ -74,12 +74,12 @@ class ExamLoginBlockedByOtherDeviceTests(APITestCase):
             HTTP_X_DEVICE_ID="device-exam-room-b",
         )
         self.assertEqual(resp.status_code, status.HTTP_409_CONFLICT)
-        self.assertFalse(resp.data.get("success", True))
-        self.assertEqual(resp.data.get("code"), "ACTIVE_EXAM_SESSION_EXISTS")
-        self.assertNotIn("conflict_token", resp.data)
-        self.assertIn("active_exam", resp.data)
-        self.assertEqual(str(resp.data["active_exam"]["contest_id"]), str(self.contest.id))
-        self.assertEqual(resp.data["active_exam"]["exam_status"], ExamStatus.IN_PROGRESS)
+        self.assertEqual(set(resp.json()), {"errors", "meta"})
+        self.assertEqual(resp.json()["errors"][0]["code"], "active_exam_session_exists")
+        self.assertNotIn("conflict_token", resp.json())
+        self.assertIn("active_exam", resp.json()["errors"][0]["details"])
+        self.assertEqual(str(resp.json()["errors"][0]["details"]["active_exam"]["contest_id"]), str(self.contest.id))
+        self.assertEqual(resp.json()["errors"][0]["details"]["active_exam"]["exam_status"], ExamStatus.IN_PROGRESS)
 
     def test_login_same_device_as_active_session_succeeds(self):
         resp = self.client.post(
@@ -89,8 +89,8 @@ class ExamLoginBlockedByOtherDeviceTests(APITestCase):
             HTTP_X_DEVICE_ID="device-exam-room-a",
         )
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertTrue(resp.data.get("success", False))
-        self.assertIn("access_token", resp.data.get("data", {}))
+        self.assertEqual(set(resp.json()), {"data", "meta"})
+        self.assertIn("access_token", resp.json().get("data", {}))
 
     def test_unmonitored_active_exam_does_not_block_login_from_other_device(self):
         self.contest.cheat_detection_enabled = False
@@ -104,8 +104,8 @@ class ExamLoginBlockedByOtherDeviceTests(APITestCase):
         )
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertTrue(resp.data.get("success", False))
-        self.assertIn("access_token", resp.data.get("data", {}))
+        self.assertEqual(set(resp.json()), {"data", "meta"})
+        self.assertIn("access_token", resp.json().get("data", {}))
 
     def test_disabling_monitoring_releases_exam_token_pin(self):
         set_exam_allowed_jti(self.student.id, self.contest.id, "exam-device-jti")

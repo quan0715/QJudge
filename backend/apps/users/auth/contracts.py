@@ -11,21 +11,12 @@ ProviderCategory = Literal["campus", "social", "password"]
 
 
 @dataclass(frozen=True)
-class ProviderTokenSet:
-    access_token: str = ""
-    refresh_token: str = ""
-    id_token: str = ""
-    expires_at: int | None = None
-    scope: str = ""
-    token_type: str = "bearer"
-
-
-@dataclass(frozen=True)
 class NormalizedQAuthIdentity:
     provider_key: str
     provider_subject: str
     email: str | None
     username: str
+    email_verified: bool = False
     display_name: str = ""
     avatar_url: str = ""
     raw_profile: dict = field(default_factory=dict)
@@ -54,9 +45,3 @@ class QAuthProviderConnection:
     client_id_env: str = ""
     client_secret_env: str = ""
     claim_mapping: dict[str, str] = field(default_factory=dict)
-
-
-@dataclass(frozen=True)
-class QAuthAccountLinkInput:
-    identity: NormalizedQAuthIdentity
-    token_set: ProviderTokenSet

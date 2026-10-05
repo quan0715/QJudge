@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   TextInput,
@@ -16,6 +16,7 @@ import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import type { BankQuestion } from "@/core/entities/question-bank.entity";
 import type { UpsertBankQuestionPayload } from "@/core/ports/questionBank.repository";
 import { updateQuestion } from "@/infrastructure/api/repositories/questionBank.repository";
+import { useFieldAutoSave } from "@/shared/hooks/useFieldAutoSave";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { resolveExamQuestionTypeFromBankQuestion } from "@/shared/ui/questionVisual";
 import { GlobalSaveIndicator } from "./GlobalSaveIndicator";
@@ -129,66 +130,21 @@ const ExamQuestionEditPanel = ({ bankId, question, onSaved }: ExamQuestionEditPa
   const { t } = useTranslation("common");
   const { showToast } = useToast();
   const [form, setForm] = useState<ExamFormState>(() => toFormState(question));
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-
   const latestRef = useRef(form);
-  const savingRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { globalStatus: saveStatus, debouncedSaveField } = useFieldAutoSave({
+    target: `${bankId}:${question.bankItemId}`,
+    debounceMs: AUTO_SAVE_DELAY,
+    write: (_field, payload) => updateQuestion(bankId, question.bankItemId, payload as UpsertBankQuestionPayload),
+    onSaveSuccess: () => onSaved?.(),
+    onSaveError: () => showToast({ kind: "error", title: t("message.error"), subtitle: t("message.saveFailed", "儲存失敗") }),
+  });
 
-  // Sync form when question prop changes (different question selected)
-  useEffect(() => {
-    const next = toFormState(question);
-    setForm(next);
+  const update = useCallback((patch: Partial<ExamFormState>) => {
+    const next = { ...latestRef.current, ...patch };
     latestRef.current = next;
-    setSaveStatus("idle");
-  }, [question.bankItemId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const saveFields = useCallback(async () => {
-    if (savingRef.current) return;
-    savingRef.current = true;
-    setSaveStatus("saving");
-    try {
-      const payload = buildPayload(latestRef.current, question);
-      await updateQuestion(bankId, question.bankItemId, payload);
-      setSaveStatus("saved");
-      onSaved?.();
-      setTimeout(() => setSaveStatus((s) => (s === "saved" ? "idle" : s)), 2000);
-    } catch {
-      setSaveStatus("error");
-      showToast({ kind: "error", title: t("message.error"), subtitle: t("message.saveFailed", "儲存失敗") });
-    } finally {
-      savingRef.current = false;
-    }
-  }, [bankId, question, onSaved, showToast, t]);
-
-  const scheduleSave = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      void saveFields();
-    }, AUTO_SAVE_DELAY);
-  }, [saveFields]);
-
-  // Flush on unmount
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-        void saveFields();
-      }
-    };
-  }, [saveFields]);
-
-  // --- Field updaters ---
-  const update = (patch: Partial<ExamFormState>) => {
-    setForm((prev) => {
-      const next = { ...prev, ...patch };
-      latestRef.current = next;
-      return next;
-    });
-    scheduleSave();
-  };
+    setForm(next);
+    debouncedSaveField("question", buildPayload(next, question));
+  }, [debouncedSaveField, question]);
 
   const handleTypeChange = (nextType: ExamQuestionType) => {
     const patch: Partial<ExamFormState> = { questionType: nextType };

@@ -66,6 +66,18 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
   await installSyntheticScreen(student);
 
   try {
+    // Playwright's permission names omit window-management. Grant it through
+    // Chromium in this isolated context, retaining real Screen Details checks.
+    // Keep the session attached until context cleanup; detach resets overrides.
+    const permissions = await studentContext.newCDPSession(student);
+    const { targetInfo } = await permissions.send("Target.getTargetInfo");
+    expect(targetInfo.browserContextId).toBeTruthy();
+    await permissions.send("Browser.setPermission", {
+      permission: { name: "window-management" },
+      setting: "granted",
+      origin: new URL(testInfo.project.use.baseURL!).origin,
+      browserContextId: targetInfo.browserContextId,
+    });
     await loginViaAPI(teacher, "teacher");
     // A failed monitored attempt intentionally blocks cross-device login.
     // Register an isolated student instead of resetting another run's records.
@@ -76,7 +88,7 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
     }));
     const registrationHeaders = { Authorization: `Bearer ${registered.data.access_token}` };
     await json(await student.request.patch("/api/v1/users/me/preferences", {
-      headers: registrationHeaders, data: { display_name: username, onboarding_completed_at: new Date().toISOString() },
+      headers: registrationHeaders, data: { profile: { display_name: username }, onboarding_completed_at: new Date().toISOString() },
     }));
     const currentStudent = await json<{ data: unknown }>(await student.request.get(API_ENDPOINTS.users.me, { headers: registrationHeaders }));
     await student.goto("/", { waitUntil: "domcontentloaded" });
@@ -114,9 +126,8 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
     }));
     // Keep unique fixtures for failed-run inspection; never reset shared exams.
     await testInfo.attach("resident-fixture", { body: JSON.stringify({ classroomId: classroom.uuid, contestId, startsAt }), contentType: "application/json" });
-    // The normal entry API establishes classroom membership participation and
-    // is idempotent if publication already enrolled the classroom's students.
-    await json(await student.request.post(`/api/v1/contests/${contestId}/enter/`, { headers: studentHeaders }));
+    // Classroom membership establishes eligibility; precheck's exam/start
+    // creates the attempt. There is no separate contest entry API.
     await expect.poll(() => Date.now() >= startsAt, { timeout: 20_000 }).toBe(true);
 
     const checkpointPath = `/api/v1/contests/${contestId}/exam/integrity/checkpoints/`;
@@ -187,6 +198,8 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
       headers: teacherHeaders, data: { user_id: Number(studentId) },
     }));
     await gotoExamAnsweringThroughPrecheck(student, contestId);
+    // A transient solve URL is not admission if a stale snapshot clears the gate.
+    await expect(input).toBeVisible();
     await expect.poll(async () => (await studentEvents()).some((event) =>
       event.event_type === "exam_entered" && !previousEventIds.has(event.id)), { timeout: 45_000 }).toBe(true);
     await expect.poll(() => getContestExamStatus(student, contestId)).toBe("in_progress");

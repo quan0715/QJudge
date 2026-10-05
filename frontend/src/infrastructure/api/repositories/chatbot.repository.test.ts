@@ -79,7 +79,7 @@ describe("chatbotRepository AI-owned identifiers", () => {
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
-      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: { access_token: "next" }, meta: {} }), { status: 200 }))
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({

@@ -52,20 +52,14 @@ const LoginPage = () => {
     setError("");
     try {
       const response = await login({ identifier, password });
-      if (response.success) {
+      if (response.data) {
         notifyAuthSessionChanged();
         window.location.href = getAuthedLandingPath(response.data.user);
       } else {
         setError(t("auth.login.failed"));
       }
     } catch (err: any) {
-      if (err.response?.data?.error?.message) {
-        setError(err.response.data.error.message);
-      } else if (err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else {
-        setError(t("auth.login.invalidCredentials"));
-      }
+      setError(err instanceof Error ? err.message : t("auth.login.invalidCredentials"));
     } finally {
       setLoading(false);
     }
@@ -188,6 +182,8 @@ const LoginPage = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+
+            {options.password_reset_enabled && <Link to="/forgot-password">{t("auth.passwordReset.requestTitle")}</Link>}
 
             {error && (
               <p className="auth-error" data-testid="auth-form-error">

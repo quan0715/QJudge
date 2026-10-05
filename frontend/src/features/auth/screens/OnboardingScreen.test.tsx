@@ -64,11 +64,10 @@ describe("OnboardingScreen", () => {
 
   it("should send onboarding_completed_at when form is submitted", async () => {
     mockUpdatePreferences.mockResolvedValue({
-      success: true,
+      meta: {},
       data: {
-        preferred_language: "zh-TW",
-        preferred_theme: "system",
-        display_name: "TestUser",
+        preferences: { preferred_language: "zh-TW", preferred_theme: "system" },
+        profile: { display_name: "TestUser", avatar_url: null },
         onboarding_completed_at: "2026-04-07T00:00:00Z",
       },
     });
@@ -85,8 +84,8 @@ describe("OnboardingScreen", () => {
       expect(mockUpdatePreferences).toHaveBeenCalledTimes(1);
       const payload = mockUpdatePreferences.mock.calls[0][0];
       expect(payload).toHaveProperty("onboarding_completed_at");
-      expect(payload.display_name).toBe("TestUser");
-      expect(payload.preferred_language).toBe("zh-TW");
+      expect(payload.profile.display_name).toBe("TestUser");
+      expect(payload.preferences.preferred_language).toBe("zh-TW");
     });
   });
 

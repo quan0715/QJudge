@@ -29,7 +29,7 @@ class UserManagementTests(APITestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.get(self.profile_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['data']['username'], 'user')
+        self.assertEqual(response.json()['data']['username'], 'user')
 
     def test_update_current_user(self):
         """Test updating user profile"""
@@ -49,9 +49,9 @@ class UserManagementTests(APITestCase):
         url = reverse('users:user-search') + '?q=user'
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(len(response.data['data']) >= 1)
-        self.assertEqual(response.data['data'][0]['display_name'], 'Student Display')
-        self.assertIn('onboarding_completed_at', response.data['data'][0])
+        self.assertTrue(len(response.json()['data']) >= 1)
+        self.assertEqual(response.json()['data'][0]['profile']['display_name'], 'Student Display')
+        self.assertIn('onboarding_completed_at', response.json()['data'][0])
 
     def test_admin_update_user_role(self):
         """Test admin updating user role"""

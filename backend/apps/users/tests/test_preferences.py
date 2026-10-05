@@ -35,7 +35,7 @@ class UserPreferencesViewTestCase(TestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["success"])
+        self.assertEqual(set(response.json()), {"data", "meta"})
         self.assertTrue(UserProfile.objects.filter(user=self.user).exists())
 
     def test_get_preferences_returns_display_name(self):
@@ -46,18 +46,18 @@ class UserPreferencesViewTestCase(TestCase):
 
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["data"]["display_name"], "Alice")
+        self.assertEqual(response.json()["data"]["profile"]["display_name"], "Alice")
 
     def test_get_preferences_returns_defaults(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.get(self.url)
-        data = response.data["data"]
-        self.assertEqual(data["display_name"], "")
-        self.assertEqual(data["avatar_url"], "")
-        self.assertEqual(data["preferred_language"], "zh-TW")
-        self.assertEqual(data["preferred_theme"], "system")
-        self.assertEqual(data["editor_font_size"], 14)
-        self.assertEqual(data["editor_tab_size"], 4)
+        data = response.json()["data"]
+        self.assertEqual(data["profile"]["display_name"], "")
+        self.assertIsNone(data["profile"]["avatar_url"])
+        self.assertEqual(data["preferences"]["preferred_language"], "zh-TW")
+        self.assertEqual(data["preferences"]["preferred_theme"], "system")
+        self.assertEqual(data["preferences"]["editor_font_size"], 14)
+        self.assertEqual(data["preferences"]["editor_tab_size"], 4)
 
     # ── PATCH display_name ─────────────────────────────────────────────
 
@@ -65,12 +65,12 @@ class UserPreferencesViewTestCase(TestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch(
             self.url,
-            {"display_name": "Bob"},
+            {"profile": {"display_name": "Bob"}},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["success"])
-        self.assertEqual(response.data["data"]["display_name"], "Bob")
+        self.assertEqual(set(response.json()), {"data", "meta"})
+        self.assertEqual(response.json()["data"]["profile"]["display_name"], "Bob")
 
         # Verify persisted
         profile = UserProfile.objects.get(user=self.user)
@@ -84,17 +84,17 @@ class UserPreferencesViewTestCase(TestCase):
 
         response = self.client.patch(
             self.url,
-            {"display_name": ""},
+            {"profile": {"display_name": ""}},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["data"]["display_name"], "")
+        self.assertEqual(response.json()["data"]["profile"]["display_name"], "")
 
     def test_patch_display_name_too_long(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch(
             self.url,
-            {"display_name": "x" * 51},
+            {"profile": {"display_name": "x" * 51}},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -105,23 +105,23 @@ class UserPreferencesViewTestCase(TestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch(
             self.url,
-            {"preferred_theme": "dark"},
+            {"preferences": {"preferred_theme": "dark"}},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["data"]["preferred_theme"], "dark")
+        self.assertEqual(response.json()["data"]["preferences"]["preferred_theme"], "dark")
 
     def test_patch_editor_font_size_out_of_range(self):
         self.client.force_authenticate(user=self.user)
         for size in (8, 30):
-            response = self.client.patch(self.url, {"editor_font_size": size}, format="json")
+            response = self.client.patch(self.url, {"preferences": {"editor_font_size": size}}, format="json")
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, size)
 
     def test_patch_invalid_theme(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch(
             self.url,
-            {"preferred_theme": "neon"},
+            {"preferences": {"preferred_theme": "neon"}},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -130,17 +130,17 @@ class UserPreferencesViewTestCase(TestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch(
             self.url,
-            {"preferred_language": "en"},
+            {"preferences": {"preferred_language": "en"}},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["data"]["preferred_language"], "en")
+        self.assertEqual(response.json()["data"]["preferences"]["preferred_language"], "en")
 
     def test_patch_invalid_language(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch(
             self.url,
-            {"preferred_language": "fr"},
+            {"preferences": {"preferred_language": "fr"}},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -149,30 +149,25 @@ class UserPreferencesViewTestCase(TestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch(
             self.url,
-            {
-                "display_name": "Charlie",
-                "avatar_url": "https://cdn.example.com/avatar.png",
-                "preferred_theme": "light",
-                "preferred_language": "ja",
-            },
+            {"profile": {"display_name": "Charlie", "avatar_url": "https://cdn.example.com/avatar.png"}, "preferences": {"preferred_theme": "light", "preferred_language": "ja"}},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.data["data"]
-        self.assertEqual(data["display_name"], "Charlie")
-        self.assertEqual(data["avatar_url"], "https://cdn.example.com/avatar.png")
-        self.assertEqual(data["preferred_theme"], "light")
-        self.assertEqual(data["preferred_language"], "ja")
+        data = response.json()["data"]
+        self.assertEqual(data["profile"]["display_name"], "Charlie")
+        self.assertEqual(data["profile"]["avatar_url"], "https://cdn.example.com/avatar.png")
+        self.assertEqual(data["preferences"]["preferred_theme"], "light")
+        self.assertEqual(data["preferences"]["preferred_language"], "ja")
 
     def test_patch_avatar_url_and_mark_manual_source(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch(
             self.url,
-            {"avatar_url": "https://img.example.com/u1.webp"},
+            {"profile": {"avatar_url": "https://img.example.com/u1.webp"}},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["data"]["avatar_url"], "https://img.example.com/u1.webp")
+        self.assertEqual(response.json()["data"]["profile"]["avatar_url"], "https://img.example.com/u1.webp")
 
         profile = UserProfile.objects.get(user=self.user)
         self.assertEqual(profile.avatar_url, "https://img.example.com/u1.webp")
@@ -182,7 +177,7 @@ class UserPreferencesViewTestCase(TestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch(
             self.url,
-            {"avatar_url": "ftp://img.example.com/u1.webp"},
+            {"profile": {"avatar_url": "ftp://img.example.com/u1.webp"}},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -196,11 +191,11 @@ class UserPreferencesViewTestCase(TestCase):
 
         response = self.client.patch(
             self.url,
-            {"avatar_url": ""},
+            {"profile": {"avatar_url": ""}},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["data"]["avatar_url"], "")
+        self.assertIsNone(response.json()["data"]["profile"]["avatar_url"])
 
         profile.refresh_from_db()
         self.assertEqual(profile.avatar_url, "")
@@ -248,7 +243,7 @@ class UserPreferencesViewTestCase(TestCase):
         for lang in ["zh-hant", "zh", "en-US", "fr", ""]:
             response = self.client.patch(
                 self.url,
-                {"preferred_language": lang},
+                {"preferences": {"preferred_language": lang}},
                 format="json",
             )
             self.assertEqual(
@@ -262,11 +257,11 @@ class UserPreferencesViewTestCase(TestCase):
         for lang in ["zh-TW", "en", "ja", "ko"]:
             response = self.client.patch(
                 self.url,
-                {"preferred_language": lang},
+                {"preferences": {"preferred_language": lang}},
                 format="json",
             )
             self.assertEqual(response.status_code, status.HTTP_200_OK)
-            self.assertEqual(response.data["data"]["preferred_language"], lang)
+            self.assertEqual(response.json()["data"]["preferences"]["preferred_language"], lang)
 
     def test_onboarding_completed_at_uses_server_time(self):
         """Backend should ignore the provided timestamp and use server time."""
@@ -291,18 +286,12 @@ class UserPreferencesViewTestCase(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        data = response.data["data"]
-        expected_fields = {
-            "solved_count", "submission_count", "accept_rate",
-            "display_name", "avatar_url",
-            "preferred_language", "preferred_theme",
-            "editor_font_size", "editor_tab_size",
-            "onboarding_completed_at",
-        }
+        data = response.json()["data"]
+        expected_fields = {"profile", "preferences", "onboarding_completed_at"}
         self.assertEqual(set(data.keys()), expected_fields)
 
-        self.assertIsInstance(data["preferred_language"], str)
-        self.assertIn(data["preferred_language"], ["zh-TW", "en", "ja", "ko"])
-        self.assertIn(data["preferred_theme"], ["light", "dark", "system"])
-        self.assertIsInstance(data["editor_font_size"], int)
-        self.assertIn(data["editor_tab_size"], [2, 4])
+        self.assertIsInstance(data["preferences"]["preferred_language"], str)
+        self.assertIn(data["preferences"]["preferred_language"], ["zh-TW", "en", "ja", "ko"])
+        self.assertIn(data["preferences"]["preferred_theme"], ["light", "dark", "system"])
+        self.assertIsInstance(data["preferences"]["editor_font_size"], int)
+        self.assertIn(data["preferences"]["editor_tab_size"], [2, 4])

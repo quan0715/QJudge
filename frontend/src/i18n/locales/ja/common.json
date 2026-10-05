@@ -100,6 +100,29 @@
       "title": "アカウント作成",
       "username": "ユーザー名",
       "usernamePlaceholder": "ユーザー名を選択"
+    },
+    "passwordReset": {
+      "requestTitle": "パスワードを忘れた場合",
+      "requestSubtitle": "メールのリンクからパスワードを再設定します。",
+      "identifier": "メールアドレスまたはユーザー名",
+      "send": "再設定リンクを送信",
+      "loading": "処理中…",
+      "requested": "申請を受け付けました",
+      "genericMessage": "対象のアカウントが存在する場合、再設定リンクを送信します。迷惑メールフォルダーもご確認ください。",
+      "backToLogin": "ログインに戻る",
+      "resetTitle": "パスワードの再設定",
+      "resetSubtitle": "他のサイトで使用していない強力なパスワードを設定してください。",
+      "password": "新しいパスワード",
+      "confirmation": "新しいパスワードの確認",
+      "reset": "パスワードを保存",
+      "mismatch": "パスワードが一致しません。",
+      "invalidLink": "リンクが無効か、有効期限が切れています。",
+      "requestAnother": "リンクを再申請",
+      "completed": "パスワードを更新しました",
+      "loginAgain": "新しいパスワードでログインしてください。",
+      "failed": "処理できません。後でもう一度お試しください。",
+      "disabled": "パスワード再設定は有効になっていません。管理者にお問い合わせください。",
+      "retry": "再試行"
     }
   },
   "button": {

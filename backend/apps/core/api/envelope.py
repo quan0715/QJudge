@@ -80,3 +80,27 @@ def envelope_errors(
         {"errors": list(errors), "meta": dict(meta or {})},
         status=status,
     )
+
+
+def error_meta(request):
+    from django.utils import timezone
+    return {"request_id": getattr(request, "request_id", None), "timestamp": timezone.now().isoformat()}
+
+
+def contract_error_response(request, code, message, *, status=400, details=None, field=None):
+    return envelope_error(code.lower(), message, status=status, details=details, field=field, meta=error_meta(request))
+
+
+def contract_validation_error_response(request, message, details):
+    errors = []
+    def visit(value, field=None):
+        if isinstance(value, dict):
+            for key, child in value.items():
+                visit(child, f"{field}.{key}" if field else key)
+        elif isinstance(value, (list, tuple)):
+            for child in value:
+                visit(child, field)
+        else:
+            errors.append({"code": "validation_error", "message": str(value), "field": field, "details": {}})
+    visit(details)
+    return envelope_errors(errors or [{"code": "validation_error", "message": message, "field": None, "details": {}}], meta=error_meta(request))

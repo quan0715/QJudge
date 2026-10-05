@@ -81,8 +81,108 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ActionLinkIssue'
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ActionLinkObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      id: 1
+                      purpose: teacher_activation
+                      status: pending
+                      email: teacher@example.test
+                      expires_at: '2026-10-06T00:00:00Z'
+                      action_link_url: https://judge.example.test/invite/example-token
+                    meta: {}
           description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ActionLinkObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      id: 1
+                      purpose: teacher_activation
+                      status: pending
+                      email: teacher@example.test
+                      expires_at: '2026-10-06T00:00:00Z'
+                      action_link_url: https://judge.example.test/invite/example-token
+                    meta: {}
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/action-links/{token}:
     get:
       operationId: v1_action_links_retrieve
@@ -101,7 +201,85 @@ paths:
       - {}
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ActionLinkObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      id: 1
+                      purpose: teacher_activation
+                      status: pending
+                      email: teacher@example.test
+                      expires_at: '2026-10-06T00:00:00Z'
+                      action_link_url: https://judge.example.test/invite/example-token
+                    meta: {}
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/action-links/{token}/redeem:
     post:
       operationId: v1_action_links_redeem_create
@@ -119,7 +297,141 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ActionLinkRedeemObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      access_token: <example-access-token>
+                      refresh_token: <example-refresh-token>
+                      expires_in: 900
+                      user:
+                        id: 1
+                        username: ada
+                        email: ada@example.test
+                        role: student
+                        auth_provider: email
+                        last_login_at: null
+                        onboarding_completed_at: null
+                        profile:
+                          display_name: Ada
+                          avatar_url: null
+                      action_link:
+                        id: 1
+                        purpose: teacher_activation
+                        status: pending
+                        email: teacher@example.test
+                        expires_at: '2026-10-06T00:00:00Z'
+                        action_link_url: https://judge.example.test/invite/example-token
+                    meta: {}
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ActionLinkRedeemObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      access_token: <example-access-token>
+                      refresh_token: <example-refresh-token>
+                      expires_in: 900
+                      user:
+                        id: 1
+                        username: ada
+                        email: ada@example.test
+                        role: student
+                        auth_provider: email
+                        last_login_at: null
+                        onboarding_completed_at: null
+                        profile:
+                          display_name: Ada
+                          avatar_url: null
+                      action_link:
+                        id: 1
+                        purpose: teacher_activation
+                        status: pending
+                        email: teacher@example.test
+                        expires_at: '2026-10-06T00:00:00Z'
+                        action_link_url: https://judge.example.test/invite/example-token
+                    meta: {}
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/ai/artifacts/:
     get:
       operationId: v1_ai_artifacts_list
@@ -445,38 +757,6 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/v1/ai/sessions/{id}/clear/:
-    post:
-      operationId: v1_ai_sessions_clear_create
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateSessionRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/CreateSessionRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/CreateSessionRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreateSession'
-          description: ''
   /api/v1/ai/sessions/{id}/context/:
     get:
       operationId: v1_ai_sessions_context_retrieve
@@ -621,8 +901,106 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OAuthCallback'
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AuthSessionObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      access_token: <example-access-token>
+                      refresh_token: <example-refresh-token>
+                      expires_in: 900
+                      user:
+                        id: 1
+                        username: ada
+                        email: ada@example.test
+                        role: student
+                        auth_provider: email
+                        last_login_at: null
+                        onboarding_completed_at: null
+                        profile:
+                          display_name: Ada
+                          avatar_url: null
+                    meta: {}
           description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: active_exam_session_exists
+                      message: 請回到原本的裝置完成考試後再登入。
+                      field: null
+                      details:
+                        active_exam:
+                          contest_id: 00000000-0000-4000-8000-000000000001
+                          contest_name: Example exam
+                          participant_id: 1
+                          exam_status: in_progress
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/auth/login/{provider}:
     get:
       operationId: v1_auth_login_retrieve
@@ -641,7 +1019,80 @@ paths:
       - {}
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AuthorizationUrlObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      authorization_url: https://identity.example.test/authorize?state=example-state
+                    meta: {}
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
     post:
       operationId: v1_auth_login_create
       description: GET/POST /api/v1/auth/login/<provider> dispatches by provider kind.
@@ -671,7 +1122,120 @@ paths:
       - {}
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AuthSessionObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      access_token: <example-access-token>
+                      refresh_token: <example-refresh-token>
+                      expires_in: 900
+                      user:
+                        id: 1
+                        username: ada
+                        email: ada@example.test
+                        role: student
+                        auth_provider: email
+                        last_login_at: null
+                        onboarding_completed_at: null
+                        profile:
+                          display_name: Ada
+                          avatar_url: null
+                    meta: {}
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: auth_001
+                      message: 帳號或密碼錯誤
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: active_exam_session_exists
+                      message: 請回到原本的裝置完成考試後再登入。
+                      field: null
+                      details:
+                        active_exam:
+                          contest_id: 00000000-0000-4000-8000-000000000001
+                          contest_name: Example exam
+                          participant_id: 1
+                          exam_status: in_progress
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/auth/logout:
     post:
       operationId: v1_auth_logout_create
@@ -683,7 +1247,278 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: object
+                    nullable: true
+                    enum:
+                    - null
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data: null
+                    meta: {}
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+  /api/v1/auth/password/reset-requests:
+    post:
+      operationId: v1_auth_password_reset_requests_create
+      description: APIView with serializer support for schema generation.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequestRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: object
+                    nullable: true
+                    enum:
+                    - null
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data: null
+                    meta: {}
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+  /api/v1/auth/password/resets:
+    post:
+      operationId: v1_auth_password_resets_create
+      description: APIView with serializer support for schema generation.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetCompleteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordResetCompleteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetCompleteRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: object
+                    nullable: true
+                    enum:
+                    - null
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data: null
+                    meta: {}
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/auth/providers:
     get:
       operationId: v1_auth_providers_retrieve
@@ -696,7 +1531,87 @@ paths:
       - {}
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AuthProviderOptionsObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      password_enabled: true
+                      password_reset_enabled: true
+                      providers:
+                      - key: password
+                        type: credentials
+                        category: password
+                        display_name: Password credentials
+                        display_name_i18n_key: auth.providers.password
+                    meta: {}
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/auth/refresh:
     post:
       operationId: v1_auth_refresh_create
@@ -723,8 +1638,77 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TokenRefresh'
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AccessTokenObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      access_token: <example-access-token>
+                    meta: {}
           description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/auth/register/password:
     post:
       operationId: v1_auth_register_password_create
@@ -748,15 +1732,97 @@ paths:
       - jwtAuth: []
       - {}
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Register'
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AuthSessionObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      access_token: <example-access-token>
+                      refresh_token: <example-refresh-token>
+                      expires_in: 900
+                      user:
+                        id: 1
+                        username: ada
+                        email: ada@example.test
+                        role: student
+                        auth_provider: email
+                        last_login_at: null
+                        onboarding_completed_at: null
+                        profile:
+                          display_name: Ada
+                          avatar_url: null
+                    meta: {}
           description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/auth/sessions:
     get:
-      operationId: v1_auth_sessions_retrieve
+      operationId: v1_auth_sessions_list
       description: GET /api/v1/auth/sessions — list recent login sessions.
       tags:
       - v1
@@ -768,8 +1834,85 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserLoginRecord'
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LoginRecordObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                    - id: 1
+                      device_id: example-device
+                      ip_address: 192.0.2.1
+                      user_agent: Example browser
+                      login_method: password
+                      created_at: '2026-10-05T00:00:00Z'
+                      is_current: true
+                    meta: {}
           description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/auth/sessions/logout-others:
     post:
       operationId: v1_auth_sessions_logout_others_create
@@ -782,7 +1925,80 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LogoutOtherSessionsResultObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      blacklisted_count: 1
+                    meta: {}
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/classrooms/:
     get:
       operationId: v1_classrooms_list
@@ -1335,15 +2551,13 @@ paths:
           type: string
           title: 狀態
           enum:
-          - archived
           - draft
           - published
         description: |-
-          draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
+          draft: 草稿未發布；published: 已發布，依開始與結束時間決定是否可作答
 
           * `draft` - Draft
           * `published` - Published
-          * `archived` - Archived
       tags:
       - v1
       security:
@@ -2610,6 +3824,167 @@ paths:
       responses:
         '200':
           description: No response body
+  /api/v1/contests/{contest_pk}/grade-appeals/:
+    get:
+      operationId: v1_contests_grade_appeals_list
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAppealInputList'
+          description: ''
+    post:
+      operationId: v1_contests_grade_appeals_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppealInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AppealInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AppealInputRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppealInput'
+          description: ''
+  /api/v1/contests/{contest_pk}/grade-appeals/{id}/:
+    get:
+      operationId: v1_contests_grade_appeals_retrieve
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppealInput'
+          description: ''
+  /api/v1/contests/{contest_pk}/grade-appeals/{id}/close/:
+    post:
+      operationId: v1_contests_grade_appeals_close_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppealInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AppealInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AppealInputRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppealInput'
+          description: ''
+  /api/v1/contests/{contest_pk}/grade-appeals/{id}/messages/:
+    post:
+      operationId: v1_contests_grade_appeals_messages_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppealInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AppealInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AppealInputRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppealInput'
+          description: ''
   /api/v1/contests/{contest_pk}/integrity-runs/:
     get:
       operationId: v1_contests_integrity_runs_retrieve
@@ -3335,41 +4710,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
-  /api/v1/contests/{id}/archive/:
-    post:
-      operationId: v1_contests_archive_create
-      description: Archive a contest. This action is irreversible.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -4175,11 +5515,7 @@ paths:
         cases, without creating a submission. Hidden cases only run in a
         formal submission.
 
-        Access mirrors Submission: any authenticated user may invoke test_run as
-        long as they hold the problem id. If a `contest_id` is supplied, the
-        same SubmissionAccessPolicy used by real submissions is applied so that
-        contest-level rules (status, schedule, participant, exam state) gate
-        the run.
+        Access uses the same problem and contest policy as formal submissions.
       parameters:
       - in: path
         name: id
@@ -4989,9 +6325,63 @@ paths:
       responses:
         '200':
           description: No response body
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/users/:
     get:
-      operationId: v1_users_retrieve
+      operationId: v1_users_list
       description: |-
         Search users by username or email (admin only).
         If no query provided, returns all users (paginated).
@@ -5005,7 +6395,91 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                    - id: 1
+                      username: ada
+                      email: ada@example.test
+                      role: student
+                      auth_provider: email
+                      last_login_at: null
+                      onboarding_completed_at: null
+                      profile:
+                        display_name: Ada
+                        avatar_url: null
+                    meta: {}
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/users/{id}/role:
     patch:
       operationId: v1_users_role_partial_update
@@ -5040,8 +6514,86 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserRoleUpdate'
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      id: 1
+                      username: ada
+                      email: ada@example.test
+                      role: teacher
+                      auth_provider: email
+                      last_login_at: null
+                      onboarding_completed_at: null
+                      profile:
+                        display_name: Ada
+                        avatar_url: null
+                    meta: {}
           description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/users/me:
     get:
       operationId: v1_users_me_retrieve
@@ -5059,8 +6611,185 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      id: 1
+                      username: ada
+                      email: ada@example.test
+                      role: student
+                      auth_provider: email
+                      last_login_at: null
+                      onboarding_completed_at: null
+                      profile:
+                        display_name: Ada
+                        avatar_url: null
+                    meta: {}
           description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: Invalid request.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_authenticated
+                      message: Authentication credentials were not provided.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: permission_denied
+                      message: You do not have permission to perform this action.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: not_found
+                      message: Not found.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: method_not_allowed
+                      message: Method not allowed.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: conflict
+                      message: The request conflicts with the current state.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: throttled
+                      message: Request was throttled.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: unknown_error
+                      message: An internal error occurred.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: db_overloaded
+                      message: Database is temporarily overloaded. Please retry.
+                      field: null
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
     patch:
       operationId: v1_users_me_partial_update
       description: Update current user profile.
@@ -5070,13 +6799,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedUserRequest'
+              $ref: '#/components/schemas/PatchedCurrentUserUpdateRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedUserRequest'
+              $ref: '#/components/schemas/PatchedCurrentUserUpdateRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedUserRequest'
+              $ref: '#/components/schemas/PatchedCurrentUserUpdateRequest'
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -5085,8 +6814,86 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      id: 1
+                      username: ada
+                      email: ada@example.test
+                      role: student
+                      auth_provider: email
+                      last_login_at: null
+                      onboarding_completed_at: null
+                      profile:
+                        display_name: Ada
+                        avatar_url: null
+                    meta: {}
           description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/users/me/avatar:
     post:
       operationId: v1_users_me_avatar_create
@@ -5094,12 +6901,97 @@ paths:
         return public URL.
       tags:
       - v1
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AvatarUploadRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AvatarUploadRequestRequest'
+        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
-        '200':
-          description: No response body
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AvatarUploadResultObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      avatar_url: https://judge.example.test/media/avatar.png
+                      content_type: image/png
+                      size: 1024
+                      alt: avatar
+                    meta: {}
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/users/me/preferences:
     get:
       operationId: v1_users_me_preferences_retrieve
@@ -5114,8 +7006,85 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserPreferencesUpdate'
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserSettingsObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      profile:
+                        display_name: Ada
+                        avatar_url: null
+                      preferences:
+                        preferred_language: zh-TW
+                        preferred_theme: system
+                        editor_font_size: 14
+                        editor_tab_size: 4
+                      onboarding_completed_at: null
+                    meta: {}
           description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
     patch:
       operationId: v1_users_me_preferences_partial_update
       description: Update user preferences.
@@ -5125,13 +7094,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedUserPreferencesUpdateRequest'
+              $ref: '#/components/schemas/PatchedUserSettingsPatchRequestRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedUserPreferencesUpdateRequest'
+              $ref: '#/components/schemas/PatchedUserSettingsPatchRequestRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedUserPreferencesUpdateRequest'
+              $ref: '#/components/schemas/PatchedUserSettingsPatchRequestRequest'
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -5140,27 +7109,125 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserPreferencesUpdate'
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserSettingsObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      profile:
+                        display_name: Ada
+                        avatar_url: null
+                      preferences:
+                        preferred_language: zh-TW
+                        preferred_theme: system
+                        editor_font_size: 14
+                        editor_tab_size: 4
+                      onboarding_completed_at: null
+                    meta: {}
           description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+              examples:
+                Error:
+                  value:
+                    errors:
+                    - code: validation_error
+                      message: 3 is not a valid choice.
+                      field: preferences.editor_tab_size
+                      details: {}
+                    meta:
+                      request_id: null
+                      timestamp: '2026-10-05T00:00:00Z'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
 components:
   schemas:
-    ActionLinkIssue:
+    AccessTokenObject:
       type: object
-      description: Serializer for issuing a scoped action link.
       properties:
-        purpose:
-          allOf:
-          - $ref: '#/components/schemas/PurposeEnum'
-          default: teacher_activation
-        classroom_id:
+        access_token:
           type: string
-          format: uuid
-        email:
-          oneOf:
-          - type: string
-            format: email
-          - type: string
-            maxLength: 0
+      required:
+      - access_token
+    ActionLinkAuthSessionObject:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+        user:
+          $ref: '#/components/schemas/UserObject'
+        action_link:
+          $ref: '#/components/schemas/ActionLinkObject'
+        invite:
+          $ref: '#/components/schemas/ActionLinkObject'
+      required:
+      - access_token
+      - expires_in
+      - refresh_token
+      - user
     ActionLinkIssueRequest:
       type: object
       description: Serializer for issuing a scoped action link.
@@ -5178,6 +7245,74 @@ components:
             format: email
           - type: string
             maxLength: 0
+    ActionLinkObject:
+      type: object
+      properties:
+        id:
+          type: integer
+        purpose:
+          $ref: '#/components/schemas/PurposeEnum'
+        status:
+          type: string
+        email:
+          type: string
+          format: email
+        expires_at:
+          type: string
+          format: date-time
+        consumed_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        requires_login:
+          type: boolean
+        current_user_email:
+          type: string
+          format: email
+          nullable: true
+        current_user_role:
+          type: string
+          nullable: true
+        can_redeem:
+          type: boolean
+        can_consume:
+          type: boolean
+        token:
+          type: string
+        action_link_url:
+          type: string
+          format: uri
+        activation_url:
+          type: string
+          format: uri
+        target:
+          $ref: '#/components/schemas/ActionLinkTargetObject'
+        existing_user:
+          type: object
+          additionalProperties: {}
+          nullable: true
+      required:
+      - purpose
+    ActionLinkRedeemObject:
+      oneOf:
+      - $ref: '#/components/schemas/ActionLinkAuthSessionObject'
+      - $ref: '#/components/schemas/ClassroomDetail'
+    ActionLinkTargetObject:
+      type: object
+      properties:
+        type:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+      required:
+      - id
+      - name
+      - type
     ActionTypeEnum:
       enum:
       - register
@@ -5222,6 +7357,71 @@ components:
         * `other_devices_logged_out` - Other Devices Logged Out
         * `announce` - Announce
         * `other` - Other
+    ApiErrorObject:
+      type: object
+      required:
+      - errors
+      - meta
+      properties:
+        errors:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+            - code
+            - message
+            - field
+            - details
+            properties:
+              code:
+                type: string
+                pattern: ^[a-z][a-z0-9_]*$
+              message:
+                type: string
+              field:
+                type: string
+                nullable: true
+              details:
+                type: object
+                additionalProperties: true
+        meta:
+          type: object
+          required:
+          - request_id
+          - timestamp
+          properties:
+            request_id:
+              type: string
+              nullable: true
+            timestamp:
+              type: string
+              format: date-time
+    AppealInput:
+      type: object
+      properties:
+        content:
+          type: string
+          maxLength: 5000
+        exam_answer:
+          type: integer
+          minimum: 1
+      required:
+      - content
+      - exam_answer
+    AppealInputRequest:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        exam_answer:
+          type: integer
+          minimum: 1
+      required:
+      - content
+      - exam_answer
     AttendancePhotoPolicyEnum:
       enum:
       - room
@@ -5242,6 +7442,89 @@ components:
         * `nycu` - NYCU OAuth
         * `google` - Google
         * `github` - GitHub
+    AuthProviderOptionObject:
+      type: object
+      properties:
+        key:
+          type: string
+        type:
+          type: string
+        category:
+          type: string
+        display_name:
+          type: string
+        display_name_i18n_key:
+          type: string
+        logo_url:
+          type: string
+      required:
+      - category
+      - display_name
+      - key
+      - type
+    AuthProviderOptionsObject:
+      type: object
+      properties:
+        password_enabled:
+          type: boolean
+        password_reset_enabled:
+          type: boolean
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthProviderOptionObject'
+      required:
+      - password_enabled
+      - password_reset_enabled
+      - providers
+    AuthSessionObject:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+        user:
+          $ref: '#/components/schemas/UserObject'
+      required:
+      - access_token
+      - expires_in
+      - refresh_token
+      - user
+    AuthorizationUrlObject:
+      type: object
+      properties:
+        authorization_url:
+          type: string
+          format: uri
+      required:
+      - authorization_url
+    AvatarUploadRequestRequest:
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+      required:
+      - file
+    AvatarUploadResultObject:
+      type: object
+      properties:
+        avatar_url:
+          type: string
+          format: uri
+        content_type:
+          type: string
+        size:
+          type: integer
+        alt:
+          type: string
+      required:
+      - avatar_url
+      - content_type
+      - size
     CategoryEnum:
       enum:
       - coding
@@ -5522,7 +7805,7 @@ components:
           title: 內容
         created_by:
           allOf:
-          - $ref: '#/components/schemas/User'
+          - $ref: '#/components/schemas/EmbeddedUserObject'
           readOnly: true
         created_at:
           type: string
@@ -5626,14 +7909,13 @@ components:
           title: 允許多次加入
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusDaeEnum'
+          - $ref: '#/components/schemas/Status68aEnum'
           title: 狀態
           description: |-
-            draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
+            draft: 草稿未發布；published: 已發布，依開始與結束時間決定是否可作答
 
             * `draft` - Draft
             * `published` - Published
-            * `archived` - Archived
         results_published:
           type: boolean
           title: 成績已公布
@@ -5705,14 +7987,13 @@ components:
           title: 允許多次加入
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusDaeEnum'
+          - $ref: '#/components/schemas/Status68aEnum'
           title: 狀態
           description: |-
-            draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
+            draft: 草稿未發布；published: 已發布，依開始與結束時間決定是否可作答
 
             * `draft` - Draft
             * `published` - Published
-            * `archived` - Archived
         results_published:
           type: boolean
           title: 成績已公布
@@ -5752,14 +8033,13 @@ components:
           title: 結束時間
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusDaeEnum'
+          - $ref: '#/components/schemas/Status68aEnum'
           title: 狀態
           description: |-
-            draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
+            draft: 草稿未發布；published: 已發布，依開始與結束時間決定是否可作答
 
             * `draft` - Draft
             * `published` - Published
-            * `archived` - Archived
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -5932,14 +8212,13 @@ components:
           title: 結束時間
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusDaeEnum'
+          - $ref: '#/components/schemas/Status68aEnum'
           title: 狀態
           description: |-
-            draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
+            draft: 草稿未發布；published: 已發布，依開始與結束時間決定是否可作答
 
             * `draft` - Draft
             * `published` - Published
-            * `archived` - Archived
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -6007,14 +8286,13 @@ components:
           title: 結束時間
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusDaeEnum'
+          - $ref: '#/components/schemas/Status68aEnum'
           title: 狀態
           description: |-
-            draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
+            draft: 草稿未發布；published: 已發布，依開始與結束時間決定是否可作答
 
             * `draft` - Draft
             * `published` - Published
-            * `archived` - Archived
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -6247,6 +8525,196 @@ components:
       - code
       - language
       - problem
+    EditorTabSize929Enum:
+      enum:
+      - 2
+      - 4
+      type: integer
+      description: |-
+        * `2` - 2 spaces
+        * `4` - 4 spaces
+    EmbeddedUserObject:
+      type: object
+      description: Preserve non-users domain contracts independently of UserObject.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: 使用者名稱
+          description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: 電子信箱
+          maxLength: 254
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role6b2Enum'
+          title: 角色
+        auth_provider:
+          allOf:
+          - $ref: '#/components/schemas/AuthProviderEnum'
+          readOnly: true
+          title: 認證方式
+        is_active:
+          type: boolean
+          title: 有效
+          description: 指定使用者是否有效。請取消選擇而不是刪除帳號。
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 加入日期
+        last_login_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: 最後登入時間
+        profile:
+          allOf:
+          - $ref: '#/components/schemas/EmbeddedUserProfileObject'
+          readOnly: true
+      required:
+      - auth_provider
+      - date_joined
+      - email
+      - id
+      - last_login_at
+      - profile
+      - username
+    EmbeddedUserObjectRequest:
+      type: object
+      description: Preserve non-users domain contracts independently of UserObject.
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: 使用者名稱
+          description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: 電子信箱
+          maxLength: 254
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role6b2Enum'
+          title: 角色
+        is_active:
+          type: boolean
+          title: 有效
+          description: 指定使用者是否有效。請取消選擇而不是刪除帳號。
+      required:
+      - email
+      - username
+    EmbeddedUserProfileObject:
+      type: object
+      description: Existing profile shape used outside the users API.
+      properties:
+        solved_count:
+          type: integer
+          readOnly: true
+          title: 已解題數
+        submission_count:
+          type: integer
+          readOnly: true
+          title: 提交次數
+        accept_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          readOnly: true
+          title: 通過率
+        display_name:
+          type: string
+          title: 顯示名稱
+          maxLength: 50
+        avatar_url:
+          nullable: true
+          title: 頭像 URL
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 500
+          - type: string
+            maxLength: 0
+        preferred_language:
+          allOf:
+          - $ref: '#/components/schemas/PreferredLanguageEnum'
+          title: 偏好語言
+        preferred_theme:
+          allOf:
+          - $ref: '#/components/schemas/PreferredThemeEnum'
+          title: 偏好主題
+        editor_font_size:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 編輯器字體大小
+        editor_tab_size:
+          allOf:
+          - $ref: '#/components/schemas/EditorTabSize929Enum'
+          title: Tab 寬度
+          minimum: -2147483648
+          maximum: 2147483647
+        onboarding_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: 完成 onboarding 時間
+      required:
+      - accept_rate
+      - solved_count
+      - submission_count
+    EmbeddedUserProfileObjectRequest:
+      type: object
+      description: Existing profile shape used outside the users API.
+      properties:
+        display_name:
+          type: string
+          title: 顯示名稱
+          maxLength: 50
+        avatar_url:
+          nullable: true
+          title: 頭像 URL
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 500
+          - type: string
+            maxLength: 0
+        preferred_language:
+          allOf:
+          - $ref: '#/components/schemas/PreferredLanguageEnum'
+          title: 偏好語言
+        preferred_theme:
+          allOf:
+          - $ref: '#/components/schemas/PreferredThemeEnum'
+          title: 偏好主題
+        editor_font_size:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 編輯器字體大小
+        editor_tab_size:
+          allOf:
+          - $ref: '#/components/schemas/EditorTabSize929Enum'
+          title: Tab 寬度
+          minimum: -2147483648
+          maximum: 2147483647
+        onboarding_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: 完成 onboarding 時間
     EventTypeEnum:
       enum:
       - blur
@@ -6373,6 +8841,40 @@ components:
           title: 排序
       required:
       - language
+    LoginRecordObject:
+      type: object
+      description: Read-only serializer for login history entries.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        device_id:
+          type: string
+          readOnly: true
+        ip_address:
+          type: string
+          readOnly: true
+        user_agent:
+          type: string
+          readOnly: true
+        login_method:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        is_current:
+          type: boolean
+          readOnly: true
+      required:
+      - created_at
+      - device_id
+      - id
+      - ip_address
+      - is_current
+      - login_method
+      - user_agent
     LoginRequest:
       type: object
       description: Serializer for password credential login.
@@ -6390,6 +8892,13 @@ components:
       required:
       - identifier
       - password
+    LogoutOtherSessionsResultObject:
+      type: object
+      properties:
+        blacklisted_count:
+          type: integer
+      required:
+      - blacklisted_count
     ModelInfo:
       type: object
       properties:
@@ -6442,21 +8951,6 @@ components:
           type: string
       required:
       - redirect_uri
-    OAuthCallback:
-      type: object
-      description: Serializer for OAuth callback.
-      properties:
-        code:
-          type: string
-        redirect_uri:
-          type: string
-          format: uri
-        device_id:
-          type: string
-          maxLength: 128
-      required:
-      - code
-      - redirect_uri
     OAuthCallbackRequest:
       type: object
       description: Serializer for OAuth callback.
@@ -6464,6 +8958,10 @@ components:
         code:
           type: string
           minLength: 1
+        state:
+          type: string
+          minLength: 1
+          maxLength: 128
         redirect_uri:
           type: string
           format: uri
@@ -6474,6 +8972,30 @@ components:
       required:
       - code
       - redirect_uri
+      - state
+    PaginatedAppealInputList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppealInput'
     PaginatedClassroomListList:
       type: object
       required:
@@ -6612,6 +9134,43 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
+    PasswordResetCompleteRequest:
+      type: object
+      properties:
+        uid:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 64
+        token:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+        password_confirm:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+      required:
+      - password
+      - password_confirm
+      - token
+      - uid
+    PasswordResetRequestRequest:
+      type: object
+      properties:
+        identifier:
+          type: string
+          minLength: 1
+          maxLength: 254
+      required:
+      - identifier
     PatchedClassroomCreateUpdateRequest:
       type: object
       properties:
@@ -6745,14 +9304,13 @@ components:
           title: 允許多次加入
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusDaeEnum'
+          - $ref: '#/components/schemas/Status68aEnum'
           title: 狀態
           description: |-
-            draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
+            draft: 草稿未發布；published: 已發布，依開始與結束時間決定是否可作答
 
             * `draft` - Draft
             * `published` - Published
-            * `archived` - Archived
         results_published:
           type: boolean
           title: 成績已公布
@@ -6785,14 +9343,13 @@ components:
           title: 結束時間
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusDaeEnum'
+          - $ref: '#/components/schemas/Status68aEnum'
           title: 狀態
           description: |-
-            draft: 草稿未發布；published: 已發布可進行；archived: 已封存唯讀
+            draft: 草稿未發布；published: 已發布，依開始與結束時間決定是否可作答
 
             * `draft` - Draft
             * `published` - Published
-            * `archived` - Archived
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -6848,6 +9405,23 @@ components:
       type: object
       properties:
         context: {}
+    PatchedCurrentUserUpdateRequest:
+      type: object
+      description: Serializer for updating current user's account fields.
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: 使用者名稱
+          description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: 電子信箱
+          maxLength: 254
     PatchedExamQuestionGroupRequest:
       type: object
       description: Serializer for contest-local question groups.
@@ -6971,61 +9545,45 @@ components:
           title: 顏色
           description: Hex color code for tag display
           maxLength: 7
-    PatchedUserPreferencesUpdateRequest:
-      type: object
-      description: Serializer for updating user preferences.
-      properties:
-        display_name:
-          type: string
-          maxLength: 50
-        avatar_url:
-          type: string
-          maxLength: 500
-        preferred_language:
-          $ref: '#/components/schemas/UserPreferencesUpdatePreferredLanguageEnum'
-        preferred_theme:
-          $ref: '#/components/schemas/UserPreferencesUpdatePreferredThemeEnum'
-        editor_font_size:
-          type: integer
-          maximum: 20
-          minimum: 12
-        editor_tab_size:
-          $ref: '#/components/schemas/UserPreferencesUpdateEditorTabSizeEnum'
-        onboarding_completed_at:
-          type: string
-          format: date-time
-          nullable: true
-    PatchedUserRequest:
-      type: object
-      description: Serializer for user model.
-      properties:
-        username:
-          type: string
-          minLength: 1
-          title: 使用者名稱
-          description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
-        email:
-          type: string
-          format: email
-          minLength: 1
-          title: 電子信箱
-          maxLength: 254
-        role:
-          allOf:
-          - $ref: '#/components/schemas/UserRoleEnum'
-          title: 角色
-        is_active:
-          type: boolean
-          title: 有效
-          description: 指定使用者是否有效。請取消選擇而不是刪除帳號。
     PatchedUserRoleUpdateRequest:
       type: object
       description: Serializer for updating user role.
       properties:
         role:
           $ref: '#/components/schemas/UserRoleUpdateRoleEnum'
+    PatchedUserSettingsPatchRequestRequest:
+      type: object
+      properties:
+        profile:
+          $ref: '#/components/schemas/UserProfileUpdateRequest'
+        preferences:
+          $ref: '#/components/schemas/UserPreferencesPatchRequest'
+        onboarding_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+    PreferredLanguageEnum:
+      enum:
+      - zh-TW
+      - en
+      - ja
+      - ko
+      type: string
+      description: |-
+        * `zh-TW` - 繁體中文
+        * `en` - English
+        * `ja` - 日本語
+        * `ko` - 한국어
+    PreferredThemeEnum:
+      enum:
+      - light
+      - dark
+      - system
+      type: string
+      description: |-
+        * `light` - Light
+        * `dark` - Dark
+        * `system` - System
     ProblemDetail:
       type: object
       description: Serializer for problem detail (full info).
@@ -7397,19 +9955,6 @@ components:
           $ref: '#/components/schemas/CategoryEnum'
       required:
       - name
-    Register:
-      type: object
-      description: Serializer for password credential registration.
-      properties:
-        username:
-          type: string
-          maxLength: 150
-        email:
-          type: string
-          format: email
-      required:
-      - email
-      - username
     RegisterRequest:
       type: object
       description: Serializer for password credential registration.
@@ -7435,6 +9980,16 @@ components:
       - password
       - password_confirm
       - username
+    Role6b2Enum:
+      enum:
+      - student
+      - teacher
+      - admin
+      type: string
+      description: |-
+        * `student` - 學生
+        * `teacher` - 教師
+        * `admin` - 管理員
     ScreenEvent:
       type: object
       description: Serializer for screen events.
@@ -7471,6 +10026,14 @@ components:
       description: |-
         * `practice` - Practice
         * `contest` - Contest
+    Status68aEnum:
+      enum:
+      - draft
+      - published
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `published` - Published
     Status976Enum:
       enum:
       - pending
@@ -7495,16 +10058,6 @@ components:
         * `CE` - Compilation Error
         * `KR` - Keyword Restriction
         * `SE` - System Error
-    StatusDaeEnum:
-      enum:
-      - draft
-      - published
-      - archived
-      type: string
-      description: |-
-        * `draft` - Draft
-        * `published` - Published
-        * `archived` - Archived
     SubmissionDetail:
       type: object
       description: Serializer for submission detail.
@@ -7514,7 +10067,7 @@ components:
           readOnly: true
         user:
           allOf:
-          - $ref: '#/components/schemas/User'
+          - $ref: '#/components/schemas/EmbeddedUserObject'
           readOnly: true
         problem:
           allOf:
@@ -7784,131 +10337,88 @@ components:
           maxLength: 7
       required:
       - name
-    TokenRefresh:
-      type: object
-      description: Serializer for token refresh.
-      properties:
-        refresh:
-          type: string
     TokenRefreshRequest:
       type: object
       description: Serializer for token refresh.
       properties:
         refresh:
           type: string
-    User:
+    UserObject:
       type: object
-      description: Serializer for user model.
       properties:
         id:
           type: integer
           readOnly: true
         username:
           type: string
+          readOnly: true
           title: 使用者名稱
           description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
         email:
           type: string
           format: email
+          readOnly: true
           title: 電子信箱
-          maxLength: 254
         role:
           allOf:
-          - $ref: '#/components/schemas/UserRoleEnum'
+          - $ref: '#/components/schemas/Role6b2Enum'
+          readOnly: true
           title: 角色
         auth_provider:
           allOf:
           - $ref: '#/components/schemas/AuthProviderEnum'
           readOnly: true
           title: 認證方式
-        is_active:
-          type: boolean
-          title: 有效
-          description: 指定使用者是否有效。請取消選擇而不是刪除帳號。
-        date_joined:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 加入日期
         last_login_at:
           type: string
           format: date-time
           readOnly: true
           nullable: true
           title: 最後登入時間
-        profile:
-          allOf:
-          - $ref: '#/components/schemas/UserProfile'
-          readOnly: true
-      required:
-      - auth_provider
-      - date_joined
-      - email
-      - id
-      - last_login_at
-      - profile
-      - username
-    UserLoginRecord:
-      type: object
-      description: Read-only serializer for login history entries.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        device_id:
-          type: string
-          readOnly: true
-        ip_address:
-          type: string
-          readOnly: true
-        user_agent:
-          type: string
-          readOnly: true
-        login_method:
-          type: string
-          readOnly: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        is_current:
-          type: boolean
-          readOnly: true
-      required:
-      - created_at
-      - device_id
-      - id
-      - ip_address
-      - is_current
-      - login_method
-      - user_agent
-    UserPreferencesUpdate:
-      type: object
-      description: Serializer for updating user preferences.
-      properties:
-        display_name:
-          type: string
-          maxLength: 50
-        avatar_url:
-          type: string
-          maxLength: 500
-        preferred_language:
-          $ref: '#/components/schemas/UserPreferencesUpdatePreferredLanguageEnum'
-        preferred_theme:
-          $ref: '#/components/schemas/UserPreferencesUpdatePreferredThemeEnum'
-        editor_font_size:
-          type: integer
-          maximum: 20
-          minimum: 12
-        editor_tab_size:
-          $ref: '#/components/schemas/UserPreferencesUpdateEditorTabSizeEnum'
         onboarding_completed_at:
           type: string
           format: date-time
+          readOnly: true
           nullable: true
-    UserPreferencesUpdateEditorTabSizeEnum:
+        profile:
+          allOf:
+          - $ref: '#/components/schemas/UserProfileObject'
+          readOnly: true
+          default:
+            display_name: ''
+            avatar_url: null
+      required:
+      - auth_provider
+      - email
+      - id
+      - last_login_at
+      - onboarding_completed_at
+      - profile
+      - role
+      - username
+    UserPreferencesObject:
+      type: object
+      properties:
+        preferred_language:
+          allOf:
+          - $ref: '#/components/schemas/PreferredLanguageEnum'
+          title: 偏好語言
+        preferred_theme:
+          allOf:
+          - $ref: '#/components/schemas/PreferredThemeEnum'
+          title: 偏好主題
+        editor_font_size:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          title: 編輯器字體大小
+        editor_tab_size:
+          allOf:
+          - $ref: '#/components/schemas/EditorTabSize929Enum'
+          title: Tab 寬度
+          minimum: -2147483648
+          maximum: 2147483647
+    UserPreferencesPatchEditorTabSizeEnum:
       enum:
       - 2
       - 4
@@ -7916,204 +10426,42 @@ components:
       description: |-
         * `2` - 2
         * `4` - 4
-    UserPreferencesUpdatePreferredLanguageEnum:
-      enum:
-      - zh-TW
-      - en
-      - ja
-      - ko
-      type: string
-      description: |-
-        * `zh-TW` - zh-TW
-        * `en` - en
-        * `ja` - ja
-        * `ko` - ko
-    UserPreferencesUpdatePreferredThemeEnum:
-      enum:
-      - light
-      - dark
-      - system
-      type: string
-      description: |-
-        * `light` - light
-        * `dark` - dark
-        * `system` - system
-    UserProfile:
+    UserPreferencesPatchRequest:
       type: object
-      description: Serializer for user profile.
       properties:
-        solved_count:
-          type: integer
-          readOnly: true
-          title: 已解題數
-        submission_count:
-          type: integer
-          readOnly: true
-          title: 提交次數
-        accept_rate:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
-          readOnly: true
-          title: 通過率
-        display_name:
-          type: string
-          title: 顯示名稱
-          maxLength: 50
-        avatar_url:
-          nullable: true
-          title: 頭像 URL
-          oneOf:
-          - type: string
-            format: uri
-            maxLength: 500
-          - type: string
-            maxLength: 0
         preferred_language:
-          allOf:
-          - $ref: '#/components/schemas/UserProfilePreferredLanguageEnum'
-          title: 偏好語言
+          $ref: '#/components/schemas/PreferredLanguageEnum'
         preferred_theme:
-          allOf:
-          - $ref: '#/components/schemas/UserProfilePreferredThemeEnum'
-          title: 偏好主題
+          $ref: '#/components/schemas/PreferredThemeEnum'
         editor_font_size:
           type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 編輯器字體大小
+          maximum: 20
+          minimum: 12
         editor_tab_size:
-          allOf:
-          - $ref: '#/components/schemas/UserProfileEditorTabSizeEnum'
-          title: Tab 寬度
-          minimum: -2147483648
-          maximum: 2147483647
-        onboarding_completed_at:
-          type: string
-          format: date-time
-          nullable: true
-          title: 完成 onboarding 時間
-      required:
-      - accept_rate
-      - solved_count
-      - submission_count
-    UserProfileEditorTabSizeEnum:
-      enum:
-      - 2
-      - 4
-      type: integer
-      description: |-
-        * `2` - 2 spaces
-        * `4` - 4 spaces
-    UserProfilePreferredLanguageEnum:
-      enum:
-      - zh-TW
-      - en
-      - ja
-      - ko
-      type: string
-      description: |-
-        * `zh-TW` - 繁體中文
-        * `en` - English
-        * `ja` - 日本語
-        * `ko` - 한국어
-    UserProfilePreferredThemeEnum:
-      enum:
-      - light
-      - dark
-      - system
-      type: string
-      description: |-
-        * `light` - Light
-        * `dark` - Dark
-        * `system` - System
-    UserProfileRequest:
+          $ref: '#/components/schemas/UserPreferencesPatchEditorTabSizeEnum'
+    UserProfileObject:
       type: object
-      description: Serializer for user profile.
       properties:
         display_name:
           type: string
           title: 顯示名稱
           maxLength: 50
         avatar_url:
+          type: string
           nullable: true
-          title: 頭像 URL
-          oneOf:
-          - type: string
-            format: uri
-            maxLength: 500
-          - type: string
-            maxLength: 0
-        preferred_language:
-          allOf:
-          - $ref: '#/components/schemas/UserProfilePreferredLanguageEnum'
-          title: 偏好語言
-        preferred_theme:
-          allOf:
-          - $ref: '#/components/schemas/UserProfilePreferredThemeEnum'
-          title: 偏好主題
-        editor_font_size:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 編輯器字體大小
-        editor_tab_size:
-          allOf:
-          - $ref: '#/components/schemas/UserProfileEditorTabSizeEnum'
-          title: Tab 寬度
-          minimum: -2147483648
-          maximum: 2147483647
-        onboarding_completed_at:
+          readOnly: true
+      required:
+      - avatar_url
+    UserProfileUpdateRequest:
+      type: object
+      properties:
+        display_name:
           type: string
-          format: date-time
+          maxLength: 50
+        avatar_url:
+          type: string
           nullable: true
-          title: 完成 onboarding 時間
-    UserRequest:
-      type: object
-      description: Serializer for user model.
-      properties:
-        username:
-          type: string
-          minLength: 1
-          title: 使用者名稱
-          description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
-        email:
-          type: string
-          format: email
-          minLength: 1
-          title: 電子信箱
-          maxLength: 254
-        role:
-          allOf:
-          - $ref: '#/components/schemas/UserRoleEnum'
-          title: 角色
-        is_active:
-          type: boolean
-          title: 有效
-          description: 指定使用者是否有效。請取消選擇而不是刪除帳號。
-      required:
-      - email
-      - username
-    UserRoleEnum:
-      enum:
-      - student
-      - teacher
-      - admin
-      type: string
-      description: |-
-        * `student` - 學生
-        * `teacher` - 教師
-        * `admin` - 管理員
-    UserRoleUpdate:
-      type: object
-      description: Serializer for updating user role.
-      properties:
-        role:
-          $ref: '#/components/schemas/UserRoleUpdateRoleEnum'
-      required:
-      - role
+          maxLength: 500
     UserRoleUpdateRoleEnum:
       enum:
       - student
@@ -8124,6 +10472,25 @@ components:
         * `student` - student
         * `teacher` - teacher
         * `admin` - admin
+    UserSettingsObject:
+      type: object
+      properties:
+        profile:
+          allOf:
+          - $ref: '#/components/schemas/UserProfileObject'
+          readOnly: true
+        preferences:
+          allOf:
+          - $ref: '#/components/schemas/UserPreferencesObject'
+          readOnly: true
+        onboarding_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: 完成 onboarding 時間
+      required:
+      - preferences
+      - profile
   securitySchemes:
     cookieJwtAuth:
       type: apiKey

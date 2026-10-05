@@ -19,6 +19,7 @@
       "classroom-roster": "학생 명단 관리",
       "classroom-setup": "클래스룸 만들기",
       "deployment": "단일 호스트에서 배포 시작",
+      "deployment-email": "메일 발송 설정",
       "deployment-live-monitoring": "셀프 호스팅 실시간 모니터링 배포",
       "deployment-options": "선택 기능 추가",
       "deployment-storage": "파일 스토리지 준비",

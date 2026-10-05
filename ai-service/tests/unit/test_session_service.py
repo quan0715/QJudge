@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
@@ -13,7 +15,6 @@ from domain.models import Principal, Session
 class FakeSessionRepository:
     def __init__(self) -> None:
         self.sessions: dict[UUID, Session] = {}
-        self.cleared: list[UUID] = []
         self.fail_next_update = False
 
     async def create(self, session: Session) -> Session:
@@ -29,6 +30,8 @@ class FakeSessionRepository:
         session = self.sessions.get(session_id)
         return session if session is not None and session.owner == principal else None
 
+    get_for_update = get_for_owner
+
     async def update(
         self, principal: Principal, session: Session
     ) -> Session | None:
@@ -39,14 +42,6 @@ class FakeSessionRepository:
         if existing is None:
             return None
         self.sessions[session.id] = session
-        return session
-
-    async def clear_for_owner(
-        self, principal: Principal, session_id: UUID
-    ) -> Session | None:
-        session = await self.get_for_owner(principal, session_id)
-        if session is not None:
-            self.cleared.append(session_id)
         return session
 
     async def delete(self, principal: Principal, session_id: UUID) -> bool:
@@ -60,6 +55,10 @@ class FakeSessionRepository:
 class FakeUnitOfWork:
     def __init__(self, sessions: FakeSessionRepository) -> None:
         self.sessions = sessions
+        self.runs = SimpleNamespace(
+            has_blocking_run=AsyncMock(return_value=False),
+            oldest_queued=AsyncMock(return_value=None),
+        )
 
     async def __aenter__(self):
         return self
@@ -161,19 +160,6 @@ async def test_rename_reports_not_found_when_owned_update_changes_no_row() -> No
         await service.rename_session(principal, existing.id, "Never persisted")
 
     assert repository.sessions[existing.id] == existing
-
-
-async def test_clear_session_deletes_checkpoint_after_owned_mutation() -> None:
-    principal = Principal(issuer="issuer", subject="subject")
-    repository = FakeSessionRepository()
-    existing = Session(id=uuid4(), owner=principal, title="Chat", context={})
-    repository.sessions[existing.id] = existing
-    checkpoints = FakeCheckpointLifecycle()
-    service = SessionService(lambda: FakeUnitOfWork(repository), checkpoints)
-
-    assert await service.clear_session(principal, existing.id) == existing
-    assert repository.cleared == [existing.id]
-    assert checkpoints.deleted_session_ids == [existing.id]
 
 
 async def test_delete_session_deletes_checkpoint_after_owned_mutation() -> None:

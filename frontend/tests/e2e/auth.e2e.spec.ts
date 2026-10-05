@@ -238,7 +238,7 @@ test.describe("Authentication E2E Tests", () => {
       const body = await response.json();
       const user = body.data ?? body;
       expect(user.profile.display_name).toBe(newUser.username);
-      expect(user.profile.onboarding_completed_at).toBeTruthy();
+      expect(user.onboarding_completed_at).toBeTruthy();
       await page.reload();
       await expect(page).toHaveURL(/\/dashboard/);
       await expect(page.getByTestId("user-menu-toggle-btn")).toBeVisible();

@@ -1,32 +1,24 @@
 export type ThemePreference = "light" | "dark" | "system";
 
 export interface UserPreferences {
-  display_name?: string;
-  avatar_url?: string;
   preferred_language: string;
   preferred_theme: ThemePreference;
   editor_font_size: number;
   editor_tab_size: 2 | 4;
-  onboarding_completed_at?: string | null;
 }
 
-export interface UserProfile extends UserPreferences {
-  solved_count: number;
-  submission_count: number;
-  accept_rate: number;
+export interface UserProfile {
+  display_name: string;
+  avatar_url: string | null;
 }
 
-export interface ManagedUser {
-  id: number;
-  username: string;
-  email?: string;
-  role: "student" | "teacher" | "admin";
-  auth_provider?: string;
-  last_login_at?: string | null;
-  is_active?: boolean;
-  display_name?: string;
-  onboarding_completed_at?: string | null;
+export interface UserSettings {
+  profile: UserProfile;
+  preferences: UserPreferences;
+  onboarding_completed_at: string | null;
 }
+
+export type ManagedUser = User;
 
 export type ActionLinkPurpose = "teacher_activation" | "classroom_join";
 export type ActionLinkStatus = "pending" | "consumed" | "expired" | "revoked";
@@ -78,7 +70,7 @@ export interface User {
   role: "student" | "teacher" | "admin" | "guest";
   auth_provider?: string;
   last_login_at?: string | null;
-  is_active?: boolean;
+  onboarding_completed_at?: string | null;
   profile?: UserProfile;
 }
 
@@ -93,6 +85,7 @@ export interface AuthProviderOption {
 
 export interface AuthOptions {
   password_enabled: boolean;
+  password_reset_enabled?: boolean;
   providers: AuthProviderOption[];
 }
 
@@ -113,9 +106,8 @@ export interface AuthSuccessData {
 }
 
 export interface AuthResponse {
-  success: boolean;
+  meta: Record<string, unknown>;
   data: AuthSuccessData;
-  message?: string;
 }
 
 export interface LoginCredentials {
@@ -137,63 +129,52 @@ export interface UpdateAccountProfileRequest {
 }
 
 export interface UpdatePreferencesRequest {
-  display_name?: string;
-  avatar_url?: string;
-  preferred_language?: string;
-  preferred_theme?: ThemePreference;
-  editor_font_size?: number;
-  editor_tab_size?: 2 | 4;
+  profile?: Partial<UserProfile>;
+  preferences?: Partial<UserPreferences>;
   onboarding_completed_at?: string | null;
 }
 
 export interface PreferencesResponse {
-  success: boolean;
-  data: UserPreferences;
-  message?: string;
+  meta: Record<string, unknown>;
+  data: UserSettings;
 }
 
 export interface CurrentUserResponse {
-  success: boolean;
+  meta: Record<string, unknown>;
   data: User;
-  message?: string;
 }
 
 export interface UserSearchResponse {
-  success: boolean;
+  meta: Record<string, unknown>;
   data: ManagedUser[];
-  message?: string;
 }
 
 export interface ActionLinkIssueResponse {
-  success: boolean;
+  meta: Record<string, unknown>;
   data: ActionLinkIssueData;
-  message?: string;
 }
 
 export interface ActionLinkInspectResponse {
-  success: boolean;
+  meta: Record<string, unknown>;
   data: ActionLinkPreview;
-  message?: string;
 }
 
 export interface ActionLinkRedeemResponse {
-  success: boolean;
+  meta: Record<string, unknown>;
   data: AuthSuccessData & {
     invite?: ActionLinkIssueData;
     action_link?: ActionLinkPreview;
   };
-  message?: string;
 }
 
 export interface UploadAvatarResponse {
-  success: boolean;
+  meta: Record<string, unknown>;
   data: {
     avatar_url: string;
     content_type: string;
     size: number;
     alt?: string;
   };
-  message?: string;
 }
 
 // Login Records

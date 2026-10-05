@@ -71,6 +71,18 @@ const AuthLayout = () => {
         subtitle: t("auth.register.subtitle"),
       };
     }
+    if (path === '/forgot-password') {
+      return {
+        title: t("auth.passwordReset.requestTitle"),
+        subtitle: t("auth.passwordReset.requestSubtitle"),
+      };
+    }
+    if (path === '/reset-password') {
+      return {
+        title: t("auth.passwordReset.resetTitle"),
+        subtitle: t("auth.passwordReset.resetSubtitle"),
+      };
+    }
     if (path.startsWith('/login/campus-sso') || path.startsWith('/register/campus-sso')) {
       return {
         title: t("auth.campusSso.title"),

@@ -1,4 +1,4 @@
-name: Authentication and coding exam E2E
+name: Coding exam E2E
 
 on:
   workflow_call:
@@ -29,11 +29,6 @@ jobs:
         run: |
           $QJ_DC exec -T backend \
             python manage.py shell -c 'from django.conf import settings; assert not settings.CELERY_TASK_ALWAYS_EAGER'
-      - name: Verify login, registration and onboarding
-        working-directory: frontend
-        env:
-          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-auth
-        run: npm run test:e2e -- tests/e2e/auth.e2e.spec.ts --no-deps --workers=1 --output=test-results-auth
       - name: Run coding submissions through the browser and judge
         working-directory: frontend
         env:
@@ -50,8 +45,6 @@ jobs:
         with:
           name: coding-submissions-e2e
           path: |
-            frontend/playwright-report-auth
-            frontend/test-results-auth
             frontend/playwright-report-e2e
             frontend/test-results
             e2e-coding.log

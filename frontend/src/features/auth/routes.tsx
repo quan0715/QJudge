@@ -3,6 +3,9 @@ import { Route } from "react-router-dom";
 import { RouteLoadingBoundary } from "@/shared/ui/RouteLoadingBoundary";
 import OAuthCallbackScreen from "./screens/OAuthCallbackScreen";
 
+const ForgotPasswordScreen = lazy(() => import("./screens/ForgotPasswordScreen"));
+const ResetPasswordScreen = lazy(() => import("./screens/ResetPasswordScreen"));
+
 const LoginScreen = lazy(() => import("./screens/LoginScreen"));
 const RegisterScreen = lazy(() => import("./screens/RegisterScreen"));
 const CampusSsoScreen = lazy(() => import("./screens/CampusSsoScreen"));
@@ -51,3 +54,9 @@ export const oauthAuthorizeRoute = (
     element={routeScreen(<OAuthAuthorizeScreen />)}
   />
 );
+
+// Recovery must remain reachable when an old authenticated session still exists.
+export const passwordRecoveryRoutes = <>
+  <Route path="/forgot-password" element={routeScreen(<ForgotPasswordScreen />)} />
+  <Route path="/reset-password" element={routeScreen(<ResetPasswordScreen />)} />
+</>;
