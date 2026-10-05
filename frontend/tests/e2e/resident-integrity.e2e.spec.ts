@@ -61,6 +61,9 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
   test.setTimeout(300_000);
   const teacherContext = await browser.newContext({ baseURL: testInfo.project.use.baseURL });
   const studentContext = await browser.newContext({ baseURL: testInfo.project.use.baseURL });
+  // Real Screen Details checks require permission; headless contexts cannot
+  // answer the OS permission prompt. Keep the API and monitor checks real.
+  await studentContext.grantPermissions(["window-management"]);
   const teacher = await teacherContext.newPage();
   const student = await studentContext.newPage();
   await installSyntheticScreen(student);
