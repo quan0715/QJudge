@@ -39,13 +39,13 @@ describe("getExamPublishIssues", () => {
     expect(issues.defaultContent).toEqual([1, 2, 3]);
   });
 
-  it("uses visible positions when stored orders have gaps or arrive unsorted", () => {
+  it("matches editor and answering labels when stored orders have gaps", () => {
     const issues = getExamPublishIssues([
       question({ order: 7, correctAnswer: null, prompt: "New question" }),
       question({ order: 2 }),
     ]);
-    expect(issues.missingAnswer).toEqual([2]);
-    expect(issues.defaultContent).toEqual([2]);
+    expect(issues.missingAnswer).toEqual([8]);
+    expect(issues.defaultContent).toEqual([8]);
   });
 
   it("returns no issues for a finished paper", () => {
