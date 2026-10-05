@@ -117,7 +117,7 @@ def _create_exam_bank_item(
         prompt=prompt,
         payload={
             "question_type": question_type,
-            "options": options or ["3", "4"],
+            "options": options if options is not None else ["3", "4"],
             "correct_answer": correct_answer,
             "score": score,
             "order": 0,
@@ -541,6 +541,23 @@ class TestObjectiveAnswerFormat:
             question_type="true_false",
             options=["True", "False"],
             correct_answer=True,
+        )
+        res = api_client.post(
+            url(contest.id) + "import-from-bank/",
+            {"items": [{"question_bank_id": str(bank.uuid), "question_id": str(membership.id)}]},
+            format="json",
+        )
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+        assert not ExamQuestion.objects.filter(contest=contest).exists()
+
+    @pytest.mark.parametrize("question_type", ["single_choice", "multiple_choice"])
+    @pytest.mark.parametrize("options", [[], ["A"]])
+    def test_import_unset_choice_answer_still_requires_two_options(self, api_client, teacher, contest, question_type, options):
+        api_client.force_authenticate(user=teacher)
+        bank = QuestionBank.objects.create(owner=teacher, name="Incomplete draft", category=QuestionBank.Category.EXAM)
+        _asset, membership = _create_exam_bank_item(
+            bank=bank, owner=teacher, prompt="Pick", question_type=question_type,
+            options=options, correct_answer=None,
         )
         res = api_client.post(
             url(contest.id) + "import-from-bank/",

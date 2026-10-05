@@ -1810,3 +1810,42 @@ def test_protected_resource_metadata_advertises_only_mcp_scope():
 
     assert response.status_code == 200
     assert response.json()["scopes_supported"] == ["mcp"]
+
+
+@pytest.mark.parametrize("action", ["create", "update"])
+def test_exam_tool_validation_allows_numeric_string_lists(monkeypatch, action):
+    bodies = []
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        if path.endswith("/contests/11111111-1111-1111-1111-111111111111/"):
+            return contest_detail()
+        if method == "GET":
+            return {"question_type": "multiple_choice", "options": ["a", "b", "c"]}
+        bodies.append(json_body)
+        return {"id": "eq-new"}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+    run(server.mcp._tool_manager.call_tool("qjudge_exam", {
+        "action": action,
+        "contest_id": "11111111-1111-1111-1111-111111111111",
+        "question_id": "eq-1",
+        "question_type": "multiple_choice",
+        "prompt": "Pick",
+        "options": ["a", "b", "c"],
+        "correct_answer": ["0", "2"],
+    }, context=DummyContext()))
+    assert bodies[-1]["correct_answer"] == [0, 2]
+
+
+@pytest.mark.parametrize("answer", [True, [True], ["0", False]])
+def test_exam_tool_validation_rejects_boolean_answers(answer):
+    from mcp.server.fastmcp.exceptions import ToolError
+    with pytest.raises(ToolError):
+        run(server.mcp._tool_manager.call_tool("qjudge_exam", {
+            "action": "create",
+            "contest_id": "11111111-1111-1111-1111-111111111111",
+            "question_type": "multiple_choice",
+            "prompt": "Pick",
+            "options": ["a", "b", "c"],
+            "correct_answer": answer,
+        }, context=DummyContext()))
