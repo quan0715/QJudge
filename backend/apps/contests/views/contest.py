@@ -47,7 +47,10 @@ from ..services.exam_scoring import ExamScoringService
 from ..services.anti_cheat_session import get_active_session
 from ..services.integrity_presence import get_last_checkpoint
 from ..services.integrity_sessions import (
+    LIVE_SESSION_STATES,
     apply_webcam_setting_to_prepared_run,
+    build_runtime_integrity_policy,
+    ensure_webcam_can_be_required,
     prepare_integrity_session,
 )
 from ..services.participant_dashboard import build_participant_dashboard
@@ -205,6 +208,8 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             serializer.instance = locked
             # Partial updates must validate against the latest locked counterpart.
             serializer.validate(serializer.validated_data)
+            if serializer.validated_data.get("webcam_required") is True:
+                ensure_webcam_can_be_required(locked)
             serializer.instance = update_exam_schedule(
                 locked.pk,
                 start_time=serializer.validated_data.get("start_time", locked.start_time),
@@ -245,9 +250,9 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             payload = build_contest_anticheat_config(contest)
             cache.set(cache_key, payload, timeout=ANTICHEAT_CONFIG_CACHE_TTL_SECONDS)
         live_run = (
-            ExamIntegrityRun.objects.filter(contest=contest)
+            ExamIntegrityRun.objects.filter(contest=contest, session_state__in=LIVE_SESSION_STATES)
             .exclude(data_state=ExamIntegrityRun.DataState.PURGED)
-            .exclude(session_state=ExamIntegrityRun.SessionState.CLOSED)
+            .order_by("-created_at")
             .first()
         )
         if live_run is not None:
@@ -262,7 +267,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
                     "session_state": live_run.session_state,
                     "health": live_run.health,
                     "participant_id": str(participant.id) if participant else None,
-                    "policy_snapshot": live_run.policy_snapshot,
+                    "policy_snapshot": build_runtime_integrity_policy(contest, live_run),
                     "registry_snapshot": live_run.registry_snapshot,
                 },
             }
