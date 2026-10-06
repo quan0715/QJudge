@@ -47,9 +47,9 @@ appears as `password_reset_throttled`. Completed password changes must not be
 reversed.
 
 Exam publication and results notifications require a separate specification.
-Postal addon integration and its `bundled` mode are outside this change. An
-independently hosted Postal server can be configured as external SMTP; direct
-Postal delivery does not verify QJudge SMTP authentication or celery delivery.
+`EMAIL_MODE=bundled` runs a self-hosted Postal server through
+`deploy/qjudge addon postal`; QJudge still sends through the `EMAIL_*` SMTP
+settings pointed at it, so `mail_enabled()` treats it like `external`.
 
 ## Browser verification in CI
 

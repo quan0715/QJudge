@@ -1,0 +1,12 @@
+# Only SMTP joins QJudge's network. MariaDB/web/worker stay on the addon network.
+services:
+  smtp:
+    networks:
+      default: {}
+      qjudge:
+        aliases:
+          - ${POSTAL_HOSTNAME:?set POSTAL_HOSTNAME}
+networks:
+  qjudge:
+    name: qjudge
+    external: true

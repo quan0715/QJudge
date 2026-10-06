@@ -17,7 +17,8 @@ from apps.users.password_reset import reset_enabled
     ('external', False, False),
     ('disabled', False, False),
     ('typo', True, False),
-    ('bundled', True, False),
+    ('bundled', True, True),
+    ('bundled', False, False),
 ])
 def test_password_recovery_requires_mail_and_password_login(settings, mode, password_enabled, expected):
     settings.EMAIL_MODE = mode
@@ -26,7 +27,7 @@ def test_password_recovery_requires_mail_and_password_login(settings, mode, pass
     assert reset_enabled() is expected
 
 
-@pytest.mark.parametrize('mode,expected', [(None, 'disabled'), ('', 'disabled'), ('disabled', 'disabled'), ('external', 'external')])
+@pytest.mark.parametrize('mode,expected', [(None, 'disabled'), ('', 'disabled'), ('disabled', 'disabled'), ('external', 'external'), ('bundled', 'bundled')])
 def test_settings_default_mail_to_disabled(mode, expected):
     result = load_mail_settings(mode)
     assert result.returncode == 0, result.stderr
@@ -49,7 +50,7 @@ def load_mail_settings(mode):
     )
 
 
-@pytest.mark.parametrize('mode,expected', [('external', True), ('disabled', False), ('typo', False), ('bundled', False), ('', False)])
+@pytest.mark.parametrize('mode,expected', [('external', True), ('bundled', True), ('disabled', False), ('typo', False), ('', False)])
 def test_mail_capability_does_not_depend_on_password_login(settings, mode, expected):
     settings.EMAIL_MODE = mode
     settings.AUTH_EMAIL_PASSWORD_ENABLED = False
