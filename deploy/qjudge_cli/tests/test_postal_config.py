@@ -91,6 +91,13 @@ class PostalComposeTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             return json.loads(result.stdout)
 
+    def test_worker_gets_time_to_finish_an_in_flight_delivery(self):
+        # Postal drops a message whose worker is killed mid-delivery; stop must not SIGKILL after 10s.
+        import re
+        value = str(self.config()['services']['worker'].get('stop_grace_period') or '0s')
+        seconds = sum(int(n) * {'h': 3600, 'm': 60, 's': 1}[unit] for n, unit in re.findall(r'(\d+)([hms])', value))
+        self.assertGreaterEqual(seconds, 60, value)
+
     def test_standalone_private_database_pinned_images_and_healthchecks(self):
         config = self.config()
         self.assertFalse(any(n.get('external') for n in config['networks'].values()))

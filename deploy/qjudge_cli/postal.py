@@ -134,6 +134,9 @@ def _run_postal(deploy: Path, env_file: Path, env: Env, action: str, run: Runner
     if action not in ACTIONS:
         print('Unsupported Postal action')
         return 1
+    if backup_dir is not None and action not in ('backup', 'upgrade'):
+        print(f'--backup-dir applies only to backup and upgrade, not {action}')
+        return 1
     # A separate Postal host skips the application's required keys, not typo detection.
     problems = unknown_key_errors(env) + check_settings(env)
     if not problems:
