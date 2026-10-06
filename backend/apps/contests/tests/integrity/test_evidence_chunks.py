@@ -79,7 +79,6 @@ def participant(db):
         status="published",
         contest_type="paper_exam",
         cheat_detection_enabled=True,
-        webcam_required=True,
         start_time=now - timedelta(hours=1),
         end_time=now + timedelta(hours=1),
     )

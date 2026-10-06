@@ -3,7 +3,6 @@ from types import SimpleNamespace
 import pytest
 
 from apps.contests.services.anticheat_config import build_runtime_integrity_policy
-from apps.contests.services.integrity_evidence import _enabled_sources
 
 
 @pytest.mark.parametrize("state", ["prepared", "active", "draining"])
@@ -29,8 +28,3 @@ def test_enabled_webcam_remains_required():
 def test_historical_evidence_keeps_its_original_policy(state):
     run = SimpleNamespace(session_state=state, policy_snapshot={"webcam_required": True})
     assert build_runtime_integrity_policy(SimpleNamespace(webcam_required=False), run)["webcam_required"] is True
-
-
-def test_live_evidence_does_not_request_disabled_webcam():
-    run = SimpleNamespace(contest=SimpleNamespace(webcam_required=False), session_state="active", policy_snapshot={"webcam_required": True})
-    assert _enabled_sources(run) == frozenset({"screen_share"})

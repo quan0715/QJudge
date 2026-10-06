@@ -27,7 +27,6 @@ from rest_framework.exceptions import APIException
 from apps.contests.models import Contest, ContestParticipant, ExamIntegrityRun, ExamStatus
 from apps.contests.permissions import can_manage_contest
 from apps.contests.services.anti_cheat_session import get_active_session, get_device_id
-from apps.contests.services.anticheat_config import build_runtime_integrity_policy
 from apps.contests.services.exam_validation import validate_exam_operation
 
 logger = logging.getLogger(__name__)
@@ -259,7 +258,7 @@ def _current_live_run(contest: Contest) -> ExamIntegrityRun:
 
 
 def _allowed_sources(run: ExamIntegrityRun) -> tuple[str, ...]:
-    if build_runtime_integrity_policy(run.contest, run)["webcam_required"]:
+    if run.policy_snapshot["webcam_required"]:
         return LIVE_SOURCES
     return ("screen_share",)
 

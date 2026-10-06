@@ -29,7 +29,6 @@ from apps.contests.services.anticheat_storage import (
     get_s3_client,
 )
 from apps.contests.services.integrity_event_projection import event_phase
-from apps.contests.services.anticheat_config import build_runtime_integrity_policy
 
 
 _SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
@@ -208,7 +207,7 @@ def _event_definition(
 
 
 def _enabled_sources(run: ExamIntegrityRun) -> frozenset[str]:
-    if build_runtime_integrity_policy(run.contest, run)["webcam_required"]:
+    if run.policy_snapshot["webcam_required"]:
         return frozenset({"screen_share", "webcam"})
     return frozenset({"screen_share"})
 
@@ -1509,7 +1508,7 @@ def evidence_statuses_for_events(
         ContestParticipant.objects.filter(
             contest_id__in=contest_ids,
             user_id__in=user_ids,
-        ).select_related("contest").only("id", "contest_id", "user_id", "contest__webcam_required")
+        ).only("id", "contest_id", "user_id")
     )
     participants_by_identity = {
         (participant.contest_id, participant.user_id): participant
@@ -1539,8 +1538,6 @@ def evidence_statuses_for_events(
         ).append(chunk)
 
     for key, (run, group_events, participant) in active_groups.items():
-        # Reuse the contest fetched with participants for the live webcam policy.
-        run.contest = participant.contest
         windows = _evidence_retain_windows_for_events(
             run,
             group_events,
