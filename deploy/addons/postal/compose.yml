@@ -1,0 +1,128 @@
+# Explicit optional project; never included by the application stack.
+x-postal: &postal
+  image: ghcr.io/postalserver/postal:3.3.7@sha256:e54b4a7eb106ee15eda5664311c4b9415546d4196f5c4336d23a78d6ce57b819
+  platform: linux/amd64
+  restart: unless-stopped
+  volumes:
+    - type: bind
+      source: ${POSTAL_CONFIG_DIR:?set POSTAL_CONFIG_DIR}
+      target: /config
+      read_only: true
+      bind:
+        create_host_path: false
+  depends_on:
+    postal-db:
+      condition: service_healthy
+  networks: [default]
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: '3'
+
+services:
+  postal-db:
+    image: mariadb:10.11.16@sha256:8a99982dced50264560fd8ada91aa34c276636bc02713f01f252c540930f9915
+    restart: unless-stopped
+    # Supports Postal's default 14MB maximum message (redo log >= 10x message).
+    command: [--innodb-log-file-size=256M, --max-allowed-packet=64M]
+    environment:
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db-password
+    volumes:
+      - postal-db:/var/lib/mysql
+      - type: bind
+        source: ${POSTAL_CONFIG_DIR:?set POSTAL_CONFIG_DIR}/db-password
+        target: /run/secrets/db-password
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
+  web:
+    <<: *postal
+    command: [postal, web-server]
+    environment:
+      PORT: '5000'
+      BIND_ADDRESS: 0.0.0.0
+    ports:
+      - '${POSTAL_WEB_BIND_ADDRESS:-127.0.0.1}:${POSTAL_WEB_PORT:-5000}:5000'
+    healthcheck:
+      # Postal permits only its configured Host; / redirects to login without following it.
+      test: [CMD, curl, --fail, --silent, --max-time, '4', --header, 'Host: ${POSTAL_HOSTNAME:?set POSTAL_HOSTNAME}', 'http://127.0.0.1:5000/']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  smtp:
+    <<: *postal
+    command: [postal, smtp-server]
+    cap_add: [NET_BIND_SERVICE]
+    environment:
+      PORT: '25'
+      BIND_ADDRESS: 0.0.0.0
+      HEALTH_SERVER_PORT: '9091'
+      HEALTH_SERVER_BIND_ADDRESS: 127.0.0.1
+    ports:
+      - '${POSTAL_SMTP_BIND_ADDRESS:-127.0.0.1}:${POSTAL_SMTP_PORT:-25}:25'
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, --max-time, '4', 'http://127.0.0.1:9091/health']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  worker:
+    <<: *postal
+    command: [postal, worker]
+    environment:
+      HEALTH_SERVER_PORT: '9090'
+      HEALTH_SERVER_BIND_ADDRESS: 127.0.0.1
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, --max-time, '4', 'http://127.0.0.1:9090/health']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  runner:
+    <<: *postal
+    profiles: [tools]
+    restart: 'no'
+    command: [postal]
+
+  config-check:
+    image: ghcr.io/postalserver/postal:3.3.7@sha256:e54b4a7eb106ee15eda5664311c4b9415546d4196f5c4336d23a78d6ce57b819
+    platform: linux/amd64
+    profiles: [tools]
+    network_mode: none
+    read_only: true
+    environment:
+      POSTAL_HOSTNAME: ${POSTAL_HOSTNAME:?set POSTAL_HOSTNAME}
+    volumes:
+      - type: bind
+        source: ${POSTAL_CONFIG_DIR:?set POSTAL_CONFIG_DIR}
+        target: /config
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./addons/postal/check-config.rb
+        target: /checks/check-config.rb
+        read_only: true
+        bind:
+          create_host_path: false
+    command: [ruby, /checks/check-config.rb]
+
+volumes:
+  postal-db:

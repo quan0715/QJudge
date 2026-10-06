@@ -133,3 +133,7 @@ docker compose -p qjudge exec ai-service python -m infrastructure.agent.model_co
 ## Remote MCP
 
 External AI tools connect via `<origin>/mcp` (e.g. `https://judge.example.edu/mcp`). This route and its OAuth metadata are routed automatically by the frontend container—no additional domains or ports are required. For client setup instructions, see [MCP Connection Setup](#/docs/mcp-setup).
+
+## Optional self-hosted email
+
+QJudge uses standard SMTP with any provider. Postal is an optional, independent addon. See [Email configuration](#/docs/deployment-email) for modes, TLS, host migration, backup and recovery.

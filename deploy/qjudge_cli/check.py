@@ -6,10 +6,10 @@ import ipaddress
 import re
 from urllib.parse import urlsplit
 
-from .schema import KEYS, KEYS_BY_NAME, Env, uses_public_origin
+from .schema import KEYS, KEYS_BY_NAME, Env, sends_mail, uses_public_origin
 
 ENUMS = {
-    "EMAIL_MODE": ("disabled", "external"),
+    "EMAIL_MODE": ("disabled", "external", "bundled"),
     "STORAGE_MODE": ("bundled", "external"),
     "MEDIA_MODE": ("disabled", "bundled", "external"),
 }
@@ -42,7 +42,7 @@ def check_env(env: Env) -> list[str]:
     errors: list[str] = []
     for name in sorted(set(env) - set(KEYS_BY_NAME)):
         if name == "PASSWORD_RESET_ENABLED":
-            errors.append(f"{name}: removed; delete this key and set EMAIL_MODE=disabled or external")
+            errors.append(f"{name}: removed; delete this key and set EMAIL_MODE=disabled, external or bundled")
         elif name in MOVED_AI_KEYS:
             errors.append(
                 f"{name}: moved; put API keys in deploy/ai/keys.env and base URLs in deploy/ai/models.yml"
@@ -63,6 +63,8 @@ def check_env(env: Env) -> list[str]:
     ssl = env.get("EMAIL_USE_SSL", "false").strip().lower()
     if tls in truthy and ssl in truthy:
         errors.append("EMAIL_USE_TLS / EMAIL_USE_SSL: choose STARTTLS or implicit TLS, not both")
+    from .postal import check_settings
+    errors.extend(check_settings(env))
     return errors
 
 
@@ -74,7 +76,7 @@ def _value_problem(name: str, value: str, env: Env) -> str | None:
         if not value.isdigit() or not 1 <= int(value) <= (65535 if name == "EMAIL_PORT" else 120):
             return "must be a valid positive port or timeout (1–120 seconds)"
     # The sender is only used when mail is enabled; an unused value must not block upgrades.
-    if name == "DEFAULT_FROM_EMAIL" and env.get("EMAIL_MODE", "").strip() == "external":
+    if name == "DEFAULT_FROM_EMAIL" and sends_mail(env):
         address = _sender_address(value)
         domain = address.rpartition("@")[2] if address else ""
         labels = domain.split(".")

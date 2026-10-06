@@ -66,17 +66,7 @@ https://judge.example.edu/auth/<provider>/callback
 
 ## Email
 
-寄送 Email 需要 SMTP：
-
-```text
-EMAIL_HOST=smtp.example.edu
-EMAIL_PORT=587
-EMAIL_HOST_USER=<username>
-EMAIL_HOST_PASSWORD=<password>
-DEFAULT_FROM_EMAIL=qjudge@example.edu
-```
-
-`EMAIL_HOST_USER` 與 `EMAIL_HOST_PASSWORD` 必須成對，連線使用 TLS。
+QJudge 使用標準 SMTP，可沿用外部服務，或選配自架 Postal。寄信不是一般部署的必要條件；完整 `.env`、TLS、同機／獨立主機及備份說明見[設定寄信服務](#/docs/deployment-email)。
 
 ## AI provider
 

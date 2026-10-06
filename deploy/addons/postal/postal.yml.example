@@ -1,0 +1,36 @@
+# Operator-managed file, mounted read-only at /config/postal.yml.
+# Copy to POSTAL_CONFIG_DIR; replace every REPLACE value manually.
+# Match POSTAL_HOSTNAME and provide real SMTP TLS certificate/key files.
+version: 2
+postal:
+  web_hostname: postal.example.test
+  web_protocol: https
+  smtp_hostname: postal.example.test
+main_db:
+  host: postal-db
+  port: 3306
+  username: root
+  password: REPLACE_WITH_DB_PASSWORD
+  database: postal
+message_db:
+  host: postal-db
+  port: 3306
+  username: root
+  password: REPLACE_WITH_SAME_DB_PASSWORD
+  database_name_prefix: postal
+smtp_server:
+  tls_enabled: true
+  tls_certificate_path: /config/smtp.cert
+  tls_private_key_path: /config/smtp.key
+  max_message_size: 14
+rails:
+  secret_key: REPLACE_WITH_OPERATOR_CREATED_RANDOM_SECRET_AT_LEAST_64_CHARACTERS
+dns:
+  mx_records: [postal.example.test]
+  spf_include: spf.postal.example.test
+  return_path_domain: rp.postal.example.test
+  route_domain: routes.postal.example.test
+  track_domain: track.postal.example.test
+# Postal's own admin notification mail is separate from QJudge's SMTP settings.
+# Configure the smtp group manually after creating a Postal mail server/credential:
+# https://docs.postalserver.io/getting-started/installation/#postals-own-e-mails
