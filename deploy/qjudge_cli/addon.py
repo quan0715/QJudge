@@ -13,6 +13,7 @@ from .schema import Env
 from .stack import Runner, compose_project, ensure_network
 
 ADDONS = {
+    "postal": {"mode_key": "EMAIL_MODE"},
     "storage": {
         "mode_key": "STORAGE_MODE",
         "up": ["up", "-d", "minio"],
@@ -23,7 +24,7 @@ ADDONS = {
         "up": ["up", "-d", "livekit"],
     },
 }
-ACTIONS = ("up", "init")
+ACTIONS = ("up", "init", "check", "status", "backup", "upgrade")
 
 
 def _compose(deploy_dir: Path, env_file: Path, name: str, project: str) -> list[str]:
@@ -44,7 +45,14 @@ def run_addon(
     name: str,
     action: str,
     run: Runner = subprocess.run,
+    *, backup_dir: Path | None = None,
 ) -> int:
+    if name == "postal":
+        from .postal import run_postal
+        return run_postal(deploy_dir, env_file, env, action, run, backup_dir)
+    if action not in ("up", "init") or backup_dir is not None:
+        print(f"Unsupported action or backup option for {name}")
+        return 1
     mode_key = ADDONS[name]["mode_key"]
     if env.get(mode_key, "").strip() != "bundled":
         print(f"{mode_key} is not bundled; the {name} addon is not used")

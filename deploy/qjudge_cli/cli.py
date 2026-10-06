@@ -31,10 +31,11 @@ def main(argv: list[str] | None = None) -> int:
     ingress_parser = commands.add_parser("ingress", help="list the entry points to configure outside QJudge")
     ingress_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
     ingress_parser.add_argument("--nginx", action="store_true", help="print a reverse proxy server block")
-    addon_parser = commands.add_parser("addon", help="initialize or start bundled storage and media")
+    addon_parser = commands.add_parser("addon", help="manage optional storage, media and Postal addons")
     addon_parser.add_argument("name", choices=sorted(ADDONS))
     addon_parser.add_argument("action", choices=ACTIONS)
     addon_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
+    addon_parser.add_argument("--backup-dir", type=Path, help="Postal backup destination (new private subdirectory per run)")
     init_parser = commands.add_parser("init", help="create deploy/.env for a new installation")
     init_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
     init_parser.add_argument("--non-interactive", action="store_true", help="fail instead of asking for missing keys")
@@ -78,7 +79,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         return 0 if bootstrap_secrets(DEPLOY_DIR, image, subprocess.run) else 1
     if args.command == "addon":
-        return run_addon(DEPLOY_DIR, args.env_file, load(args.env_file), args.name, args.action)
+        return run_addon(DEPLOY_DIR, args.env_file, load(args.env_file), args.name, args.action, backup_dir=args.backup_dir)
     return _check(args.env_file)
 
 

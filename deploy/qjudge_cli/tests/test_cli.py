@@ -22,6 +22,23 @@ class CliTests(unittest.TestCase):
             code = main(list(args))
         return code, output.getvalue()
 
+    def test_postal_backup_dispatches_explicit_destination(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = write_env(directory, {"EMAIL_MODE": "bundled"})
+            target = Path(directory) / "backup-target"
+            with mock.patch("qjudge_cli.cli.run_addon", return_value=0) as run:
+                code, _ = self.run_cli("addon", "postal", "backup", "--env-file", str(path), "--backup-dir", str(target))
+            self.assertEqual(code, 0)
+            self.assertEqual(run.call_args.args[3:5], ("postal", "backup"))
+            self.assertEqual(run.call_args.kwargs["backup_dir"], target)
+
+    def test_existing_addons_reject_new_postal_only_actions(self):
+        from qjudge_cli.addon import run_addon
+        for name in ("media", "storage"):
+            with redirect_stdout(io.StringIO()), mock.patch("subprocess.run") as run:
+                self.assertEqual(run_addon(Path("/unused"), Path("/unused/.env"), {}, name, "backup", run=run), 1)
+                run.assert_not_called()
+
     def test_check_passes_for_valid_env(self):
         with tempfile.TemporaryDirectory() as directory:
             path = write_env(directory, VALID)

@@ -316,8 +316,8 @@ EMAIL_SUBJECT_PREFIX = "[QJudge] "
 EMAIL_MODE = env("EMAIL_MODE", "disabled")
 # Django's signed reset tokens expire after this many seconds.
 PASSWORD_RESET_TIMEOUT = 15 * 60
-if EMAIL_MODE not in {"disabled", "external"}:
-    raise ImproperlyConfigured("EMAIL_MODE must be disabled or external")
+if EMAIL_MODE not in {"disabled", "external", "bundled"}:
+    raise ImproperlyConfigured("EMAIL_MODE must be disabled, external or bundled")
 
 # Celery settings
 CELERY_BROKER_URL = env("REDIS_URL", "redis://localhost:6379/0")

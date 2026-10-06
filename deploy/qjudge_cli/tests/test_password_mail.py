@@ -46,8 +46,12 @@ class PasswordMailTests(unittest.TestCase):
         for mode in ('', 'disabled'):
             self.assertEqual(self.smtp_errors(EMAIL_MODE=mode), [])
 
-    def test_bundled_is_not_yet_a_supported_mail_mode(self):
-        self.assertTrue(self.smtp_errors(EMAIL_MODE='bundled'))
+    def test_bundled_sends_through_smtp_like_external(self):
+        errors = self.smtp_errors(EMAIL_MODE='bundled')
+        self.assertTrue(any(error.startswith('EMAIL_HOST:') for error in errors))
+        self.assertTrue(any(error.startswith('DEFAULT_FROM_EMAIL:') for error in errors))
+        self.assertTrue(self.sender_errors('a,b@mail.example.edu', mode='bundled'))
+        self.assertEqual(self.sender_errors('QJudge <noreply@mail.q-judge.com>', mode='bundled'), [])
 
     def test_legacy_switch_has_actionable_migration_error(self):
         errors = self.smtp_errors(PASSWORD_RESET_ENABLED='true')

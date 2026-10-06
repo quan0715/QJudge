@@ -191,3 +191,6 @@ secrets/
 .superpowers/
 # Local qjudge-paper-cli output (default --output-dir)
 reports/
+
+# Local Postal lifecycle lock; contains no credentials.
+deploy/.postal-*.lock
