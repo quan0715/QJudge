@@ -81,4 +81,4 @@ docker compose -p qjudge up -d backend frontend
 
 ## 密碼重設與寄信
 
-密碼重設需要帳密登入與 `EMAIL_MODE=external` 同時啟用。SMTP 設定、停用狀態下的測試信與分階段啟用步驟，見[設定寄信](#/docs/deployment-email)。
+密碼重設需要帳密登入與平台寄信（`EMAIL_MODE=external` 或 `bundled`）同時啟用。SMTP 設定、停用狀態下的測試信與分階段啟用步驟，見[設定寄信](#/docs/deployment-email)。

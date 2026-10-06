@@ -17,14 +17,15 @@ Links use `/reset-password#uid=...&token=...` so the secret is absent from the i
 ## Platform mail capability and deployment
 
 `EMAIL_MODE` is the shared platform mail switch: unset or `disabled` keeps
-application mail off; `external` enables configured SMTP. Invalid modes fail
+application mail off; `external` and `bundled` (the self-hosted Postal addon)
+both enable mail through the configured SMTP settings. Invalid modes fail
 settings startup and deployment validation. `apps.core.services.mail.mail_enabled()`
 uses the supported mode explicitly. Password recovery additionally requires
 `AUTH_EMAIL_PASSWORD_ENABLED`; `/api/v1/auth/providers.password_reset_enabled`
 is derived from both capabilities, preserving the frontend API contract.
 
 `PASSWORD_RESET_ENABLED` has been removed. Delete it from the deployment env
-and choose `EMAIL_MODE=disabled` or `external`; the CLI returns an actionable
+and choose `EMAIL_MODE=disabled`, `external` or `bundled`; the CLI returns an actionable
 migration error rather than silently mapping the old setting.
 
 The public operator guides are [Traditional Chinese](../../frontend/public/docs/zh-TW/deployment-email.md)

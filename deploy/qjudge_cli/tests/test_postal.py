@@ -238,6 +238,12 @@ class PostalTests(unittest.TestCase):
         self.assertFalse(any('stop' in a for a, _ in run.calls))
         self.assertFalse(backups.exists())
 
+    def test_backup_dir_is_rejected_for_actions_that_take_no_backup(self):
+        for action in ('check', 'init', 'up', 'status'):
+            run = RecordingRunner()
+            self.assertEqual(self.invoke(action, run=run, backup_dir=self.deploy / 'elsewhere'), 1, action)
+            self.assertEqual(run.calls, [], action)
+
     def test_unknown_keys_are_rejected_before_any_postal_command(self):
         run = RecordingRunner()
         env = {**self.env, 'POSTAL_NETWORK_MOD': 'qjudge'}
