@@ -231,6 +231,19 @@ class PostalTests(unittest.TestCase):
             self.assertEqual(self.invoke('upgrade', run=run), 1)
             self.assertEqual(run.calls, [])
 
+    def test_backup_inside_addon_directory_is_rejected_without_stopping_writers(self):
+        run = RecordingRunner()
+        backups = self.deploy / 'addons' / 'postal' / 'backups'
+        self.assertEqual(self.invoke('backup', run=run, backup_dir=backups), 1)
+        self.assertFalse(any('stop' in a for a, _ in run.calls))
+        self.assertFalse(backups.exists())
+
+    def test_unknown_keys_are_rejected_before_any_postal_command(self):
+        run = RecordingRunner()
+        env = {**self.env, 'POSTAL_NETWORK_MOD': 'qjudge'}
+        self.assertEqual(self.invoke('up', env=env, run=run), 1)
+        self.assertEqual(run.calls, [])
+
     def test_backup_stops_restarting_writers_as_well_as_running_writers(self):
         class Restarting(RecordingRunner):
             def __call__(self, args, **kwargs):

@@ -104,7 +104,8 @@ class PostalComposeTests(unittest.TestCase):
         for name in ('web', 'smtp'):
             self.assertEqual(config['services'][name]['ports'][0]['host_ip'], '127.0.0.1')
         self.assertTrue(config['services']['runner']['volumes'][0]['read_only'])
-        self.assertFalse(config['services']['runner']['volumes'][0]['bind']['create_host_path'])
+        # Compose omits false booleans in some versions; the long-syntax default is false.
+        self.assertFalse(config['services']['runner']['volumes'][0].get('bind', {}).get('create_host_path', False))
         self.assertIn('tools', config['services']['runner']['profiles'])
 
     def test_web_health_probe_supplies_the_configured_virtual_host(self):

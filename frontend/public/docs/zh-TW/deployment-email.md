@@ -170,8 +170,9 @@ deploy/qjudge addon postal init
 建立管理員是管理者的獨立操作（此互動指令會要求帳號資訊）：
 
 ```bash
-docker compose --project-name qjudge-postal --project-directory deploy \
-  -f deploy/addons/postal/compose.yml \
+postal_project="$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' deploy/.env)"
+docker compose --project-name "${postal_project:-qjudge}-postal" --project-directory deploy \
+  --env-file deploy/.env -f deploy/addons/postal/compose.yml \
   run --rm --no-deps runner postal make-user
 
 deploy/qjudge addon postal up

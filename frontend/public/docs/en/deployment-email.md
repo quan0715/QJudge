@@ -168,8 +168,9 @@ deploy/qjudge addon postal init
 The operator can then create the first admin interactively:
 
 ```bash
-docker compose --project-name qjudge-postal --project-directory deploy \
-  -f deploy/addons/postal/compose.yml \
+postal_project="$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' deploy/.env)"
+docker compose --project-name "${postal_project:-qjudge}-postal" --project-directory deploy \
+  --env-file deploy/.env -f deploy/addons/postal/compose.yml \
   run --rm --no-deps runner postal make-user
 
 deploy/qjudge addon postal up

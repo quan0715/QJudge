@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from .check import unknown_key_errors
 from .schema import Env
 from .stack import Runner, compose_project, ensure_network
 
@@ -85,6 +86,10 @@ def _backup(deploy: Path, env: Env, command: list[str], destination: Path, run: 
     destination = destination.resolve()
     if destination == config or config in destination.parents:
         raise RuntimeError('Postal backup directory must be outside POSTAL_CONFIG_DIR')
+    addon = (deploy / 'addons/postal').resolve()
+    if destination == addon or addon in destination.parents:
+        # The addon definitions are copied into the backup; a nested target would copy itself.
+        raise RuntimeError('Postal backup directory must be outside deploy/addons/postal')
     destination.mkdir(parents=True, exist_ok=True, mode=0o700)
     backup = Path(tempfile.mkdtemp(prefix='postal-', dir=destination))
     print(f'Postal backup: {backup}')
@@ -129,7 +134,8 @@ def _run_postal(deploy: Path, env_file: Path, env: Env, action: str, run: Runner
     if action not in ACTIONS:
         print('Unsupported Postal action')
         return 1
-    problems = check_settings(env)
+    # A separate Postal host skips the application's required keys, not typo detection.
+    problems = unknown_key_errors(env) + check_settings(env)
     if not problems:
         problems = _check_files(Path(env['POSTAL_CONFIG_DIR']))
     for problem in problems:

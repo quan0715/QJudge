@@ -37,8 +37,8 @@ RESERVED_BUCKET_PATHS = {
 }
 
 
-def check_env(env: Env) -> list[str]:
-    """Return one message per problem; an empty list means the env is valid."""
+def unknown_key_errors(env: Env) -> list[str]:
+    """Report keys the schema does not know, including removed or moved ones."""
     errors: list[str] = []
     for name in sorted(set(env) - set(KEYS_BY_NAME)):
         if name == "PASSWORD_RESET_ENABLED":
@@ -49,6 +49,12 @@ def check_env(env: Env) -> list[str]:
             )
         else:
             errors.append(f"{name}: unknown key; see deploy/.env.example for supported keys")
+    return errors
+
+
+def check_env(env: Env) -> list[str]:
+    """Return one message per problem; an empty list means the env is valid."""
+    errors = unknown_key_errors(env)
     for key in KEYS:
         value = env.get(key.name, "").strip()
         if not value:
