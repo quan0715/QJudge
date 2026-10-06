@@ -47,7 +47,10 @@ from ..services.exam_scoring import ExamScoringService
 from ..services.anti_cheat_session import get_active_session
 from ..services.integrity_presence import get_last_checkpoint
 from ..services.integrity_sessions import (
+    LIVE_SESSION_STATES,
     apply_webcam_setting_to_prepared_run,
+    build_runtime_integrity_policy,
+    ensure_webcam_can_be_required,
     prepare_integrity_session,
 )
 from ..services.participant_dashboard import build_participant_dashboard
@@ -56,7 +59,7 @@ from ..services.live_monitoring_presence import (
     empty_live_snapshot,
     get_live_snapshot,
 )
-from ..services.anticheat_config import build_contest_anticheat_config, build_runtime_integrity_policy
+from ..services.anticheat_config import build_contest_anticheat_config
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
 from ..services.activity_log import log_contest_activity
 from ..services.participation import roster_user_ids
@@ -205,6 +208,8 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             serializer.instance = locked
             # Partial updates must validate against the latest locked counterpart.
             serializer.validate(serializer.validated_data)
+            if serializer.validated_data.get("webcam_required") is True:
+                ensure_webcam_can_be_required(locked)
             serializer.instance = update_exam_schedule(
                 locked.pk,
                 start_time=serializer.validated_data.get("start_time", locked.start_time),
@@ -245,10 +250,9 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             payload = build_contest_anticheat_config(contest)
             cache.set(cache_key, payload, timeout=ANTICHEAT_CONFIG_CACHE_TTL_SECONDS)
         live_run = (
-            ExamIntegrityRun.objects.filter(
-                contest=contest, session_state__in=("prepared", "active", "draining")
-            )
+            ExamIntegrityRun.objects.filter(contest=contest, session_state__in=LIVE_SESSION_STATES)
             .exclude(data_state=ExamIntegrityRun.DataState.PURGED)
+            .order_by("-created_at")
             .first()
         )
         if live_run is not None:
