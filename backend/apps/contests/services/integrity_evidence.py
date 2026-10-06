@@ -1509,7 +1509,7 @@ def evidence_statuses_for_events(
         ContestParticipant.objects.filter(
             contest_id__in=contest_ids,
             user_id__in=user_ids,
-        ).only("id", "contest_id", "user_id")
+        ).select_related("contest").only("id", "contest_id", "user_id", "contest__webcam_required")
     )
     participants_by_identity = {
         (participant.contest_id, participant.user_id): participant
@@ -1539,6 +1539,8 @@ def evidence_statuses_for_events(
         ).append(chunk)
 
     for key, (run, group_events, participant) in active_groups.items():
+        # Reuse the contest fetched with participants for the live webcam policy.
+        run.contest = participant.contest
         windows = _evidence_retain_windows_for_events(
             run,
             group_events,
