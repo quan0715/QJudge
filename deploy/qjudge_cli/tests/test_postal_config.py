@@ -96,7 +96,7 @@ class PostalComposeTests(unittest.TestCase):
         import re
         value = str(self.config()['services']['worker'].get('stop_grace_period') or '0s')
         seconds = sum(int(n) * {'h': 3600, 'm': 60, 's': 1}[unit] for n, unit in re.findall(r'(\d+)([hms])', value))
-        self.assertGreaterEqual(seconds, 60, value)
+        self.assertGreaterEqual(seconds, 120, value)
 
     def test_standalone_private_database_pinned_images_and_healthchecks(self):
         config = self.config()
