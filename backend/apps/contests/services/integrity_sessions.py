@@ -5,6 +5,8 @@ from datetime import timedelta
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
+from rest_framework import status
+from rest_framework.exceptions import APIException
 
 from apps.contests.integrity.registry import REGISTRY_VERSION, build_registry_snapshot
 from apps.contests.models import Contest, ExamIntegrityRun
@@ -12,6 +14,36 @@ from apps.contests.services.anticheat_config import build_integrity_policy_snaps
 
 logger = logging.getLogger(__name__)
 LIVE_SESSION_STATES = ("prepared", "active", "draining")
+STARTED_SESSION_STATES = ("active", "draining")
+
+
+class WebcamRequirementLocked(APIException):
+    """A started exam cannot newly require students to turn on a webcam."""
+
+    status_code = status.HTTP_409_CONFLICT
+    default_code = "webcam_required_locked"
+    default_detail = "考試已開始，無法再要求學生開啟 webcam。考試中只能關閉 webcam；若要開啟，請在考試開始前設定。"
+
+
+def ensure_webcam_can_be_required(contest: Contest) -> None:
+    """Reject turning webcam on while a run is underway; turning it off is allowed."""
+    if not contest.webcam_required and ExamIntegrityRun.objects.filter(
+        contest=contest, session_state__in=STARTED_SESSION_STATES
+    ).exists():
+        raise WebcamRequirementLocked()
+
+
+def build_runtime_integrity_policy(contest: Contest, run: ExamIntegrityRun) -> dict:
+    """Let a teacher turn webcam off for a live run without rewriting its snapshot.
+
+    The integrity resident treats the snapshot as immutable, so the change is
+    applied only to what the browser receives. Evidence retention keeps using
+    the frozen snapshot, so webcam evidence recorded before the change is kept.
+    """
+    policy = dict(run.policy_snapshot)
+    if run.session_state in LIVE_SESSION_STATES:
+        policy["webcam_required"] = policy.get("webcam_required") is True and contest.webcam_required
+    return policy
 
 
 def ensure_resident_session(contest_id, *, actor_id=None) -> ExamIntegrityRun | None:

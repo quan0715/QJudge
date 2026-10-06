@@ -94,7 +94,7 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         run.refresh_from_db()
         self.assertTrue(run.policy_snapshot["webcam_required"])
 
-    def test_turning_on_webcam_never_changes_a_started_run(self):
+    def test_turning_on_webcam_is_rejected_once_the_exam_started(self):
         run = self._run_in("active")
         self.client.force_authenticate(user=self.owner)
 
@@ -102,7 +102,10 @@ class ContestAntiCheatConfigApiTests(APITestCase):
             f"/api/v1/contests/{self.contest.id}/", {"webcam_required": True}, format="json"
         )
 
-        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        self.assertEqual(resp.status_code, status.HTTP_409_CONFLICT, resp.data)
+        self.assertIn("webcam", resp.data["error"]["message"])
+        self.contest.refresh_from_db()
+        self.assertFalse(self.contest.webcam_required)
         run.refresh_from_db()
         self.assertFalse(run.policy_snapshot["webcam_required"])
 
@@ -121,6 +124,35 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertFalse(response.data["integrity_run"]["policy_snapshot"]["webcam_required"])
         run.refresh_from_db()
         self.assertTrue(run.policy_snapshot["webcam_required"])
+
+    def test_turning_webcam_back_on_mid_exam_is_rejected(self):
+        self.contest.webcam_required = True
+        self.contest.save(update_fields=["webcam_required"])
+        self._run_in("active")
+        self.client.force_authenticate(user=self.owner)
+        url = f"/api/v1/contests/{self.contest.id}/"
+
+        self.assertEqual(self.client.patch(url, {"webcam_required": False}, format="json").status_code, status.HTTP_200_OK)
+        resp = self.client.patch(url, {"webcam_required": True}, format="json")
+
+        self.assertEqual(resp.status_code, status.HTTP_409_CONFLICT, resp.data)
+        self.contest.refresh_from_db()
+        self.assertFalse(self.contest.webcam_required)
+
+    def test_precheck_uses_the_live_run_when_archived_runs_remain(self):
+        self.contest.webcam_required = True
+        self.contest.save(update_fields=["webcam_required"])
+        self._run_in("archived")
+        live = self._run_in("active")
+        self._run_in("archived")
+        self.contest.webcam_required = False
+        self.contest.save(update_fields=["webcam_required"])
+        self.client.force_authenticate(user=self.student)
+
+        response = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
+
+        self.assertEqual(response.data["integrity_run"]["id"], str(live.id))
+        self.assertFalse(response.data["integrity_run"]["policy_snapshot"]["webcam_required"])
 
     def test_archived_run_does_not_override_current_precheck_settings(self):
         self._run_in("archived")

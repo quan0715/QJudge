@@ -7,20 +7,6 @@ def build_contest_anticheat_config(contest) -> dict:
     return {"webcam_required": contest.webcam_required}
 
 
-def build_runtime_integrity_policy(contest, run) -> dict:
-    """Allow disabling webcam live without rewriting the resident's frozen identity.
-
-    Enabling it still requires a run prepared with webcam; archived evidence
-    retains the policy under which it was collected.
-    """
-    policy = dict(run.policy_snapshot)
-    if run.session_state in ("prepared", "active", "draining"):
-        policy["webcam_required"] = (
-            policy.get("webcam_required") is True and contest.webcam_required
-        )
-    return policy
-
-
 def build_integrity_policy_snapshot(contest) -> dict:
     """Freeze the browser/worker contract for one integrity run."""
     return {
