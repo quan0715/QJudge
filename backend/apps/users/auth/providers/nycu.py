@@ -12,7 +12,8 @@ class NYCUOAuthService(BaseOAuthService):
         return {
             "username": raw.get("username"),
             "email": raw.get("email"),
-            "oauth_id": raw.get("sub") or raw.get("id"),
+            # NYCU's profile API returns the SSO username, not an OIDC sub.
+            "oauth_id": raw.get("sub") or raw.get("id") or raw.get("username"),
             "avatar_url": extract_avatar_url(raw),
             # The profile API omits email_verified; NYCU itself verifies the
             # institutional address, so only an explicit false is unverified.
