@@ -83,6 +83,10 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         )
 
     def test_turning_on_webcam_reaches_a_run_that_has_not_started(self):
+        now = timezone.now()
+        self.contest.start_time = now + timedelta(hours=1)
+        self.contest.end_time = now + timedelta(hours=2)
+        self.contest.save(update_fields=["start_time", "end_time"])
         run = self._run_in("prepared")
         self.client.force_authenticate(user=self.owner)
 
@@ -124,6 +128,19 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertFalse(response.data["integrity_run"]["policy_snapshot"]["webcam_required"])
         run.refresh_from_db()
         self.assertTrue(run.policy_snapshot["webcam_required"])
+
+    def test_turning_on_webcam_is_rejected_after_start_before_the_run_activates(self):
+        # The reconciler marks the run active on its next sweep; the start time already passed.
+        run = self._run_in("prepared")
+        self.client.force_authenticate(user=self.owner)
+
+        resp = self.client.patch(
+            f"/api/v1/contests/{self.contest.id}/", {"webcam_required": True}, format="json"
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_409_CONFLICT, resp.data)
+        run.refresh_from_db()
+        self.assertFalse(run.policy_snapshot["webcam_required"])
 
     def test_turning_webcam_back_on_mid_exam_is_rejected(self):
         self.contest.webcam_required = True

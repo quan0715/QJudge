@@ -26,10 +26,17 @@ class WebcamRequirementLocked(APIException):
 
 
 def ensure_webcam_can_be_required(contest: Contest) -> None:
-    """Reject turning webcam on while a run is underway; turning it off is allowed."""
-    if not contest.webcam_required and ExamIntegrityRun.objects.filter(
-        contest=contest, session_state__in=STARTED_SESSION_STATES
-    ).exists():
+    """Reject turning webcam on once the exam is underway; turning it off is allowed.
+
+    A run stays prepared until the reconciler's next sweep after the start time,
+    so a passed start time counts as started for a prepared run too.
+    """
+    if contest.webcam_required:
+        return
+    started_states = list(STARTED_SESSION_STATES)
+    if contest.start_time and contest.start_time <= timezone.now():
+        started_states.append("prepared")
+    if ExamIntegrityRun.objects.filter(contest=contest, session_state__in=started_states).exists():
         raise WebcamRequirementLocked()
 
 
