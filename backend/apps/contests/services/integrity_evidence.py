@@ -29,6 +29,7 @@ from apps.contests.services.anticheat_storage import (
     get_s3_client,
 )
 from apps.contests.services.integrity_event_projection import event_phase
+from apps.contests.services.anticheat_config import build_runtime_integrity_policy
 
 
 _SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
@@ -207,7 +208,7 @@ def _event_definition(
 
 
 def _enabled_sources(run: ExamIntegrityRun) -> frozenset[str]:
-    if run.policy_snapshot["webcam_required"]:
+    if build_runtime_integrity_policy(run.contest, run)["webcam_required"]:
         return frozenset({"screen_share", "webcam"})
     return frozenset({"screen_share"})
 

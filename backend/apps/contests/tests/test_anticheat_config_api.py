@@ -106,6 +106,28 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         run.refresh_from_db()
         self.assertFalse(run.policy_snapshot["webcam_required"])
 
+    def test_disabled_webcam_overrides_stale_active_policy_without_mutating_it(self):
+        self.contest.webcam_required = True
+        self.contest.save(update_fields=["webcam_required"])
+        run = self._run_in("active")
+        self.client.force_authenticate(user=self.owner)
+        updated = self.client.patch(
+            f"/api/v1/contests/{self.contest.id}/", {"webcam_required": False}, format="json"
+        )
+        self.assertEqual(updated.status_code, status.HTTP_200_OK)
+        self.client.force_authenticate(user=self.student)
+        response = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
+        self.assertFalse(response.data["webcam_required"])
+        self.assertFalse(response.data["integrity_run"]["policy_snapshot"]["webcam_required"])
+        run.refresh_from_db()
+        self.assertTrue(run.policy_snapshot["webcam_required"])
+
+    def test_archived_run_does_not_override_current_precheck_settings(self):
+        self._run_in("archived")
+        self.client.force_authenticate(user=self.student)
+        response = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
+        self.assertNotIn("integrity_run", response.data)
+
     def test_update_serializer_accepts_webcam_required(self):
         serializer = ContestCreateUpdateSerializer(
             self.contest, data={"webcam_required": True}, partial=True

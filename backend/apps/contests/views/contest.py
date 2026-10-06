@@ -56,7 +56,7 @@ from ..services.live_monitoring_presence import (
     empty_live_snapshot,
     get_live_snapshot,
 )
-from ..services.anticheat_config import build_contest_anticheat_config
+from ..services.anticheat_config import build_contest_anticheat_config, build_runtime_integrity_policy
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
 from ..services.activity_log import log_contest_activity
 from ..services.participation import roster_user_ids
@@ -245,9 +245,10 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             payload = build_contest_anticheat_config(contest)
             cache.set(cache_key, payload, timeout=ANTICHEAT_CONFIG_CACHE_TTL_SECONDS)
         live_run = (
-            ExamIntegrityRun.objects.filter(contest=contest)
+            ExamIntegrityRun.objects.filter(
+                contest=contest, session_state__in=("prepared", "active", "draining")
+            )
             .exclude(data_state=ExamIntegrityRun.DataState.PURGED)
-            .exclude(session_state=ExamIntegrityRun.SessionState.CLOSED)
             .first()
         )
         if live_run is not None:
@@ -262,7 +263,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
                     "session_state": live_run.session_state,
                     "health": live_run.health,
                     "participant_id": str(participant.id) if participant else None,
-                    "policy_snapshot": live_run.policy_snapshot,
+                    "policy_snapshot": build_runtime_integrity_policy(contest, live_run),
                     "registry_snapshot": live_run.registry_snapshot,
                 },
             }
