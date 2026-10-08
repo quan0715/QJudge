@@ -46,7 +46,7 @@
     }
   },
   "cta": {
-    "description": "Join QJudge and begin your coding journey. Free to start.",
+    "description": "Start using QJudge for course exams, grading and learning feedback.",
     "docs": "Learn more",
     "signIn": "Sign in",
     "title": "Ready to start?"
@@ -180,8 +180,8 @@
     "panelTitle": "Teacher Dashboard Overview",
     "primaryCta": "Get Started Free",
     "secondaryCta": "Book a Demo",
-    "subtitle": "A high-quality testing environment built for academic settings. Integrating AI proctoring, paper-based questions, and real-time evaluation, ensuring every exam is fair, efficient, and in-depth.",
-    "title": "Next-Generation Digital Learning Experience",
+    "subtitle": "Connect question authoring, exam management, AI-assisted grading and analysis for university courses. Choose question types to fit your course and give students feedback beyond a score.",
+    "title": "Make every exam an opportunity to understand learning.",
     "trust": {
       "capacity": "150+ Concurrent Examinees Verified",
       "users": "Serving 200+ Teachers and Students",
@@ -275,11 +275,11 @@
     "title": "Designed for Formal Exams: Not Just Answering, but Actionable Results"
   },
   "seo": {
-    "description": "QJudge is an AI-powered assessment platform designed for educators, supporting coding exams, multiple choice, and open-ended questions with robust proctoring and AI-assisted authoring.",
-    "keywords": "online exam, online exam system, online test, AI exam, coding test, anti-cheat, online judge, question bank, exam analysis, QJudge",
-    "ogDescription": "Online exam platform for educators. Coding tests, anti-cheat monitoring, AI question generation. Free to start.",
-    "ogTitle": "QJudge | AI-Powered Online Exam Platform",
-    "title": "QJudge Online Exam Platform | AI Question Generation, Anti-Cheat, and Coding Assessment"
+    "title": "QJudge | Online Exams, AI-Assisted Grading & Learning Analytics",
+    "description": "QJudge helps university educators connect question authoring, exam management, AI-assisted grading and learning analytics. Support multiple-choice, open-ended and programming questions for quizzes and course exams.",
+    "keywords": "online exam platform, university assessment, AI-assisted grading, open-ended questions, classroom quiz, learning analytics, QJudge",
+    "ogTitle": "QJudge | Online Exams, AI-Assisted Grading & Learning Analytics",
+    "ogDescription": "QJudge helps university educators connect question authoring, exam management, AI-assisted grading and learning analytics. Support multiple-choice, open-ended and programming questions for quizzes and course exams."
   },
   "socialProof": {
     "caseStudies": {
@@ -311,5 +311,12 @@
     "description": "From large-scale class exams to graduate lab tests, QJudge supports authentic assessment workflows in higher education.",
     "eyebrow": "Real-World Scenarios",
     "title": "Campus Application Scenarios"
+  },
+  "video": {
+    "eyebrow": "Product video",
+    "title": "Meet QJudge in 90 seconds",
+    "description": "See how exam preparation, activity records, AI-assisted grading and class-wide analysis connect in a course assessment workflow.",
+    "link": "Video overview and text summary (Traditional Chinese)",
+    "note": "Traditional Chinese video · 1 min 27 sec · text summary available"
   }
 }
