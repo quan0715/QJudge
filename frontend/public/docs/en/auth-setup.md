@@ -81,4 +81,4 @@ docker compose -p qjudge up -d backend frontend
 
 ## Password recovery and mail
 
-Password recovery requires both password login and `EMAIL_MODE=external`. See [Configure email delivery](#/docs/deployment-email) for SMTP settings, a probe while mail is disabled, and staged enablement.
+Password recovery requires both password login and application mail (`EMAIL_MODE=external` or `bundled`). See [Configure email delivery](#/docs/deployment-email) for SMTP settings, a probe while mail is disabled, and staged enablement.
