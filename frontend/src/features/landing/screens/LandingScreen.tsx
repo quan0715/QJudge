@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet-async";
 import { Asleep, Light } from "@carbon/icons-react";
 import { getLandingContent } from "@/features/landing/content/landingContent";
 import LandingHeader from "@/features/landing/sections/LandingHeader";
+import ProductVideoSection from "@/features/landing/sections/ProductVideoSection";
 import HeroSection from "@/features/landing/sections/HeroSection";
 import ProductPropositionSection from "@/features/landing/sections/ProductPropositionSection";
 import UsageFlowSection from "@/features/landing/sections/UsageFlowSection";
@@ -69,7 +70,7 @@ const LandingScreen = () => {
       "availability": "https://schema.org/InStock",
     },
     "featureList": [
-      "線上考試", "AI 出題", "Coding 上機考", "防作弊監控", "題庫管理", "自動批改"
+      "多元題型評量", "AI 輔助出題", "AI 輔助批改", "考試管理", "題庫管理", "教學分析"
     ],
     "publisher": {
       "@type": "Organization",
@@ -148,6 +149,7 @@ const LandingScreen = () => {
 
       <main className="landing-page__main">
         <HeroSection content={content.hero} onPrimary={handleRegister} onSecondary={handleContact} />
+        <ProductVideoSection />
         <ProductPropositionSection
           eyebrow={t("proposition.eyebrow")}
           title={t("proposition.title")}
