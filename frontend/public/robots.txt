@@ -6,4 +6,4 @@ Disallow: /admin/
 Disallow: /dashboard/
 Disallow: /settings/
 
-Sitemap: https://qjudge.app/sitemap.xml
+Sitemap: https://q-judge.com/sitemap.xml

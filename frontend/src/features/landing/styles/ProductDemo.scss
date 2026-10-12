@@ -1,0 +1,31 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+@use "@carbon/colors";
+
+.product-demo {
+  // Static, script-free page: Carbon Sass values do not require a React theme provider.
+  margin: 0;
+  background: colors.$gray-10;
+  color: colors.$gray-100;
+  font-family: "IBM Plex Sans", "Noto Sans TC", system-ui, sans-serif;
+  line-height: 1.7;
+  * { box-sizing: border-box; }
+  a { color: colors.$blue-60; text-underline-offset: 0.25em; }
+  a:focus-visible, video:focus-visible { outline: 2px solid colors.$blue-60; outline-offset: 4px; }
+  header, main { max-width: 80rem; margin: auto; padding: layout.$spacing-06; }
+  header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid colors.$gray-30; }
+  header a { display: inline-flex; align-items: center; gap: layout.$spacing-03; text-decoration: none; }
+  main { padding-top: layout.$spacing-09; }
+  h1 { @include type.type-style("heading-05"); margin: layout.$spacing-04 0; }
+  h2 { @include type.type-style("heading-03"); }
+  &__eyebrow, &__note { @include type.type-style("body-01"); color: colors.$gray-70; }
+  &__intro { @include type.type-style("body-02"); max-width: 52rem; margin-bottom: layout.$spacing-07; }
+  video { width: 100%; height: auto; aspect-ratio: 16 / 9; display: block; background: colors.$gray-100; }
+  &__actions, footer { display: flex; flex-wrap: wrap; align-items: center; gap: layout.$spacing-06; margin: layout.$spacing-06 0; }
+  a.product-demo__primary { background: colors.$blue-60; color: colors.$white; padding: layout.$spacing-05 layout.$spacing-06; text-decoration: none; }
+  section { max-width: 52rem; padding-top: layout.$spacing-07; }
+  dt { font-weight: 600; margin-top: layout.$spacing-06; }
+  dd { margin: layout.$spacing-03 0 0; }
+  footer { border-top: 1px solid colors.$gray-30; padding-top: layout.$spacing-06; }
+  @media (max-width: 42rem) { header, main { padding: layout.$spacing-05; } h1 { @include type.type-style("heading-04"); } }
+}

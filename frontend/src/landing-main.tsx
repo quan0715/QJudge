@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { I18nextProvider } from "react-i18next";
@@ -12,6 +13,11 @@ import "./styles/globals.scss";
 import "./styles/fonts.css";
 
 function LandingApp() {
+  useEffect(() => {
+    // React 19 hoists Helmet tags but does not replace the static HTML metadata.
+    // Retain the fallback until the interactive tree has successfully mounted.
+    document.querySelectorAll("[data-landing-static]").forEach((tag) => tag.remove());
+  }, []);
   return (
     <HelmetProvider>
       <ErrorBoundary>
