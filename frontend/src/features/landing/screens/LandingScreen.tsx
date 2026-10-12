@@ -122,15 +122,15 @@ const LandingScreen = () => {
         <meta property="og:site_name" content="QJudge" />
         <meta property="og:title" content={t("seo.ogTitle")} />
         <meta property="og:description" content={t("seo.ogDescription")} />
-        <meta property="og:image" content={`${LANDING_PUBLIC_URL}/og-image.png`} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
+        <meta property="og:image" content={`${LANDING_PUBLIC_URL}/media/QJudge-launch-v4.jpg`} />
+        <meta property="og:image:width" content="1280" />
+        <meta property="og:image:height" content="720" />
         <meta property="og:locale" content={ogLocale} />
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={t("seo.ogTitle")} />
         <meta name="twitter:description" content={t("seo.ogDescription")} />
-        <meta name="twitter:image" content={`${LANDING_PUBLIC_URL}/og-image.png`} />
+        <meta name="twitter:image" content={`${LANDING_PUBLIC_URL}/media/QJudge-launch-v4.jpg`} />
         {/* JSON-LD */}
         <script type="application/ld+json">{JSON.stringify(softwareJsonLd)}</script>
         <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>

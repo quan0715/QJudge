@@ -9,6 +9,9 @@ on:
     branches: [main]
     paths:
       - "frontend/landing.html"
+      - "frontend/demo/**"
+      - "frontend/public/media/**"
+      - "frontend/src/i18n/locales/*/landing.json"
       - "frontend/src/landing-main.tsx"
       - "frontend/vite.config.landing.ts"
       - "frontend/wrangler.jsonc"
