@@ -1,7 +1,7 @@
 """
 Multi-language judge tests
 """
-from django.test import TestCase
+from unittest import TestCase
 from apps.judge.judge_factory import get_judge, get_supported_languages
 from apps.judge.io_judge import IOJudge
 

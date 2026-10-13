@@ -20,7 +20,7 @@ async function enterCode(page: Page, code: string) {
 }
 
 test("coding exam: sample run, custom input run, and formal submission use the real judge", async ({ page, playwright }, testInfo) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   let teacher = await playwright.request.newContext({ baseURL: testInfo.project.use.baseURL });
   let classroomId: string | undefined;
   let contestId: string | undefined;
@@ -148,6 +148,57 @@ test("coding exam: sample run, custom input run, and formal submission use the r
       await page.getByRole("button", { name: "繳交記錄", exact: true }).click();
       await expect(page.getByRole("cell", { name: "AC", exact: true })).toHaveCount(1);
       await testInfo.attach("persisted-submission", { body: await page.screenshot(), contentType: "image/png" });
+    });
+
+    await test.step("A partially correct submission receives 50 points and survives reload", async () => {
+      await enterCode(page, '#include <cstdio>\nint main(){puts("3");}');
+      const response = page.waitForResponse(r => r.request().method() === "POST" && /\/submissions\/$/.test(new URL(r.url()).pathname));
+      await page.getByRole("button", { name: "繳交", exact: true }).click();
+      const submitted = await json(await response);
+      await expect.poll(async () => {
+        const detail = await json(await page.request.get(`/api/v1/submissions/${submitted.id}/`));
+        return { status: detail.status, score: detail.score };
+      }, { timeout: 90_000 }).toEqual({ status: "WA", score: 50 });
+      const detail = await json(await page.request.get(`/api/v1/submissions/${submitted.id}/`));
+      expect(detail.results.map((result: { status: string }) => result.status).sort()).toEqual(["AC", "WA"]);
+      expect((await submissions()).count).toBe(2);
+      await page.reload();
+      await page.getByRole("button", { name: "繳交記錄", exact: true }).click();
+      await expect(page.getByRole("cell", { name: "WA", exact: true })).toHaveCount(1);
+      await testInfo.attach("partial-score-history", { body: await page.screenshot(), contentType: "image/png" });
+    });
+
+    await test.step("Compile errors stop the test run without adding a submission, and formal CE saves zero", async () => {
+      await enterCode(page, "invalid C++ source");
+      const request = page.waitForResponse(r => r.request().method() === "POST" && r.url().includes("/test_run/"));
+      await page.getByRole("button", { name: "測試", exact: true }).click();
+      const run = await json(await request);
+      expect(run.run_id).toBeTruthy();
+      const complete = await page.waitForResponse(async response =>
+        response.url().includes("/test_run_status/") &&
+        (!response.ok() || (await response.json()).execution_status === "complete"),
+        { timeout: 90_000 });
+      const result = await json(complete);
+      expect(result.status).toBe("CE");
+      expect(result.results).toHaveLength(1);
+      expect(result.results[0].error_message).toBeTruthy();
+      expect((await submissions()).count).toBe(2);
+
+      const response = page.waitForResponse(r => r.request().method() === "POST" && /\/submissions\/$/.test(new URL(r.url()).pathname));
+      await page.getByRole("button", { name: "繳交", exact: true }).click();
+      const submitted = await json(await response);
+      await expect.poll(async () => {
+        const detail = await json(await page.request.get(`/api/v1/submissions/${submitted.id}/`));
+        return { status: detail.status, score: detail.score };
+      }, { timeout: 90_000 }).toEqual({ status: "CE", score: 0 });
+      const detail = await json(await page.request.get(`/api/v1/submissions/${submitted.id}/`));
+      expect(detail.results).toHaveLength(1);
+      expect(detail.error_message).toBeTruthy();
+      expect((await submissions()).count).toBe(3);
+      await page.reload();
+      await page.getByRole("button", { name: "繳交記錄", exact: true }).click();
+      await expect(page.getByRole("cell", { name: "CE", exact: true })).toHaveCount(1);
+      await testInfo.attach("compile-error-history", { body: await page.screenshot(), contentType: "image/png" });
     });
   } finally {
     // Delete only fixtures created by this attempt, including on retries/failures.
