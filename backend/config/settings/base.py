@@ -327,6 +327,10 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_DEFAULT_QUEUE = "default"
+# Each judge task runs one submission on one CPU. Reserve one task per process so
+# interactive test runs never wait behind tasks a busy process already took.
+CELERY_WORKER_CONCURRENCY = int(env("JUDGE_WORKER_CONCURRENCY", "") or 4)
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 
 # Public login method settings. OAuth connections are configured through QAuth.
 # The connection catalog holds endpoints and credential variable names, never the
