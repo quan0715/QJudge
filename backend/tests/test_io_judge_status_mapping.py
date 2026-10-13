@@ -13,11 +13,12 @@ from apps.judge.io_judge import IOJudge, _CE_SENTINEL
 def test_judge_error_status_mapping(monkeypatch, exit_code, output, expected_status):
     judge = IOJudge("cpp")
     monkeypatch.setattr(judge, "_ensure_docker_client", lambda: None)
+    monkeypatch.setattr(judge, "_prepare", lambda code, memory_limit: None)
 
-    def fake_run(command, timeout, mem_limit):
+    def fake_run(command, timeout, **kwargs):
         return {"exit_code": exit_code, "output": output, "time": 10, "memory": 5}
 
-    monkeypatch.setattr(judge, "_run_in_container", fake_run)
+    monkeypatch.setattr(judge, "_exec", fake_run)
 
     result = judge.execute("int main(){}", "", "", 1000, 128)
     assert result["status"] == expected_status
@@ -26,15 +27,16 @@ def test_judge_error_status_mapping(monkeypatch, exit_code, output, expected_sta
 def test_judge_success_and_wrong_answer(monkeypatch):
     judge = IOJudge("cpp")
     monkeypatch.setattr(judge, "_ensure_docker_client", lambda: None)
+    monkeypatch.setattr(judge, "_prepare", lambda code, memory_limit: None)
     responses = [
         {"exit_code": 0, "output": "42\n", "time": 8, "memory": 4},
         {"exit_code": 0, "output": "41\n", "time": 8, "memory": 4},
     ]
 
-    def fake_run(command, timeout, mem_limit):
+    def fake_run(command, timeout, **kwargs):
         return responses.pop(0)
 
-    monkeypatch.setattr(judge, "_run_in_container", fake_run)
+    monkeypatch.setattr(judge, "_exec", fake_run)
 
     ac_result = judge.execute("int main(){return 0;}", "", "42", 1000, 128)
     assert ac_result["status"] == "AC"

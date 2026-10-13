@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet-async";
 import { Asleep, Light } from "@carbon/icons-react";
 import { getLandingContent } from "@/features/landing/content/landingContent";
 import LandingHeader from "@/features/landing/sections/LandingHeader";
+import ProductVideoSection from "@/features/landing/sections/ProductVideoSection";
 import HeroSection from "@/features/landing/sections/HeroSection";
 import ProductPropositionSection from "@/features/landing/sections/ProductPropositionSection";
 import UsageFlowSection from "@/features/landing/sections/UsageFlowSection";
@@ -69,7 +70,7 @@ const LandingScreen = () => {
       "availability": "https://schema.org/InStock",
     },
     "featureList": [
-      "線上考試", "AI 出題", "Coding 上機考", "防作弊監控", "題庫管理", "自動批改"
+      "多元題型評量", "AI 輔助出題", "AI 輔助批改", "考試管理", "題庫管理", "教學分析"
     ],
     "publisher": {
       "@type": "Organization",
@@ -121,15 +122,15 @@ const LandingScreen = () => {
         <meta property="og:site_name" content="QJudge" />
         <meta property="og:title" content={t("seo.ogTitle")} />
         <meta property="og:description" content={t("seo.ogDescription")} />
-        <meta property="og:image" content={`${LANDING_PUBLIC_URL}/og-image.png`} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
+        <meta property="og:image" content={`${LANDING_PUBLIC_URL}/media/QJudge-launch-v4.jpg`} />
+        <meta property="og:image:width" content="1280" />
+        <meta property="og:image:height" content="720" />
         <meta property="og:locale" content={ogLocale} />
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={t("seo.ogTitle")} />
         <meta name="twitter:description" content={t("seo.ogDescription")} />
-        <meta name="twitter:image" content={`${LANDING_PUBLIC_URL}/og-image.png`} />
+        <meta name="twitter:image" content={`${LANDING_PUBLIC_URL}/media/QJudge-launch-v4.jpg`} />
         {/* JSON-LD */}
         <script type="application/ld+json">{JSON.stringify(softwareJsonLd)}</script>
         <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
@@ -148,6 +149,7 @@ const LandingScreen = () => {
 
       <main className="landing-page__main">
         <HeroSection content={content.hero} onPrimary={handleRegister} onSecondary={handleContact} />
+        <ProductVideoSection />
         <ProductPropositionSection
           eyebrow={t("proposition.eyebrow")}
           title={t("proposition.title")}

@@ -39,6 +39,7 @@ x-django-environment: &django_environment
   LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-}
   LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-}
   HOST_PROJECT_ROOT: ${HOST_PROJECT_ROOT:-}
+  JUDGE_WORKER_CONCURRENCY: ${JUDGE_WORKER_CONCURRENCY:-}
   JUDGE_TMP_DIR: /judge_tmp
   DOCKER_IMAGE_JUDGE: qjudge/judge:${QJUDGE_VERSION}
   AI_OAUTH_SIGNING_PRIVATE_KEY_FILE: /run-secrets/ai-oauth-ed25519-private.pem
@@ -166,7 +167,7 @@ services:
   celery:
     image: qjudge/backend:${QJUDGE_VERSION}
     restart: always
-    command: ["celery", "-A", "config", "worker", "-l", "info", "-Q", "high_priority,default", "--concurrency=4"]
+    command: ["celery", "-A", "config", "worker", "-l", "info", "-Q", "high_priority,default"]
     healthcheck:
       test: ["CMD-SHELL", "celery -A config inspect ping --destination celery@$${HOSTNAME} --timeout 5"]
       interval: 30s

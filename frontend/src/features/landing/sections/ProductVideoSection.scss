@@ -1,0 +1,22 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.landing-video {
+  &__inner { max-width: 80rem; }
+  video {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    background: var(--cds-layer-01);
+    border: 1px solid var(--cds-border-subtle-01);
+  }
+  &__footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: layout.$spacing-04;
+    padding-top: layout.$spacing-05;
+    p { @include type.type-style("body-01"); color: var(--cds-text-secondary); margin: 0; }
+  }
+}

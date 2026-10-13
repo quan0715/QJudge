@@ -76,6 +76,40 @@ locust -f locustfile.py \
   --host http://localhost:8080
 ```
 
+## 判題處理量壓測
+
+上面的 Locust 壓的是考試 API；判題處理量另用 `judge_loadtest` 指令。它不走 HTTP 與考試流程，直接建立提交並派送到 `high_priority` queue，等全部判完後輸出結果時間（送出到結果寫入資料庫）的 P50／P95、每分鐘處理份數，以及主機 load、可用記憶體與判題容器數。所有資料屬於使用者 `lt_judge` 與一個學生看不到的題目，`cleanup` 會全部移除。
+
+指令要在 `celery` service 執行：那裡有 Docker socket，`/proc` 也反映主機負載。以下 `<compose>` 是該主機的 Compose 指令。
+
+```bash
+# 複製真實題目的測資與限制；參考解答從 stdin 讀入
+<compose> exec -T celery python manage.py judge_loadtest seed \
+  --source-problem <problem-id> --ac-code /dev/stdin < solution.cpp
+# 沒有真實題目時（例如 dev）改用合成題目
+<compose> exec -T celery python manage.py judge_loadtest seed --cases 100
+```
+
+WA 提交會完整執行參考解答再多印一行，CE 提交無法編譯；預設比例 AC:WA:CE = 16:49:35，取自 2026-10-13 Lab2。任何提交的判題結果不符預期、或跑完仍有判題容器時，指令以錯誤結束。
+
+依序執行，每一步都加 `--out` 保存 JSON：
+
+| 步驟 | 指令（`judge_loadtest run ...`） | 看什麼 |
+|---|---|---|
+| Smoke | `--count 3 --sequential --mix 1,1,1` | 三種結果都正確，`judge_containers_after` 為 0 |
+| 單份基準 | `--count 10 --sequential` | `latency_s.mean` 即無競爭時的單份判題時間 |
+| Concurrency 掃描 | 每檔 `--count <3×c>` | `per_minute_done` 不再上升、`latency_s` 明顯變長即飽和 |
+| 高峰重播 1× | `--count 180 --per-minute 18` | 2026-10-13 14:25–14:35 共 178 份；P95 目標 60 秒內 |
+| 高峰重播 2× | `--count 180 --per-minute 36` | 積壓多久消化完 |
+
+切換 concurrency：在 `deploy/.env` 設定 `JUDGE_WORKER_CONCURRENCY`，再 `<compose> up -d celery`；報告的 `concurrency` 欄位會顯示 worker 實際的值。
+
+Production 只在沒有考試與課程的時段執行，事前確認 contest 排程。若最近 30 分鐘內有真實提交等待超過 60 秒，指令會停止送出；已送出的部分仍會判完，不要用 `celery purge`，它會連真實使用者的任務一起清掉。結束後執行：
+
+```bash
+<compose> exec -T celery python manage.py judge_loadtest cleanup
+```
+
 ## 判讀結果
 
 至少記錄：
@@ -108,4 +142,5 @@ loadtest/users/burst.py
 loadtest/shapes.py
 loadtest/safety.py
 backend/apps/core/management/commands/seed_loadtest_data.py
+backend/apps/submissions/management/commands/judge_loadtest.py
 ```

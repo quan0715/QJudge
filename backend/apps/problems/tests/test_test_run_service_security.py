@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -34,7 +34,8 @@ def test_setup_error_exposes_only_typed_public_code(failure, expected_code):
 
 
 def test_unexpected_execution_failure_uses_fixed_public_message():
-    judge = SimpleNamespace(execute=lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("host secret")))
+    judge = MagicMock()
+    judge.execute.side_effect = RuntimeError("host secret")
     test_case = SimpleNamespace(
         id=1,
         input_data="",
