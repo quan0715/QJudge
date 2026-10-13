@@ -82,60 +82,61 @@ def judge_submission(submission_id):
             submission.save()
             return f"Submission {submission_id} failed: Unsupported language"
         
-        for tc in test_cases:
-            result = judge.execute(
-                code=submission.code,
-                input_data=tc.input_data,
-                expected_output=tc.output_data,
-                time_limit=submission.problem.time_limit,
-                memory_limit=submission.problem.memory_limit,
-            )
+        with judge:
+            for tc in test_cases:
+                result = judge.execute(
+                    code=submission.code,
+                    input_data=tc.input_data,
+                    expected_output=tc.output_data,
+                    time_limit=submission.problem.time_limit,
+                    memory_limit=submission.problem.memory_limit,
+                )
 
-            status = result['status']
-            exec_time = result['time']
-            memory = result['memory']
-            output = result['output']
-            error_msg = result['error']
+                status = result['status']
+                exec_time = result['time']
+                memory = result['memory']
+                output = result['output']
+                error_msg = result['error']
             
-            # Update stats
-            max_exec_time = max(max_exec_time, exec_time)
-            max_memory = max(max_memory, memory)
+                # Update stats
+                max_exec_time = max(max_exec_time, exec_time)
+                max_memory = max(max_memory, memory)
             
-            # Calculate score
-            tc_weight = _resolve_test_case_weight(tc)
-            if status == 'AC':
-                legacy_total_score += tc.score
-                passed_weight_sum += tc_weight
-            else:
-                is_accepted = False
-                if final_status == 'AC':  # First error
+                # Calculate score
+                tc_weight = _resolve_test_case_weight(tc)
+                if status == 'AC':
+                    legacy_total_score += tc.score
+                    passed_weight_sum += tc_weight
+                else:
+                    is_accepted = False
+                    if final_status == 'AC':  # First error
+                        final_status = status
+            
+                # Save result
+                # For custom test cases (MockTestCase), they don't have a DB ID, so test_case will be None
+                tc_instance = None
+                if isinstance(tc, TestCase):
+                     tc_instance = tc
+            
+                SubmissionResult.objects.create(
+                    submission=submission,
+                    test_case=tc_instance,
+                    status=status,
+                    exec_time=exec_time,
+                    memory_usage=memory,
+                    output=output[:1000],
+                    error_message=error_msg[:1000],
+                    input_data=tc.input_data[:2000],  # Save snapshot of input
+                    expected_output=tc.output_data[:2000],
+                    is_hidden=tc.is_hidden,
+                )
+            
+                # If CE or SE, stop testing other cases
+                if status in ['CE', 'SE']:
                     final_status = status
-            
-            # Save result
-            # For custom test cases (MockTestCase), they don't have a DB ID, so test_case will be None
-            tc_instance = None
-            if isinstance(tc, TestCase):
-                 tc_instance = tc
-            
-            SubmissionResult.objects.create(
-                submission=submission,
-                test_case=tc_instance,
-                status=status,
-                exec_time=exec_time,
-                memory_usage=memory,
-                output=output[:1000],
-                error_message=error_msg[:1000],
-                input_data=tc.input_data[:2000],  # Save snapshot of input
-                expected_output=tc.output_data[:2000],
-                is_hidden=tc.is_hidden,
-            )
-            
-            # If CE or SE, stop testing other cases
-            if status in ['CE', 'SE']:
-                final_status = status
-                # Save the error message to the submission itself for easy access
-                submission.error_message = error_msg
-                break
+                    # Save the error message to the submission itself for easy access
+                    submission.error_message = error_msg
+                    break
         
         # Calculate final score
         total_score = legacy_total_score

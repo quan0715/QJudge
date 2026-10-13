@@ -165,40 +165,41 @@ class ProblemTestRunService:
         test_cases = cls.build_test_cases(problem, custom_test_cases)
         if on_progress:
             on_progress({"total": len(test_cases), "results": []})
-        for tc in test_cases:
-            try:
-                exec_result = judge.execute(
-                    code=source_code,
-                    input_data=tc.input_data,
-                    expected_output=tc.output_data or "",
-                    time_limit=problem.time_limit,
-                    memory_limit=problem.memory_limit,
-                )
-            except Exception:  # pragma: no cover - safety net
-                logger.exception("Unexpected judge execution failure")
-                exec_result = {
-                    "status": "SE",
-                    "time": 0,
-                    "memory": 0,
-                    "output": "",
-                    "error": "Judge execution failed.",
-                }
+        with judge:
+            for tc in test_cases:
+                try:
+                    exec_result = judge.execute(
+                        code=source_code,
+                        input_data=tc.input_data,
+                        expected_output=tc.output_data or "",
+                        time_limit=problem.time_limit,
+                        memory_limit=problem.memory_limit,
+                    )
+                except Exception:  # pragma: no cover - safety net
+                    logger.exception("Unexpected judge execution failure")
+                    exec_result = {
+                        "status": "SE",
+                        "time": 0,
+                        "memory": 0,
+                        "output": "",
+                        "error": "Judge execution failed.",
+                    }
 
-            case_result = cls._build_case_result(tc, exec_result)
-            results.append(case_result)
-            if on_progress:
-                on_progress({"total": len(test_cases), "results": [dict(case) for case in results]})
+                case_result = cls._build_case_result(tc, exec_result)
+                results.append(case_result)
+                if on_progress:
+                    on_progress({"total": len(test_cases), "results": [dict(case) for case in results]})
 
-            max_exec_time = max(max_exec_time, case_result["exec_time"])
-            max_memory_usage = max(max_memory_usage, case_result["memory_usage"])
+                max_exec_time = max(max_exec_time, case_result["exec_time"])
+                max_memory_usage = max(max_memory_usage, case_result["memory_usage"])
 
-            verdict = case_result["status"]
-            if verdict not in {"AC", "info"} and final_status == "AC":
-                final_status = verdict
+                verdict = case_result["status"]
+                if verdict not in {"AC", "info"} and final_status == "AC":
+                    final_status = verdict
 
-            raw_status = case_result["raw_status"]
-            if raw_status in HARD_FAILURE_STATUSES:
-                break
+                raw_status = case_result["raw_status"]
+                if raw_status in HARD_FAILURE_STATUSES:
+                    break
 
         for case in results:
             case.pop("raw_status", None)

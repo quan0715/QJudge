@@ -10,11 +10,11 @@
     docker exec oj_backend_dev python manage.py test apps.judge.tests.IOJudgeMockTests
 """
 
-import unittest
 from types import SimpleNamespace
+from unittest import TestCase
 from unittest.mock import patch
+
 import docker.errors
-from django.test import TestCase
 
 from apps.judge.io_judge import IOJudge, _CE_SENTINEL
 
@@ -36,6 +36,7 @@ class CppIntegrationTests(TestCase):
 
     def setUp(self):
         self.judge = IOJudge("cpp")
+        self.addCleanup(self.judge.close)
 
     def test_ac(self):
         code = "#include<iostream>\nusing namespace std;\nint main(){int a,b;cin>>a>>b;cout<<a+b<<endl;}"
@@ -127,6 +128,7 @@ class PythonIntegrationTests(TestCase):
 
     def setUp(self):
         self.judge = _make_judge("python")
+        self.addCleanup(self.judge.close)
 
     def test_ac(self):
         r = self.judge.execute("a,b=map(int,input().split())\nprint(a+b)", "3 4", "7", 2000, 128)
@@ -158,6 +160,7 @@ class CIntegrationTests(TestCase):
 
     def setUp(self):
         self.judge = _make_judge("c")
+        self.addCleanup(self.judge.close)
 
     def test_ac(self):
         code = "#include<stdio.h>\nint main(){int a,b;scanf(\"%d %d\",&a,&b);printf(\"%d\\n\",a+b);}"
@@ -184,6 +187,7 @@ class JavaIntegrationTests(TestCase):
 
     def setUp(self):
         self.judge = _make_judge("java")
+        self.addCleanup(self.judge.close)
 
     def test_ac(self):
         code = (
@@ -226,10 +230,11 @@ class IOJudgeMockTests(TestCase):
     def _mock_judge(self, language: str = "cpp"):
         judge = IOJudge(language)
         judge._ensure_docker_client = lambda: None
+        judge._prepare = lambda code, memory_limit: None
         return judge
 
     def _set_run_result(self, judge, exit_code, output, time_ms=10, memory=4096):
-        judge._run_in_container = lambda command, timeout, mem_limit: {
+        judge._exec = lambda command, timeout, **kwargs: {
             "exit_code": exit_code,
             "output": output,
             "time": time_ms,
@@ -283,7 +288,7 @@ class IOJudgeMockTests(TestCase):
 
     def test_se_on_docker_api_error(self):
         judge = self._mock_judge()
-        judge._run_in_container = lambda *_: (_ for _ in ()).throw(
+        judge._exec = lambda *_, **kwargs: (_ for _ in ()).throw(
             docker.errors.APIError("API Error")
         )
         r = judge.execute("", "", "", 1000, 128)
@@ -306,6 +311,7 @@ class IOJudgeMockTests(TestCase):
 
     def test_container_api_failure_does_not_expose_exception_details(self):
         judge = IOJudge("cpp")
+        judge._ensure_docker_client = lambda: None
         judge._client = SimpleNamespace(
             containers=SimpleNamespace(
                 create=lambda **_kwargs: (_ for _ in ()).throw(
@@ -314,13 +320,14 @@ class IOJudgeMockTests(TestCase):
             )
         )
 
-        result = judge._run_in_container("true", timeout=1, mem_limit=64)
+        result = judge.execute("int main(){}", "", "", 1000, 64)
 
-        self.assertEqual(result["output"], "Judge system error")
+        self.assertEqual(result["status"], "SE")
         self.assertNotIn("secret", str(result))
 
     def test_container_runtime_failure_does_not_expose_exception_details(self):
         judge = IOJudge("cpp")
+        judge._ensure_docker_client = lambda: None
         judge._client = SimpleNamespace(
             containers=SimpleNamespace(
                 create=lambda **_kwargs: (_ for _ in ()).throw(
@@ -329,9 +336,9 @@ class IOJudgeMockTests(TestCase):
             )
         )
 
-        result = judge._run_in_container("true", timeout=1, mem_limit=64)
+        result = judge.execute("int main(){}", "", "", 1000, 64)
 
-        self.assertEqual(result["output"], "Judge system error")
+        self.assertEqual(result["status"], "SE")
         self.assertNotIn("secret", str(result))
 
     def test_python_no_compile_cmd(self):
@@ -339,11 +346,11 @@ class IOJudgeMockTests(TestCase):
         judge = self._mock_judge("python")
         captured = {}
 
-        def capture(command, timeout, mem_limit):
+        def capture(command, timeout, **kwargs):
             captured["cmd"] = command
             return {"exit_code": 0, "output": "ok\n", "time": 5, "memory": 4096}
 
-        judge._run_in_container = capture
+        judge._exec = capture
         judge.execute("print('ok')", "", "ok", 1000, 128)
         self.assertNotIn("javac", captured["cmd"])
         self.assertNotIn("g++", captured["cmd"])
@@ -355,14 +362,14 @@ class IOJudgeMockTests(TestCase):
         judge = self._mock_judge("java")
         captured = {}
 
-        def capture(command, timeout, mem_limit):
+        def capture(command, timeout, **kwargs):
             captured["cmd"] = command
             return {"exit_code": 0, "output": "ok\n", "time": 5, "memory": 4096}
 
-        judge._run_in_container = capture
+        judge._exec = capture
         judge.execute("", "", "ok", 5000, 256)
         self.assertIn("-Xmx256m", captured["cmd"])
-        self.assertIn("javac", captured["cmd"])
+        self.assertNotIn("javac", captured["cmd"])
 
     @patch.object(IOJudge, "_ensure_docker_client")
     def test_patch_io_judge_works(self, mock_ensure):

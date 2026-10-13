@@ -11,6 +11,7 @@ For non-IO judging (special judge, checker, etc.) create a separate judge class.
 from __future__ import annotations
 
 import logging
+import time
 import uuid
 from contextlib import suppress
 from dataclasses import dataclass
@@ -21,9 +22,16 @@ import docker
 from django.conf import settings
 
 _CE_SENTINEL = "QJUDGE_CE_7f3a"
+_SETUP_ERROR_SENTINEL = "QJUDGE_SETUP_ERROR_7f3a"
 _RESOURCE_SENTINEL = "\nQJUDGE_RESOURCES_7f3a "
 _PUBLIC_SYSTEM_ERROR = "Judge system error"
 _OUTPUT_LIMIT_BYTES = 1024 * 1024
+_COMPILE_TIMEOUT_SECONDS = 30
+_SESSION_SECONDS = 3600
+_BUILD_DIR = "/tmp/build"
+_RUN_DIR = "/tmp/run"
+# Not the image's judge user (1001), which owns the build.
+_SANDBOX_UID = 1002
 logger = logging.getLogger(__name__)
 
 
@@ -42,28 +50,28 @@ _LANG_SPECS: dict[str, LangSpec] = {
         version="C++20",
         filename="main.cpp",
         compile_cmd="g++ -O2 -std=c++20 -o main main.cpp",
-        run_cmd="./main",
+        run_cmd="/tmp/build/main",
     ),
     "c": LangSpec(
         name="C",
         version="C11",
         filename="main.c",
         compile_cmd="gcc -O2 -std=c11 -lm -o main main.c",
-        run_cmd="./main",
+        run_cmd="/tmp/build/main",
     ),
     "python": LangSpec(
         name="Python",
         version="Python 3.11",
         filename="main.py",
         compile_cmd=None,
-        run_cmd="python3 main.py",
+        run_cmd="python3 /tmp/build/main.py",
     ),
     "java": LangSpec(
         name="Java",
         version="Java 17",
         filename="Main.java",
         compile_cmd="javac Main.java",
-        run_cmd="java -Xmx{mem}m -Xms32m Main",
+        run_cmd="java -Xmx{mem}m -Xms32m -cp /tmp/build Main",
     ),
 }
 
@@ -91,6 +99,10 @@ class IOJudge:
     """
     Docker-based judge for languages with standard IO comparison.
     All languages run inside the same image (DOCKER_IMAGE_JUDGE).
+
+    One instance judges one submission or test run: the first ``execute`` starts
+    a container and compiles once, and every case runs in that container.  Use
+    it as a context manager (or call ``close``) so the container is removed.
     """
 
     def __init__(self, language: str) -> None:
@@ -108,6 +120,23 @@ class IOJudge:
         self.tmpfs_size = settings.DOCKER_JUDGE_TMPFS_SIZE
         self.docker_timeout = settings.DOCKER_JUDGE_TIMEOUT
         self._client: Optional[docker.DockerClient] = None
+        self._container = None
+        self._session_key = None
+        self._compile_error: Optional[Dict[str, Any]] = None
+
+    def __enter__(self) -> "IOJudge":
+        return self
+
+    def __exit__(self, *exc_info) -> None:
+        self.close()
+
+    def close(self) -> None:
+        container, self._container = self._container, None
+        self._session_key = None
+        self._compile_error = None
+        if container is not None:
+            with suppress(Exception):
+                container.remove(force=True)
 
     def get_language_name(self) -> str:
         return self._spec.name
@@ -125,11 +154,13 @@ class IOJudge:
     ) -> Dict[str, Any]:
         try:
             self._ensure_docker_client()
-            cmd = self._build_full_cmd(code, input_data, time_limit, memory_limit)
-            result = self._run_in_container(
-                cmd,
+            error = self._prepare(code, memory_limit)
+            if error:
+                return dict(error)
+            result = self._exec(
+                self._build_run_cmd(input_data, time_limit, memory_limit),
                 timeout=time_limit / 1000.0 + 2.0,
-                mem_limit=memory_limit,
+                user="0",
             )
             return self._interpret(result, expected_output, time_limit)
         except RuntimeError:
@@ -153,40 +184,71 @@ class IOJudge:
             delimiter = f"{prefix}_{uuid.uuid4().hex}"
         return f"cat > {target_file} <<'{delimiter}'\n{content}\n{delimiter}"
 
-    def _build_full_cmd(
-        self,
-        code: str,
-        input_data: str,
-        time_limit: int,
-        memory_limit: int,
-    ) -> str:
-        spec = self._spec
-        parts: list[str] = []
+    def _prepare(self, code: str, memory_limit: int) -> Optional[Dict[str, Any]]:
+        key = (code, memory_limit)
+        if key == self._session_key:
+            return self._compile_error
+        self.close()
+        self._container = self._start_container(memory_limit)
+        # The build belongs to the image's judge user; cases run as another uid,
+        # so a student program cannot alter what later cases execute.
+        parts = [
+            f"mkdir {_BUILD_DIR} && cd {_BUILD_DIR} || exit 125",
+            self._heredoc(self._spec.filename, code, "CODE"),
+        ]
+        if self._spec.compile_cmd:
+            parts += [
+                f"{self._spec.compile_cmd} > /tmp/compile_out.txt 2>&1",
+                "COMPILE_EXIT=$?",
+                "if [ $COMPILE_EXIT -ne 0 ]; then",
+                f"  echo '{_CE_SENTINEL}'",
+                "  cat /tmp/compile_out.txt",
+                "  exit $COMPILE_EXIT",
+                "fi",
+            ]
+        result = self._exec("\n".join(parts), timeout=_COMPILE_TIMEOUT_SECONDS)
+        error = None
+        if result["exit_code"] == 124 or result.get("output_limit_exceeded"):
+            error = {
+                "status": "CE", "output": "", "time": 0, "memory": 0,
+                "error": "Compilation time limit exceeded" if result["exit_code"] == 124
+                else "Compiler output limit exceeded (1 MiB)",
+            }
+        elif result["exit_code"] != 0:
+            verdict = self._interpret(result, "", 0)
+            # Anything but a compiler diagnostic is an infrastructure failure,
+            # not the student's runtime error.
+            error = verdict if verdict["status"] == "CE" else {
+                "status": "SE", "output": "", "error": _PUBLIC_SYSTEM_ERROR,
+                "time": 0, "memory": 0,
+            }
+        if error:
+            self.close()
+        self._session_key = key
+        self._compile_error = error
+        return error
 
-        parts.append(self._heredoc(spec.filename, code, "CODE"))
-
-        if spec.compile_cmd:
-            compile_cmd = spec.compile_cmd
-            parts.append(
-                f"{compile_cmd} > /tmp/compile_out.txt 2>&1\n"
-                f"COMPILE_EXIT=$?\n"
-                f"if [ $COMPILE_EXIT -ne 0 ]; then\n"
-                f"    echo '{_CE_SENTINEL}'\n"
-                f"    cat /tmp/compile_out.txt\n"
-                f"    exit $COMPILE_EXIT\n"
-                f"fi"
-            )
-
-        parts.append(self._heredoc("input.txt", input_data, "INPUT"))
-
+    def _build_run_cmd(self, input_data: str, time_limit: int, memory_limit: int) -> str:
         timeout_s = time_limit / 1000.0 + 0.5
-        run_cmd = spec.run_cmd.format(mem=memory_limit)
-        parts.append(
-            f"LC_ALL=C /usr/bin/time -q -f '{_RESOURCE_SENTINEL}%e %M' "
-            f"timeout {timeout_s:.3f}s {run_cmd} < input.txt 2>&1"
-        )
-
-        return "\n\n".join(parts)
+        run_cmd = self._spec.run_cmd.format(mem=memory_limit)
+        uid = _SANDBOX_UID
+        return "\n".join([
+            # Reset what the previous case left behind: System V IPC (only its
+            # owner may remove it) and every writable path except the build.
+            f"setpriv --reuid={uid} --regid={uid} --clear-groups ipcrm -a >/dev/null 2>&1",
+            f"find /tmp /dev/shm -mindepth 1 ! -path {_BUILD_DIR} ! -path '{_BUILD_DIR}/*' -delete >/dev/null 2>&1",
+            f"install -d -o {uid} -g {uid} {_RUN_DIR} && cd {_RUN_DIR} || "
+            f"{{ echo '{_SETUP_ERROR_SENTINEL}'; exit 125; }}",
+            self._heredoc("input.txt", input_data, "INPUT"),
+            f"LC_ALL=C HOME={_RUN_DIR} /usr/bin/time -q -f '{_RESOURCE_SENTINEL}%e %M' "
+            f"timeout {timeout_s:.3f}s setpriv --reuid={uid} --regid={uid} --clear-groups "
+            f"{run_cmd} < input.txt 2>&1",
+            # Leftover background processes would hold the output stream open
+            # and carry into the next case.
+            "STATUS=$?",
+            "kill -9 -1 >/dev/null 2>&1",
+            "exit $STATUS",
+        ])
 
     def _ensure_docker_client(self) -> None:
         if self._client is not None:
@@ -206,55 +268,72 @@ class IOJudge:
         except docker.errors.DockerException as exc:
             raise RuntimeError(f"Cannot connect to Docker: {exc}") from exc
 
-    def _run_in_container(
-        self, command: str, timeout: float, mem_limit: int
-    ) -> Dict[str, Any]:
-        container = None
+    def _start_container(self, memory_limit: int):
+        security_opts = ["no-new-privileges"]
+        if settings.DOCKER_SECCOMP_PROFILE:
+            import os
+            profile = settings.DOCKER_SECCOMP_PROFILE
+            if not os.path.isabs(profile):
+                profile = os.path.join(settings.BASE_DIR, profile)
+            if os.path.exists(profile):
+                security_opts.append(f"seccomp={profile}")
+
+        run_kwargs = {
+            "image": self.image,
+            # PID 1 reaps orphaned student processes. It exits on its own (and
+            # auto_remove deletes the container) if the worker dies before close().
+            "command": [
+                "/bin/bash", "-c",
+                f"end=$((SECONDS+{_SESSION_SECONDS})); "
+                "while [ $SECONDS -lt $end ]; do sleep 5 & wait $!; done",
+            ],
+            "working_dir": "/tmp",
+            "network_disabled": True,
+            "read_only": True,
+            "auto_remove": True,
+            "mem_limit": f"{memory_limit}m",
+            "memswap_limit": f"{memory_limit}m",
+            "cpu_period": 100_000,
+            "cpu_quota": 100_000,
+            "pids_limit": self.pids_limit,
+            "cap_drop": [
+                "NET_ADMIN", "SYS_ADMIN", "SYS_BOOT", "SYS_MODULE",
+                "SYS_RAWIO", "SYS_PTRACE", "SYS_TIME", "MAC_ADMIN",
+                "MAC_OVERRIDE", "NET_RAW", "AUDIT_WRITE", "AUDIT_CONTROL",
+            ],
+            "security_opt": security_opts,
+            "tmpfs": {"/tmp": f"size={self.tmpfs_size},mode=1777,exec"},
+            "log_config": docker.types.LogConfig(type="none"),
+        }
+        if self.platform:
+            run_kwargs["platform"] = self.platform
+
+        container = self._client.containers.create(**run_kwargs)
+        try:
+            container.start()
+        except Exception:
+            with suppress(Exception):
+                container.remove(force=True)
+            raise
+        return container
+
+    def _exec(self, command: str, timeout: float, *, user: str = "") -> Dict[str, Any]:
+        api = self._client.api
+        container = self._container
         stream = None
         deadline = None
+        timed_out = Event()
         try:
-            security_opts = ["no-new-privileges"]
-            if settings.DOCKER_SECCOMP_PROFILE:
-                import os
-                profile = settings.DOCKER_SECCOMP_PROFILE
-                if not os.path.isabs(profile):
-                    profile = os.path.join(settings.BASE_DIR, profile)
-                if os.path.exists(profile):
-                    security_opts.append(f"seccomp={profile}")
-
-            run_kwargs = {
-                "image": self.image,
-                "command": ["/bin/bash", "-c", command],
-                "working_dir": "/tmp",
-                "network_disabled": True,
-                "mem_limit": f"{mem_limit}m",
-                "memswap_limit": f"{mem_limit}m",
-                "cpu_period": 100_000,
-                "cpu_quota": 100_000,
-                "pids_limit": self.pids_limit,
-                "cap_drop": [
-                    "NET_ADMIN", "SYS_ADMIN", "SYS_BOOT", "SYS_MODULE",
-                    "SYS_RAWIO", "SYS_PTRACE", "SYS_TIME", "MAC_ADMIN",
-                    "MAC_OVERRIDE", "NET_RAW", "AUDIT_WRITE", "AUDIT_CONTROL",
-                ],
-                "security_opt": security_opts,
-                "tmpfs": {"/tmp": f"size={self.tmpfs_size},mode=1777,exec"},
-                "log_config": docker.types.LogConfig(type="none"),
-            }
-            if self.platform:
-                run_kwargs["platform"] = self.platform
-
-            container = self._client.containers.create(**run_kwargs)
-            # Attach before starting so even fast writers cannot lose the prefix.
-            stream = container.attach(stdout=True, stderr=True, stream=True)
-            timed_out = Event()
+            exec_id = api.exec_create(
+                container.id, ["/bin/bash", "-c", command], user=user, workdir="/tmp",
+            )["Id"]
+            stream = api.exec_start(exec_id, stream=True)
 
             def expire():
                 timed_out.set()
                 with suppress(docker.errors.APIError):
                     container.kill()
 
-            container.start()
             deadline = Timer(timeout + 5, expire)
             deadline.daemon = True
             deadline.start()
@@ -266,11 +345,15 @@ class IOJudge:
                 output.extend(chunk[:remaining])
                 if len(chunk) > remaining:
                     output_limit_exceeded = True
-                    with suppress(docker.errors.APIError):
-                        container.kill()
                     break
-            result = container.wait(timeout=5)
             deadline.cancel()
+            if timed_out.is_set() or output_limit_exceeded:
+                # The process may still be running; drop the whole container and
+                # let the next case start (and compile) a fresh one.
+                self.close()
+                exit_code = 124 if timed_out.is_set() else 137
+            else:
+                exit_code = self._exit_code(api, exec_id)
             decoded = output.decode("utf-8", errors="ignore")
             elapsed_ms, memory_kb = 0, 0
             if _RESOURCE_SENTINEL in decoded and not output_limit_exceeded:
@@ -279,7 +362,7 @@ class IOJudge:
                 elapsed_ms, memory_kb = round(float(seconds) * 1000), int(memory)
             output_limit_exceeded |= len(decoded.encode("utf-8")) > _OUTPUT_LIMIT_BYTES
             return {
-                "exit_code": 124 if timed_out.is_set() else result["StatusCode"],
+                "exit_code": exit_code,
                 "output": decoded,
                 "output_limit_exceeded": output_limit_exceeded,
                 "time": elapsed_ms,
@@ -287,9 +370,11 @@ class IOJudge:
             }
         except docker.errors.APIError:
             logger.exception("Judge container API failure")
+            self.close()
             return {"exit_code": -1, "output": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
         except Exception:
             logger.exception("Unexpected judge container failure")
+            self.close()
             return {"exit_code": -1, "output": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
         finally:
             if deadline:
@@ -297,11 +382,16 @@ class IOJudge:
             if stream:
                 with suppress(Exception):
                     stream.close()
-            if container:
-                try:
-                    container.remove(force=True)
-                except Exception:
-                    pass
+
+    @staticmethod
+    def _exit_code(api, exec_id) -> int:
+        # The output stream can end a moment before Docker records the exit.
+        for _ in range(100):
+            info = api.exec_inspect(exec_id)
+            if not info["Running"]:
+                return info["ExitCode"]
+            time.sleep(0.01)
+        raise RuntimeError("Judge exec did not finish")
 
     def _interpret(
         self,
@@ -314,7 +404,7 @@ class IOJudge:
         elapsed = result["time"]
         memory = result["memory"]
 
-        if exit_code == -1:
+        if exit_code == -1 or (exit_code == 125 and output.startswith(_SETUP_ERROR_SENTINEL)):
             return {"status": "SE", "output": "", "error": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
 
         if result.get("output_limit_exceeded"):
