@@ -166,7 +166,7 @@ services:
   celery:
     image: qjudge/backend:${QJUDGE_VERSION}
     restart: always
-    command: ["celery", "-A", "config", "worker", "-l", "info", "-Q", "high_priority,default", "--concurrency=4"]
+    command: ["celery", "-A", "config", "worker", "-l", "info", "-Q", "high_priority,default", "--concurrency=${JUDGE_WORKER_CONCURRENCY:-4}", "--prefetch-multiplier=1"]
     healthcheck:
       test: ["CMD-SHELL", "celery -A config inspect ping --destination celery@$${HOSTNAME} --timeout 5"]
       interval: 30s

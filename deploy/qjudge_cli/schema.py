@@ -124,6 +124,8 @@ KEYS: tuple[Key, ...] = (
         required=True, secret=True),
     Key("HOST_PROJECT_ROOT", "core",
         "Absolute path of the QJudge checkout on the Docker host; used to locate judge seccomp profiles."),
+    Key("JUDGE_WORKER_CONCURRENCY", "core",
+        "Submissions judged at once (default 4). Each uses one CPU; keep it below the host's free cores."),
     # Object storage
     Key("STORAGE_MODE", "storage",
         "bundled runs MinIO via `deploy/qjudge addon storage up`; external uses an existing S3-compatible service.",
