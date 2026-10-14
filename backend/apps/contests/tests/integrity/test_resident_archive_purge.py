@@ -12,7 +12,7 @@ from apps.contests.services import integrity_evidence as service
 
 
 def archive(*, change=None):
-    run = SimpleNamespace(id=uuid4(), archive_generation=1)
+    run = SimpleNamespace(id=uuid4(), archive_generation=1, schedule_revision=2)
     candidate, digest = str(uuid4()), "a" * 64
     payload = {
         "schema_version": 2, "run_id": str(run.id), "resident_revision": 2,
@@ -27,6 +27,7 @@ def archive(*, change=None):
     run.archive_manifest_key = (f"runs/{run.id}/resident-revision-2/{candidate}/"
                                 f"{run.archive_manifest_sha256}.json")
     client = Mock()
+    client.get_paginator.return_value.paginate.return_value = []
     client.get_object.return_value = {"ContentLength": len(content), "Body": BytesIO(content)}
     return run, client, payload
 
@@ -79,3 +80,76 @@ def test_resident_manifest_bounds_key_budget(monkeypatch):
     monkeypatch.setattr(service, "_MAX_PURGE_KEYS", 1)
     with pytest.raises(service.IntegrityEvidenceStorageError, match="too large"):
         service._load_archive_manifest_chain(client, run)
+
+
+def test_resident_manifest_accepts_producer_size_limit():
+    run, client, _ = archive(change=lambda p: p.update(snapshot='x' * (11 * 1024 * 1024)))
+    assert run.archive_manifest_key in service._load_archive_manifest_chain(client, run)
+
+
+def test_resident_manifest_rejects_stale_published_revision():
+    run, client, _ = archive()
+    run.schedule_revision = 3
+    with pytest.raises(service.IntegrityEvidenceStorageError, match='identity'):
+        service._load_archive_manifest_chain(client, run)
+
+
+def test_resident_purge_includes_verified_stale_candidate():
+    run, client, payload = archive()
+    old = {**payload, 'resident_revision': 1, 'candidate_id': str(uuid4())}
+    raw = json.dumps(old).encode()
+    digest = hashlib.sha256(raw).hexdigest()
+    old_key = f'runs/{run.id}/resident-revision-1/{old["candidate_id"]}/{digest}.json'
+    primary = client.get_object.return_value['Body'].getvalue()
+    bodies = {run.archive_manifest_key: primary, old_key: raw}
+    client.get_object.side_effect = lambda **kw: {'Body': BytesIO(bodies[kw['Key']])}
+    client.get_paginator.return_value.paginate.return_value = [{'Contents': [
+        {'Key': run.archive_manifest_key}, {'Key': old_key}]}]
+    keys = service._load_archive_manifest_chain(client, run)
+    assert keys == {run.archive_manifest_key, old_key, payload['segments'][0]['object_key']}
+
+
+def test_resident_purge_rejects_unverified_candidate():
+    run, client, _ = archive()
+    client.get_paginator.return_value.paginate.return_value = [{'Contents': [
+        {'Key': f'runs/{uuid4()}/resident-revision-1/{uuid4()}/{"a"*64}.json'}]}]
+    with pytest.raises(service.IntegrityEvidenceStorageError):
+        service._load_archive_manifest_chain(client, run)
+    client.delete_objects.assert_not_called()
+
+
+def test_resident_manifest_rejects_over_producer_size_limit():
+    run, client, _ = archive(change=lambda p: p.update(snapshot='x' * (16 * 1024 * 1024)))
+    with pytest.raises(service.IntegrityEvidenceStorageError, match='too large'):
+        service._load_archive_manifest_chain(client, run)
+
+
+def test_resident_candidate_listing_failure_prevents_purge():
+    from botocore.exceptions import ClientError
+    run, client, _ = archive()
+    client.get_paginator.return_value.paginate.side_effect = ClientError(
+        {'Error': {'Code': 'AccessDenied'}}, 'ListObjectsV2')
+    with pytest.raises(service.IntegrityEvidenceStorageError, match='listed'):
+        service._load_archive_manifest_chain(client, run)
+    client.delete_objects.assert_not_called()
+
+
+def test_resident_candidates_enforce_manifest_budget(monkeypatch):
+    run, client, _ = archive()
+    monkeypatch.setattr(service, '_MAX_ARCHIVE_GENERATIONS', 1)
+    client.get_paginator.return_value.paginate.return_value = [{'Contents': [
+        {'Key': f'runs/{run.id}/resident-revision-1/{uuid4()}/{"a"*64}.json'}]}]
+    with pytest.raises(service.IntegrityEvidenceStorageError, match='too long'):
+        service._load_archive_manifest_chain(client, run)
+
+
+def test_resident_candidate_checksum_failure_prevents_purge():
+    run, client, _ = archive()
+    key = f'runs/{run.id}/resident-revision-1/{uuid4()}/{"a"*64}.json'
+    primary = client.get_object.return_value['Body'].getvalue()
+    client.get_paginator.return_value.paginate.return_value = [{'Contents': [{'Key': key}]}]
+    client.get_object.side_effect = lambda **kw: {'Body': BytesIO(
+        primary if kw['Key'] == run.archive_manifest_key else b'{}')}
+    with pytest.raises(service.IntegrityEvidenceStorageError, match='checksum'):
+        service._load_archive_manifest_chain(client, run)
+    client.delete_objects.assert_not_called()

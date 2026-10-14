@@ -163,6 +163,7 @@ def incident_event(integrity_run, participant):
 @pytest.fixture
 def object_store(monkeypatch):
     client = Mock()
+    client.get_paginator.return_value.paginate.return_value = []
     client.generate_presigned_url.side_effect = (
         lambda **kwargs: f"https://r2.example/{kwargs['Params']['Key']}"
     )

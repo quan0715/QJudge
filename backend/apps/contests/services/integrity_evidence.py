@@ -44,7 +44,7 @@ _TERMINAL_CHUNK_STATUSES = frozenset(
         ExamEvidenceChunk.Status.UNAVAILABLE,
     }
 )
-_MANIFEST_MAX_BYTES = 10 * 1024 * 1024
+_MANIFEST_MAX_BYTES = 16 * 1024 * 1024
 _PURGE_BATCH_SIZE = 500
 _MAX_ARCHIVE_GENERATIONS = 1_000
 _MAX_PURGE_KEYS = 100_000
@@ -1694,9 +1694,10 @@ def _read_archive_manifest(client, key: str, digest: str) -> dict:
     return payload
 
 
-def _load_resident_archive_manifest(client, run: ExamIntegrityRun) -> set[str]:
-    """Resident v2 is a full snapshot with content-addressed, run-scoped keys."""
-    key, digest = run.archive_manifest_key, run.archive_manifest_sha256
+def _load_resident_manifest(
+    client, run: ExamIntegrityRun, key: str, digest: str, *, published: bool,
+) -> set[str]:
+    """Validate one content-addressed Resident snapshot before selecting its keys."""
     prefix = f"runs/{run.id}/resident-revision-"
     match = re.fullmatch(
         re.escape(prefix) + r"([1-9][0-9]*)/([0-9a-f-]{36})/([0-9a-f]{64})\.json",
@@ -1707,6 +1708,9 @@ def _load_resident_archive_manifest(client, run: ExamIntegrityRun) -> set[str]:
         or type(digest) is not str
         or not _SHA256_RE.fullmatch(digest)
         or match[3] != digest
+        or type(run.schedule_revision) is not int
+        or int(match[1]) > run.schedule_revision
+        or (published and int(match[1]) != run.schedule_revision)
     ):
         raise IntegrityEvidenceStorageError("archive manifest identity is invalid")
     try:
@@ -1741,6 +1745,37 @@ def _load_resident_archive_manifest(client, run: ExamIntegrityRun) -> set[str]:
         ):
             raise IntegrityEvidenceStorageError("archive segment identity is invalid")
         keys.add(segment["object_key"])
+    return keys
+
+
+def _load_resident_archive_manifest(client, run: ExamIntegrityRun) -> set[str]:
+    keys = _load_resident_manifest(
+        client, run, run.archive_manifest_key, run.archive_manifest_sha256, published=True,
+    )
+    # A schedule extension can reject commit after a candidate was uploaded.
+    # Discover candidates, but validate every exact key/body before any deletion.
+    manifests = {run.archive_manifest_key}
+    try:
+        pages = client.get_paginator("list_objects_v2").paginate(
+            Bucket=settings.OBJECT_STORAGE_BUCKET,
+            Prefix=f"runs/{run.id}/resident-revision-",
+        )
+        for page in pages:
+            for item in page.get("Contents", []):
+                key = item.get("Key")
+                if type(key) is not str:
+                    raise IntegrityEvidenceStorageError("archive manifest identity is invalid")
+                if key in manifests:
+                    continue
+                if len(manifests) >= _MAX_ARCHIVE_GENERATIONS:
+                    raise IntegrityEvidenceStorageError("archive manifest chain is too long")
+                digest = key.rsplit("/", 1)[-1].removesuffix(".json")
+                keys.update(_load_resident_manifest(client, run, key, digest, published=False))
+                manifests.add(key)
+                if len(keys) > _MAX_PURGE_KEYS:
+                    raise IntegrityEvidenceStorageError("integrity purge key set is too large")
+    except (BotoCoreError, ClientError):
+        raise IntegrityEvidenceStorageError("archive candidates could not be listed") from None
     return keys
 
 
