@@ -313,7 +313,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             return (
                 obj.question_bindings
                 .filter(binding_type=QuestionAsset.AssetType.CODING)
-                .select_related('coding_problem', 'question_asset', 'question_version')
+                .select_related('coding_problem', 'question_asset')
                 .order_by('order')
             )
 
@@ -442,7 +442,6 @@ class ContestProblemSerializer(serializers.ModelSerializer):
     user_score = serializers.SerializerMethodField()
     submission_count = serializers.SerializerMethodField()
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
-    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
     binding_id = serializers.SerializerMethodField()
     in_question_bank = serializers.SerializerMethodField()
 
@@ -461,7 +460,6 @@ class ContestProblemSerializer(serializers.ModelSerializer):
             'source_question_id',
             'source_mode',
             'question_asset_id',
-            'question_version_id',
             'binding_id',
             'difficulty',
             'user_status',
@@ -599,7 +597,6 @@ class ExamQuestionStudentSerializer(serializers.ModelSerializer):
     """
 
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
-    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
     binding_id = serializers.SerializerMethodField()
     group_id = serializers.UUIDField(source='group.id', read_only=True, allow_null=True)
 
@@ -619,7 +616,6 @@ class ExamQuestionStudentSerializer(serializers.ModelSerializer):
             'order_in_group',
             'answer_format',
             'question_asset_id',
-            'question_version_id',
             'binding_id',
         ]
         read_only_fields = fields
@@ -637,7 +633,6 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
     source_question_id = serializers.UUIDField(read_only=True)
     source_mode = serializers.CharField(read_only=True)
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
-    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
     binding_id = serializers.SerializerMethodField()
     group_id = serializers.UUIDField(required=False, allow_null=True)
     effective_max_score = serializers.SerializerMethodField()
@@ -672,7 +667,6 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             'source_question_id',
             'source_mode',
             'question_asset_id',
-            'question_version_id',
             'binding_id',
             'created_at',
             'updated_at',

@@ -36,13 +36,12 @@ class Command(BaseCommand):
         from apps.question_bank.question_assets import ensure_problem_question_asset
         if not problem.question_asset_id:
             ensure_problem_question_asset(problem=problem, actor=problem.created_by or contest.owner)
-            problem.refresh_from_db(fields=["question_asset", "question_version"])
+            problem.refresh_from_db(fields=["question_asset"])
         ContestQuestionBinding.objects.get_or_create(
             contest=contest,
             coding_problem=problem,
             defaults={
                 "question_asset": problem.question_asset,
-                "question_version": problem.question_version,
                 "binding_type": QuestionAsset.AssetType.CODING,
                 "order": order,
                 "score": 100,
@@ -147,18 +146,16 @@ class Command(BaseCommand):
                 },
             )
             if created:
-                asset, version = write_coding_content_to_asset(
+                asset = write_coding_content_to_asset(
                     owner=admin, title=spec["title"], prompt=f"{spec['title']} 壓測用",
                     difficulty=spec["difficulty"],
                     content_fields={
                         "description": f"{spec['title']} 壓測用",
                         "input_description": "", "output_description": "", "hint": "",
                     },
-                    actor=admin,
                 )
                 prob.question_asset = asset
-                prob.question_version = version
-                prob.save(update_fields=["question_asset", "question_version"])
+                prob.save(update_fields=["question_asset"])
                 for idx, (inp, out, sample, weight) in enumerate(spec["tests"]):
                     TestCase.objects.create(
                         problem=prob, input_data=inp, output_data=out,

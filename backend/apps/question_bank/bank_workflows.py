@@ -1,5 +1,5 @@
 """
-Question-bank workflows built on QuestionAsset, QuestionVersion, and membership rows.
+Question-bank workflows built on QuestionAsset and membership rows.
 """
 from __future__ import annotations
 
@@ -129,7 +129,7 @@ def upsert_problem_into_bank(problem: CodingProblem, bank: QuestionBank, created
     if not problem.question_asset_id:
         from .question_assets import ensure_problem_question_asset
         ensure_problem_question_asset(problem=problem, actor=created_by or problem.created_by)
-        problem.refresh_from_db(fields=["question_asset", "question_version"])
+        problem.refresh_from_db(fields=["question_asset"])
     return ensure_question_bank_membership(
         bank=bank,
         question_asset=problem.question_asset,
@@ -154,10 +154,7 @@ def upsert_exam_question_into_bank(
             "Exam question is not reconstructible for bank ingest: "
             f"{reconstructibility.reason}"
         )
-    question_asset, question_version = sync_exam_question_question_asset(
-        exam_question=exam_question,
-        actor=created_by or exam_question.contest.owner,
-    )
+    question_asset = sync_exam_question_question_asset(exam_question=exam_question)
     membership = ensure_question_bank_membership(
         bank=bank,
         question_asset=question_asset,
@@ -237,8 +234,9 @@ def _source_id_from_membership_payload(
     *,
     source_type: str,
 ) -> str | None:
-    version = membership.question_asset.latest_version
-    payload = version.payload if version and isinstance(version.payload, dict) else {}
+    payload = membership.question_asset.payload
+    if not isinstance(payload, dict):
+        payload = {}
     payload_source_type = payload.get("source_type")
     if payload_source_type and payload_source_type != source_type:
         return None
@@ -259,7 +257,6 @@ def _get_effective_synced_ids_for_user(
             "bank",
             "bank__owner",
             "question_asset",
-            "question_asset__latest_version",
         )
         .order_by("-updated_at", "-id")
     )
@@ -411,7 +408,7 @@ def ingest_question_bank_inbox_items(
                 if not source.question_asset_id:
                     from .question_assets import ensure_problem_question_asset
                     ensure_problem_question_asset(problem=source, actor=user)
-                    source.refresh_from_db(fields=["question_asset", "question_version"])
+                    source.refresh_from_db(fields=["question_asset"])
 
                 existing = _resolve_effective_existing_membership(
                     queryset=QuestionBankMembership.objects.filter(question_asset=source.question_asset),
@@ -441,10 +438,7 @@ def ingest_question_bank_inbox_items(
             if not source:
                 raise ValueError(f"Exam question {source_id} not found")
 
-            question_asset, _question_version = sync_exam_question_question_asset(
-                exam_question=source,
-                actor=user,
-            )
+            question_asset = sync_exam_question_question_asset(exam_question=source)
             existing = _resolve_effective_existing_membership(
                 queryset=QuestionBankMembership.objects.filter(question_asset=question_asset),
                 user=user,

@@ -68,13 +68,6 @@ class QuestionAsset(models.Model):
     title = models.CharField(max_length=255, blank=True, default="")
     prompt = models.TextField(blank=True, default="")
     payload = models.JSONField(default=dict, blank=True)
-    latest_version = models.ForeignKey(
-        "QuestionVersion",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="+",
-    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -87,40 +80,6 @@ class QuestionAsset(models.Model):
 
     def __str__(self):
         return f"{self.asset_type}:{self.id}"
-
-
-class QuestionVersion(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    question_asset = models.ForeignKey(
-        QuestionAsset,
-        on_delete=models.CASCADE,
-        related_name="versions",
-    )
-    version_number = models.PositiveIntegerField()
-    title = models.CharField(max_length=255, blank=True, default="")
-    prompt = models.TextField(blank=True, default="")
-    payload = models.JSONField(default=dict, blank=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="created_question_versions",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = "question_versions"
-        ordering = ["-version_number", "-created_at"]
-        constraints = [
-            UniqueConstraint(
-                fields=["question_asset", "version_number"],
-                name="unique_question_version_per_asset",
-            ),
-        ]
-
-    def __str__(self):
-        return f"{self.question_asset_id}@v{self.version_number}"
 
 
 class QuestionBankMembership(models.Model):
@@ -177,13 +136,6 @@ class ContestQuestionBinding(models.Model):
     question_asset = models.ForeignKey(
         QuestionAsset,
         on_delete=models.CASCADE,
-        related_name="contest_bindings",
-    )
-    question_version = models.ForeignKey(
-        QuestionVersion,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
         related_name="contest_bindings",
     )
 

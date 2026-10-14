@@ -33,13 +33,12 @@ class Command(BaseCommand):
             QuestionBankMembership.objects.select_related(
                 "bank",
                 "question_asset",
-                "question_asset__latest_version",
             )
-            .filter(question_asset__latest_version__payload__source_type="exam_question")
+            .filter(question_asset__payload__source_type="exam_question")
             .order_by("-updated_at", "-id")
         )
         for membership in memberships:
-            payload = membership.question_asset.latest_version.payload or {}
+            payload = membership.question_asset.payload or {}
             source_id = str(payload.get("source_id") or "").strip()
             if not source_id:
                 continue

@@ -136,7 +136,6 @@ class ProblemListSerializer(serializers.ModelSerializer):
     title = serializers.SerializerMethodField()
     difficulty = serializers.SerializerMethodField()
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
-    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
 
     class Meta:
         model = CodingProblem
@@ -156,7 +155,6 @@ class ProblemListSerializer(serializers.ModelSerializer):
             'created_at',
             'created_by',
             'question_asset_id',
-            'question_version_id',
             'language_configs',
             'is_solved',
             'tags',
@@ -202,7 +200,6 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
     language_configs = LanguageConfigSerializer(many=True, read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
-    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
 
     class Meta:
         model = CodingProblem
@@ -222,7 +219,6 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
             'ce_count',
             'acceptance_rate',
             'question_asset_id',
-            'question_version_id',
             'description',
             'input_description',
             'output_description',
@@ -301,7 +297,6 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
     language_configs = LanguageConfigSerializer(many=True, required=False)
     tags = TagSerializer(many=True, read_only=True)  # Read: return full tag objects
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
-    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
 
     # New Tag UX fields (write-only)
     existing_tag_ids = serializers.ListField(
@@ -337,7 +332,6 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             'ce_count',
             'acceptance_rate',
             'question_asset_id',
-            'question_version_id',
             'description',
             'input_description',
             'output_description',
@@ -356,7 +350,6 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             'updated_at',
             'acceptance_rate',
             'question_asset_id',
-            'question_version_id',
         ]
     
     def _normalize_and_validate_test_case_weights(self, test_cases_data):

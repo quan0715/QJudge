@@ -15,13 +15,12 @@ def bind_problem_to_contest(contest, problem, order=0, score=100):
             problem=problem,
             actor=problem.created_by or contest.owner,
         )
-        problem.refresh_from_db(fields=["question_asset", "question_version"])
+        problem.refresh_from_db(fields=["question_asset"])
 
 
     return ContestQuestionBinding.objects.create(
         contest=contest,
         question_asset=problem.question_asset,
-        question_version=problem.question_version,
         coding_problem=problem,
         binding_type=QuestionAsset.AssetType.CODING,
         order=order,

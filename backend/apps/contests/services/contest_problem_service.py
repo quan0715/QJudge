@@ -105,7 +105,6 @@ def materialize_problem_from_bank_item(
         forbidden_keywords=payload.get("forbidden_keywords") or [],
         required_keywords=payload.get("required_keywords") or [],
         question_asset=bank_item.question_asset,
-        question_version=bank_item.question_version,
     )
     ProblemService.replace_related(
         problem,
