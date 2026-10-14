@@ -2073,7 +2073,9 @@ def test_manager_event_response_marks_purged_evidence_unavailable(
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize("schema_version", [1, 2])
 def test_purge_uses_only_verified_manifest_and_exact_run_chunk_keys(
+    schema_version,
     integrity_run,
     participant,
     incident_event,
@@ -2093,6 +2095,19 @@ def test_purge_uses_only_verified_manifest_and_exact_run_chunk_keys(
         separators=(",", ":"),
         sort_keys=True,
     ).encode()
+    if schema_version == 2:
+        candidate = str(uuid4())
+        segment_digest = "a" * 64
+        segment_key = f"runs/{integrity_run.id}/resident-segments/{segment_digest}.journal.gz"
+        manifest = json.dumps({
+            "schema_version": 2, "run_id": str(integrity_run.id),
+            "resident_revision": integrity_run.schedule_revision,
+            "candidate_id": candidate,
+            "segments": [{"object_key": segment_key, "sha256": segment_digest}],
+        }).encode()
+        digest = hashlib.sha256(manifest).hexdigest()
+        manifest_key = (f"runs/{integrity_run.id}/resident-revision-"
+                        f"{integrity_run.schedule_revision}/{candidate}/{digest}.json")
     integrity_run.archive_generation = 1
     integrity_run.archive_manifest_key = manifest_key
     integrity_run.archive_manifest_sha256 = hashlib.sha256(manifest).hexdigest()
