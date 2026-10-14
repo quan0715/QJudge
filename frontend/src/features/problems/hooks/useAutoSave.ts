@@ -102,7 +102,7 @@ function buildPatchPayload(
       output_data: tc.output || "",
       is_sample: tc.isSample ?? false,
       is_hidden: tc.isHidden ?? false,
-      weight_percent: tc.score ?? 0,
+      weight_percent: tc.weightPercent ?? 0,
     }));
     return { test_cases: convertedTestCases } as unknown as Partial<ProblemUpsertPayload>;
   }

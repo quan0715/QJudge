@@ -99,7 +99,6 @@ class ProblemTestCaseFactory(factory.django.DjangoModelFactory):
     problem = factory.SubFactory(ProblemFactory)
     input_data = "1"
     output_data = "1"
-    score = 100
     weight_percent = 100
     order = 1
 
@@ -125,7 +124,7 @@ def api_client() -> APIClient:
 def create_contest_with_problem(owner: User, **contest_kwargs: object) -> Tuple[Contest, CodingProblem]:
     contest = ContestFactory(owner=owner, **contest_kwargs)
     problem = ProblemFactory(created_by=owner)
-    ProblemTestCaseFactory(problem=problem, score=100)
+    ProblemTestCaseFactory(problem=problem)
     bind_problem_to_contest(contest, problem, order=0)
     return contest, problem
 

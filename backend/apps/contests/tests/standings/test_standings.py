@@ -75,20 +75,18 @@ class StandingsAPITests(APITestCase):
             problem=self.problem_a,
             input_data='1',
             output_data='1',
-            score=30,
             weight_percent=30,
         )
         ProblemTestCase.objects.create(
             problem=self.problem_b,
             input_data='2',
             output_data='2',
-            score=70,
             weight_percent=70,
         )
 
         # Add problems to contest
-        self.contest_problem_a = bind_problem_to_contest(self.contest, self.problem_a, order=0)
-        self.contest_problem_b = bind_problem_to_contest(self.contest, self.problem_b, order=1)
+        self.contest_problem_a = bind_problem_to_contest(self.contest, self.problem_a, order=0, score=30)
+        self.contest_problem_b = bind_problem_to_contest(self.contest, self.problem_b, order=1, score=70)
 
         # Register participants
         ContestParticipant.objects.create(
@@ -305,7 +303,6 @@ class StandingsDataIntegrityTests(APITestCase):
             problem=self.problem,
             input_data='1',
             output_data='1',
-            score=100,
             weight_percent=100,
         )
 
@@ -427,19 +424,17 @@ class StandingsRankingOrderTests(APITestCase):
             problem=self.problem1,
             input_data='1',
             output_data='1',
-            score=100,
             weight_percent=100,
         )
         ProblemTestCase.objects.create(
             problem=self.problem2,
             input_data='2',
             output_data='2',
-            score=50,
             weight_percent=50,
         )
 
         bind_problem_to_contest(self.contest, self.problem1, order=0)
-        bind_problem_to_contest(self.contest, self.problem2, order=1)
+        bind_problem_to_contest(self.contest, self.problem2, order=1, score=50)
 
         # Register both students
         ContestParticipant.objects.create(

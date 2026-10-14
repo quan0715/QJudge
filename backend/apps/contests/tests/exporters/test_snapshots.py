@@ -95,11 +95,10 @@ class TestMarkdownRendererSnapshots:
             input_data='5',
             output_data='25',
             is_sample=True,
-            score=10,
             weight_percent=10,
         )
 
-        bind_problem_to_contest(contest, problem, order=0)
+        bind_problem_to_contest(contest, problem, order=0, score=10)
 
         return contest
 
@@ -187,11 +186,10 @@ class TestPDFRendererSnapshots:
             input_data='1 2 3',
             output_data='6',
             is_sample=True,
-            score=50,
             weight_percent=50,
         )
 
-        bind_problem_to_contest(contest, problem, order=0)
+        bind_problem_to_contest(contest, problem, order=0, score=50)
 
         return contest
 
@@ -273,11 +271,10 @@ class TestStudentReportSnapshots:
                     input_data=str(j),
                     output_data=str(j),
                     is_sample=(j == 0),
-                    score=10,
                     weight_percent=10,
                 )
 
-            bind_problem_to_contest(contest, problem, order=i)
+            bind_problem_to_contest(contest, problem, order=i, score=20)
             problems.append(problem)
 
         participant = ContestParticipant.objects.create(

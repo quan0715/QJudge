@@ -35,7 +35,7 @@ class SubmissionScoringIntegrationTests(TestCase):
             ProblemCase.objects.create(
                 problem=self.problem, input_data=inp, output_data=out,
                 is_sample=order == 0, is_hidden=order == 1,
-                score=weight, weight_percent=weight, order=order,
+                weight_percent=weight, order=order,
             )
         self.contest = Contest.objects.create(
             name="Judge session score integration", owner=self.user, contest_type="coding",

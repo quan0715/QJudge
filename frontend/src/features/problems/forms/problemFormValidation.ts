@@ -47,7 +47,7 @@ export const problemFormSchema = z.object({
       input: z.string(),
       expectedOutput: z.string(),
       isHidden: z.boolean().optional(),
-      score: z.number().optional(),
+      weightPercent: z.number().optional(),
     })
   ),
 

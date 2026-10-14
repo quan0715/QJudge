@@ -477,7 +477,6 @@ class ProblemTestRunTests(TestCase):
             input_data='1 2',
             output_data='3',
             is_sample=True,
-            score=100,
             order=1,
             weight_percent=100,
         )
@@ -515,12 +514,12 @@ class ProblemTestRunTests(TestCase):
         """Hidden and non-sample cases are for formal submissions only."""
         ProblemTestCase.objects.create(
             problem=self.problem, input_data='SECRET-IN', output_data='SECRET-OUT',
-            is_sample=False, is_hidden=True, score=0, order=2,
+            is_sample=False, is_hidden=True, order=2,
             weight_percent=0,
         )
         ProblemTestCase.objects.create(
             problem=self.problem, input_data='NON-SAMPLE-IN', output_data='NON-SAMPLE-OUT',
-            is_sample=False, score=0, order=3,
+            is_sample=False, order=3,
             weight_percent=0,
         )
 
@@ -628,7 +627,6 @@ class ProblemTestRunTests(TestCase):
             input_data='2 3',
             output_data='5',
             is_sample=True,
-            score=100,
             order=2,
             weight_percent=100,
         )
@@ -695,7 +693,7 @@ class ProblemTestRunContestAccessTests(TestCase):
         )
         ProblemTestCase.objects.create(
             problem=self.problem, input_data='1 2', output_data='3',
-            is_sample=True, score=100, order=1,
+            is_sample=True, order=1,
             weight_percent=100,
         )
 
@@ -780,7 +778,7 @@ class ProblemTestRunContestAccessTests(TestCase):
     def _contest_problem_detail(self, user):
         ProblemTestCase.objects.create(
             problem=self.problem, input_data='SECRET-IN', output_data='SECRET-OUT',
-            is_sample=False, is_hidden=True, score=0, order=2,
+            is_sample=False, is_hidden=True, order=2,
             weight_percent=0,
         )
         binding = ContestQuestionBinding.objects.get(

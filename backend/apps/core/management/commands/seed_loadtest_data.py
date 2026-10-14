@@ -37,8 +37,6 @@ class Command(BaseCommand):
         if not problem.question_asset_id:
             ensure_problem_question_asset(problem=problem, actor=problem.created_by or contest.owner)
             problem.refresh_from_db(fields=["question_asset", "question_version"])
-        from django.db.models import Sum
-        score = max(1, int(problem.test_cases.aggregate(total=Sum('score'))['total'] or 100))
         ContestQuestionBinding.objects.get_or_create(
             contest=contest,
             coding_problem=problem,
@@ -47,7 +45,7 @@ class Command(BaseCommand):
                 "question_version": problem.question_version,
                 "binding_type": QuestionAsset.AssetType.CODING,
                 "order": order,
-                "score": score,
+                "score": 100,
                 "source_mode": "manual",
             },
         )
@@ -161,10 +159,10 @@ class Command(BaseCommand):
                 prob.question_asset = asset
                 prob.question_version = version
                 prob.save(update_fields=["question_asset", "question_version"])
-                for idx, (inp, out, sample, score) in enumerate(spec["tests"]):
+                for idx, (inp, out, sample, weight) in enumerate(spec["tests"]):
                     TestCase.objects.create(
                         problem=prob, input_data=inp, output_data=out,
-                        is_sample=sample, is_hidden=not sample, score=score, weight_percent=score, order=idx + 1,
+                        is_sample=sample, is_hidden=not sample, weight_percent=weight, order=idx + 1,
                     )
                 LanguageConfig.objects.create(
                     problem=prob, language="cpp", is_enabled=True,

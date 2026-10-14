@@ -15,7 +15,6 @@ class ProblemService:
                 input_data=tc.input_data,
                 output_data=tc.output_data,
                 is_sample=tc.is_sample,
-                score=tc.score,
                 weight_percent=tc.weight_percent,
                 order=tc.order,
                 is_hidden=tc.is_hidden
@@ -232,7 +231,7 @@ class ProblemService:
         effective_test_cases = test_cases_data if test_cases_data is not None else list(
             instance.test_cases.values(
                 "input_data", "output_data", "is_sample",
-                "score", "weight_percent", "order", "is_hidden",
+                "weight_percent", "order", "is_hidden",
             )
         )
         effective_lang_configs = language_configs_data if language_configs_data is not None else list(

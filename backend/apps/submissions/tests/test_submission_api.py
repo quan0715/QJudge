@@ -60,7 +60,6 @@ class SubmissionAPITestCase(TestCase):
             input_data='1 2',
             output_data='3',
             is_sample=True,
-            score=50,
             order=1,
             weight_percent=50,
         )
@@ -70,7 +69,6 @@ class SubmissionAPITestCase(TestCase):
             input_data='5 7',
             output_data='12',
             is_sample=False,
-            score=50,
             order=2,
             weight_percent=50,
         )
@@ -298,7 +296,6 @@ class SubmissionExecutionTestCase(TestCase):
             input_data='1 2',
             output_data='3',
             is_sample=True,
-            score=100,
             order=1,
             weight_percent=100,
         )

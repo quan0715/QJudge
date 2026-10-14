@@ -23,7 +23,7 @@ export interface TestCaseDto {
   output?: string; // Compatibility
   is_sample: boolean;
   explanation?: string;
-  score?: number;
+  weight_percent?: number;
   order?: number;
   is_hidden?: boolean;
 }

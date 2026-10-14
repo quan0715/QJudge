@@ -1,7 +1,7 @@
 """ContestProblemViewSet -- reads and writes via ContestQuestionBinding."""
 from django.db import transaction
 from django.utils import timezone
-from django.db.models import Max, Sum
+from django.db.models import Max
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -158,8 +158,6 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         )
         next_order = (last_order if last_order is not None else -1) + 1
 
-        max_score = max(1, int(problem.test_cases.aggregate(total=Sum('score'))['total'] or 100))
-
         # Primary write: ContestQuestionBinding
         binding = ContestQuestionBinding.objects.create(
             contest=contest,
@@ -168,7 +166,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
             coding_problem=problem,
             binding_type=QuestionAsset.AssetType.CODING,
             order=next_order,
-            score=max_score,
+            score=100,
             source_mode="manual",
             created_by=user,
         )
@@ -357,9 +355,8 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
                 ensure_problem_question_asset(problem=problem, actor=user)
                 problem.refresh_from_db(fields=["question_asset", "question_version"])
 
-            default_max_score = max(1, int(problem.test_cases.aggregate(total=Sum("score"))["total"] or 100))
             requested = item.get("max_score")
-            max_score = max(1, int(requested)) if requested is not None else default_max_score
+            max_score = max(1, int(requested)) if requested is not None else 100
 
             binding = ContestQuestionBinding.objects.create(
                 contest=contest,
@@ -423,9 +420,8 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         ).aggregate(max_order=Max("order"))["max_order"]
         next_order = (last_order if last_order is not None else -1) + 1
 
-        default_max_score = max(1, int(problem.test_cases.aggregate(total=Sum("score"))["total"] or 100))
         requested = request.data.get("max_score")
-        max_score = max(1, int(requested)) if requested is not None else default_max_score
+        max_score = max(1, int(requested)) if requested is not None else 100
 
         binding = ContestQuestionBinding.objects.create(
             contest=contest, question_asset=problem.question_asset,

@@ -289,7 +289,7 @@ def ensure_problem_question_asset(*, problem: CodingProblem, actor=None) -> tupl
         test_cases=list(
             problem.test_cases.values(
                 "input_data", "output_data", "is_sample",
-                "score", "weight_percent", "order", "is_hidden",
+                "weight_percent", "order", "is_hidden",
             )
         ),
         language_configs=list(

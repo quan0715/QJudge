@@ -71,7 +71,7 @@ export function mapProblemDetailDto(dto: ProblemDetailDto): CodingProblemDetail 
           output: tc.output_data ?? tc.output ?? "",
           isSample: tc.is_sample,
           isHidden: tc.is_hidden,
-          score: tc.score,
+          weightPercent: tc.weight_percent,
           explanation: tc.explanation,
         }))
       : [],
