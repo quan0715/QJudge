@@ -17,10 +17,6 @@ export const LANGUAGE_CONFIG = {
     field: "java",
     label: "Java",
   },
-  javascript: {
-    field: "javascript",
-    label: "JavaScript",
-  },
   c: {
     field: "c",
     label: "C",
