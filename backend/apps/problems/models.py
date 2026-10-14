@@ -54,15 +54,6 @@ class CodingProblem(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
     
-    # Statistics (denormalized for performance)
-    submission_count = models.IntegerField(default=0, verbose_name='提交次數')
-    accepted_count = models.IntegerField(default=0, verbose_name='通過次數')
-    wa_count = models.IntegerField(default=0, verbose_name='答案錯誤次數')
-    tle_count = models.IntegerField(default=0, verbose_name='超時次數')
-    mle_count = models.IntegerField(default=0, verbose_name='記憶體超限次數')
-    re_count = models.IntegerField(default=0, verbose_name='執行錯誤次數')
-    ce_count = models.IntegerField(default=0, verbose_name='編譯錯誤次數')
-    
     # Tags for categorization
     tags = models.ManyToManyField(
         'Tag',
@@ -109,12 +100,6 @@ class CodingProblem(models.Model):
         formal submission.
         """
         return self.test_cases.filter(is_sample=True, is_hidden=False)
-
-    @property
-    def acceptance_rate(self):
-        if self.submission_count == 0:
-            return 0.0
-        return (self.accepted_count / self.submission_count) * 100
 
 
 class LanguageConfig(models.Model):

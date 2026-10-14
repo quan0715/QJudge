@@ -34,14 +34,9 @@ export interface ProblemDto {
   binding_id?: number | string;
   title: string;
   difficulty: Difficulty;
-  acceptance_rate: number;
-  submission_count: number;
-  accepted_count: number;
-  wa_count?: number;
-  tle_count?: number;
-  mle_count?: number;
-  re_count?: number;
-  ce_count?: number;
+  acceptance_rate?: number;
+  submission_count?: number;
+  accepted_count?: number;
   created_by?: string;
   tags: TagDto[];
   is_solved?: boolean;

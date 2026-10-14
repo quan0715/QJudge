@@ -20,7 +20,7 @@ class LanguageConfigAdmin(admin.ModelAdmin):
 
 @admin.register(CodingProblem)
 class ProblemAdmin(admin.ModelAdmin):
-    list_display = ['id', 'slug', 'submission_count', 'acceptance_rate']
+    list_display = ['id', 'slug', 'created_at']
     list_filter = ['created_at']
     search_fields = ['question_asset__title']
     inlines = [TestCaseInline]

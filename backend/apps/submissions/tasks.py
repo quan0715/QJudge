@@ -4,9 +4,7 @@ Submissions are judged on the high_priority queue, ahead of test runs.
 """
 import logging
 from celery import shared_task
-from django.db.models import F
 from .models import Submission, SubmissionResult
-from apps.problems.models import CodingProblem
 from apps.judge.judge_factory import get_judge
 
 logger = logging.getLogger(__name__)
@@ -109,16 +107,6 @@ def judge_submission(submission_id):
                 submission_id,
                 exc_info=True,
             )
-        
-        if final_status != 'SE':
-            counts = {"submission_count": F("submission_count") + 1}
-            status_field = {
-                "AC": "accepted_count", "WA": "wa_count", "TLE": "tle_count",
-                "MLE": "mle_count", "RE": "re_count", "CE": "ce_count",
-            }.get(submission.status)
-            if status_field:
-                counts[status_field] = F(status_field) + 1
-            CodingProblem.objects.filter(pk=submission.problem_id).update(**counts)
         
         return f"Submission {submission_id} judged: {submission.status}"
 

@@ -5328,7 +5328,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedProblemListList'
+                $ref: '#/components/schemas/PaginatedProblemStatsListList'
           description: ''
     post:
       operationId: v1_management_problems_create
@@ -9030,7 +9030,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ContestProblem'
-    PaginatedProblemListList:
+    PaginatedProblemStatsListList:
       type: object
       required:
       - count
@@ -9052,7 +9052,7 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/ProblemList'
+            $ref: '#/components/schemas/ProblemStatsList'
     PaginatedSubmissionListList:
       type: object
       required:
@@ -9424,41 +9424,6 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           title: 記憶體限制 (MB)
-        submission_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 提交次數
-        accepted_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 通過次數
-        wa_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 答案錯誤次數
-        tle_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 超時次數
-        mle_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 記憶體超限次數
-        re_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 執行錯誤次數
-        ce_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 編譯錯誤次數
         forbidden_keywords:
           title: 禁用關鍵字
           description: 提交代碼中不可出現的關鍵字列表 (substring match)
@@ -9580,44 +9545,6 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           title: 記憶體限制 (MB)
-        submission_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 提交次數
-        accepted_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 通過次數
-        wa_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 答案錯誤次數
-        tle_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 超時次數
-        mle_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 記憶體超限次數
-        re_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 執行錯誤次數
-        ce_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 編譯錯誤次數
-        acceptance_rate:
-          type: string
-          readOnly: true
         question_asset_id:
           type: string
           format: uuid
@@ -9657,7 +9584,6 @@ components:
           title: 必須關鍵字
           description: 提交代碼中必須包含的關鍵字列表 (substring match)
       required:
-      - acceptance_rate
       - description
       - difficulty
       - hint
@@ -9691,41 +9617,6 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           title: 記憶體限制 (MB)
-        submission_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 提交次數
-        accepted_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 通過次數
-        wa_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 答案錯誤次數
-        tle_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 超時次數
-        mle_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 記憶體超限次數
-        re_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 執行錯誤次數
-        ce_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 編譯錯誤次數
         forbidden_keywords:
           title: 禁用關鍵字
           description: 提交代碼中不可出現的關鍵字列表 (substring match)
@@ -9751,44 +9642,6 @@ components:
           - type: string
             maxLength: 0
         difficulty:
-          type: string
-          readOnly: true
-        submission_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 提交次數
-        accepted_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 通過次數
-        wa_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 答案錯誤次數
-        tle_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 超時次數
-        mle_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 記憶體超限次數
-        re_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 執行錯誤次數
-        ce_count:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 編譯錯誤次數
-        acceptance_rate:
           type: string
           readOnly: true
         created_at:
@@ -9820,7 +9673,6 @@ components:
             $ref: '#/components/schemas/Tag'
           readOnly: true
       required:
-      - acceptance_rate
       - created_at
       - created_by
       - difficulty
@@ -9828,6 +9680,86 @@ components:
       - is_solved
       - language_configs
       - question_asset_id
+      - tags
+      - title
+    ProblemStatsList:
+      type: object
+      description: |-
+        Management list row with the read-time submission stats.
+
+        Expects a queryset annotated by ``ProblemQuerySet.with_submission_stats``.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        slug:
+          oneOf:
+          - type: string
+            maxLength: 255
+            pattern: ^[-a-zA-Z0-9_]+$
+          - type: string
+            maxLength: 0
+        difficulty:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 建立時間
+        created_by:
+          type: string
+          title: 使用者名稱
+          description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
+          readOnly: true
+        question_asset_id:
+          type: string
+          format: uuid
+          readOnly: true
+        question_version_id:
+          type: string
+          format: uuid
+          readOnly: true
+        language_configs:
+          type: array
+          items:
+            $ref: '#/components/schemas/LanguageConfig'
+          readOnly: true
+        is_solved:
+          type: boolean
+          readOnly: true
+          default: false
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          readOnly: true
+        submission_count:
+          type: integer
+          readOnly: true
+        accepted_count:
+          type: integer
+          readOnly: true
+        acceptance_rate:
+          type: number
+          format: double
+          readOnly: true
+      required:
+      - acceptance_rate
+      - accepted_count
+      - created_at
+      - created_by
+      - difficulty
+      - id
+      - is_solved
+      - language_configs
+      - question_asset_id
+      - question_version_id
+      - submission_count
       - tags
       - title
     PurposeEnum:

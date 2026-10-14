@@ -144,14 +144,6 @@ class ProblemListSerializer(serializers.ModelSerializer):
             'title',
             'slug',
             'difficulty',
-            'submission_count',
-            'accepted_count',
-            'wa_count',
-            'tle_count',
-            'mle_count',
-            're_count',
-            'ce_count',
-            'acceptance_rate',
             'created_at',
             'created_by',
             'question_asset_id',
@@ -185,6 +177,25 @@ class ProblemListSerializer(serializers.ModelSerializer):
                 pass
         return getattr(obj, 'difficulty', 'medium')
 
+
+class ProblemStatsListSerializer(ProblemListSerializer):
+    """Management list row with the read-time submission stats.
+
+    Expects a queryset annotated by ``ProblemQuerySet.with_submission_stats``.
+    """
+    submission_count = serializers.IntegerField(read_only=True)
+    accepted_count = serializers.IntegerField(read_only=True)
+    acceptance_rate = serializers.FloatField(read_only=True)
+
+    class Meta(ProblemListSerializer.Meta):
+        fields = [
+            *ProblemListSerializer.Meta.fields,
+            'submission_count',
+            'accepted_count',
+            'acceptance_rate',
+        ]
+
+
 class ProblemDetailSerializer(serializers.ModelSerializer):
     """Serializer for problem detail (full info)."""
     title = serializers.SerializerMethodField()
@@ -210,14 +221,6 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
             'difficulty',
             'time_limit',
             'memory_limit',
-            'submission_count',
-            'accepted_count',
-            'wa_count',
-            'tle_count',
-            'mle_count',
-            're_count',
-            'ce_count',
-            'acceptance_rate',
             'question_asset_id',
             'description',
             'input_description',
@@ -323,14 +326,6 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             'created_by',
             'created_at',
             'updated_at',
-            'submission_count',
-            'accepted_count',
-            'wa_count',
-            'tle_count',
-            'mle_count',
-            're_count',
-            'ce_count',
-            'acceptance_rate',
             'question_asset_id',
             'description',
             'input_description',
@@ -348,7 +343,6 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             'created_by',
             'created_at',
             'updated_at',
-            'acceptance_rate',
             'question_asset_id',
         ]
     

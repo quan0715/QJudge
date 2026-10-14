@@ -82,9 +82,9 @@ describe("Problem Mapper", () => {
       expect(result.id).toBe("1");
       expect(result.title).toBe("");
       expect(result.difficulty).toBe("medium");
-      expect(result.acceptanceRate).toBe(0);
-      expect(result.submissionCount).toBe(0);
-      expect(result.acceptedCount).toBe(0);
+      expect(result.acceptanceRate).toBeUndefined();
+      expect(result.submissionCount).toBeUndefined();
+      expect(result.acceptedCount).toBeUndefined();
       expect(result.tags).toEqual([]);
       expect(result.isSolved).toBe(false);
     });

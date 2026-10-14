@@ -14,11 +14,6 @@ const createMockProblemDetail = (
   acceptanceRate: 85.5,
   submissionCount: 1000,
   acceptedCount: 855,
-  waCount: 80,
-  tleCount: 30,
-  mleCount: 15,
-  reCount: 10,
-  ceCount: 10,
   tags: [
     { id: "1", name: "陣列", slug: "array" },
     { id: "2", name: "雜湊表", slug: "hash-table" },

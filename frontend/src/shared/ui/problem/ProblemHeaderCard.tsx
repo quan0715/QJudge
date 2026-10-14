@@ -3,7 +3,6 @@ import { Time, DataBase } from "@carbon/icons-react";
 import type { CodingProblemDetail, Difficulty } from "@/core/entities/problem.entity";
 import { DifficultyBadge } from "@/shared/ui/tag/DifficultyBadge";
 import { CategoryTag } from "@/shared/ui/tag/CategoryTag";
-import { AcrBadge } from "@/shared/ui/tag/AcrBadge";
 import "./ProblemHeaderCard.scss";
 
 // ============================================================================
@@ -15,8 +14,6 @@ interface ProblemHeaderCardProps {
   problem: CodingProblemDetail;
   /** Optional problem label (e.g., "A" for contest) */
   problemLabel?: string;
-  /** Show AC rate badge */
-  showAcRate?: boolean;
   /** Show time/memory limits */
   showLimits?: boolean;
   /** Show category tags */
@@ -35,24 +32,16 @@ interface ProblemHeaderCardProps {
  * Features:
  * - Title with optional problem label
  * - Difficulty badge (color-coded)
- * - AC Rate badge with ring indicator
  * - Category tags (collapsible)
  * - Time/Memory limits
  */
 export const ProblemHeaderCard: React.FC<ProblemHeaderCardProps> = ({
   problem,
   problemLabel,
-  showAcRate = true,
   showLimits = true,
   showTags = true,
   className,
 }) => {
-  // Calculate AC rate
-  const acRate =
-    problem.submissionCount && problem.submissionCount > 0
-      ? ((problem.acceptedCount || 0) / problem.submissionCount) * 100
-      : 0;
-
   // Extract tag names
   const tagNames = problem.tags?.map((tag) => tag.name) || [];
 
@@ -74,7 +63,6 @@ export const ProblemHeaderCard: React.FC<ProblemHeaderCardProps> = ({
           difficulty={problem.difficulty as Difficulty}
           size="md"
         />
-        {showAcRate && <AcrBadge value={acRate} size="md" />}
         {showTags && tagNames.length > 0 && (
           <CategoryTag labels={tagNames} maxVisible={3} size="md" />
         )}
