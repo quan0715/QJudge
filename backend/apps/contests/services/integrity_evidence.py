@@ -44,7 +44,7 @@ _TERMINAL_CHUNK_STATUSES = frozenset(
         ExamEvidenceChunk.Status.UNAVAILABLE,
     }
 )
-_MANIFEST_MAX_BYTES = 10 * 1024 * 1024
+_MANIFEST_MAX_BYTES = 16 * 1024 * 1024
 _PURGE_BATCH_SIZE = 500
 _MAX_ARCHIVE_GENERATIONS = 1_000
 _MAX_PURGE_KEYS = 100_000
@@ -1672,10 +1672,122 @@ def _expected_segment_prefix(run_id: UUID, generation: int) -> str:
     return f"runs/{run_id}/generation-{generation}/segments/"
 
 
+def _read_archive_manifest(client, key: str, digest: str) -> dict:
+    try:
+        response = client.get_object(
+            Bucket=settings.OBJECT_STORAGE_BUCKET,
+            Key=key,
+        )
+    except (BotoCoreError, ClientError):
+        raise IntegrityEvidenceStorageError(
+            "archive manifest could not be read"
+        ) from None
+    content = _read_body(response)
+    if not hmac.compare_digest(hashlib.sha256(content).hexdigest(), digest):
+        raise IntegrityEvidenceStorageError("archive manifest checksum is invalid")
+    try:
+        payload = json.loads(content)
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise IntegrityEvidenceStorageError(
+            "archive manifest payload is invalid"
+        ) from None
+    return payload
+
+
+def _load_resident_manifest(
+    client, run: ExamIntegrityRun, key: str, digest: str, *, published: bool,
+) -> set[str]:
+    """Validate one content-addressed Resident snapshot before selecting its keys."""
+    prefix = f"runs/{run.id}/resident-revision-"
+    match = re.fullmatch(
+        re.escape(prefix) + r"([1-9][0-9]*)/([0-9a-f-]{36})/([0-9a-f]{64})\.json",
+        key,
+    )
+    if (
+        match is None
+        or type(digest) is not str
+        or not _SHA256_RE.fullmatch(digest)
+        or match[3] != digest
+        or type(run.schedule_revision) is not int
+        or int(match[1]) > run.schedule_revision
+        or (published and int(match[1]) != run.schedule_revision)
+    ):
+        raise IntegrityEvidenceStorageError("archive manifest identity is invalid")
+    try:
+        candidate = str(UUID(match[2]))
+    except ValueError:
+        raise IntegrityEvidenceStorageError("archive manifest identity is invalid") from None
+    if candidate != match[2]:
+        raise IntegrityEvidenceStorageError("archive manifest identity is invalid")
+    payload = _read_archive_manifest(client, key, digest)
+    if (
+        type(payload) is not dict
+        or type(payload.get("schema_version")) is not int
+        or payload["schema_version"] != 2
+        or payload.get("run_id") != str(run.id)
+        or type(payload.get("resident_revision")) is not int
+        or str(payload["resident_revision"]) != match[1]
+        or payload.get("candidate_id") != candidate
+        or type(payload.get("segments")) is not list
+    ):
+        raise IntegrityEvidenceStorageError("archive manifest payload is invalid")
+    segments = payload["segments"]
+    if len(segments) + 1 > _MAX_PURGE_KEYS:
+        raise IntegrityEvidenceStorageError("integrity purge key set is too large")
+    keys = {key}
+    for segment in segments:
+        sha256 = segment.get("sha256") if type(segment) is dict else None
+        if (
+            type(sha256) is not str
+            or not _SHA256_RE.fullmatch(sha256)
+            or segment.get("object_key")
+            != f"runs/{run.id}/resident-segments/{sha256}.journal.gz"
+        ):
+            raise IntegrityEvidenceStorageError("archive segment identity is invalid")
+        keys.add(segment["object_key"])
+    return keys
+
+
+def _load_resident_archive_manifest(client, run: ExamIntegrityRun) -> set[str]:
+    keys = _load_resident_manifest(
+        client, run, run.archive_manifest_key, run.archive_manifest_sha256, published=True,
+    )
+    # A schedule extension can reject commit after a candidate was uploaded.
+    # Discover candidates, but validate every exact key/body before any deletion.
+    manifests = {run.archive_manifest_key}
+    try:
+        pages = client.get_paginator("list_objects_v2").paginate(
+            Bucket=settings.OBJECT_STORAGE_BUCKET,
+            Prefix=f"runs/{run.id}/resident-revision-",
+        )
+        for page in pages:
+            for item in page.get("Contents", []):
+                key = item.get("Key")
+                if type(key) is not str:
+                    raise IntegrityEvidenceStorageError("archive manifest identity is invalid")
+                if key in manifests:
+                    continue
+                if len(manifests) >= _MAX_ARCHIVE_GENERATIONS:
+                    raise IntegrityEvidenceStorageError("archive manifest chain is too long")
+                digest = key.rsplit("/", 1)[-1].removesuffix(".json")
+                keys.update(_load_resident_manifest(client, run, key, digest, published=False))
+                manifests.add(key)
+                if len(keys) > _MAX_PURGE_KEYS:
+                    raise IntegrityEvidenceStorageError("integrity purge key set is too large")
+    except (BotoCoreError, ClientError):
+        raise IntegrityEvidenceStorageError("archive candidates could not be listed") from None
+    return keys
+
+
 def _load_archive_manifest_chain(
     client,
     run: ExamIntegrityRun,
 ) -> set[str]:
+    if (
+        type(run.archive_manifest_key) is str
+        and run.archive_manifest_key.startswith(f"runs/{run.id}/resident-revision-")
+    ):
+        return _load_resident_archive_manifest(client, run)
     key = run.archive_manifest_key
     digest = run.archive_manifest_sha256
     generation = run.archive_generation
@@ -1695,24 +1807,7 @@ def _load_archive_manifest_chain(
         ):
             raise IntegrityEvidenceStorageError("archive manifest identity is invalid")
         visited.add(key)
-        try:
-            response = client.get_object(
-                Bucket=settings.OBJECT_STORAGE_BUCKET,
-                Key=key,
-            )
-        except (BotoCoreError, ClientError):
-            raise IntegrityEvidenceStorageError(
-                "archive manifest could not be read"
-            ) from None
-        content = _read_body(response)
-        if not hmac.compare_digest(hashlib.sha256(content).hexdigest(), digest):
-            raise IntegrityEvidenceStorageError("archive manifest checksum is invalid")
-        try:
-            payload = json.loads(content)
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            raise IntegrityEvidenceStorageError(
-                "archive manifest payload is invalid"
-            ) from None
+        payload = _read_archive_manifest(client, key, digest)
         if (
             type(payload) is not dict
             or payload.get("schema_version") != 1
