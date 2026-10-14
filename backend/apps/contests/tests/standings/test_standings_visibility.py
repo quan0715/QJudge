@@ -72,7 +72,6 @@ class ContestProblemBindingFactory(factory.django.DjangoModelFactory):
     _problem = factory.SubFactory(ProblemFactory)
     contest = factory.SubFactory(ContestFactory)
     question_asset = None
-    question_version = None
     coding_problem = factory.LazyAttribute(lambda o: o._problem)
     binding_type = QuestionAsset.AssetType.CODING
     order = 0
@@ -85,9 +84,8 @@ class ContestProblemBindingFactory(factory.django.DjangoModelFactory):
         if problem and not problem.question_asset_id:
             from apps.question_bank.question_assets import ensure_problem_question_asset
             ensure_problem_question_asset(problem=problem, actor=problem.created_by)
-            problem.refresh_from_db(fields=["question_asset", "question_version"])
+            problem.refresh_from_db(fields=["question_asset"])
         kwargs["question_asset"] = problem.question_asset
-        kwargs["question_version"] = problem.question_version
         kwargs["coding_problem"] = problem
         return super()._create(model_class, *args, **kwargs)
 
@@ -99,7 +97,7 @@ class ProblemTestCaseFactory(factory.django.DjangoModelFactory):
     problem = factory.SubFactory(ProblemFactory)
     input_data = "1"
     output_data = "1"
-    score = 100
+    weight_percent = 100
     order = 1
 
 
@@ -110,12 +108,10 @@ class SubmissionFactory(factory.django.DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
     problem = factory.SubFactory(ProblemFactory)
     contest = factory.SubFactory(ContestFactory)
-    source_type = "contest"
     language = "python"
     code = "print('ok')"
     status = "WA"
     score = 0
-    is_test = False
 
 
 @pytest.fixture
@@ -126,7 +122,7 @@ def api_client() -> APIClient:
 def create_contest_with_problem(owner: User, **contest_kwargs: object) -> Tuple[Contest, CodingProblem]:
     contest = ContestFactory(owner=owner, **contest_kwargs)
     problem = ProblemFactory(created_by=owner)
-    ProblemTestCaseFactory(problem=problem, score=100)
+    ProblemTestCaseFactory(problem=problem)
     bind_problem_to_contest(contest, problem, order=0)
     return contest, problem
 
@@ -219,41 +215,3 @@ def test_standings_shows_problem_titles_for_admins(
     assert response.status_code == 200
     for problem in response.data.get("problems", []):
         assert problem.get("title") is not None
-
-
-@pytest.mark.django_db
-def test_standings_excludes_test_submissions_from_score(
-    api_client: APIClient,
-) -> None:
-    teacher = UserFactory(role="teacher")
-    student = UserFactory()
-    contest, problem = create_contest_with_problem(
-        owner=teacher,
-        scoreboard_visible_during_contest=True,
-    )
-    ContestParticipantFactory(contest=contest, user=student, exam_status=ExamStatus.IN_PROGRESS)
-
-    SubmissionFactory(
-        user=student,
-        contest=contest,
-        problem=problem,
-        status="AC",
-        score=100,
-        is_test=True,
-    )
-    SubmissionFactory(
-        user=student,
-        contest=contest,
-        problem=problem,
-        status="WA",
-        score=50,
-        is_test=False,
-    )
-
-    api_client.force_authenticate(user=student)
-    response = api_client.get(f"/api/v1/contests/{contest.id}/standings/")
-
-    assert response.status_code == 200
-    standings = response.data.get("standings", [])
-    student_row = next(row for row in standings if row["user"]["id"] == student.id)
-    assert student_row["total_score"] == 50

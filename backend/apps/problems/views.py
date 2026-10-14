@@ -17,7 +17,7 @@ from .models import (
     Tag,
 )
 from .serializers import (
-    ProblemListSerializer,
+    ProblemStatsListSerializer,
     ProblemDetailSerializer,
     ProblemAdminSerializer,
     TagSerializer,
@@ -124,7 +124,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
             user=self.request.user,
             scope="manage",
             action=self.action,
-        )
+        ).with_submission_stats()
 
     def get_object(self):
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
@@ -140,7 +140,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         Return appropriate serializer based on action and user role.
         """
         if self.action == 'list':
-            return ProblemListSerializer
+            return ProblemStatsListSerializer
         
         user = self.request.user
         if user.is_authenticated and (
@@ -337,34 +337,17 @@ class ProblemViewSet(viewsets.ModelViewSet):
             problem = self.get_object()
         
         # Base queryset
-        submissions_qs = Submission.objects.filter(
-            problem=problem,
-            is_test=False
-        )
+        submissions_qs = Submission.objects.filter(problem=problem)
         
-        # Filter by contest if provided
         if contest_id:
             submissions_qs = submissions_qs.filter(contest_id=contest_id)
-            # For contest, use actual submission data
-            status_counts = dict(
-                submissions_qs.values('status')
-                .annotate(count=Count('id'))
-                .values_list('status', 'count')
-            )
-            submission_count = sum(status_counts.values())
-            accepted_count = status_counts.get('AC', 0)
-        else:
-            # For practice, use denormalized fields from CodingProblem.
-            status_counts = {
-                'AC': problem.accepted_count,
-                'WA': problem.wa_count,
-                'TLE': problem.tle_count,
-                'MLE': problem.mle_count,
-                'RE': problem.re_count,
-                'CE': problem.ce_count,
-            }
-            submission_count = problem.submission_count
-            accepted_count = problem.accepted_count
+        status_counts = dict(
+            submissions_qs.values('status')
+            .annotate(count=Count('id'))
+            .values_list('status', 'count')
+        )
+        submission_count = sum(status_counts.values())
+        accepted_count = status_counts.get('AC', 0)
         
         # Get last N submissions for trend data
         # First get the IDs of the last N submissions

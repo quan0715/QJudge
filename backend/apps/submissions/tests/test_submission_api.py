@@ -1,12 +1,29 @@
+from datetime import timedelta
 from unittest.mock import patch, MagicMock
 from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
+from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.contests.tests import bind_problem_to_contest
 from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 from apps.submissions.models import Submission
 
 User = get_user_model()
+
+
+def create_contest(owner, problem, *participants):
+    contest = Contest.objects.create(
+        name='Submission API Contest', owner=owner, status='published',
+        start_time=timezone.now() - timedelta(hours=1),
+        end_time=timezone.now() + timedelta(hours=1),
+        scoreboard_visible_during_contest=False,
+    )
+    bind_problem_to_contest(contest, problem)
+    for user in participants:
+        ContestParticipant.objects.create(contest=contest, user=user, exam_status=ExamStatus.IN_PROGRESS)
+    return contest
 
 
 class SubmissionAPITestCase(TestCase):
@@ -43,8 +60,8 @@ class SubmissionAPITestCase(TestCase):
             input_data='1 2',
             output_data='3',
             is_sample=True,
-            score=50,
-            order=1
+            order=1,
+            weight_percent=50,
         )
         
         ProblemTestCase.objects.create(
@@ -52,9 +69,10 @@ class SubmissionAPITestCase(TestCase):
             input_data='5 7',
             output_data='12',
             is_sample=False,
-            score=50,
-            order=2
+            order=2,
+            weight_percent=50,
         )
+        self.contest = create_contest(self.teacher, self.problem, self.student)
         
         self.client = APIClient()
     
@@ -75,6 +93,7 @@ int main() {
         with override_settings(CELERY_TASK_ALWAYS_EAGER=True):
             response = self.client.post('/api/v1/submissions/', {
                 'problem': self.problem.id,
+                'contest': self.contest.id,
                 'language': 'cpp',
                 'code': code,
             })
@@ -93,6 +112,7 @@ int main() {
         """Test that unauthenticated users cannot submit"""
         response = self.client.post('/api/v1/submissions/', {
             'problem': self.problem.id,
+            'contest': self.contest.id,
             'language': 'cpp',
             'code': 'test code',
         })
@@ -100,20 +120,22 @@ int main() {
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
     
     def test_list_own_submissions(self):
-        """Students only see their own practice submissions."""
+        """Students only see their own submissions while the scoreboard is hidden."""
         # Create submission for student
         submission1 = Submission.objects.create(
             user=self.student,
             problem=self.problem,
+            contest=self.contest,
             language='cpp',
             code='test code 1',
             status='AC'
         )
         
-        # Create submission for teacher (should also be visible to student in practice mode)
+        # Create submission for teacher (hidden from the student)
         submission2 = Submission.objects.create(
             user=self.teacher,
             problem=self.problem,
+            contest=self.contest,
             language='cpp',
             code='test code 2',
             status='WA'
@@ -124,7 +146,7 @@ int main() {
         response = self.client.get('/api/v1/submissions/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Practice submissions are limited to the viewer's own submissions
+        # Contest submissions are limited to the viewer's own submissions
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['id'], submission1.id)
     
@@ -134,6 +156,7 @@ int main() {
         Submission.objects.create(
             user=self.student,
             problem=self.problem,
+            contest=self.contest,
             language='cpp',
             code='test code 1',
             status='AC'
@@ -142,6 +165,7 @@ int main() {
         Submission.objects.create(
             user=self.teacher,
             problem=self.problem,
+            contest=self.contest,
             language='cpp',
             code='test code 2',
             status='WA'
@@ -166,6 +190,7 @@ int main() {
         sub1 = Submission.objects.create(
             user=self.student,
             problem=self.problem,
+            contest=self.contest,
             language='cpp',
             code='code 1'
         )
@@ -173,6 +198,7 @@ int main() {
         sub2 = Submission.objects.create(
             user=self.student,
             problem=problem2,
+            contest=self.contest,
             language='cpp',
             code='code 2'
         )
@@ -194,6 +220,7 @@ int main() {
         Submission.objects.create(
             user=self.student,
             problem=self.problem,
+            contest=self.contest,
             language='cpp',
             code='ac code',
             status='AC'
@@ -202,6 +229,7 @@ int main() {
         Submission.objects.create(
             user=self.student,
             problem=self.problem,
+            contest=self.contest,
             language='cpp',
             code='wa code',
             status='WA'
@@ -268,9 +296,10 @@ class SubmissionExecutionTestCase(TestCase):
             input_data='1 2',
             output_data='3',
             is_sample=True,
-            score=100,
-            order=1
+            order=1,
+            weight_percent=100,
         )
+        self.contest = create_contest(self.user, self.problem)
         
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
@@ -292,6 +321,7 @@ int main() {
         
         response = self.client.post('/api/v1/submissions/', {
             'problem': self.problem.id,
+            'contest': self.contest.id,
             'language': 'cpp',
             'code': code
         })
@@ -329,6 +359,7 @@ int main() {
         
         response = self.client.post('/api/v1/submissions/', {
             'problem': self.problem.id,
+            'contest': self.contest.id,
             'language': 'cpp',
             'code': code
         })
@@ -340,19 +371,26 @@ int main() {
         self.assertEqual(submission.status, 'CE')
         self.assertIn('error', submission.error_message.lower())
 
-    def test_submission_rejects_test_only_fields(self):
-        """Submit API should reject is_test/custom_test_cases payload."""
-        self.client.force_authenticate(user=self.user)
-        with override_settings(CELERY_TASK_ALWAYS_EAGER=True):
-            response = self.client.post('/api/v1/submissions/', {
-                'problem': self.problem.id,
-                'language': 'python',
-                'code': 'print(42)',
-                'is_test': True,
-                'custom_test_cases': [{'input': '1 2'}],
-            }, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-    
+    def test_submission_is_judging_while_cases_run(self):
+        verdict = self.mock_judge.execute.return_value
+        statuses = []
+
+        def execute(**kwargs):
+            statuses.append(Submission.objects.values_list('status', flat=True).get())
+            return verdict
+
+        self.mock_judge.execute.side_effect = execute
+        response = self.client.post('/api/v1/submissions/', {
+            'problem': self.problem.id,
+            'contest': self.contest.id,
+            'language': 'cpp',
+            'code': 'int main(){}',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(statuses, ['judging'])
+        self.assertEqual(Submission.objects.get(id=response.data['id']).status, 'AC')
+
     def test_submission_python_ac(self):
         """Test Python submission that should be Accepted (AC)"""
         code = '''
@@ -363,6 +401,7 @@ print(a + b)
         
         response = self.client.post('/api/v1/submissions/', {
             'problem': self.problem.id,
+            'contest': self.contest.id,
             'language': 'python',
             'code': code
         })

@@ -30,5 +30,5 @@ export interface SubmitSolutionPayload {
   problem_id: string;
   language: string;
   code: string;
-  contest_id?: string;
+  contest_id: string;
 }

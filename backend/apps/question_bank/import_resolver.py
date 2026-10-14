@@ -31,10 +31,6 @@ class BankQuestionImportItem:
     def id(self):
         return self.membership.id
 
-    @property
-    def question_version(self):
-        return self.question_asset.latest_version
-
 
 def _normalize_uuid(value, *, field_name: str) -> str:
     try:
@@ -78,18 +74,18 @@ def resolve_bank_question_for_import(
             bank=bank,
             id=normalized_question_uuid,
         )
-        .select_related("question_asset", "question_asset__latest_version")
+        .select_related("question_asset")
         .first()
     )
 
     if not membership:
         raise NotFound("Question not found in bank")
 
-    version = membership.question_asset.latest_version
-    payload = version.payload if version and isinstance(version.payload, dict) else {}
+    question_asset = membership.question_asset
+    payload = question_asset.payload if isinstance(question_asset.payload, dict) else {}
     question_type = (
         QUESTION_TYPE_CODING
-        if membership.question_asset.asset_type == QuestionAsset.AssetType.CODING
+        if question_asset.asset_type == QuestionAsset.AssetType.CODING
         else QUESTION_TYPE_EXAM
     )
 
@@ -98,9 +94,9 @@ def resolve_bank_question_for_import(
 
     return bank, BankQuestionImportItem(
         membership=membership,
-        question_asset=membership.question_asset,
+        question_asset=question_asset,
         payload=payload,
         question_type=question_type,
-        title=(version.title if version else membership.question_asset.title) or "",
-        prompt=(version.prompt if version else membership.question_asset.prompt) or "",
+        title=question_asset.title or "",
+        prompt=question_asset.prompt or "",
     )

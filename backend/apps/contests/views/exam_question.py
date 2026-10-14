@@ -400,7 +400,6 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 source_question_id=bank_item.id,
                 source_mode=import_mode,
                 question_asset=bank_item.question_asset,
-                question_version=bank_item.question_version,
             )
             ensure_contest_binding_for_exam_question(
                 exam_question=exam_question,

@@ -39,7 +39,7 @@ def _create_coding_bank_item(
     difficulty: str = "easy",
     test_cases: list[dict] | None = None,
 ) -> tuple[QuestionAsset, QuestionBankMembership]:
-    asset, _version = create_question_asset(
+    asset = create_question_asset(
         owner=owner,
         asset_type=QuestionAsset.AssetType.CODING,
         title=title,
@@ -67,7 +67,6 @@ def _create_coding_bank_item(
             "forbidden_keywords": [],
             "required_keywords": [],
         },
-        actor=owner,
     )
     membership = ensure_question_bank_membership(
         bank=bank,
@@ -548,7 +547,7 @@ def test_import_from_asset_only_bank_creates_problem_from_membership(
         name="Asset Only Coding Bank",
         category=QuestionBank.Category.CODING,
     )
-    asset, _version = create_question_asset(
+    asset = create_question_asset(
         owner=owner,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Asset Only Coding Question",
@@ -570,7 +569,6 @@ def test_import_from_asset_only_bank_creates_problem_from_membership(
             "forbidden_keywords": [],
             "required_keywords": [],
         },
-        actor=owner,
     )
     membership = ensure_question_bank_membership(
         bank=bank,

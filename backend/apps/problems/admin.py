@@ -8,7 +8,7 @@ from .models import CodingProblem, TestCase, LanguageConfig, Tag
 class TestCaseInline(admin.TabularInline):
     model = TestCase
     extra = 1
-    fields = ['input_data', 'output_data', 'is_sample', 'score', 'order', 'is_hidden']
+    fields = ['input_data', 'output_data', 'is_sample', 'weight_percent', 'order', 'is_hidden']
 
 
 @admin.register(LanguageConfig)
@@ -20,7 +20,7 @@ class LanguageConfigAdmin(admin.ModelAdmin):
 
 @admin.register(CodingProblem)
 class ProblemAdmin(admin.ModelAdmin):
-    list_display = ['id', 'slug', 'submission_count', 'acceptance_rate']
+    list_display = ['id', 'slug', 'created_at']
     list_filter = ['created_at']
     search_fields = ['question_asset__title']
     inlines = [TestCaseInline]

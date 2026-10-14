@@ -88,7 +88,6 @@ class QuestionBankItemReadSerializer(serializers.Serializer):
     source_bank_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     contest_usages = serializers.ListField(required=False)
     question_asset_id = serializers.CharField(required=False, allow_null=True)
-    question_version_id = serializers.CharField(required=False, allow_null=True)
     metadata = serializers.JSONField(required=False)
     created_by_username = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     coding_ext = CodingQuestionContentReadSerializer(required=False, allow_null=True)

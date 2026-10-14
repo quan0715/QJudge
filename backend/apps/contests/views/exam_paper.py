@@ -79,7 +79,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
     def _paper_queryset(self, contest):
         questions = (
             ExamQuestion.objects.filter(contest=contest)
-            .select_related('group', 'question_asset', 'question_version')
+            .select_related('group', 'question_asset')
             .order_by('order', 'id')
         )
         groups = (

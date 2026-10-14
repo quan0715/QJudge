@@ -164,14 +164,6 @@ class ExamQuestion(models.Model):
         related_name='exam_question_adapters',
         verbose_name='對應題目資產',
     )
-    question_version = models.ForeignKey(
-        'question_bank.QuestionVersion',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='exam_question_adapters',
-        verbose_name='對應題目版本',
-    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
 

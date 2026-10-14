@@ -126,8 +126,6 @@ class ContestDataService:
         """
         queryset = Submission.objects.filter(
             contest=self.contest,
-            source_type='contest',
-            is_test=False
         ).select_related('problem', 'user').order_by('created_at')
 
         if user_id is not None:
@@ -144,7 +142,6 @@ class ContestDataService:
                 language=sub.language or '',
                 code=sub.code or '',
                 created_at=sub.created_at,
-                is_test=sub.is_test,
             ))
 
         return result

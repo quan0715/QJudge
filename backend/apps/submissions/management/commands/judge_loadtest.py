@@ -140,23 +140,25 @@ class Command(BaseCommand):
             with open(ac_code) as handle:
                 solution = handle.read()
             rows = [
-                (tc.input_data, tc.output_data, tc.score, tc.weight_percent)
+                (tc.input_data, tc.output_data, tc.weight_percent)
                 for tc in source.test_cases.order_by("order", "id")
             ]
             limits = dict(time_limit=source.time_limit, memory_limit=source.memory_limit)
         else:
             rng = random.Random(0)
+            base, remainder = divmod(100, cases)
             rows = []
-            for _ in range(cases):
+            for order in range(cases):
                 numbers = [rng.randint(-10**6, 10**6) for _ in range(rng.randint(1, 1000))]
-                rows.append((f"{len(numbers)}\n{' '.join(map(str, numbers))}\n", str(sum(numbers)), 1, None))
+                weight = base + (1 if order < remainder else 0)
+                rows.append((f"{len(numbers)}\n{' '.join(map(str, numbers))}\n", str(sum(numbers)), weight))
             solution, limits = SUM_SOLUTION, dict(time_limit=1000, memory_limit=256)
         problem = CodingProblem.objects.create(slug=SLUG, created_by=user, **limits)
         LanguageConfig.objects.create(problem=problem, language="cpp", template_code=solution)
         TestCase.objects.bulk_create(
-            TestCase(problem=problem, input_data=inp, output_data=out, score=score,
+            TestCase(problem=problem, input_data=inp, output_data=out,
                      weight_percent=weight, order=order, is_hidden=True)
-            for order, (inp, out, score, weight) in enumerate(rows)
+            for order, (inp, out, weight) in enumerate(rows)
         )
         self.stdout.write(f"Seeded {problem.id} with {len(rows)} test cases.")
 
@@ -182,7 +184,7 @@ class Command(BaseCommand):
                     "A real submission has waited over 60s; stopped submitting."))
                 break
             submission = Submission.objects.create(
-                user=user, problem=problem, language="cpp", code=codes[kind], source_type="practice",
+                user=user, problem=problem, language="cpp", code=codes[kind],
             )
             judge_submission.apply_async(args=[submission.id], queue="high_priority")
             expected[submission.id] = kind

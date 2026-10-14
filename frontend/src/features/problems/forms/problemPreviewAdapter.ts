@@ -22,14 +22,6 @@ export const formSchemaToPreview = (
     testCases: formData.testCases || [],
     languageConfigs: formData.languageConfigs || [],
     tags: [],
-    acceptanceRate: 0,
-    submissionCount: 0,
-    acceptedCount: 0,
-    waCount: 0,
-    tleCount: 0,
-    mleCount: 0,
-    reCount: 0,
-    ceCount: 0,
     isSolved: false,
   };
 };

@@ -27,7 +27,6 @@ class TestCaseSerializer(serializers.ModelSerializer):
             'input_data',
             'output_data',
             'is_sample',
-            'score',
             'weight_percent',
             'order',
             'is_hidden',
@@ -137,7 +136,6 @@ class ProblemListSerializer(serializers.ModelSerializer):
     title = serializers.SerializerMethodField()
     difficulty = serializers.SerializerMethodField()
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
-    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
 
     class Meta:
         model = CodingProblem
@@ -146,18 +144,9 @@ class ProblemListSerializer(serializers.ModelSerializer):
             'title',
             'slug',
             'difficulty',
-            'submission_count',
-            'accepted_count',
-            'wa_count',
-            'tle_count',
-            'mle_count',
-            're_count',
-            'ce_count',
-            'acceptance_rate',
             'created_at',
             'created_by',
             'question_asset_id',
-            'question_version_id',
             'language_configs',
             'is_solved',
             'tags',
@@ -188,6 +177,25 @@ class ProblemListSerializer(serializers.ModelSerializer):
                 pass
         return getattr(obj, 'difficulty', 'medium')
 
+
+class ProblemStatsListSerializer(ProblemListSerializer):
+    """Management list row with the read-time submission stats.
+
+    Expects a queryset annotated by ``ProblemQuerySet.with_submission_stats``.
+    """
+    submission_count = serializers.IntegerField(read_only=True)
+    accepted_count = serializers.IntegerField(read_only=True)
+    acceptance_rate = serializers.FloatField(read_only=True)
+
+    class Meta(ProblemListSerializer.Meta):
+        fields = [
+            *ProblemListSerializer.Meta.fields,
+            'submission_count',
+            'accepted_count',
+            'acceptance_rate',
+        ]
+
+
 class ProblemDetailSerializer(serializers.ModelSerializer):
     """Serializer for problem detail (full info)."""
     title = serializers.SerializerMethodField()
@@ -203,7 +211,6 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
     language_configs = LanguageConfigSerializer(many=True, read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
-    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
 
     class Meta:
         model = CodingProblem
@@ -214,16 +221,7 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
             'difficulty',
             'time_limit',
             'memory_limit',
-            'submission_count',
-            'accepted_count',
-            'wa_count',
-            'tle_count',
-            'mle_count',
-            're_count',
-            'ce_count',
-            'acceptance_rate',
             'question_asset_id',
-            'question_version_id',
             'description',
             'input_description',
             'output_description',
@@ -302,7 +300,6 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
     language_configs = LanguageConfigSerializer(many=True, required=False)
     tags = TagSerializer(many=True, read_only=True)  # Read: return full tag objects
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
-    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
 
     # New Tag UX fields (write-only)
     existing_tag_ids = serializers.ListField(
@@ -329,16 +326,7 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             'created_by',
             'created_at',
             'updated_at',
-            'submission_count',
-            'accepted_count',
-            'wa_count',
-            'tle_count',
-            'mle_count',
-            're_count',
-            'ce_count',
-            'acceptance_rate',
             'question_asset_id',
-            'question_version_id',
             'description',
             'input_description',
             'output_description',
@@ -355,9 +343,7 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             'created_by',
             'created_at',
             'updated_at',
-            'acceptance_rate',
             'question_asset_id',
-            'question_version_id',
         ]
     
     def _normalize_and_validate_test_case_weights(self, test_cases_data):
@@ -369,32 +355,16 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
 
         weights = []
         for idx, tc in enumerate(test_cases_data):
-            raw_weight = tc.get('weight_percent', None)
-
-            if raw_weight is None:
+            # Partial updates skip the nested field's required check.
+            weight = tc.get('weight_percent')
+            if weight is None:
                 raise serializers.ValidationError(
-                    {
-                        'test_cases': [
-                            f'test_cases[{idx}].weight_percent is required'
-                        ]
-                    }
+                    {'test_cases': [f'test_cases[{idx}].weight_percent is required']}
                 )
-
-            try:
-                weight = int(raw_weight)
-            except (TypeError, ValueError):
-                raise serializers.ValidationError(
-                    {'test_cases': [f'test_cases[{idx}].weight_percent must be an integer']}
-                )
-
-            if weight < 0 or weight > 100:
+            if weight > 100:
                 raise serializers.ValidationError(
                     {'test_cases': [f'test_cases[{idx}].weight_percent must be between 0 and 100']}
                 )
-
-            tc['weight_percent'] = weight
-            # Persist score as the runtime weight source for judge-side logic.
-            tc['score'] = weight
             weights.append(weight)
 
         if sum(weights) != 100:

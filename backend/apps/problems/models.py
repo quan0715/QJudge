@@ -50,26 +50,9 @@ class CodingProblem(models.Model):
         related_name='coding_problem_adapters',
         verbose_name='對應題目資產',
     )
-    question_version = models.ForeignKey(
-        'question_bank.QuestionVersion',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='coding_problem_adapters',
-        verbose_name='對應題目版本',
-    )
     
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
-    
-    # Statistics (denormalized for performance)
-    submission_count = models.IntegerField(default=0, verbose_name='提交次數')
-    accepted_count = models.IntegerField(default=0, verbose_name='通過次數')
-    wa_count = models.IntegerField(default=0, verbose_name='答案錯誤次數')
-    tle_count = models.IntegerField(default=0, verbose_name='超時次數')
-    mle_count = models.IntegerField(default=0, verbose_name='記憶體超限次數')
-    re_count = models.IntegerField(default=0, verbose_name='執行錯誤次數')
-    ce_count = models.IntegerField(default=0, verbose_name='編譯錯誤次數')
     
     # Tags for categorization
     tags = models.ManyToManyField(
@@ -118,24 +101,17 @@ class CodingProblem(models.Model):
         """
         return self.test_cases.filter(is_sample=True, is_hidden=False)
 
-    @property
-    def acceptance_rate(self):
-        if self.submission_count == 0:
-            return 0.0
-        return (self.accepted_count / self.submission_count) * 100
-
 
 class LanguageConfig(models.Model):
     """
     Language-specific configuration for each problem.
-    Note: Frontend currently only supports C++, but backend maintains 
-    compatibility with other languages for legacy data.
+    Choices match the languages the judge can run.
     """
     LANGUAGE_CHOICES = [
         ('cpp', 'C++'),
+        ('c', 'C'),
         ('python', 'Python'),
         ('java', 'Java'),
-        ('javascript', 'JavaScript'),
     ]
     
     problem = models.ForeignKey(
@@ -189,12 +165,9 @@ class TestCase(models.Model):
     output_data = models.TextField(verbose_name='輸出資料')
     
     is_sample = models.BooleanField(default=False, verbose_name='是否為範例')
-    score = models.IntegerField(default=0, verbose_name='分數')
     weight_percent = models.PositiveSmallIntegerField(
-        null=True,
-        blank=True,
         verbose_name='權重百分比',
-        help_text='建議使用 0~100 的整數百分比；同題測資加總應為 100',
+        help_text='0~100 的整數百分比；同題測資加總為 100',
     )
     order = models.IntegerField(default=0, verbose_name='排序')
     

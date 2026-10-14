@@ -49,7 +49,7 @@ interface TestCaseRow {
   output: string;
   isSample: boolean;
   isHidden: boolean;
-  score: number;
+  weightPercent: number;
   hasError: boolean;
 }
 
@@ -80,7 +80,7 @@ const TestCasesSection: React.FC = () => {
     output: "",
     isSample: false,
     isHidden: false,
-    score: 0,
+    weightPercent: 0,
   });
 
   // Prepare table rows
@@ -96,7 +96,7 @@ const TestCasesSection: React.FC = () => {
         output: tc?.output || "",
         isSample: tc?.isSample || false,
         isHidden: tc?.isHidden || false,
-        score: tc?.score || 0,
+        weightPercent: tc?.weightPercent || 0,
         hasError,
       };
     });
@@ -106,7 +106,7 @@ const TestCasesSection: React.FC = () => {
   const headers = [
     { key: "index", header: "#" },
     { key: "type", header: "類型" },
-    { key: "score", header: "佔比 (%)" },
+    { key: "weightPercent", header: "佔比 (%)" },
     { key: "status", header: "狀態" },
     { key: "actions", header: "" },
   ];
@@ -119,7 +119,7 @@ const TestCasesSection: React.FC = () => {
       output: "",
       isSample: false,
       isHidden: false,
-      score: 0,
+      weightPercent: 0,
     });
     setModalOpen(true);
   }, []);
@@ -133,7 +133,7 @@ const TestCasesSection: React.FC = () => {
       output: tc?.output || "",
       isSample: tc?.isSample || false,
       isHidden: tc?.isHidden || false,
-      score: tc?.score || 0,
+      weightPercent: tc?.weightPercent || 0,
     });
     setModalOpen(true);
   }, [testCases]);
@@ -236,7 +236,7 @@ const TestCasesSection: React.FC = () => {
                       <TableCell>{rowData.index + 1}</TableCell>
                       <TableCell>{renderTypeTag(rowData)}</TableCell>
                       <TableCell>
-                        <Tag type="purple" size="sm">{rowData.score}%</Tag>
+                        <Tag type="purple" size="sm">{rowData.weightPercent}%</Tag>
                       </TableCell>
                       <TableCell>{renderStatus(rowData)}</TableCell>
                       <TableCell>
@@ -306,16 +306,16 @@ const TestCasesSection: React.FC = () => {
 
           <div className={styles.optionsRow}>
             <NumberInput
-              id="tc-score"
+              id="tc-weightPercent"
               label="佔比 (%)"
               helperText="佔題目總分的百分比"
-              value={editForm.score}
+              value={editForm.weightPercent}
               min={0}
               step={10}
               onChange={(_, { value }) => {
                 setEditForm((prev) => ({
                   ...prev,
-                  score: typeof value === "string" ? parseInt(value) || 0 : value,
+                  weightPercent: typeof value === "string" ? parseInt(value) || 0 : value,
                 }));
               }}
             />

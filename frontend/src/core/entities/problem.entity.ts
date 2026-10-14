@@ -21,7 +21,7 @@ export interface TestCase {
   output: string;
   isSample: boolean;
   explanation?: string;
-  score?: number;
+  weightPercent?: number;
   order?: number;
   isHidden?: boolean;
 }
@@ -36,14 +36,10 @@ export interface CodingProblem {
   id: string;
   title: string;
   difficulty: Difficulty;
-  acceptanceRate: number;
-  submissionCount: number;
-  acceptedCount: number;
-  waCount: number;
-  tleCount: number;
-  mleCount: number;
-  reCount: number;
-  ceCount: number;
+  // Submission stats; only the management problem list returns them.
+  acceptanceRate?: number;
+  submissionCount?: number;
+  acceptedCount?: number;
   createdBy?: string;
   tags: Tag[];
 

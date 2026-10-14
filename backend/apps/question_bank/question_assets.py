@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db.models import Max
-
 from apps.contests.models import ExamQuestion, ExamQuestionType
 from apps.problems.models import CodingProblem
 
@@ -11,7 +9,6 @@ from .models import (
     ContestQuestionBinding,
     QuestionAsset,
     QuestionBankMembership,
-    QuestionVersion,
 )
 
 QUESTION_TYPE_CODING = "coding"
@@ -101,39 +98,21 @@ def _build_bank_question_asset_payload_from_components(
     return payload
 
 
-def publish_question_version(
+def update_question_asset_content(
     *,
     question_asset: QuestionAsset,
     title: str,
     prompt: str,
     payload: dict[str, Any],
-    actor=None,
-) -> QuestionVersion:
-    latest_version = (
-        QuestionVersion.objects.filter(question_asset=question_asset)
-        .aggregate(max_version=Max("version_number"))
-        .get("max_version")
-        or 0
-    )
-    version = QuestionVersion.objects.create(
-        question_asset=question_asset,
-        version_number=latest_version + 1,
-        title=title or "",
-        prompt=prompt or "",
-        payload=payload or {},
-        created_by=actor,
-    )
+) -> None:
     QuestionAsset.objects.filter(pk=question_asset.pk).update(
         title=title or "",
         prompt=prompt or "",
         payload=payload or {},
-        latest_version=version,
     )
     question_asset.title = title or ""
     question_asset.prompt = prompt or ""
     question_asset.payload = payload or {}
-    question_asset.latest_version = version
-    return version
 
 
 def create_question_asset(
@@ -143,23 +122,14 @@ def create_question_asset(
     title: str,
     prompt: str,
     payload: dict[str, Any],
-    actor=None,
-) -> tuple[QuestionAsset, QuestionVersion]:
-    question_asset = QuestionAsset.objects.create(
+) -> QuestionAsset:
+    return QuestionAsset.objects.create(
         owner=owner,
         asset_type=asset_type,
         title=title or "",
         prompt=prompt or "",
         payload=payload or {},
     )
-    version = publish_question_version(
-        question_asset=question_asset,
-        title=title,
-        prompt=prompt,
-        payload=payload,
-        actor=actor or owner,
-    )
-    return question_asset, version
 
 
 def create_question_asset_for_bank_payload(
@@ -177,8 +147,7 @@ def create_question_asset_for_bank_payload(
     correct_answer,
     metadata,
     coding_ext: dict[str, Any] | None = None,
-    actor=None,
-) -> tuple[QuestionAsset, QuestionVersion]:
+) -> QuestionAsset:
     payload = _build_bank_question_asset_payload_from_components(
         question_type=question_type,
         score=score,
@@ -203,7 +172,6 @@ def create_question_asset_for_bank_payload(
         title=title or "",
         prompt=prompt or "",
         payload=payload,
-        actor=actor or owner,
     )
 
 
@@ -223,8 +191,7 @@ def write_coding_content_to_asset(
     source_type: str | None = None,
     source_id: str | None = None,
     existing_asset: QuestionAsset | None = None,
-    actor=None,
-) -> tuple[QuestionAsset, QuestionVersion]:
+) -> QuestionAsset:
     """Write coding problem content to QuestionAsset (source of truth)."""
     cf = content_fields or {}
     payload = {
@@ -250,14 +217,13 @@ def write_coding_content_to_asset(
             asset_type=QuestionAsset.AssetType.CODING,
         )
         existing_asset.refresh_from_db(fields=["owner", "asset_type"])
-        version = publish_question_version(
+        update_question_asset_content(
             question_asset=existing_asset,
             title=title or "",
             prompt=prompt or "",
             payload=payload,
-            actor=actor or owner,
         )
-        return existing_asset, version
+        return existing_asset
 
     return create_question_asset(
         owner=owner,
@@ -265,20 +231,19 @@ def write_coding_content_to_asset(
         title=title or "",
         prompt=prompt or "",
         payload=payload,
-        actor=actor or owner,
     )
 
 
-def ensure_problem_question_asset(*, problem: CodingProblem, actor=None) -> tuple[QuestionAsset, QuestionVersion]:
+def ensure_problem_question_asset(*, problem: CodingProblem, actor=None) -> QuestionAsset:
     """Ensure a CodingProblem has a QuestionAsset."""
     if problem.question_asset_id:
-        return problem.question_asset, problem.question_version
+        return problem.question_asset
 
     owner = actor or problem.created_by
     if owner is None:
         raise ValueError(f"Cannot resolve owner for problem {problem.id}")
 
-    question_asset, question_version = write_coding_content_to_asset(
+    question_asset = write_coding_content_to_asset(
         owner=owner,
         title="",
         prompt="",
@@ -289,7 +254,7 @@ def ensure_problem_question_asset(*, problem: CodingProblem, actor=None) -> tupl
         test_cases=list(
             problem.test_cases.values(
                 "input_data", "output_data", "is_sample",
-                "score", "weight_percent", "order", "is_hidden",
+                "weight_percent", "order", "is_hidden",
             )
         ),
         language_configs=list(
@@ -301,23 +266,17 @@ def ensure_problem_question_asset(*, problem: CodingProblem, actor=None) -> tupl
         required_keywords=problem.required_keywords or [],
         source_type="problem",
         source_id=str(problem.id),
-        actor=owner,
     )
 
-    CodingProblem.objects.filter(pk=problem.pk).update(
-        question_asset=question_asset,
-        question_version=question_version,
-    )
+    CodingProblem.objects.filter(pk=problem.pk).update(question_asset=question_asset)
     problem.question_asset = question_asset
-    problem.question_version = question_version
-    return question_asset, question_version
+    return question_asset
 
 
 def sync_exam_question_question_asset(
     *,
     exam_question: ExamQuestion,
-    actor=None,
-) -> tuple[QuestionAsset, QuestionVersion]:
+) -> QuestionAsset:
     title = (exam_question.prompt or "").replace("\n", " ").strip()[:120] or f"Q{(exam_question.order or 0) + 1}"
     prompt = exam_question.prompt or ""
     payload = {
@@ -339,29 +298,23 @@ def sync_exam_question_question_asset(
             asset_type=asset_type,
         )
         question_asset.refresh_from_db(fields=["owner", "asset_type"])
-        version = publish_question_version(
+        update_question_asset_content(
             question_asset=question_asset,
             title=title,
             prompt=prompt,
             payload=payload,
-            actor=actor or exam_question.contest.owner,
         )
     else:
-        question_asset, version = create_question_asset(
+        question_asset = create_question_asset(
             owner=exam_question.contest.owner,
             asset_type=asset_type,
             title=title,
             prompt=prompt,
             payload=payload,
-            actor=actor or exam_question.contest.owner,
         )
-    ExamQuestion.objects.filter(pk=exam_question.pk).update(
-        question_asset=question_asset,
-        question_version=version,
-    )
+    ExamQuestion.objects.filter(pk=exam_question.pk).update(question_asset=question_asset)
     exam_question.question_asset = question_asset
-    exam_question.question_version = version
-    return question_asset, version
+    return question_asset
 
 
 def ensure_question_bank_membership(
@@ -412,18 +365,13 @@ def ensure_contest_binding_for_exam_question(
     actor=None,
 ) -> ContestQuestionBinding:
     question_asset = exam_question.question_asset
-    question_version = exam_question.question_version
-    if not question_asset or not question_version:
-        question_asset, question_version = sync_exam_question_question_asset(
-            exam_question=exam_question,
-            actor=actor or exam_question.contest.owner,
-        )
+    if not question_asset:
+        question_asset = sync_exam_question_question_asset(exam_question=exam_question)
     return ContestQuestionBinding.objects.update_or_create(
         exam_question=exam_question,
         defaults={
             "contest": exam_question.contest,
             "question_asset": question_asset,
-            "question_version": question_version,
             "binding_type": _asset_type_for_exam_question_type(exam_question.question_type),
             "order": exam_question.order,
             "score": exam_question.score,

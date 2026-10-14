@@ -136,10 +136,10 @@ class TestStudentReportEndpoints:
             input_data='1',
             output_data='1',
             is_sample=True,
-            score=20
+            weight_percent=20,
         )
 
-        bind_problem_to_contest(active_contest, problem, order=0)
+        bind_problem_to_contest(active_contest, problem, order=0, score=20)
 
         return problem
     
@@ -171,7 +171,6 @@ class TestStudentReportEndpoints:
             user=student,
             problem=problem,
             contest=active_contest,
-            source_type='contest',
             language='cpp',
             code='#include <iostream>\nint main() { return 0; }',
             status='AC',
@@ -373,7 +372,6 @@ class TestStudentReportEndpoints:
             user=student,
             problem=problem,
             contest=ended_contest,
-            source_type='contest',
             language='cpp',
             code='int main() {}',
             status='AC',
@@ -530,12 +528,7 @@ class TestStudentReportPermissions:
 
 @pytest.mark.django_db
 class TestStudentReportScoreCalculation:
-    """
-    Test that student report correctly excludes test submissions from score calculation.
-    
-    Bug fix: Standings included test submissions but individual reports didn't,
-    causing score discrepancies between the two views.
-    """
+    """Standings and the student report must agree on the best submission score."""
     
     @pytest.fixture
     def api_client(self):
@@ -596,7 +589,7 @@ class TestStudentReportScoreCalculation:
             input_data='1',
             output_data='1',
             is_sample=True,
-            score=100
+            weight_percent=100,
         )
 
         bind_problem_to_contest(contest, problem, order=0)
@@ -612,73 +605,6 @@ class TestStudentReportScoreCalculation:
             started_at=timezone.now() - timedelta(hours=1)
         )
     
-    def test_report_excludes_test_submissions(
-        self, api_client, teacher, contest, student, problem, participant
-    ):
-        """
-        Verify that report score calculation excludes test submissions.
-        
-        Student has:
-        - Test submission: AC with 100 points (is_test=True) - should be EXCLUDED
-        - Normal submission: WA with 50 points (is_test=False) - should be COUNTED
-        
-        Expected report score: 50 (not 100)
-        """
-        # Create test submission with AC (should be excluded)
-        Submission.objects.create(
-            user=student,
-            problem=problem,
-            contest=contest,
-            source_type='contest',
-            language='python',
-            code='print("test AC")',
-            status='AC',
-            score=100,
-            is_test=True  # Test submission
-        )
-        
-        # Create normal submission with partial score (should be counted)
-        Submission.objects.create(
-            user=student,
-            problem=problem,
-            contest=contest,
-            source_type='contest',
-            language='python',
-            code='print("normal WA")',
-            status='WA',
-            score=50,
-            is_test=False  # Normal submission
-        )
-        
-        api_client.force_authenticate(user=teacher)
-        
-        # Get standings
-        standings_response = api_client.get(
-            f'/api/v1/contests/{contest.id}/standings/'
-        )
-        assert standings_response.status_code == status.HTTP_200_OK
-        
-        standings = standings_response.data.get('standings', [])
-        student_standing = next(
-            (s for s in standings if s['user']['id'] == student.id),
-            None
-        )
-        
-        # Download report
-        report_response = api_client.get(
-            f'/api/v1/contests/{contest.id}/participants/{student.id}/report/'
-        )
-        assert report_response.status_code == status.HTTP_200_OK
-        
-        # Both should have the same score (50, not 100)
-        # Standings score should be 50
-        assert student_standing is not None
-        assert student_standing['total_score'] == 50, \
-            f"Standings should show 50, got {student_standing['total_score']}"
-        
-        # Note: We can't easily check PDF content, but we verified the calculation
-        # uses the same is_test=False filter in calculate_standings()
-    
     def test_both_use_same_score_calculation(
         self, api_client, teacher, contest, student, problem, participant
     ):
@@ -687,30 +613,15 @@ class TestStudentReportScoreCalculation:
         
         This test creates multiple submissions and verifies consistency.
         """
-        # Test submission: AC 100 points (should be excluded)
-        Submission.objects.create(
-            user=student,
-            problem=problem,
-            contest=contest,
-            source_type='contest',
-            language='python',
-            code='test1',
-            status='AC',
-            score=100,
-            is_test=True
-        )
-        
         # Normal submission: WA 30 points
         Submission.objects.create(
             user=student,
             problem=problem,
             contest=contest,
-            source_type='contest',
             language='python',
             code='normal1',
             status='WA',
             score=30,
-            is_test=False
         )
         
         # Normal submission: WA 60 points (higher, should be used)
@@ -718,12 +629,10 @@ class TestStudentReportScoreCalculation:
             user=student,
             problem=problem,
             contest=contest,
-            source_type='contest',
             language='python',
             code='normal2',
             status='WA',
             score=60,
-            is_test=False
         )
         
         api_client.force_authenticate(user=teacher)

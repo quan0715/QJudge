@@ -367,8 +367,6 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             # Coding contest: best submission score per (user, problem)
             best_scores = Submission.objects.filter(
                 contest=contest,
-                source_type='contest',
-                is_test=False,
             ).values('user_id', 'problem_id').annotate(best=Max('score'))
 
             user_totals = {}

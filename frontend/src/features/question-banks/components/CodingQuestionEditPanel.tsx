@@ -51,7 +51,7 @@ interface TestCaseForm {
   outputData: string;
   isSample: boolean;
   isHidden: boolean;
-  score: number;
+  weightPercent: number;
 }
 
 interface LanguageConfigForm {
@@ -99,7 +99,7 @@ const toFormState = (q: BankQuestion): CodingFormState => {
         outputData: tc.outputData || "",
         isSample: tc.isSample ?? false,
         isHidden: tc.isHidden ?? false,
-        score: tc.score ?? 0,
+        weightPercent: tc.weightPercent ?? 0,
       })) || [],
     languageConfigs:
       ext?.languageConfigs?.map((lc) => ({
@@ -146,7 +146,7 @@ const buildPayload = (form: CodingFormState, existing: BankQuestion): UpsertBank
         output_data: tc.outputData,
         is_sample: tc.isSample,
         is_hidden: tc.isHidden,
-        weight_percent: tc.score,
+        weight_percent: tc.weightPercent,
         order: idx,
       })),
       languageConfigs: form.languageConfigs
@@ -270,9 +270,9 @@ const CodingValidationTab = ({ ctx }: { ctx: CodingEditCtx }) => {
 
   const [tcModalOpen, setTcModalOpen] = useState(false);
   const [tcEditingIdx, setTcEditingIdx] = useState<number | null>(null);
-  const [tcEdit, setTcEdit] = useState<TestCaseForm>({ inputData: "", outputData: "", isSample: false, isHidden: false, score: 0 });
+  const [tcEdit, setTcEdit] = useState<TestCaseForm>({ inputData: "", outputData: "", isSample: false, isHidden: false, weightPercent: 0 });
 
-  const openAdd = () => { setTcEdit({ inputData: "", outputData: "", isSample: false, isHidden: false, score: 0 }); setTcEditingIdx(null); setTcModalOpen(true); };
+  const openAdd = () => { setTcEdit({ inputData: "", outputData: "", isSample: false, isHidden: false, weightPercent: 0 }); setTcEditingIdx(null); setTcModalOpen(true); };
   const openEdit = (i: number) => { setTcEdit({ ...form.testCases[i] }); setTcEditingIdx(i); setTcModalOpen(true); };
   const handleSubmit = () => {
     if (tcEditingIdx !== null) {
@@ -353,7 +353,7 @@ const CodingValidationTab = ({ ctx }: { ctx: CodingEditCtx }) => {
             </div>
             <MarkdownField id="tc-modal-input" labelText="Input" value={tcEdit.inputData} onChange={(v) => setTcEdit((p) => ({ ...p, inputData: v }))} minHeight="120px" showPreview={false} />
             <MarkdownField id="tc-modal-output" labelText="Output" value={tcEdit.outputData} onChange={(v) => setTcEdit((p) => ({ ...p, outputData: v }))} minHeight="120px" showPreview={false} />
-            <NumberInput id="tc-modal-score" label={t("questionBank.tcScore", "配分 (%)")} size="sm" min={0} max={100} step={10} value={tcEdit.score} onChange={(_e, { value }) => setTcEdit((p) => ({ ...p, score: toNumberInputValue(value) }))} />
+            <NumberInput id="tc-modal-weight-percent" label={t("questionBank.tcScore", "配分 (%)")} size="sm" min={0} max={100} step={10} value={tcEdit.weightPercent} onChange={(_e, { value }) => setTcEdit((p) => ({ ...p, weightPercent: toNumberInputValue(value) }))} />
           </div>
         </Modal>,
         getModalPortalRoot(),

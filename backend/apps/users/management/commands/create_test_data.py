@@ -97,7 +97,7 @@ class Command(BaseCommand):
         )
 
         if created:
-            asset, version = write_coding_content_to_asset(
+            asset = write_coding_content_to_asset(
                 owner=creator, title='A + B Problem', prompt='給定兩個整數 A 和 B，請計算 A + B 的值。',
                 difficulty='easy',
                 content_fields={
@@ -106,11 +106,9 @@ class Command(BaseCommand):
                     'output_description': '輸出一行，包含一個整數，表示 A + B 的結果。',
                     'hint': '這是一個簡單的加法問題。',
                 },
-                actor=creator,
             )
             problem1.question_asset = asset
-            problem1.question_version = version
-            problem1.save(update_fields=['question_asset', 'question_version'])
+            problem1.save(update_fields=['question_asset'])
             self.stdout.write(self.style.SUCCESS('  ✓ 建立題目: A + B Problem'))
             
             # 建立語言配置
@@ -153,7 +151,7 @@ print(a + b)''',
                     input_data=tc['input'],
                     output_data=tc['output'],
                     is_sample=tc['is_sample'],
-                    score=25,
+                    weight_percent=25,
                     order=idx + 1
                 )
         else:
@@ -171,7 +169,7 @@ print(a + b)''',
         )
 
         if created:
-            asset, version = write_coding_content_to_asset(
+            asset = write_coding_content_to_asset(
                 owner=creator, title='Fibonacci Sequence',
                 prompt='Fibonacci 數列定義如下：\nF(0) = 0\nF(1) = 1\nF(n) = F(n-1) + F(n-2) for n >= 2\n\n給定一個整數 n，請計算第 n 個 Fibonacci 數。',
                 difficulty='medium',
@@ -186,11 +184,9 @@ F(n) = F(n-1) + F(n-2) for n ≥ 2
                     'output_description': '輸出一行，包含一個整數，表示第 n 個 Fibonacci 數。',
                     'hint': '可以使用遞迴或迴圈來解決。注意效率問題！',
                 },
-                actor=creator,
             )
             problem2.question_asset = asset
-            problem2.question_version = version
-            problem2.save(update_fields=['question_asset', 'question_version'])
+            problem2.save(update_fields=['question_asset'])
             self.stdout.write(self.style.SUCCESS('  ✓ 建立題目: Fibonacci Sequence'))
             
             # 建立語言配置
@@ -244,7 +240,7 @@ print(fibonacci(n))''',
                     input_data=tc['input'],
                     output_data=tc['output'],
                     is_sample=tc['is_sample'],
-                    score=10,
+                    weight_percent=10,
                     order=idx + 1
                 )
         else:

@@ -4,7 +4,8 @@ from typing import Iterable, Optional
 
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models import Exists, OuterRef
+from django.db.models import Case, Count, Exists, F, FloatField, OuterRef, Q, Value, When
+from django.db.models.functions import Cast
 
 User = get_user_model()
 
@@ -35,7 +36,6 @@ class ProblemQuerySet(models.QuerySet):
                 problem=OuterRef("pk"),
                 user=user,
                 status="AC",
-                is_test=False,
             )
             queryset = queryset.annotate(is_solved=Exists(ac_submissions))
 
@@ -43,7 +43,24 @@ class ProblemQuerySet(models.QuerySet):
             for slug in tag_slugs:
                 queryset = queryset.filter(tags__slug=slug)
 
-        return queryset.select_related("question_asset").prefetch_related("test_cases", "tags").distinct()
+        return (
+            queryset.select_related("question_asset", "created_by")
+            .prefetch_related("test_cases", "tags", "language_configs")
+            .distinct()
+        )
+
+    def with_submission_stats(self) -> "ProblemQuerySet":
+        """Annotate submission totals across all contests, computed at read time."""
+        return self.annotate(
+            submission_count=Count("submissions", distinct=True),
+            accepted_count=Count("submissions", filter=Q(submissions__status="AC"), distinct=True),
+        ).annotate(
+            acceptance_rate=Case(
+                When(submission_count=0, then=Value(0.0)),
+                default=Cast(F("accepted_count"), FloatField()) * 100 / F("submission_count"),
+                output_field=FloatField(),
+            )
+        )
 
 
 ProblemManager = ProblemQuerySet.as_manager

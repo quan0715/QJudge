@@ -8,10 +8,6 @@ from apps.users.serializers import EmbeddedUserSerializer
 
 
 def _get_total_test_cases(submission: Submission) -> int:
-    if submission.is_test:
-        sample_count = submission.problem.test_cases.filter(is_sample=True).count()
-        custom_count = len(submission.custom_test_cases or [])
-        return sample_count + custom_count
     return submission.problem.test_cases.count()
 
 
@@ -36,21 +32,23 @@ class SubmissionResultSerializer(serializers.ModelSerializer):
     expected_output = serializers.SerializerMethodField()
     is_hidden = serializers.SerializerMethodField()
 
+    def to_representation(self, obj):
+        data = super().to_representation(obj)
+        if data['is_hidden'] and not self._is_privileged():
+            data['input'] = None
+            data['expected_output'] = None
+        return data
+
+    def _is_privileged(self):
+        request = self.context.get('request')
+        user = request.user if request else None
+        return bool(user and (user.is_staff or getattr(user, 'role', '') in ['teacher', 'admin']))
+
     def get_input(self, obj):
-        user = self.context.get('request').user if self.context.get('request') else None
-        is_privileged = user and (user.is_staff or getattr(user, 'role', '') in ['teacher', 'admin'])
-        
-        if is_privileged or not self.get_is_hidden(obj):
-            return obj.test_case.input_data if obj.test_case else obj.input_data
-        return None
+        return obj.test_case.input_data if obj.test_case else obj.input_data
 
     def get_expected_output(self, obj):
-        user = self.context.get('request').user if self.context.get('request') else None
-        is_privileged = user and (user.is_staff or getattr(user, 'role', '') in ['teacher', 'admin'])
-        
-        if is_privileged or not self.get_is_hidden(obj):
-            return obj.test_case.output_data if obj.test_case else obj.expected_output
-        return None
+        return obj.test_case.output_data if obj.test_case else obj.expected_output
 
     def get_is_hidden(self, obj):
         """Return whether this testcase is hidden."""
@@ -101,7 +99,6 @@ class SubmissionListSerializer(serializers.ModelSerializer):
             'problem_id',
             'problem_title',
             'contest_id',
-            'source_type',
             'language',
             'status',
             'score',
@@ -126,7 +123,6 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             'user',
             'problem',
             'contest',
-            'source_type',
             'language',
             'code',
             'status',
@@ -138,7 +134,6 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             'updated_at',
             'results',
             'screen_events',
-            'custom_test_cases',
             'total_test_cases',
         ]
 
@@ -156,7 +151,6 @@ class CreateSubmissionSerializer(serializers.ModelSerializer):
             'id',
             'problem',
             'contest',
-            'source_type',
             'language',
             'code',
             'status',
@@ -167,22 +161,10 @@ class CreateSubmissionSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'status', 'created_at']
         extra_kwargs = {
             'problem': {'required': True},
+            'contest': {'required': True, 'allow_null': False},
             'code': {'required': True},
             'language': {'required': True},
         }
     
-    def validate(self, attrs):
-        # Reject test-only fields from submit API
-        disallowed_fields = []
-        for field in ['is_test', 'custom_test_cases']:
-            if field in self.initial_data:
-                disallowed_fields.append(field)
-        if disallowed_fields:
-            raise serializers.ValidationError({
-                field: 'This field is not allowed for submissions.'
-                for field in disallowed_fields
-            })
-        return attrs
-
     def get_total_test_cases(self, obj):
         return _get_total_test_cases(obj)

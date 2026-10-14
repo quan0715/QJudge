@@ -5,7 +5,6 @@ from .models import (
     QuestionAsset,
     QuestionBank,
     QuestionBankMembership,
-    QuestionVersion,
 )
 
 
@@ -34,13 +33,6 @@ class QuestionAssetAdmin(admin.ModelAdmin):
     )
     list_filter = ("asset_type",)
     search_fields = ("title", "owner__username")
-
-
-@admin.register(QuestionVersion)
-class QuestionVersionAdmin(admin.ModelAdmin):
-    list_display = ("id", "question_asset", "version_number", "title", "created_by", "created_at")
-    list_filter = ("question_asset__asset_type",)
-    search_fields = ("title", "question_asset__title")
 
 
 @admin.register(QuestionBankMembership)

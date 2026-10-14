@@ -82,9 +82,9 @@ describe("Problem Mapper", () => {
       expect(result.id).toBe("1");
       expect(result.title).toBe("");
       expect(result.difficulty).toBe("medium");
-      expect(result.acceptanceRate).toBe(0);
-      expect(result.submissionCount).toBe(0);
-      expect(result.acceptedCount).toBe(0);
+      expect(result.acceptanceRate).toBeUndefined();
+      expect(result.submissionCount).toBeUndefined();
+      expect(result.acceptedCount).toBeUndefined();
       expect(result.tags).toEqual([]);
       expect(result.isSolved).toBe(false);
     });
@@ -126,7 +126,7 @@ describe("Problem Mapper", () => {
             output_data: "3",
             is_sample: true,
             is_hidden: false,
-            score: 10,
+            weight_percent: 10,
           },
         ],
         language_configs: [
@@ -206,14 +206,14 @@ describe("Problem Mapper", () => {
             output_data: "b",
             is_sample: true,
             is_hidden: false,
-            score: 5,
+            weight_percent: 5,
           },
           {
             input_data: "c",
             output_data: "d",
             is_sample: false,
             is_hidden: true,
-            score: 10,
+            weight_percent: 10,
           },
         ],
       };
@@ -226,7 +226,7 @@ describe("Problem Mapper", () => {
         output: "b",
         isSample: true,
         isHidden: false,
-        score: 5,
+        weightPercent: 5,
         explanation: undefined,
       });
       expect(result.testCases[1].isHidden).toBe(true);

@@ -46,7 +46,6 @@ export function createMockProblem(options: CreateProblemOptions = {}): CodingPro
   } = options;
 
   const acceptedCount = Math.round(submissionCount * (acceptanceRate / 100));
-  const remaining = submissionCount - acceptedCount;
 
   return {
     id,
@@ -55,11 +54,6 @@ export function createMockProblem(options: CreateProblemOptions = {}): CodingPro
     acceptanceRate,
     submissionCount,
     acceptedCount,
-    waCount: Math.round(remaining * 0.5),
-    tleCount: Math.round(remaining * 0.2),
-    mleCount: Math.round(remaining * 0.1),
-    reCount: Math.round(remaining * 0.1),
-    ceCount: Math.round(remaining * 0.1),
     tags,
     isSolved,
   };

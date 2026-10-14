@@ -1,7 +1,7 @@
 """ContestProblemViewSet -- reads and writes via ContestQuestionBinding."""
 from django.db import transaction
 from django.utils import timezone
-from django.db.models import Max, Sum
+from django.db.models import Max
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -39,7 +39,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
                 contest_id=contest_id,
                 binding_type=QuestionAsset.AssetType.CODING,
             )
-            .select_related('coding_problem', 'question_asset', 'question_version')
+            .select_related('coding_problem', 'question_asset')
             .annotate(
                 _in_question_bank=Exists(
                     QuestionBankMembership.objects.filter(
@@ -66,7 +66,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
                 binding_type=QuestionAsset.AssetType.CODING,
                 id=lookup_str,
             )
-            .select_related('coding_problem', 'question_asset', 'question_version')
+            .select_related('coding_problem', 'question_asset')
             .first()
         )
 
@@ -148,7 +148,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         if not problem.question_asset_id:
             from apps.question_bank.question_assets import ensure_problem_question_asset
             ensure_problem_question_asset(problem=problem, actor=user)
-            problem.refresh_from_db(fields=["question_asset", "question_version"])
+            problem.refresh_from_db(fields=["question_asset"])
 
         # Determine next order
         last_order = (
@@ -158,17 +158,14 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         )
         next_order = (last_order if last_order is not None else -1) + 1
 
-        max_score = max(1, int(problem.test_cases.aggregate(total=Sum('score'))['total'] or 100))
-
         # Primary write: ContestQuestionBinding
         binding = ContestQuestionBinding.objects.create(
             contest=contest,
             question_asset=problem.question_asset,
-            question_version=problem.question_version,
             coding_problem=problem,
             binding_type=QuestionAsset.AssetType.CODING,
             order=next_order,
-            score=max_score,
+            score=100,
             source_mode="manual",
             created_by=user,
         )
@@ -212,11 +209,6 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         from apps.question_bank.question_assets import ensure_problem_question_asset
         ensure_problem_question_asset(problem=problem, actor=user)
         problem.refresh_from_db()
-
-        if problem.question_asset_id and problem.question_version_id:
-            ContestQuestionBinding.objects.filter(pk=binding.pk).update(
-                question_version=problem.question_version,
-            )
 
         response_data = serializer.data
         response_data['binding_id'] = str(binding.id)
@@ -355,16 +347,14 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
             if not problem.question_asset_id:
                 from apps.question_bank.question_assets import ensure_problem_question_asset
                 ensure_problem_question_asset(problem=problem, actor=user)
-                problem.refresh_from_db(fields=["question_asset", "question_version"])
+                problem.refresh_from_db(fields=["question_asset"])
 
-            default_max_score = max(1, int(problem.test_cases.aggregate(total=Sum("score"))["total"] or 100))
             requested = item.get("max_score")
-            max_score = max(1, int(requested)) if requested is not None else default_max_score
+            max_score = max(1, int(requested)) if requested is not None else 100
 
             binding = ContestQuestionBinding.objects.create(
                 contest=contest,
                 question_asset=problem.question_asset,
-                question_version=problem.question_version,
                 coding_problem=problem,
                 binding_type=QuestionAsset.AssetType.CODING,
                 order=next_order,
@@ -416,20 +406,19 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         if not problem.question_asset_id:
             from apps.question_bank.question_assets import ensure_problem_question_asset
             ensure_problem_question_asset(problem=problem, actor=user)
-            problem.refresh_from_db(fields=["question_asset", "question_version"])
+            problem.refresh_from_db(fields=["question_asset"])
 
         last_order = ContestQuestionBinding.objects.filter(
             contest=contest, binding_type=QuestionAsset.AssetType.CODING,
         ).aggregate(max_order=Max("order"))["max_order"]
         next_order = (last_order if last_order is not None else -1) + 1
 
-        default_max_score = max(1, int(problem.test_cases.aggregate(total=Sum("score"))["total"] or 100))
         requested = request.data.get("max_score")
-        max_score = max(1, int(requested)) if requested is not None else default_max_score
+        max_score = max(1, int(requested)) if requested is not None else 100
 
         binding = ContestQuestionBinding.objects.create(
             contest=contest, question_asset=problem.question_asset,
-            question_version=problem.question_version, coding_problem=problem,
+            coding_problem=problem,
             binding_type=QuestionAsset.AssetType.CODING,
             order=next_order, score=max_score, source_mode="copy", created_by=user,
         )

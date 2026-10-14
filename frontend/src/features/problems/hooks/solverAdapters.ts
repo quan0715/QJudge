@@ -3,7 +3,7 @@ import type { SubmissionResult, TestRunResult } from "@/core/types/solver.types"
 export const transformTestRunToResult = (data: any): TestRunResult => {
   const results = data.results || [];
   const cases = results.map((r: any, idx: number) => ({
-    id: r.case_id?.toString() || r.id?.toString() || `case_${idx}`,
+    id: r.case_id?.toString() || `case_${idx}`,
     passed: r.status === "AC",
     status: r.status,
     input: r.input,
@@ -26,7 +26,6 @@ export const transformTestRunToResult = (data: any): TestRunResult => {
     failed,
     total: data.total ?? results.length,
     cases,
-    error: data.error_message,
   };
 };
 
@@ -47,18 +46,8 @@ export const transformSubmissionToResult = (data: any): SubmissionResult => {
   }));
   const passed = cases.filter((r: any) => r.passed).length;
 
-  let uiStatus = data.status;
   const isPending = data.status === "pending" || data.status === "judging";
-
-  if (!isPending) {
-    if (["AC", "WA", "TLE", "MLE", "RE", "CE", "KR", "SE"].includes(data.status)) {
-      uiStatus = data.status;
-    } else {
-      uiStatus = "RE";
-    }
-  } else {
-    uiStatus = "Pending";
-  }
+  const uiStatus = isPending ? "Pending" : data.status;
 
   return {
     type: "submit",

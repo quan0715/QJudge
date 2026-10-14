@@ -260,7 +260,6 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
             membership = update_bank_question_membership(
                 membership=target.membership,
                 validated_data=serializer.validated_data,
-                actor=request.user,
             )
             membership.refresh_from_db()
             return Response(_serialize_bank_question_response(membership=membership))

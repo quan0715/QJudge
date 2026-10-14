@@ -2,7 +2,7 @@
 Unit tests for SubmissionService.create_and_dispatch().
 
 Tests the service layer directly (without going through the API view)
-to verify queue routing, keyword rejection, and activity logging.
+to verify contest enforcement, queue routing, keyword rejection, and activity logging.
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from pytest_mock import MockerFixture
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.problems.models import CodingProblem
-from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionVersion
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
 from apps.submissions.services import SubmissionService
 from apps.submissions.access_policy import SubmissionAccessError
@@ -93,22 +93,34 @@ def silence_contest_activity(mocker: MockerFixture) -> Mock:
     return mocker.patch("apps.submissions.services.log_contest_activity")
 
 
+def contest_submission_data(user: User, **problem_kwargs) -> dict:
+    contest = ContestFactory()
+    problem = ProblemFactory(created_by=contest.owner, **problem_kwargs)
+    ContestQuestionBinding.objects.create(
+        contest=contest, coding_problem=problem, binding_type="coding",
+        question_asset=QuestionAsset.objects.create(owner=contest.owner, asset_type="coding", title="Test"),
+    )
+    ContestParticipantFactory(contest=contest, user=user)
+    return {"problem": problem, "language": "python", "contest": contest}
+
+
 # ---------------------------------------------------------------------------
 # Tests: Queue routing
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-def test_practice_dispatches_to_default_queue(judge_mock: Mock) -> None:
+def test_submission_without_contest_is_rejected(judge_mock: Mock) -> None:
     user = UserFactory(role="teacher")
     problem = ProblemFactory(created_by=user)
 
-    submission = SubmissionService.create_and_dispatch(
-        user=user,
-        data={"problem": problem, "language": "python", "code": "print('ok')"},
-    )
+    with pytest.raises(SubmissionAccessError, match="require a contest"):
+        SubmissionService.create_and_dispatch(
+            user=user,
+            data={"problem": problem, "language": "python", "code": "print('ok')"},
+        )
 
-    assert submission.source_type == "practice"
-    judge_mock.assert_called_once_with(args=[submission.id], queue="default")
+    assert Submission.objects.count() == 0
+    judge_mock.assert_not_called()
 
 
 @pytest.mark.django_db
@@ -132,7 +144,6 @@ def test_contest_dispatches_to_high_priority_queue(judge_mock: Mock) -> None:
         },
     )
 
-    assert submission.source_type == "contest"
     judge_mock.assert_called_once_with(args=[submission.id], queue="high_priority")
 
 
@@ -142,12 +153,11 @@ def test_contest_dispatches_to_high_priority_queue(judge_mock: Mock) -> None:
 
 @pytest.mark.django_db
 def test_forbidden_keyword_skips_dispatch(judge_mock: Mock) -> None:
-    user = UserFactory(role="teacher")
-    problem = ProblemFactory(created_by=user, forbidden_keywords=["eval"])
+    user = UserFactory()
 
     submission = SubmissionService.create_and_dispatch(
         user=user,
-        data={"problem": problem, "language": "python", "code": "eval('x')"},
+        data={**contest_submission_data(user, forbidden_keywords=["eval"]), "code": "eval('x')"},
     )
 
     assert submission.status == "KR"
@@ -157,12 +167,11 @@ def test_forbidden_keyword_skips_dispatch(judge_mock: Mock) -> None:
 
 @pytest.mark.django_db
 def test_required_keyword_missing_skips_dispatch(judge_mock: Mock) -> None:
-    user = UserFactory(role="teacher")
-    problem = ProblemFactory(created_by=user, required_keywords=["import"])
+    user = UserFactory()
 
     submission = SubmissionService.create_and_dispatch(
         user=user,
-        data={"problem": problem, "language": "python", "code": "print('hello')"},
+        data={**contest_submission_data(user, required_keywords=["import"]), "code": "print('hello')"},
     )
 
     assert submission.status == "KR"
@@ -203,22 +212,6 @@ def test_contest_submission_logs_activity(
     assert call_args[0][0] == contest
     assert call_args[0][1] == user
     assert call_args[0][2] == "submit_code"
-
-
-@pytest.mark.django_db
-def test_practice_submission_does_not_log_activity(
-    judge_mock: Mock,
-    silence_contest_activity: Mock,
-) -> None:
-    user = UserFactory(role="teacher")
-    problem = ProblemFactory(created_by=user)
-
-    SubmissionService.create_and_dispatch(
-        user=user,
-        data={"problem": problem, "language": "python", "code": "print('ok')"},
-    )
-
-    silence_contest_activity.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -289,7 +282,6 @@ def test_not_started_non_exam_submission_is_allowed(judge_mock: Mock) -> None:
         },
     )
 
-    assert submission.source_type == "contest"
     judge_mock.assert_called_once_with(args=[submission.id], queue="high_priority")
 
 
@@ -309,18 +301,9 @@ def test_contest_submission_sets_binding_fk_from_problem_instance(judge_mock: Mo
         asset_type=QuestionAsset.AssetType.CODING,
         title="test",
     )
-    version = QuestionVersion.objects.create(
-        question_asset=asset,
-        version_number=1,
-        title="test",
-        created_by=teacher,
-    )
-    asset.latest_version = version
-    asset.save(update_fields=["latest_version"])
     binding = ContestQuestionBinding.objects.create(
         contest=contest,
         question_asset=asset,
-        question_version=version,
         coding_problem=problem,
         binding_type=QuestionAsset.AssetType.CODING,
         score=100,

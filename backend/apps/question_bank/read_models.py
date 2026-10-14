@@ -2,7 +2,7 @@
 Read-side helpers for question bank APIs.
 
 The read model is asset-first: bank items are `QuestionBankMembership`
-rows projected through the latest `QuestionVersion` payload.
+rows projected through the `QuestionAsset` payload.
 """
 from __future__ import annotations
 
@@ -38,7 +38,6 @@ class BankQuestionReadRow:
     source_bank_name: str | None
     contest_usages: list[dict]
     question_asset_id: str | None
-    question_version_id: str | None
     metadata: dict
     created_by_username: str | None
     coding_ext: dict | None
@@ -98,8 +97,8 @@ def _question_type_for_asset_type(asset_type: str) -> str:
 
 
 def _payload_for_membership(membership: QuestionBankMembership) -> dict:
-    version = membership.question_asset.latest_version
-    return version.payload if version and isinstance(version.payload, dict) else {}
+    payload = membership.question_asset.payload
+    return payload if isinstance(payload, dict) else {}
 
 
 def _usage_ids_for_membership(membership: QuestionBankMembership) -> list[str]:
@@ -149,7 +148,6 @@ def _build_bank_question_read_row(
     membership: QuestionBankMembership,
     usage_map: dict,
 ) -> BankQuestionReadRow:
-    version = membership.question_asset.latest_version
     payload = _payload_for_membership(membership)
 
     row_id = str(membership.id)
@@ -167,8 +165,8 @@ def _build_bank_question_read_row(
         bank_item_id=row_id,
         bank=str(bank.uuid),
         question_type=question_type,
-        title=(version.title if version else membership.question_asset.title) or "",
-        prompt=version.prompt if version else "",
+        title=membership.question_asset.title or "",
+        prompt=membership.question_asset.prompt or "",
         options=(payload.get("options") or []),
         correct_answer=payload.get("correct_answer"),
         score=int(payload.get("score") or 0),
@@ -181,7 +179,6 @@ def _build_bank_question_read_row(
         source_bank_name=str(source_bank_name) if source_bank_name else None,
         contest_usages=usage_map.get(contest_usage_key, []),
         question_asset_id=str(membership.question_asset_id) if membership.question_asset_id else None,
-        question_version_id=str(version.id) if version else None,
         metadata=metadata,
         created_by_username=(
             membership.added_by.username
@@ -200,7 +197,6 @@ def get_bank_questions_payload(*, bank: QuestionBank) -> list[BankQuestionReadRo
             "bank",
             "question_asset",
             "question_asset__owner",
-            "question_asset__latest_version",
             "added_by",
         )
         .order_by("order", "id")
@@ -226,7 +222,6 @@ def get_membership_queryset_for_user(*, user):
         "bank__owner",
         "question_asset",
         "question_asset__owner",
-        "question_asset__latest_version",
         "added_by",
     ).filter(bank__is_archived=False)
 

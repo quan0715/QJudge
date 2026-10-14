@@ -110,7 +110,7 @@ def _create_exam_bank_item(
         "short_answer": QuestionAsset.AssetType.SHORT_ANSWER,
         "essay": QuestionAsset.AssetType.ESSAY,
     }.get(question_type, QuestionAsset.AssetType.ESSAY)
-    asset, _version = create_question_asset(
+    asset = create_question_asset(
         owner=owner,
         asset_type=asset_type,
         title=prompt,
@@ -122,7 +122,6 @@ def _create_exam_bank_item(
             "score": score,
             "order": 0,
         },
-        actor=owner,
     )
     membership = ensure_question_bank_membership(
         bank=bank,
@@ -848,7 +847,7 @@ class TestImportFromQuestionBank:
             name="Teacher Asset Only Exam Bank",
             category=QuestionBank.Category.EXAM,
         )
-        asset, _version = create_question_asset(
+        asset = create_question_asset(
             owner=teacher,
             asset_type=QuestionAsset.AssetType.SINGLE_CHOICE,
             title="2+2 = ?",
@@ -860,7 +859,6 @@ class TestImportFromQuestionBank:
                 "score": 4,
                 "order": 0,
             },
-            actor=teacher,
         )
         membership = ensure_question_bank_membership(
             bank=bank,

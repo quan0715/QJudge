@@ -33,7 +33,7 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         filters.OrderingFilter
     ]
     filterset_fields = [
-        'problem', 'contest', 'status', 'language', 'source_type', 'user'
+        'problem', 'contest', 'status', 'language', 'user'
     ]
     ordering_fields = ['created_at', 'score', 'exec_time']
     ordering = ['-created_at']
@@ -55,14 +55,9 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         Optimized queryset with proper select_related and only() for list view.
         
         Rules:
-        1. Practice Submissions (source_type='practice'):
-           - Users can ONLY see their own submissions.
-           - Admins/Teachers can see all.
-           
-        2. Contest Submissions (source_type='contest'):
-           - Managers can see all submissions in their contests.
-           - Members can see their own, or others when the scoreboard is visible.
-           - But detail view (code) is restricted (handled in retrieve).
+        - Managers can see all submissions in their contests.
+        - Members can see their own, or others when the scoreboard is visible.
+        - Detail view (code) is restricted (handled in retrieve).
         """
         queryset = super().get_queryset()
 
@@ -72,15 +67,9 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         contest_id = self.kwargs.get("contest_pk") or self.request.query_params.get("contest")
         include_all = self.request.query_params.get("include_all", "false").lower() == "true"
         created_after = self.request.query_params.get("created_after")
-        source_type = self.request.query_params.get("source_type")
-        if contest_id:
-            source_type = "contest"
-        elif not source_type:
-            source_type = "practice"
 
         return queryset.visible_to(
             user=self.request.user,
-            source_type=source_type,
             contest_id=contest_id,
             include_all=include_all,
             created_after=created_after,
@@ -127,10 +116,10 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         All dispatch and activity-logging logic lives in SubmissionService.
         """
         user = self.request.user
-        contest = serializer.validated_data.get('contest')
+        contest = serializer.validated_data['contest']
 
         # Device guard for contest submissions with anticheat enabled
-        if contest and getattr(contest, "cheat_detection_enabled", False):
+        if getattr(contest, "cheat_detection_enabled", False):
             from apps.contests.models import ContestParticipant
             from apps.contests.services.anti_cheat_session import build_device_conflict_payload
             participant = ContestParticipant.objects.filter(
@@ -148,7 +137,7 @@ class SubmissionViewSet(viewsets.ModelViewSet):
             submission = SubmissionService.create_and_dispatch(
                 user=user,
                 data=serializer.validated_data,
-                contest_id=contest.id if contest else None,
+                contest_id=contest.id,
             )
         except SubmissionAccessError as exc:
             from rest_framework.exceptions import PermissionDenied
