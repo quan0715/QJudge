@@ -84,12 +84,11 @@ class TestContestExporters:
             input_data='1 2',
             output_data='3',
             is_sample=True,
-            score=10,
             weight_percent=10,
         )
 
         # Add to contest
-        bind_problem_to_contest(contest, problem, order=0)
+        bind_problem_to_contest(contest, problem, order=0, score=10)
 
         return problem
     
@@ -233,11 +232,10 @@ class TestStudentReportRenderer:
                     input_data=f'{j+1}',
                     output_data=f'{j+1}',
                     is_sample=(j == 0),
-                    score=10,
                     weight_percent=10,
                 )
 
-            bind_problem_to_contest(contest_with_times, problem, order=i)
+            bind_problem_to_contest(contest_with_times, problem, order=i, score=20)
 
             problems.append(problem)
 

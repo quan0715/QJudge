@@ -13,7 +13,7 @@ export interface CodingQuestionExt {
     inputData: string;
     outputData: string;
     isSample: boolean;
-    score?: number;
+    weightPercent?: number;
     order?: number;
     isHidden?: boolean;
   }>;

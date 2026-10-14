@@ -29,8 +29,6 @@ class Command(BaseCommand):
         if not problem.question_asset_id:
             ensure_problem_question_asset(problem=problem, actor=problem.created_by or contest.owner)
             problem.refresh_from_db(fields=["question_asset", "question_version"])
-        from django.db.models import Sum
-        score = max(1, int(problem.test_cases.aggregate(total=Sum('score'))['total'] or 100))
         ContestQuestionBinding.objects.get_or_create(
             contest=contest,
             coding_problem=problem,
@@ -39,7 +37,7 @@ class Command(BaseCommand):
                 "question_version": problem.question_version,
                 "binding_type": QuestionAsset.AssetType.CODING,
                 "order": order,
-                "score": score,
+                "score": 100,
                 "source_mode": "manual",
             },
         )
@@ -180,7 +178,6 @@ class Command(BaseCommand):
                 output_data="3",
                 is_sample=True,
                 is_hidden=False,
-                score=30,
                 weight_percent=30,
                 order=1
             )
@@ -190,7 +187,6 @@ class Command(BaseCommand):
                 output_data="30",
                 is_sample=False,
                 is_hidden=False,
-                score=30,
                 weight_percent=30,
                 order=2
             )
@@ -200,7 +196,6 @@ class Command(BaseCommand):
                 output_data="0",
                 is_sample=False,
                 is_hidden=True,
-                score=40,
                 weight_percent=40,
                 order=3
             )
@@ -257,7 +252,6 @@ int main() {
                 output_data="Hello, World!",
                 is_sample=True,
                 is_hidden=False,
-                score=100,
                 weight_percent=100,
                 order=1
             )
@@ -312,7 +306,6 @@ int main() {
                 output_data="120",
                 is_sample=True,
                 is_hidden=False,
-                score=50,
                 weight_percent=50,
                 order=1
             )
@@ -322,7 +315,6 @@ int main() {
                 output_data="1",
                 is_sample=False,
                 is_hidden=False,
-                score=25,
                 weight_percent=25,
                 order=2
             )
@@ -332,7 +324,6 @@ int main() {
                 output_data="3628800",
                 is_sample=False,
                 is_hidden=True,
-                score=25,
                 weight_percent=25,
                 order=3
             )

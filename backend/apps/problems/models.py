@@ -189,7 +189,6 @@ class TestCase(models.Model):
     output_data = models.TextField(verbose_name='輸出資料')
     
     is_sample = models.BooleanField(default=False, verbose_name='是否為範例')
-    score = models.IntegerField(default=0, verbose_name='分數')
     weight_percent = models.PositiveSmallIntegerField(
         verbose_name='權重百分比',
         help_text='0~100 的整數百分比；同題測資加總為 100',

@@ -417,7 +417,7 @@ class TestQuestionBankAPI:
             slug="canonical-problem",
             created_by=teacher,
         )
-        ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100, weight_percent=100)
+        ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", weight_percent=100)
 
         # Create asset (source of truth for content)
         from apps.question_bank.question_assets import write_coding_content_to_asset
@@ -563,7 +563,7 @@ class TestQuestionBankAPI:
             created_by=teacher,
             question_asset=asset,
         )
-        ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100, weight_percent=100)
+        ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", weight_percent=100)
 
         contest = Contest.objects.create(name="Inbox Exam", owner=teacher, contest_type="paper_exam")
         ExamQuestion.objects.create(
@@ -613,7 +613,7 @@ class TestQuestionBankAPI:
             slug="needs-ingest",
             created_by=teacher,
         )
-        ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100, weight_percent=100)
+        ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", weight_percent=100)
 
         from apps.question_bank.question_assets import write_coding_content_to_asset
         asset, version = write_coding_content_to_asset(
@@ -658,7 +658,7 @@ class TestQuestionBankAPI:
             slug="contest-linked-no-creator",
             created_by=None,
         )
-        ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100, weight_percent=100)
+        ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", weight_percent=100)
 
         contest = Contest.objects.create(
             name="Coding Contest For Ingest",
@@ -731,7 +731,7 @@ class TestQuestionBankAPI:
             slug="needs-re-ingest",
             created_by=teacher,
         )
-        ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100, weight_percent=100)
+        ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", weight_percent=100)
         asset, version = write_coding_content_to_asset(
             owner=teacher,
             title="Foreign Copy",

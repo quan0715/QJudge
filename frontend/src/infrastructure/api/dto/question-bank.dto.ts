@@ -13,7 +13,7 @@ export interface CodingQuestionExtDto {
     input_data: string;
     output_data: string;
     is_sample: boolean;
-    score?: number;
+    weight_percent?: number;
     order?: number;
     is_hidden?: boolean;
   }>;

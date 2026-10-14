@@ -67,7 +67,6 @@ def test_problem_api_create_and_update_dual_write_question_asset(api_client: API
                     "input_data": "1",
                     "output_data": "1",
                     "is_sample": True,
-                    "score": 100,
                     "weight_percent": 100,
                     "order": 0,
                     "is_hidden": False,

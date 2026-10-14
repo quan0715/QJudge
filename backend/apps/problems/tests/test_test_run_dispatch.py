@@ -154,7 +154,6 @@ class TestRunEndpointDelegationTests(DjangoTestCase):
             input_data="1 2",
             output_data="3",
             is_sample=True,
-            score=100,
             order=1,
             weight_percent=100,
         )

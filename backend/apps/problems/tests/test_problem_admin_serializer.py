@@ -34,8 +34,8 @@ def test_problem_admin_serializer_accepts_weight_percent_total_100():
     assert serializer.is_valid(), serializer.errors
     problem = serializer.save(created_by=teacher)
 
-    rows = list(problem.test_cases.order_by("order").values_list("weight_percent", "score"))
-    assert rows == [(30, 30), (70, 70)]
+    rows = list(problem.test_cases.order_by("order").values_list("weight_percent", flat=True))
+    assert rows == [30, 70]
 
 
 @pytest.mark.django_db

@@ -136,11 +136,10 @@ class TestStudentReportEndpoints:
             input_data='1',
             output_data='1',
             is_sample=True,
-            score=20,
             weight_percent=20,
         )
 
-        bind_problem_to_contest(active_contest, problem, order=0)
+        bind_problem_to_contest(active_contest, problem, order=0, score=20)
 
         return problem
     
@@ -590,7 +589,6 @@ class TestStudentReportScoreCalculation:
             input_data='1',
             output_data='1',
             is_sample=True,
-            score=100,
             weight_percent=100,
         )
 

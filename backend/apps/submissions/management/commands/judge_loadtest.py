@@ -156,7 +156,7 @@ class Command(BaseCommand):
         problem = CodingProblem.objects.create(slug=SLUG, created_by=user, **limits)
         LanguageConfig.objects.create(problem=problem, language="cpp", template_code=solution)
         TestCase.objects.bulk_create(
-            TestCase(problem=problem, input_data=inp, output_data=out, score=weight,
+            TestCase(problem=problem, input_data=inp, output_data=out,
                      weight_percent=weight, order=order, is_hidden=True)
             for order, (inp, out, weight) in enumerate(rows)
         )

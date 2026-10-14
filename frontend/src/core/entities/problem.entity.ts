@@ -21,7 +21,7 @@ export interface TestCase {
   output: string;
   isSample: boolean;
   explanation?: string;
-  score?: number;
+  weightPercent?: number;
   order?: number;
   isHidden?: boolean;
 }

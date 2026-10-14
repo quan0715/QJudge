@@ -258,7 +258,7 @@ export const toBankProblemDetail = (q: BankQuestion): CodingProblemDetail => {
       input: tc.inputData,
       output: tc.outputData,
       isSample: tc.isSample,
-      score: tc.score,
+      weightPercent: tc.weightPercent,
       order: tc.order,
       isHidden: tc.isHidden,
     })) ?? [],

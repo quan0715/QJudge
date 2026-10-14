@@ -8,12 +8,11 @@ from apps.question_bank.import_resolver import BankQuestionImportItem
 def _normalize_test_case_weights(cases):
     if not cases:
         return
-    raw_weights = [max(0, int(case.get("weight_percent", case.get("score", 0)) or 0)) for case in cases]
+    raw_weights = [max(0, case["weight_percent"]) for case in cases]
     total = sum(raw_weights)
     if total == 100:
         for case, weight in zip(cases, raw_weights):
             case["weight_percent"] = weight
-            case["score"] = weight
         return
     if total <= 0:
         base = 100 // len(cases)
@@ -21,7 +20,6 @@ def _normalize_test_case_weights(cases):
         for idx, case in enumerate(cases):
             weight = base + (1 if idx < remainder else 0)
             case["weight_percent"] = weight
-            case["score"] = weight
         return
 
     scaled = [(weight * 100) / total for weight in raw_weights]
@@ -37,14 +35,13 @@ def _normalize_test_case_weights(cases):
 
     for case, weight in zip(cases, floor_values):
         case["weight_percent"] = weight
-        case["score"] = weight
 
 
 def _test_cases_from_payload(payload: dict) -> list[dict]:
     cases = []
     for idx, raw_case in enumerate(payload.get("test_cases") or []):
         raw = dict(raw_case or {})
-        weight = raw.get("weight_percent", raw.get("score", 0))
+        weight = raw.get("weight_percent", 0)
         try:
             normalized_weight = int(weight)
         except (TypeError, ValueError):
@@ -54,7 +51,6 @@ def _test_cases_from_payload(payload: dict) -> list[dict]:
                 "input_data": raw.get("input_data", ""),
                 "output_data": raw.get("output_data", ""),
                 "is_sample": bool(raw.get("is_sample", False)),
-                "score": normalized_weight,
                 "weight_percent": normalized_weight,
                 "order": int(raw.get("order", idx)),
                 "is_hidden": bool(raw.get("is_hidden", False)),
@@ -66,7 +62,6 @@ def _test_cases_from_payload(payload: dict) -> list[dict]:
                 "input_data": "",
                 "output_data": "",
                 "is_sample": True,
-                "score": 100,
                 "weight_percent": 100,
                 "order": 0,
                 "is_hidden": False,

@@ -27,7 +27,6 @@ class TestCaseSerializer(serializers.ModelSerializer):
             'input_data',
             'output_data',
             'is_sample',
-            'score',
             'weight_percent',
             'order',
             'is_hidden',
@@ -379,7 +378,6 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {'test_cases': [f'test_cases[{idx}].weight_percent must be between 0 and 100']}
                 )
-            tc['score'] = weight
             weights.append(weight)
 
         if sum(weights) != 100:

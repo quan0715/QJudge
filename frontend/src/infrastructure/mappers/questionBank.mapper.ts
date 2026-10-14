@@ -43,7 +43,7 @@ function mapCodingExtDto(dto?: CodingQuestionExtDto): CodingQuestionExt | undefi
       inputData: tc.input_data,
       outputData: tc.output_data,
       isSample: tc.is_sample,
-      score: tc.score,
+      weightPercent: tc.weight_percent,
       order: tc.order,
       isHidden: tc.is_hidden,
     })),
