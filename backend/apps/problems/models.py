@@ -120,14 +120,13 @@ class CodingProblem(models.Model):
 class LanguageConfig(models.Model):
     """
     Language-specific configuration for each problem.
-    Note: Frontend currently only supports C++, but backend maintains 
-    compatibility with other languages for legacy data.
+    Choices match the languages the judge can run.
     """
     LANGUAGE_CHOICES = [
         ('cpp', 'C++'),
+        ('c', 'C'),
         ('python', 'Python'),
         ('java', 'Java'),
-        ('javascript', 'JavaScript'),
     ]
     
     problem = models.ForeignKey(
