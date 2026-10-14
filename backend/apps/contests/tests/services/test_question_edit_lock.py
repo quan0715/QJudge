@@ -155,8 +155,6 @@ def test_coding_contest_stays_editable_after_student_submissions(
         user=student,
         contest=contest,
         problem=problem,
-        source_type="contest",
-        is_test=False,
         language="python",
         code="print(1)",
     )

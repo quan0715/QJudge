@@ -84,7 +84,8 @@ class TestContestExporters:
             input_data='1 2',
             output_data='3',
             is_sample=True,
-            score=10
+            score=10,
+            weight_percent=10,
         )
 
         # Add to contest
@@ -232,7 +233,8 @@ class TestStudentReportRenderer:
                     input_data=f'{j+1}',
                     output_data=f'{j+1}',
                     is_sample=(j == 0),
-                    score=10
+                    score=10,
+                    weight_percent=10,
                 )
 
             bind_problem_to_contest(contest_with_times, problem, order=i)
@@ -263,7 +265,6 @@ class TestStudentReportRenderer:
             user=student,
             problem=problems_setup[0],
             contest=contest_with_times,
-            source_type='contest',
             language='cpp',
             code='#include <iostream>\nint main() { return 1; }',
             status='WA',
@@ -274,7 +275,6 @@ class TestStudentReportRenderer:
             user=student,
             problem=problems_setup[0],
             contest=contest_with_times,
-            source_type='contest',
             language='cpp',
             code='#include <iostream>\nint main() {\n    int n;\n    std::cin >> n;\n    std::cout << n << std::endl;\n    return 0;\n}',
             status='AC',
@@ -287,7 +287,6 @@ class TestStudentReportRenderer:
             user=student,
             problem=problems_setup[1],
             contest=contest_with_times,
-            source_type='contest',
             language='cpp',
             code='#include <iostream>\nusing namespace std;\nint main() {\n    int n;\n    cin >> n;\n    cout << n << endl;\n    return 0;\n}',
             status='AC',
@@ -300,7 +299,6 @@ class TestStudentReportRenderer:
             user=student,
             problem=problems_setup[2],
             contest=contest_with_times,
-            source_type='contest',
             language='cpp',
             code='#include <iostream>\nint main() { return 0; }',
             status='WA',

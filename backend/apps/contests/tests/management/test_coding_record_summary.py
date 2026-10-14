@@ -12,20 +12,19 @@ from .test_contest_viewset_actions import owner, student, contest, _create_probl
 def test_record_summary_uses_best_official_score_and_current_user(owner, student, contest):
     problem = _create_problem('Summary', owner)
     binding = bind_problem_to_contest(contest, problem)
-    for user, score, is_test, status in [
-        (student, 30, False, 'WA'), (student, 60, False, 'WA'),
-        (student, 100, True, 'AC'), (owner, 100, False, 'AC'),
+    for user, score, status in [
+        (student, 30, 'WA'), (student, 60, 'WA'), (owner, 100, 'AC'),
     ]:
         Submission.objects.create(user=user, problem=problem, contest=contest,
-                                  score=score, is_test=is_test, status=status,
-                                  source_type='contest', language='cpp', code='test')
+                                  score=score, status=status,
+                                  language='cpp', code='test')
     serializer = ContestProblemSerializer(context={'request': SimpleNamespace(user=student)})
     assert serializer.get_user_score(binding) == 60
     assert serializer.get_submission_count(binding) == 2
     assert serializer.get_user_status(binding) == 'WA'
 
     Submission.objects.create(user=student, problem=problem, contest=contest,
-                              score=100, status='AC', source_type='contest',
+                              score=100, status='AC',
                               language='cpp', code='test')
     fresh = ContestProblemSerializer(context={'request': SimpleNamespace(user=student)})
     assert fresh.get_user_score(binding) == 100

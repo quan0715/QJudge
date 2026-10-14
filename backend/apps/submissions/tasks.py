@@ -1,24 +1,15 @@
 """
 Celery tasks for submissions app.
-Supports priority queues via apply_async(queue=...):
-- high_priority: Contest submissions (processed first)
-- default: Practice submissions
+Submissions are judged on the high_priority queue, ahead of test runs.
 """
 import logging
 from celery import shared_task
 from django.db.models import F
 from .models import Submission, SubmissionResult
-from apps.problems.models import CodingProblem, TestCase
+from apps.problems.models import CodingProblem
 from apps.judge.judge_factory import get_judge
 
 logger = logging.getLogger(__name__)
-
-
-def _resolve_test_case_weight(tc: TestCase) -> int:
-    weight_percent = getattr(tc, "weight_percent", None)
-    if weight_percent is not None:
-        return max(0, int(weight_percent))
-    return max(0, int(getattr(tc, "score", 0) or 0))
 
 
 @shared_task
@@ -35,10 +26,8 @@ def judge_submission(submission_id):
         Submission.objects.filter(pk=submission.pk, status="pending").update(status="judging")
         test_cases = list(submission.problem.test_cases.all())
 
-        legacy_total_score = 0
         passed_weight_sum = 0
-        total_weight_sum = sum(_resolve_test_case_weight(tc) for tc in test_cases)
-        has_weight_percent = any(tc.weight_percent is not None for tc in test_cases)
+        total_weight_sum = sum(tc.weight_percent for tc in test_cases)
         max_exec_time = 0
         max_memory = 0
         final_status = 'AC'
@@ -72,11 +61,8 @@ def judge_submission(submission_id):
                 max_exec_time = max(max_exec_time, exec_time)
                 max_memory = max(max_memory, memory)
             
-                # Calculate score
-                tc_weight = _resolve_test_case_weight(tc)
                 if status == 'AC':
-                    legacy_total_score += tc.score
-                    passed_weight_sum += tc_weight
+                    passed_weight_sum += tc.weight_percent
                 elif final_status == 'AC':  # First error
                     final_status = status
             
@@ -100,21 +86,12 @@ def judge_submission(submission_id):
                     submission.error_message = error_msg
                     break
         
-        # Calculate final score
-        total_score = legacy_total_score
         binding = submission.contest_question_binding
-        if submission.source_type == 'contest' and binding:
-            if total_weight_sum > 0:
-                total_score = round(binding.score * (passed_weight_sum / total_weight_sum))
-            elif final_status == 'AC':
-                total_score = binding.score
-            else:
-                total_score = 0
-        elif has_weight_percent:
-            if total_weight_sum > 0:
-                total_score = round(100 * (passed_weight_sum / total_weight_sum))
-            else:
-                total_score = 100 if final_status == 'AC' else 0
+        full_score = binding.score if binding else 100
+        if total_weight_sum > 0:
+            total_score = round(full_score * (passed_weight_sum / total_weight_sum))
+        else:
+            total_score = full_score if final_status == 'AC' else 0
 
         # Update submission
         submission.status = final_status

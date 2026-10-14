@@ -69,11 +69,7 @@ class ScoreboardService:
         participants = attempted_participants(contest).select_related("user")
 
         submissions = (
-            Submission.objects.filter(
-                contest=contest,
-                source_type="contest",
-                is_test=False,
-            )
+            Submission.objects.filter(contest=contest)
             .order_by("created_at")
         )
 

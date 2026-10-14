@@ -369,31 +369,16 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
 
         weights = []
         for idx, tc in enumerate(test_cases_data):
-            raw_weight = tc.get('weight_percent', None)
-
-            if raw_weight is None:
+            # Partial updates skip the nested field's required check.
+            weight = tc.get('weight_percent')
+            if weight is None:
                 raise serializers.ValidationError(
-                    {
-                        'test_cases': [
-                            f'test_cases[{idx}].weight_percent is required'
-                        ]
-                    }
+                    {'test_cases': [f'test_cases[{idx}].weight_percent is required']}
                 )
-
-            try:
-                weight = int(raw_weight)
-            except (TypeError, ValueError):
-                raise serializers.ValidationError(
-                    {'test_cases': [f'test_cases[{idx}].weight_percent must be an integer']}
-                )
-
-            if weight < 0 or weight > 100:
+            if weight > 100:
                 raise serializers.ValidationError(
                     {'test_cases': [f'test_cases[{idx}].weight_percent must be between 0 and 100']}
                 )
-
-            tc['weight_percent'] = weight
-            # Persist score as the runtime weight source for judge-side logic.
             tc['score'] = weight
             weights.append(weight)
 

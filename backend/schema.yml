@@ -4429,17 +4429,6 @@ paths:
           type: string
           format: uuid
       - in: query
-        name: source_type
-        schema:
-          type: string
-          title: 來源類型
-          enum:
-          - contest
-          - practice
-        description: |-
-          * `practice` - Practice
-          * `contest` - Contest
-      - in: query
         name: status
         schema:
           type: string
@@ -6204,17 +6193,6 @@ paths:
         schema:
           type: string
           format: uuid
-      - in: query
-        name: source_type
-        schema:
-          type: string
-          title: 來源類型
-          enum:
-          - contest
-          - practice
-        description: |-
-          * `practice` - Practice
-          * `contest` - Contest
       - in: query
         name: status
         schema:
@@ -8456,12 +8434,7 @@ components:
         contest:
           type: string
           format: uuid
-          nullable: true
           title: 考試
-        source_type:
-          allOf:
-          - $ref: '#/components/schemas/SourceTypeEnum'
-          title: 來源類型
         language:
           allOf:
           - $ref: '#/components/schemas/Language040Enum'
@@ -8487,6 +8460,7 @@ components:
           readOnly: true
       required:
       - code
+      - contest
       - created_at
       - id
       - language
@@ -8504,12 +8478,7 @@ components:
         contest:
           type: string
           format: uuid
-          nullable: true
           title: 考試
-        source_type:
-          allOf:
-          - $ref: '#/components/schemas/SourceTypeEnum'
-          title: 來源類型
         language:
           allOf:
           - $ref: '#/components/schemas/Language040Enum'
@@ -8523,6 +8492,7 @@ components:
           title: 錯誤訊息
       required:
       - code
+      - contest
       - language
       - problem
     EditorTabSize929Enum:
@@ -10018,14 +9988,6 @@ components:
       required:
       - id
       - name
-    SourceTypeEnum:
-      enum:
-      - practice
-      - contest
-      type: string
-      description: |-
-        * `practice` - Practice
-        * `contest` - Contest
     Status68aEnum:
       enum:
       - draft
@@ -10078,10 +10040,6 @@ components:
           format: uuid
           nullable: true
           title: 考試
-        source_type:
-          allOf:
-          - $ref: '#/components/schemas/SourceTypeEnum'
-          title: 來源類型
         language:
           allOf:
           - $ref: '#/components/schemas/Language040Enum'
@@ -10172,10 +10130,6 @@ components:
           format: uuid
           readOnly: true
           nullable: true
-        source_type:
-          allOf:
-          - $ref: '#/components/schemas/SourceTypeEnum'
-          title: 來源類型
         language:
           allOf:
           - $ref: '#/components/schemas/Language040Enum'

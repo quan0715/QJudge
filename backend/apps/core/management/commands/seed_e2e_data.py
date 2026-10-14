@@ -181,6 +181,7 @@ class Command(BaseCommand):
                 is_sample=True,
                 is_hidden=False,
                 score=30,
+                weight_percent=30,
                 order=1
             )
             TestCase.objects.create(
@@ -190,6 +191,7 @@ class Command(BaseCommand):
                 is_sample=False,
                 is_hidden=False,
                 score=30,
+                weight_percent=30,
                 order=2
             )
             TestCase.objects.create(
@@ -199,6 +201,7 @@ class Command(BaseCommand):
                 is_sample=False,
                 is_hidden=True,
                 score=40,
+                weight_percent=40,
                 order=3
             )
             
@@ -255,6 +258,7 @@ int main() {
                 is_sample=True,
                 is_hidden=False,
                 score=100,
+                weight_percent=100,
                 order=1
             )
             
@@ -309,6 +313,7 @@ int main() {
                 is_sample=True,
                 is_hidden=False,
                 score=50,
+                weight_percent=50,
                 order=1
             )
             TestCase.objects.create(
@@ -318,6 +323,7 @@ int main() {
                 is_sample=False,
                 is_hidden=False,
                 score=25,
+                weight_percent=25,
                 order=2
             )
             TestCase.objects.create(
@@ -327,6 +333,7 @@ int main() {
                 is_sample=False,
                 is_hidden=True,
                 score=25,
+                weight_percent=25,
                 order=3
             )
             

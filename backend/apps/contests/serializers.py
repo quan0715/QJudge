@@ -518,14 +518,11 @@ class ContestProblemSerializer(serializers.ModelSerializer):
             rows = Submission.objects.filter(
                 contest_id=obj.contest_id,
                 user=request.user,
-                source_type='contest',
-                is_test=False,
             ).values('problem_id').annotate(
                 count=Count('id'), score=Max('score'),
                 accepted=Count('id', filter=Q(status='AC')),
                 latest_status=Subquery(Submission.objects.filter(
                     contest_id=obj.contest_id, user=request.user,
-                    source_type='contest', is_test=False,
                     problem_id=OuterRef('problem_id'),
                 ).order_by('-created_at', '-id').values('status')[:1]),
             )
@@ -1064,8 +1061,6 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
                 contest=obj.contest,
                 problem=binding.coding_problem,
                 user=obj.user,
-                source_type='contest',
-                is_test=False
             ).aggregate(max_score=Max('score'))
 
             if best_submission['max_score']:

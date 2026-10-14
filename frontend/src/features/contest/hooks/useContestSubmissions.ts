@@ -42,7 +42,6 @@ export const useContestSubmissions = ({
     ],
     queryFn: async () => {
       const params: Record<string, string | number> = {
-        source_type: "contest",
         include_all: "true",
         contest: contestId,
         page: page,

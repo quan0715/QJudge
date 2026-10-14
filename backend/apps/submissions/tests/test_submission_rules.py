@@ -98,19 +98,31 @@ def silence_contest_activity(mocker: MockerFixture) -> None:
     mocker.patch("apps.submissions.services.log_contest_activity")
 
 
+def contest_problem(user: User, **problem_kwargs) -> tuple[Contest, CodingProblem]:
+    contest = ContestFactory(status="published")
+    problem = ProblemFactory(created_by=contest.owner, **problem_kwargs)
+    ContestQuestionBinding.objects.create(
+        contest=contest, coding_problem=problem, binding_type="coding",
+        question_asset=QuestionAsset.objects.create(owner=contest.owner, asset_type="coding", title="Test"),
+    )
+    ContestParticipantFactory(contest=contest, user=user, exam_status=ExamStatus.IN_PROGRESS)
+    return contest, problem
+
+
 @pytest.mark.django_db
 def test_forbidden_keyword_sets_kr_and_skips_judge(
     api_client: APIClient,
     judge_mocks: Dict[str, Mock],
 ) -> None:
-    user = UserFactory(role="teacher")
-    problem = ProblemFactory(created_by=user, forbidden_keywords=["eval"])
+    user = UserFactory()
+    contest, problem = contest_problem(user, forbidden_keywords=["eval"])
 
     api_client.force_authenticate(user=user)
     response = api_client.post(
         reverse("submissions:submission-list"),
         {
             "problem": problem.id,
+            "contest": contest.id,
             "language": "python",
             "code": "print(eval('1+1'))",
         },
@@ -129,14 +141,15 @@ def test_required_keyword_missing_sets_kr(
     api_client: APIClient,
     judge_mocks: Dict[str, Mock],
 ) -> None:
-    user = UserFactory(role="teacher")
-    problem = ProblemFactory(created_by=user, required_keywords=["import"])
+    user = UserFactory()
+    contest, problem = contest_problem(user, required_keywords=["import"])
 
     api_client.force_authenticate(user=user)
     response = api_client.post(
         reverse("submissions:submission-list"),
         {
             "problem": problem.id,
+            "contest": contest.id,
             "language": "python",
             "code": "print('hello')",
         },
@@ -151,7 +164,7 @@ def test_required_keyword_missing_sets_kr(
 
 
 @pytest.mark.django_db
-def test_practice_submission_triggers_judge(
+def test_submission_without_contest_is_rejected(
     api_client: APIClient,
     judge_mocks: Dict[str, Mock],
 ) -> None:
@@ -169,10 +182,9 @@ def test_practice_submission_triggers_judge(
         format="json",
     )
 
-    assert response.status_code == 201
-    submission = Submission.objects.get(id=response.data["id"])
-    assert submission.source_type == "practice"
-    judge_mocks["judge"].assert_called_once_with(args=[submission.id], queue="default")
+    assert response.status_code == 400
+    assert not Submission.objects.exists()
+    judge_mocks["judge"].assert_not_called()
 
 
 @pytest.mark.django_db
@@ -359,7 +371,6 @@ def test_contest_submission_allows_not_started_when_exam_mode_disabled(
 
     assert response.status_code == 201
     submission = Submission.objects.get(id=response.data["id"])
-    assert submission.source_type == "contest"
     judge_mocks["judge"].assert_called_once_with(args=[submission.id], queue="high_priority")
 
 
@@ -390,7 +401,6 @@ def test_contest_submission_privileged_bypasses_restrictions(
 
     assert response.status_code == 201
     submission = Submission.objects.get(id=response.data["id"])
-    assert submission.source_type == "contest"
     judge_mocks["judge"].assert_called_once_with(args=[submission.id], queue="high_priority")
 
 
@@ -450,7 +460,6 @@ def test_classroom_manager_can_view_classroom_bound_submission_detail(
         user=student,
         problem=problem,
         contest=contest,
-        source_type="contest",
         language="python",
         code="print('ok')",
         status="AC",
@@ -482,7 +491,6 @@ def test_unrelated_teacher_cannot_view_submission_detail(
         user=student,
         problem=problem,
         contest=contest,
-        source_type="contest",
         language="python",
         code="print('secret')",
         status="AC",

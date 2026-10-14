@@ -9,7 +9,7 @@ from django.db import transaction
 from apps.contests.models import Contest
 from apps.contests.services.activity_log import log_contest_activity
 from apps.problems.models import CodingProblem
-from apps.submissions.access_policy import SubmissionAccessPolicy
+from apps.submissions.access_policy import SubmissionAccessError, SubmissionAccessPolicy
 from apps.submissions.models import Submission
 from apps.users.models import User
 
@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 class SubmissionCreateResult:
     submission: Submission
     should_judge: bool
-    source_type: str
 
 
 class SubmissionService:
@@ -54,7 +53,7 @@ class SubmissionService:
         if result.should_judge:
             cls._dispatch_judging(result)
 
-        if result.source_type == "contest" and result.should_judge:
+        if result.should_judge:
             cls._log_contest_activity(result, user)
 
         return result.submission
@@ -73,10 +72,8 @@ class SubmissionService:
         contest = data.get("contest")
         if contest is None and contest_id:
             contest = Contest.objects.get(id=contest_id)
-        if contest is not None and contest_id is None:
-            contest_id = contest.id
-
-        source_type = "contest" if contest else "practice"
+        if contest is None:
+            raise SubmissionAccessError("Submissions require a contest")
 
         problem: CodingProblem = data["problem"]
         code: str = data.get("code", "")
@@ -91,47 +88,31 @@ class SubmissionService:
         )
 
         create_payload = dict(data)
-        create_payload.pop("source_type", None)
 
         with transaction.atomic():
-            if contest is not None:
-                contest = Contest.objects.select_for_update().get(pk=contest.pk)
-                from apps.contests.services.exam_schedule import lock_exam_runs
-                from apps.contests.models import ContestParticipant
-                lock_exam_runs(contest.pk)
-                list(ContestParticipant.objects.select_for_update().filter(contest=contest, user=user))
-                create_payload["contest"] = contest
-
-            binding = SubmissionAccessPolicy.enforce_problem_access(user, problem, contest)
-            if binding is not None:
-                create_payload["contest_question_binding"] = binding
+            contest = Contest.objects.select_for_update().get(pk=contest.pk)
+            from apps.contests.services.exam_schedule import lock_exam_runs
+            from apps.contests.models import ContestParticipant
+            lock_exam_runs(contest.pk)
+            list(ContestParticipant.objects.select_for_update().filter(contest=contest, user=user))
+            create_payload["contest"] = contest
+            create_payload["contest_question_binding"] = SubmissionAccessPolicy.enforce_problem_access(
+                user, problem, contest,
+            )
 
             if violation_message:
                 submission = Submission.objects.create(
                     user=user,
-                    source_type=source_type,
                     status="KR",
                     score=0,
                     error_message=violation_message,
                     **create_payload,
                 )
-                return SubmissionCreateResult(
-                    submission=submission,
-                    should_judge=False,
-                    source_type=source_type,
-                )
+                return SubmissionCreateResult(submission=submission, should_judge=False)
 
-            submission = Submission.objects.create(
-                user=user,
-                source_type=source_type,
-                **create_payload,
-            )
+            submission = Submission.objects.create(user=user, **create_payload)
 
-        return SubmissionCreateResult(
-            submission=submission,
-            should_judge=True,
-            source_type=source_type,
-        )
+        return SubmissionCreateResult(submission=submission, should_judge=True)
 
     # ------------------------------------------------------------------
     # Private helpers
@@ -141,17 +122,14 @@ class SubmissionService:
     def _dispatch_judging(result: SubmissionCreateResult) -> None:
         from apps.submissions.tasks import judge_submission
 
-        queue = "high_priority" if result.source_type == "contest" else "default"
         sid = result.submission.id
         transaction.on_commit(
-            lambda: judge_submission.apply_async(args=[sid], queue=queue)
+            lambda: judge_submission.apply_async(args=[sid], queue="high_priority")
         )
 
     @staticmethod
     def _log_contest_activity(result: SubmissionCreateResult, user: User) -> None:
         contest = result.submission.contest
-        if not contest:
-            return
         try:
             problem = result.submission.problem
             log_contest_activity(
