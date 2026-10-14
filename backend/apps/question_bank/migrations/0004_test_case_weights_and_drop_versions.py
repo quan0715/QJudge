@@ -51,8 +51,19 @@ def migrate_test_case_weights(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [("question_bank", "0003_align_legacy_schema")]
+    dependencies = [
+        ("contests", "0010_drop_question_version"),
+        ("problems", "0004_test_case_weights_and_cleanup"),
+        ("question_bank", "0003_align_legacy_schema"),
+    ]
 
     operations = [
+        # Versions are migrated too: they exist until the model is dropped below.
         migrations.RunPython(migrate_test_case_weights, migrations.RunPython.noop),
+        # Run the deferred constraint checks queued by the data change, or
+        # PostgreSQL refuses the ALTER TABLEs below in the same transaction.
+        migrations.RunSQL("SET CONSTRAINTS ALL IMMEDIATE", migrations.RunSQL.noop),
+        migrations.RemoveField(model_name="contestquestionbinding", name="question_version"),
+        migrations.RemoveField(model_name="questionasset", name="latest_version"),
+        migrations.DeleteModel(name="QuestionVersion"),
     ]
