@@ -164,7 +164,7 @@ class Command(BaseCommand):
                 for idx, (inp, out, sample, score) in enumerate(spec["tests"]):
                     TestCase.objects.create(
                         problem=prob, input_data=inp, output_data=out,
-                        is_sample=sample, is_hidden=not sample, score=score, order=idx + 1,
+                        is_sample=sample, is_hidden=not sample, score=score, weight_percent=score, order=idx + 1,
                     )
                 LanguageConfig.objects.create(
                     problem=prob, language="cpp", is_enabled=True,

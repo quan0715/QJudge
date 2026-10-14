@@ -56,12 +56,10 @@ class SubmissionScoringIntegrationTests(TestCase):
         self.recorder.start()
         self.addCleanup(self.recorder.stop)
 
-    def submit(self, code, *, contest=True):
+    def submit(self, code):
         submission = Submission.objects.create(
             user=self.user, problem=self.problem, language="cpp", code=code,
-            contest=self.contest if contest else None,
-            contest_question_binding=self.binding if contest else None,
-            source_type="contest" if contest else "practice",
+            contest=self.contest, contest_question_binding=self.binding,
         )
         judge_submission.run(submission.id)
         submission.refresh_from_db()
@@ -87,11 +85,6 @@ class SubmissionScoringIntegrationTests(TestCase):
             self.assertEqual(submission.exec_time, max(r.exec_time for r in results))
         self.problem.refresh_from_db()
         self.assertEqual((self.problem.submission_count, self.problem.accepted_count, self.problem.wa_count), (2, 1, 1))
-        self.assert_containers_removed(2)
-
-    def test_practice_weight_percent_is_normalized_to_100(self):
-        for code, score in [(SUM, 100), (PARTIAL, 30)]:
-            self.assertEqual(self.submit(code, contest=False).score, score)
         self.assert_containers_removed(2)
 
     def test_ce_re_tle_and_wa_save_zero_score_and_expected_case_results(self):

@@ -108,7 +108,6 @@ describe("ContestProblemSubmissions integration — coding-problem id wiring", (
     expect(call.problem).toBe(CODING_PROBLEM_ID);
     expect(call.problem).not.toBe(BINDING_ID);
     expect(call.contest).toBe(CONTEST_ID);
-    expect(call.source_type).toBe("contest");
   });
 
   it("still forwards the right CodingProblem.id when the URL carries the coding id directly", async () => {

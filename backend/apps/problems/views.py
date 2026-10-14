@@ -337,10 +337,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
             problem = self.get_object()
         
         # Base queryset
-        submissions_qs = Submission.objects.filter(
-            problem=problem,
-            is_test=False
-        )
+        submissions_qs = Submission.objects.filter(problem=problem)
         
         # Filter by contest if provided
         if contest_id:
@@ -354,7 +351,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
             submission_count = sum(status_counts.values())
             accepted_count = status_counts.get('AC', 0)
         else:
-            # For practice, use denormalized fields from CodingProblem.
+            # Across contests, use denormalized fields from CodingProblem.
             status_counts = {
                 'AC': problem.accepted_count,
                 'WA': problem.wa_count,

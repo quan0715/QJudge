@@ -75,13 +75,15 @@ class StandingsAPITests(APITestCase):
             problem=self.problem_a,
             input_data='1',
             output_data='1',
-            score=30
+            score=30,
+            weight_percent=30,
         )
         ProblemTestCase.objects.create(
             problem=self.problem_b,
             input_data='2',
             output_data='2',
-            score=70
+            score=70,
+            weight_percent=70,
         )
 
         # Add problems to contest
@@ -303,7 +305,8 @@ class StandingsDataIntegrityTests(APITestCase):
             problem=self.problem,
             input_data='1',
             output_data='1',
-            score=100
+            score=100,
+            weight_percent=100,
         )
 
         bind_problem_to_contest(self.contest, self.problem, order=0)
@@ -362,186 +365,6 @@ class StandingsDataIntegrityTests(APITestCase):
             self.assertIn('total_score', s)
             self.assertIn('time', s)
             self.assertIn('problems', s)
-
-
-class StandingsTestSubmissionFilterTests(APITestCase):
-    """
-    Test that standings correctly exclude test submissions (is_test=True).
-    
-    Bug fix: Previously, standings included test submissions in score calculation,
-    causing scores to differ from individual reports which correctly excluded them.
-    """
-
-    def setUp(self):
-        """Set up test data with both normal and test submissions."""
-        from apps.submissions.models import Submission
-        
-        self.client = APIClient()
-
-        self.student = User.objects.create_user(
-            username='student',
-            email='student@test.com',
-            password='testpass123',
-            role='student'
-        )
-        self.teacher = User.objects.create_user(
-            username='teacher',
-            email='teacher@test.com',
-            password='testpass123',
-            role='teacher'
-        )
-
-        now = timezone.now()
-        self.contest = Contest.objects.create(
-            name='Test Contest',
-            status='published',
-            start_time=now - timedelta(hours=1),
-            end_time=now + timedelta(hours=2),
-            owner=self.teacher,
-            scoreboard_visible_during_contest=True
-        )
-
-        # Create problem with 100 points
-        self.problem = CodingProblem.objects.create(
-            slug='filter-test-problem',
-            created_by=self.teacher
-        )
-        ProblemTestCase.objects.create(
-            problem=self.problem,
-            input_data='1',
-            output_data='1',
-            score=100
-        )
-
-        bind_problem_to_contest(self.contest, self.problem, order=0)
-
-        ContestParticipant.objects.create(
-            contest=self.contest,
-            user=self.student,
-            exam_status=ExamStatus.IN_PROGRESS,
-            started_at=now
-        )
-
-        # Create a test submission with AC (should be excluded)
-        self.test_submission = Submission.objects.create(
-            user=self.student,
-            problem=self.problem,
-            contest=self.contest,
-            code='print("test")',
-            language='python',
-            status='AC',
-            score=100,
-            source_type='contest',
-            is_test=True  # This is a test submission
-        )
-
-        # Create a normal submission with partial score (should be counted)
-        self.normal_submission = Submission.objects.create(
-            user=self.student,
-            problem=self.problem,
-            contest=self.contest,
-            code='print("partial")',
-            language='python',
-            status='WA',
-            score=50,
-            source_type='contest',
-            is_test=False  # This is a normal submission
-        )
-
-    def test_standings_excludes_test_submissions(self):
-        """
-        Standings should exclude test submissions from score calculation.
-        
-        Student has:
-        - Test submission: AC with 100 points (should be EXCLUDED)
-        - Normal submission: WA with 50 points (should be COUNTED)
-        
-        Expected total_score: 50 (not 100)
-        """
-        self.client.force_authenticate(user=self.student)
-        url = f'/api/v1/contests/{self.contest.id}/standings/'
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, 200)
-        
-        standings = response.data.get('standings', [])
-        student_standing = next(
-            (s for s in standings if s['user']['id'] == self.student.id), 
-            None
-        )
-        
-        self.assertIsNotNone(student_standing)
-        
-        # Score should be 50 (from normal submission), not 100 (from test submission)
-        self.assertEqual(
-            student_standing['total_score'], 
-            50,
-            "Standings should exclude test submissions. "
-            f"Expected 50, got {student_standing['total_score']}"
-        )
-        
-        # solved count should be 0 (no AC in normal submissions)
-        self.assertEqual(
-            student_standing['solved'],
-            0,
-            "Solved count should only count normal AC submissions"
-        )
-
-    def test_standings_counts_normal_ac_correctly(self):
-        """
-        When student has AC in normal submission, it should be counted.
-        """
-        from apps.submissions.models import Submission
-        
-        # Add a normal AC submission
-        Submission.objects.create(
-            user=self.student,
-            problem=self.problem,
-            contest=self.contest,
-            code='print("ac")',
-            language='python',
-            status='AC',
-            score=100,
-            source_type='contest',
-            is_test=False
-        )
-        
-        self.client.force_authenticate(user=self.student)
-        url = f'/api/v1/contests/{self.contest.id}/standings/'
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, 200)
-        
-        standings = response.data.get('standings', [])
-        student_standing = next(
-            (s for s in standings if s['user']['id'] == self.student.id), 
-            None
-        )
-        
-        # Now should have full score from normal AC
-        self.assertEqual(student_standing['total_score'], 100)
-        self.assertEqual(student_standing['solved'], 1)
-
-    def test_participant_serializer_excludes_test_submissions(self):
-        """
-        ContestParticipantSerializer.get_total_score should also exclude test submissions.
-        """
-        from apps.contests.serializers import ContestParticipantSerializer
-        
-        participant = ContestParticipant.objects.get(
-            contest=self.contest, 
-            user=self.student
-        )
-        
-        serializer = ContestParticipantSerializer(participant)
-        total_score = serializer.data.get('total_score')
-        
-        # Should be 50 (normal submission), not 100 (test submission)
-        self.assertEqual(
-            total_score, 
-            50,
-            "Serializer should exclude test submissions from score calculation"
-        )
 
 
 class StandingsRankingOrderTests(APITestCase):
@@ -604,13 +427,15 @@ class StandingsRankingOrderTests(APITestCase):
             problem=self.problem1,
             input_data='1',
             output_data='1',
-            score=100
+            score=100,
+            weight_percent=100,
         )
         ProblemTestCase.objects.create(
             problem=self.problem2,
             input_data='2',
             output_data='2',
-            score=50
+            score=50,
+            weight_percent=50,
         )
 
         bind_problem_to_contest(self.contest, self.problem1, order=0)
@@ -657,8 +482,6 @@ class StandingsRankingOrderTests(APITestCase):
             language='python',
             status='AC',
             score=100,
-            source_type='contest',
-            is_test=False,
             created_at=timezone.now() - timedelta(minutes=30)
         )
         
@@ -671,8 +494,6 @@ class StandingsRankingOrderTests(APITestCase):
             language='python',
             status='WA',
             score=10,
-            source_type='contest',
-            is_test=False,
             created_at=timezone.now() - timedelta(minutes=40)
         )
         Submission.objects.create(
@@ -683,8 +504,6 @@ class StandingsRankingOrderTests(APITestCase):
             language='python',
             status='AC',
             score=50,
-            source_type='contest',
-            is_test=False,
             created_at=timezone.now() - timedelta(minutes=20)
         )
         
@@ -728,8 +547,6 @@ class StandingsRankingOrderTests(APITestCase):
             language='python',
             status='WA',  # Partial score
             score=50,
-            source_type='contest',
-            is_test=False,
             created_at=timezone.now() - timedelta(minutes=30)
         )
         Submission.objects.create(
@@ -740,8 +557,6 @@ class StandingsRankingOrderTests(APITestCase):
             language='python',
             status='AC',
             score=50,
-            source_type='contest',
-            is_test=False,
             created_at=timezone.now() - timedelta(minutes=20)
         )
         
@@ -754,8 +569,6 @@ class StandingsRankingOrderTests(APITestCase):
             language='python',
             status='AC',
             score=100,
-            source_type='contest',
-            is_test=False,
             created_at=timezone.now() - timedelta(minutes=30)
         )
         
@@ -818,8 +631,6 @@ class StandingsRankingOrderTests(APITestCase):
             language='python',
             status='AC',
             score=100,
-            source_type='contest',
-            is_test=False
         )
         submission_a.created_at = start_time + timedelta(minutes=30)
         submission_a.save(update_fields=['created_at'])
@@ -833,8 +644,6 @@ class StandingsRankingOrderTests(APITestCase):
             language='python',
             status='AC',
             score=100,
-            source_type='contest',
-            is_test=False
         )
         submission_b.created_at = start_time + timedelta(minutes=60)
         submission_b.save(update_fields=['created_at'])

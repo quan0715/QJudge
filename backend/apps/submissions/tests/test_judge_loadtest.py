@@ -40,7 +40,7 @@ class JudgeLoadTestCommandTests(TestCase):
         other = get_user_model().objects.create_user(username="student", email="s@example.test")
         command("seed", "--cases", "3")
         problem = CodingProblem.objects.get(slug="lt-judge-loadtest")
-        self.assertEqual(problem.test_cases.count(), 3)
+        self.assertEqual(list(problem.test_cases.values_list("weight_percent", flat=True)), [34, 33, 33])
         self.assertIsNone(problem.question_asset_id, "students must not see the problem")
 
         with worker() as dispatch, tempfile.NamedTemporaryFile("r", suffix=".json") as out:

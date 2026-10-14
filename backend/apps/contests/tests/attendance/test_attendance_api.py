@@ -694,7 +694,6 @@ def test_teacher_can_reset_participant_exam_record() -> None:
         contest=contest,
         user=student,
         problem=problem,
-        source_type="contest",
         language="python",
         code="print(1)",
         status="AC",

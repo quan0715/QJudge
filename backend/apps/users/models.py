@@ -231,7 +231,7 @@ class UserProfile(models.Model):
         """Update user statistics based on submissions."""
         from apps.submissions.models import Submission
 
-        submissions = Submission.objects.filter(user=self.user, is_test=False)
+        submissions = Submission.objects.filter(user=self.user)
         self.submission_count = submissions.count()
 
         accepted = submissions.filter(status='AC').values('problem').distinct().count()

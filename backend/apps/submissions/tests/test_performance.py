@@ -5,6 +5,7 @@ import time
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
+from apps.contests.models import Contest
 from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 from apps.submissions.models import Submission, SubmissionResult
 from django.db import connection
@@ -40,6 +41,7 @@ class SubmissionAPIPerformanceTestCase(TestCase):
             memory_limit=256,
             created_by=cls.admin_user
         )
+        cls.contest = Contest.objects.create(name='Performance Contest', owner=cls.admin_user)
         
         # Create multiple submissions for performance testing
         cls.submissions = []
@@ -50,8 +52,7 @@ class SubmissionAPIPerformanceTestCase(TestCase):
                 language='python',
                 code=f'print("test {i}")',
                 status='AC' if i % 3 == 0 else 'WA',
-                source_type='practice',
-                is_test=False,
+                contest=cls.contest,
                 score=100 if i % 3 == 0 else 0
             )
             cls.submissions.append(submission)
@@ -67,7 +68,6 @@ class SubmissionAPIPerformanceTestCase(TestCase):
         connection.queries_log.clear()
         
         response = self.client.get('/api/v1/submissions/', {
-            'source_type': 'practice',
             'page_size': 20
         })
         
@@ -87,7 +87,6 @@ class SubmissionAPIPerformanceTestCase(TestCase):
         start_time = time.time()
         
         response = self.client.get('/api/v1/submissions/', {
-            'source_type': 'practice',
             'page_size': 20
         })
         
@@ -105,7 +104,6 @@ class SubmissionAPIPerformanceTestCase(TestCase):
     def test_submission_list_response_size(self):
         """Test that submission list returns optimized data."""
         response = self.client.get('/api/v1/submissions/', {
-            'source_type': 'practice',
             'page_size': 20
         })
         
@@ -123,7 +121,6 @@ class SubmissionAPIPerformanceTestCase(TestCase):
     def test_submission_list_has_necessary_fields(self):
         """Test that submission list includes all necessary fields."""
         response = self.client.get('/api/v1/submissions/', {
-            'source_type': 'practice',
             'page_size': 20
         })
         
@@ -146,7 +143,6 @@ class SubmissionAPIPerformanceTestCase(TestCase):
         """Test that filters work correctly with optimization."""
         # Test status filter
         response = self.client.get('/api/v1/submissions/', {
-            'source_type': 'practice',
             'status': 'AC',
             'page_size': 20
         })
@@ -171,12 +167,13 @@ class SubmissionAPIPerformanceTestCase(TestCase):
         def detail_query_count(case_count):
             submission = Submission.objects.create(
                 user=self.student_user, problem=self.problem, language='python',
-                code='print(1)', status='AC', source_type='practice',
+                code='print(1)', status='AC', contest=self.contest,
             )
             for order in range(case_count):
                 test_case = ProblemTestCase.objects.create(
                     problem=self.problem, input_data='1', output_data='1',
                     is_hidden=True, order=100 + order,
+                    weight_percent=100,
                 )
                 SubmissionResult.objects.create(
                     submission=submission, test_case=test_case, status='AC',
@@ -191,34 +188,18 @@ class SubmissionAPIPerformanceTestCase(TestCase):
 
         self.assertEqual(detail_query_count(1), detail_query_count(5))
 
-    def test_practice_submissions_default_filter(self):
-        """Test that practice submissions are filtered by default."""
-        response = self.client.get('/api/v1/submissions/', {
-            'source_type': 'practice',
-            'page_size': 20
-        })
-        
-        self.assertEqual(response.status_code, 200)
-        
-        # All results should be practice type
-        for submission in response.data.get('results', []):
-            self.assertEqual(submission.get('source_type'), 'practice')
-    
     def test_retrieve_not_affected_by_filters(self):
-        """Test that retrieve action is not affected by date/source filters."""
-        # Use existing practice submission from setUpTestData
-        practice_submission = self.submissions[0]
+        """Test that retrieve action is not affected by list filters."""
+        submission = self.submissions[0]  # status AC
         
-        # Should be able to retrieve even with different source_type filter
         # The filter should only affect list, not retrieve
         response = self.client.get(
-            f'/api/v1/submissions/{practice_submission.id}/',
-            {'source_type': 'contest'}  # This should not affect retrieve
+            f'/api/v1/submissions/{submission.id}/',
+            {'status': 'WA'}
         )
         
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['id'], practice_submission.id)
-        self.assertEqual(response.data['source_type'], 'practice')
+        self.assertEqual(response.data['id'], submission.id)
 
 
 class SubmissionIndexTestCase(TestCase):
@@ -241,8 +222,7 @@ class SubmissionIndexTestCase(TestCase):
                 indexes = {row[0] for row in cursor.fetchall()}
                 
                 expected_indexes = {
-                    'sub_src_test_created_idx',
-                    'sub_contest_src_created_idx',
+                    'sub_contest_created_idx',
                     'sub_problem_created_idx',
                     'sub_status_created_idx',
                     'sub_user_created_idx',

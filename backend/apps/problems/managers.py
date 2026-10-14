@@ -35,7 +35,6 @@ class ProblemQuerySet(models.QuerySet):
                 problem=OuterRef("pk"),
                 user=user,
                 status="AC",
-                is_test=False,
             )
             queryset = queryset.annotate(is_solved=Exists(ac_submissions))
 

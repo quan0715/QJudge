@@ -18,7 +18,7 @@ describe("contest submission history", () => {
       <QueryClientProvider client={client}>{children}</QueryClientProvider> });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(getSubmissions).toHaveBeenCalledWith({
-      source_type: "contest", contest: "contest-1", include_all: "true",
+      contest: "contest-1", include_all: "true",
       user: "468", problem: "21", page: 2, page_size: 10,
     });
   });

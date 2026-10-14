@@ -100,7 +100,6 @@ class SubmissionDTO:
     language: str = ''
     code: str = ''
     created_at: Optional[datetime] = None
-    is_test: bool = False
 
 
 @dataclass

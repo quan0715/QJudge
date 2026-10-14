@@ -8,7 +8,7 @@ from .models import CodingProblem, TestCase, LanguageConfig, Tag
 class TestCaseInline(admin.TabularInline):
     model = TestCase
     extra = 1
-    fields = ['input_data', 'output_data', 'is_sample', 'score', 'order', 'is_hidden']
+    fields = ['input_data', 'output_data', 'is_sample', 'weight_percent', 'order', 'is_hidden']
 
 
 @admin.register(LanguageConfig)

@@ -8,9 +8,11 @@ the contract, future refactors could re-introduce the same ambiguity.
 from __future__ import annotations
 
 import uuid
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
@@ -86,9 +88,7 @@ class SubmissionListProblemFilterContractTests(TestCase):
             language="python",
             code="print('hi')",
             status="AC",
-            source_type="contest",
             contest=cls.contest,
-            is_test=False,
         )
 
     def setUp(self) -> None:
@@ -99,7 +99,6 @@ class SubmissionListProblemFilterContractTests(TestCase):
         response = self.client.get(
             "/api/v1/submissions/",
             {
-                "source_type": "contest",
                 "contest": str(self.contest.id),
                 "problem": str(self.coding_problem.id),
             },
@@ -118,7 +117,6 @@ class SubmissionListProblemFilterContractTests(TestCase):
         response = self.client.get(
             "/api/v1/submissions/",
             {
-                "source_type": "contest",
                 "contest": str(self.contest.id),
                 "problem": str(self.binding.id),
             },
@@ -130,7 +128,6 @@ class SubmissionListProblemFilterContractTests(TestCase):
         response = self.client.get(
             "/api/v1/submissions/",
             {
-                "source_type": "contest",
                 "contest": str(self.contest.id),
                 "problem": str(uuid.uuid4()),
             },
@@ -145,16 +142,23 @@ class SubmissionListUserFilterTests(TestCase):
     def setUpTestData(cls) -> None:
         owner = User.objects.create_user(username="problem-owner", email="problem@example.com", password="password123")
         cls.problem = CodingProblem.objects.create(slug="user-filter-problem", created_by=owner)
+        cls.contest = Contest.objects.create(
+            name="User Filter Contest", owner=owner, status="published",
+            start_time=timezone.now() - timedelta(hours=1), end_time=timezone.now() + timedelta(hours=1),
+            scoreboard_visible_during_contest=False,
+        )
         cls.user1 = User.objects.create_user(username="user1", email="user1@example.com", password="password123")
         cls.user2 = User.objects.create_user(username="user2", email="user2@example.com", password="password123")
+        for user in (cls.user1, cls.user2):
+            ContestParticipant.objects.create(contest=cls.contest, user=user, exam_status=ExamStatus.IN_PROGRESS)
         cls.own = [cls._submission(cls.user1), cls._submission(cls.user1)]
         cls.others = cls._submission(cls.user2)
 
     @classmethod
     def _submission(cls, user):
         return Submission.objects.create(
-            problem=cls.problem, user=user, language="python", code="print('hello')",
-            status="AC", source_type="practice",
+            problem=cls.problem, user=user, contest=cls.contest, language="python", code="print('hello')",
+            status="AC",
         )
 
     def setUp(self) -> None:
@@ -162,7 +166,7 @@ class SubmissionListUserFilterTests(TestCase):
         self.client.force_authenticate(user=self.user1)
 
     def _ids(self, query):
-        response = self.client.get(f"/api/v1/submissions/?source_type=practice{query}")
+        response = self.client.get(f"/api/v1/submissions/?contest={self.contest.id}{query}")
         self.assertEqual(response.status_code, 200, response.data)
         data = response.json()
         return {row["id"] for row in data.get("results", data)}
@@ -173,9 +177,9 @@ class SubmissionListUserFilterTests(TestCase):
     def test_filter_by_another_user_stays_within_own_scope(self) -> None:
         self.assertEqual(self._ids(f"&user={self.user2.id}"), set())
 
-    def test_without_user_filter_only_own_practice_submissions(self) -> None:
+    def test_without_user_filter_only_own_submissions(self) -> None:
         self.assertEqual(self._ids(""), {s.id for s in self.own})
 
     def test_filter_by_nonexistent_user_is_rejected(self) -> None:
-        response = self.client.get("/api/v1/submissions/?source_type=practice&user=99999")
+        response = self.client.get(f"/api/v1/submissions/?contest={self.contest.id}&user=99999")
         self.assertEqual(response.status_code, 400)

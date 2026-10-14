@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.test import APIClient
+from apps.contests.models import Contest
 from apps.problems.models import CodingProblem
 from apps.submissions.models import Submission
 
@@ -30,6 +31,7 @@ class DateRangeFilteringTestCase(TestCase):
             memory_limit=256,
             created_by=cls.admin_user
         )
+        cls.contest = Contest.objects.create(name='Date Filter Contest', owner=cls.admin_user)
         
         # Create submissions at different time points
         now = timezone.now()
@@ -45,8 +47,7 @@ class DateRangeFilteringTestCase(TestCase):
                 language='python',
                 code='print("recent")',
                 status='AC',
-                source_type='practice',
-                is_test=False
+                contest=cls.contest,
             )
             # Update created_at after creation (to bypass auto_now_add)
             Submission.objects.filter(id=submission.id).update(created_at=created_at)
@@ -64,8 +65,7 @@ class DateRangeFilteringTestCase(TestCase):
                 language='python',
                 code='print("old")',
                 status='AC',
-                source_type='practice',
-                is_test=False
+                contest=cls.contest,
             )
             # Update created_at after creation (to bypass auto_now_add)
             Submission.objects.filter(id=submission.id).update(created_at=created_at)
@@ -80,7 +80,6 @@ class DateRangeFilteringTestCase(TestCase):
     def test_default_returns_only_recent_submissions(self):
         """Test that by default only recent submissions are returned."""
         response = self.client.get('/api/v1/submissions/', {
-            'source_type': 'practice',
             'page_size': 100
         })
         
@@ -105,7 +104,7 @@ class DateRangeFilteringTestCase(TestCase):
             )
 
     def test_requested_page_size_produces_disjoint_history_pages(self):
-        params = {'source_type': 'practice', 'include_all': 'true', 'page_size': 5}
+        params = {'include_all': 'true', 'page_size': 5}
         first = self.client.get('/api/v1/submissions/', params)
         second = self.client.get('/api/v1/submissions/', {**params, 'page': 2})
         self.assertEqual(first.status_code, 200)
@@ -119,7 +118,6 @@ class DateRangeFilteringTestCase(TestCase):
     def test_include_all_returns_all_submissions(self):
         """Test that include_all=true returns all submissions."""
         response = self.client.get('/api/v1/submissions/', {
-            'source_type': 'practice',
             'include_all': 'true',
             'page_size': 100
         })
@@ -136,7 +134,6 @@ class DateRangeFilteringTestCase(TestCase):
         two_weeks_ago = now - timedelta(days=14)
         
         response = self.client.get('/api/v1/submissions/', {
-            'source_type': 'practice',
             'created_after': two_weeks_ago.isoformat(),
             'page_size': 100
         })

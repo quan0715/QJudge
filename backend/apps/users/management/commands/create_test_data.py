@@ -154,6 +154,7 @@ print(a + b)''',
                     output_data=tc['output'],
                     is_sample=tc['is_sample'],
                     score=25,
+                    weight_percent=25,
                     order=idx + 1
                 )
         else:
@@ -245,6 +246,7 @@ print(fibonacci(n))''',
                     output_data=tc['output'],
                     is_sample=tc['is_sample'],
                     score=10,
+                    weight_percent=10,
                     order=idx + 1
                 )
         else:

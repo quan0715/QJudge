@@ -63,21 +63,8 @@ class Submission(models.Model):
         verbose_name='競賽題目綁定',
     )
     # Content
-    SOURCE_TYPE_CHOICES = [
-        ('practice', 'Practice'),
-        ('contest', 'Contest'),
-    ]
-    source_type = models.CharField(
-        max_length=10,
-        choices=SOURCE_TYPE_CHOICES,
-        default='practice',
-        db_index=True,
-        verbose_name='來源類型'
-    )
     language = models.CharField(max_length=20, choices=LANGUAGE_CHOICES, verbose_name='語言')
     code = models.TextField(verbose_name='程式碼')
-    is_test = models.BooleanField(default=False, verbose_name='測試提交')
-    custom_test_cases = models.JSONField(default=list, blank=True, verbose_name='自訂測資')
     
     # Result
     status = models.CharField(
@@ -107,8 +94,7 @@ class Submission(models.Model):
             models.Index(fields=['user', 'problem']),
             models.Index(fields=['status']),
             # Performance indexes for common query patterns
-            models.Index(fields=['source_type', 'is_test', '-created_at'], name='sub_src_test_created_idx'),
-            models.Index(fields=['contest', 'source_type', '-created_at'], name='sub_contest_src_created_idx'),
+            models.Index(fields=['contest', '-created_at'], name='sub_contest_created_idx'),
             models.Index(fields=['problem', '-created_at'], name='sub_problem_created_idx'),
             models.Index(fields=['status', '-created_at'], name='sub_status_created_idx'),
             models.Index(fields=['user', '-created_at'], name='sub_user_created_idx'),

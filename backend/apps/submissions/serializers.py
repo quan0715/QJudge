@@ -99,7 +99,6 @@ class SubmissionListSerializer(serializers.ModelSerializer):
             'problem_id',
             'problem_title',
             'contest_id',
-            'source_type',
             'language',
             'status',
             'score',
@@ -124,7 +123,6 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             'user',
             'problem',
             'contest',
-            'source_type',
             'language',
             'code',
             'status',
@@ -153,7 +151,6 @@ class CreateSubmissionSerializer(serializers.ModelSerializer):
             'id',
             'problem',
             'contest',
-            'source_type',
             'language',
             'code',
             'status',
@@ -164,22 +161,10 @@ class CreateSubmissionSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'status', 'created_at']
         extra_kwargs = {
             'problem': {'required': True},
+            'contest': {'required': True, 'allow_null': False},
             'code': {'required': True},
             'language': {'required': True},
         }
     
-    def validate(self, attrs):
-        # Reject test-only fields from submit API
-        disallowed_fields = []
-        for field in ['is_test', 'custom_test_cases']:
-            if field in self.initial_data:
-                disallowed_fields.append(field)
-        if disallowed_fields:
-            raise serializers.ValidationError({
-                field: 'This field is not allowed for submissions.'
-                for field in disallowed_fields
-            })
-        return attrs
-
     def get_total_test_cases(self, obj):
         return _get_total_test_cases(obj)
