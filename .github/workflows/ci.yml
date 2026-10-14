@@ -217,7 +217,6 @@ jobs:
       REDIS_URL: redis://localhost:6379/0
       DJANGO_SETTINGS_MODULE: config.settings.test
       SECRET_KEY: test-secret-key-for-ci
-      JUDGE_ENGINE_ENABLED: "false"
 
     steps:
       - uses: actions/checkout@v7
@@ -394,7 +393,6 @@ jobs:
       REDIS_URL: redis://localhost:6379/0
       DJANGO_SETTINGS_MODULE: config.settings.test
       SECRET_KEY: test-secret-key-for-ci
-      JUDGE_ENGINE_ENABLED: "true"
 
     steps:
       - uses: actions/checkout@v7

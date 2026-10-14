@@ -6,6 +6,9 @@ export interface StatusConfig {
   type: 'green' | 'red' | 'blue' | 'gray' | 'purple' | 'cyan' | 'teal' | 'magenta' | 'cool-gray' | 'warm-gray' | 'high-contrast' | 'outline';
 }
 
+/** How often a pending or judging submission is re-fetched. */
+export const SUBMISSION_POLL_INTERVAL_MS = 2000;
+
 export const SUBMISSION_STATUS_CONFIG: Record<SubmissionStatus, StatusConfig> = {
   'AC': { color: 'green', labelKey: 'common:status.success', type: 'green' },
   'WA': { color: 'red', labelKey: 'common:status.notPassed', type: 'red' },

@@ -12,7 +12,9 @@ User = get_user_model()
 
 class SubmissionQuerySet(models.QuerySet):
     def optimized_for_detail(self) -> "SubmissionQuerySet":
-        return self.select_related("user", "problem", "contest")
+        return self.select_related(
+            "user", "problem", "problem__question_asset", "contest"
+        ).prefetch_related("results__test_case")
 
     def optimized_for_list(self) -> "SubmissionQuerySet":
         return self.only(

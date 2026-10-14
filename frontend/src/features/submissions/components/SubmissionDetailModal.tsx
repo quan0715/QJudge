@@ -23,7 +23,7 @@ import { DifficultyBadge } from "@/shared/ui/tag";
 import { KpiCard } from "@/shared/ui/dataCard";
 import { TestResultList, TestResultDetail } from "@/shared/ui/submission";
 import { getLanguageConfig } from "@/core/config/language.config";
-import { getStatusConfig } from "@/core/config/status.config";
+import { getStatusConfig, SUBMISSION_POLL_INTERVAL_MS } from "@/core/config/status.config";
 interface SubmissionDetailModalProps {
   submissionId: string | null;
   isOpen: boolean;
@@ -85,7 +85,7 @@ const SubmissionDetailModal = ({
       .catch((error) => {
         console.error("Polling error:", error);
       });
-  }, shouldPoll ? 1000 : null);
+  }, shouldPoll ? SUBMISSION_POLL_INTERVAL_MS : null);
 
   const handleCopyCode = () => {
     if (submission?.code) {

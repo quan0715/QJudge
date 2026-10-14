@@ -37,8 +37,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class LangSpec:
-    name: str
-    version: str
     filename: str
     compile_cmd: Optional[str]
     run_cmd: str
@@ -46,41 +44,26 @@ class LangSpec:
 
 _LANG_SPECS: dict[str, LangSpec] = {
     "cpp": LangSpec(
-        name="C++",
-        version="C++20",
         filename="main.cpp",
         compile_cmd="g++ -O2 -std=c++20 -o main main.cpp",
         run_cmd="/tmp/build/main",
     ),
     "c": LangSpec(
-        name="C",
-        version="C11",
         filename="main.c",
         compile_cmd="gcc -O2 -std=c11 -lm -o main main.c",
         run_cmd="/tmp/build/main",
     ),
     "python": LangSpec(
-        name="Python",
-        version="Python 3.11",
         filename="main.py",
         compile_cmd=None,
         run_cmd="python3 /tmp/build/main.py",
     ),
     "java": LangSpec(
-        name="Java",
-        version="Java 17",
         filename="Main.java",
         compile_cmd="javac Main.java",
         run_cmd="java -Xmx{mem}m -Xms32m -cp /tmp/build Main",
     ),
 }
-
-SUPPORTED_LANGUAGES = [
-    {"id": "cpp",    "name": "C++",    "display_name": "C++ (C++20)",      "aliases": ["cpp", "c++"]},
-    {"id": "c",      "name": "C",      "display_name": "C (C11)",           "aliases": ["c"]},
-    {"id": "python", "name": "Python", "display_name": "Python 3.11",       "aliases": ["python", "py", "python3"]},
-    {"id": "java",   "name": "Java",   "display_name": "Java 17",           "aliases": ["java"]},
-]
 
 _ALIASES: dict[str, str] = {
     "c++":     "cpp",
@@ -138,12 +121,6 @@ class IOJudge:
             with suppress(Exception):
                 container.remove(force=True)
 
-    def get_language_name(self) -> str:
-        return self._spec.name
-
-    def get_language_version(self) -> str:
-        return self._spec.version
-
     def execute(
         self,
         code: str,
@@ -163,14 +140,8 @@ class IOJudge:
                 user="0",
             )
             return self._interpret(result, expected_output, time_limit)
-        except RuntimeError:
-            logger.exception("Judge runtime infrastructure failure")
-            return {"status": "SE", "output": "", "error": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
-        except docker.errors.DockerException:
-            logger.exception("Judge Docker infrastructure failure")
-            return {"status": "SE", "output": "", "error": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
         except Exception:
-            logger.exception("Unexpected judge infrastructure failure")
+            logger.exception("Judge infrastructure failure")
             return {"status": "SE", "output": "", "error": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
 
     # ------------------------------------------------------------------
@@ -253,9 +224,8 @@ class IOJudge:
     def _ensure_docker_client(self) -> None:
         if self._client is not None:
             return
-        kwargs: dict[str, Any] = {"timeout": self.docker_timeout}
         try:
-            client = docker.DockerClient(**kwargs)
+            client = docker.DockerClient(timeout=self.docker_timeout)
             client.ping()
             client.images.get(self.image)
             self._client = client
@@ -368,12 +338,8 @@ class IOJudge:
                 "time": elapsed_ms,
                 "memory": memory_kb,
             }
-        except docker.errors.APIError:
-            logger.exception("Judge container API failure")
-            self.close()
-            return {"exit_code": -1, "output": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
         except Exception:
-            logger.exception("Unexpected judge container failure")
+            logger.exception("Judge container failure")
             self.close()
             return {"exit_code": -1, "output": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
         finally:

@@ -154,8 +154,6 @@ class ProblemTestRunService:
             judge = judge_factory.get_judge(language)
         except ValueError as exc:
             raise TestRunSetupError("unsupported_language") from exc
-        except Exception as exc:  # pragma: no cover - safety net
-            raise TestRunSetupError("judge_unavailable") from exc
 
         results = []
         max_exec_time = 0
@@ -167,23 +165,13 @@ class ProblemTestRunService:
             on_progress({"total": len(test_cases), "results": []})
         with judge:
             for tc in test_cases:
-                try:
-                    exec_result = judge.execute(
-                        code=source_code,
-                        input_data=tc.input_data,
-                        expected_output=tc.output_data or "",
-                        time_limit=problem.time_limit,
-                        memory_limit=problem.memory_limit,
-                    )
-                except Exception:  # pragma: no cover - safety net
-                    logger.exception("Unexpected judge execution failure")
-                    exec_result = {
-                        "status": "SE",
-                        "time": 0,
-                        "memory": 0,
-                        "output": "",
-                        "error": "Judge execution failed.",
-                    }
+                exec_result = judge.execute(
+                    code=source_code,
+                    input_data=tc.input_data,
+                    expected_output=tc.output_data or "",
+                    time_limit=problem.time_limit,
+                    memory_limit=problem.memory_limit,
+                )
 
                 case_result = cls._build_case_result(tc, exec_result)
                 results.append(case_result)

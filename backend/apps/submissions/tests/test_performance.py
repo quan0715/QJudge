@@ -5,10 +5,10 @@ import time
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
-from apps.problems.models import CodingProblem
-from apps.submissions.models import Submission
+from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
+from apps.submissions.models import Submission, SubmissionResult
 from django.db import connection
-from django.test.utils import override_settings
+from django.test.utils import CaptureQueriesContext, override_settings
 
 User = get_user_model()
 
@@ -166,6 +166,31 @@ class SubmissionAPIPerformanceTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('code', response.data)
     
+    def test_submission_detail_query_count_does_not_grow_with_results(self):
+        """Polling the detail must not fetch each result's test case separately."""
+        def detail_query_count(case_count):
+            submission = Submission.objects.create(
+                user=self.student_user, problem=self.problem, language='python',
+                code='print(1)', status='AC', source_type='practice',
+            )
+            for order in range(case_count):
+                test_case = ProblemTestCase.objects.create(
+                    problem=self.problem, input_data='1', output_data='1',
+                    is_hidden=True, order=100 + order,
+                )
+                SubmissionResult.objects.create(
+                    submission=submission, test_case=test_case, status='AC',
+                )
+            self.client.force_authenticate(user=self.student_user)
+            with CaptureQueriesContext(connection) as ctx:
+                response = self.client.get(f'/api/v1/submissions/{submission.id}/')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.data['results']), case_count)
+            self.assertIsNone(response.data['results'][0]['input'])
+            return len(ctx.captured_queries)
+
+        self.assertEqual(detail_query_count(1), detail_query_count(5))
+
     def test_practice_submissions_default_filter(self):
         """Test that practice submissions are filtered by default."""
         response = self.client.get('/api/v1/submissions/', {
