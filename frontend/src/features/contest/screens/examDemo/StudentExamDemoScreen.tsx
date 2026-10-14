@@ -165,7 +165,6 @@ const StudentExamDemoScreen: FC = () => {
               {mode === "single" && (
                 <ProblemHeaderCard
                   problem={detail}
-                  showAcRate={false}
                   showTags={false}
                 />
               )}

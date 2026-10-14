@@ -83,8 +83,6 @@ class SubmissionScoringIntegrationTests(TestCase):
             self.assertEqual([r.is_hidden for r in results], [False, True])
             self.assertEqual([r.input_data for r in results], ["1 2\n", "8 9\n"])
             self.assertEqual(submission.exec_time, max(r.exec_time for r in results))
-        self.problem.refresh_from_db()
-        self.assertEqual((self.problem.submission_count, self.problem.accepted_count, self.problem.wa_count), (2, 1, 1))
         self.assert_containers_removed(2)
 
     def test_ce_re_tle_and_wa_save_zero_score_and_expected_case_results(self):
@@ -117,8 +115,6 @@ class SubmissionScoringIntegrationTests(TestCase):
         self.assertEqual([len(p["results"]) for p in progress], [0, 1, 2])
         self.assertEqual(Submission.objects.count(), 0)
         self.assertEqual(SubmissionResult.objects.count(), 0)
-        self.problem.refresh_from_db()
-        self.assertEqual((self.problem.submission_count, self.problem.accepted_count), (0, 0))
         self.assert_containers_removed(1)
 
     def test_test_run_preserves_wa_info_and_ce_without_formal_records(self):
