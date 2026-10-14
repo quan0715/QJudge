@@ -27,7 +27,7 @@ export function mapTestResultDto(dto: TestCaseResultDto): TestResult {
 }
 
 export function mapSubmissionDto(dto: SubmissionDto | any): Submission {
-  // Handle problem being either an ID or a full object from older APIs or different contexts
+  // List rows carry flat ids; detail and create responses carry `problem` and `contest`.
   const problemId =
     typeof dto.problem === "object"
       ? dto.problem?.id?.toString()
@@ -41,12 +41,8 @@ export function mapSubmissionDto(dto: SubmissionDto | any): Submission {
     id: dto.id?.toString() || "",
     problemId,
     problemTitle,
-    userId:
-      dto.user?.id?.toString() ||
-      dto.user_id?.toString() ||
-      dto.user?.toString() ||
-      "",
-    username: dto.user?.username || dto.user_username || dto.username,
+    userId: dto.user?.id?.toString() || dto.user_id?.toString() || "",
+    username: dto.user?.username || dto.username,
     language: dto.language || "",
     status: (dto.status || "pending") as SubmissionStatus,
     score: dto.score,

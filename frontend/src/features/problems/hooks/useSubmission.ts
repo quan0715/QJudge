@@ -4,6 +4,7 @@ import { testRun, getTestRunProgress } from "@/infrastructure/api/repositories/p
 import type { SubmissionDetail } from "@/core/entities/submission.entity";
 import type { TestRunCustomCase, TestRunResult } from "@/core/ports/problem.repository";
 import { INITIAL_EXECUTION_STATE, type ExecutionState, type ExecutionType } from "@/core/types/solver.types";
+import { SUBMISSION_POLL_INTERVAL_MS } from "@/core/config/status.config";
 import { transformSubmissionToResult, transformTestRunToResult } from "./solverAdapters";
 
 type Snapshot = Pick<ExecutionState, "result" | "pollingId">;
@@ -66,7 +67,7 @@ export function useSubmission({ problemId, contestId, code, language, customTest
           : fromSubmission(await getSubmission(pollingId));
         if (!cancelled) apply(type, snapshot);
       } catch (error) { if (!cancelled) fail(error); }
-    }, 2000);
+    }, SUBMISSION_POLL_INTERVAL_MS);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [executionState, problemId, apply, fail]);
 

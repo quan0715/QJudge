@@ -104,7 +104,6 @@ describe("Submission Mapper", () => {
       const dto = {
         id: 1,
         problem: 42,
-        user: 1,
         language: "python",
         status: "pending",
       };

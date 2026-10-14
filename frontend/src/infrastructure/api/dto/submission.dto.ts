@@ -16,7 +16,6 @@ export interface SubmissionDto {
   problem_id?: number | string;
   problem_title?: string;
   user_id?: number | string;
-  user_username?: string;
   username?: string;
   language: string;
   status: string;
