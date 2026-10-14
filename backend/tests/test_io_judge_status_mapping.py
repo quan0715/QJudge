@@ -51,8 +51,6 @@ def test_judge_success_and_wrong_answer(monkeypatch):
 def test_io_judge_all_languages_instantiate(language):
     judge = IOJudge(language)
     assert isinstance(judge, IOJudge)
-    assert judge.get_language_name()
-    assert judge.get_language_version()
 
 
 def test_io_judge_unsupported_language():

@@ -10131,8 +10131,6 @@ components:
           items:
             $ref: '#/components/schemas/ScreenEvent'
           readOnly: true
-        custom_test_cases:
-          title: 自訂測資
         total_test_cases:
           type: string
           readOnly: true

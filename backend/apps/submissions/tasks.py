@@ -10,20 +10,8 @@ from django.db.models import F
 from .models import Submission, SubmissionResult
 from apps.problems.models import CodingProblem, TestCase
 from apps.judge.judge_factory import get_judge
-from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 
 logger = logging.getLogger(__name__)
-
-
-class MockTestCase:
-    def __init__(self, data, order):
-        self.input_data = data.get('input', '')
-        self.output_data = data.get('output', '')
-        self.score = 0
-        self.is_sample = False
-        self.is_hidden = False
-        self.id = f"custom_{order}"
-        self.order = order
 
 
 def _resolve_test_case_weight(tc: TestCase) -> int:
@@ -40,37 +28,19 @@ def judge_submission(submission_id):
     """
     try:
         submission = Submission.objects.get(id=submission_id)
-        # ... (rest of function)
-        
-        # Filter for test submissions
-        test_cases = []
-        if submission.is_test:
-            # Start with sample test cases
-            sample_cases = list(submission.problem.test_cases.filter(is_sample=True))
-            
-            custom_cases = []
-            if submission.custom_test_cases:
-                custom_cases = [
-                    MockTestCase(data, idx + 1000) # Offset order to avoid collision
-                    for idx, data in enumerate(submission.custom_test_cases)
-                ]
-            
-            # Combine them: Samples first, then Custom
-            test_cases = sample_cases + custom_cases
-        else:
-            # For normal submissions, use all test cases
-            test_cases = list(submission.problem.test_cases.all())
-        
+    except Submission.DoesNotExist:
+        return f"Submission {submission_id} not found"
+
+    try:
+        Submission.objects.filter(pk=submission.pk, status="pending").update(status="judging")
+        test_cases = list(submission.problem.test_cases.all())
+
         legacy_total_score = 0
         passed_weight_sum = 0
         total_weight_sum = sum(_resolve_test_case_weight(tc) for tc in test_cases)
-        has_weight_percent = any(
-            isinstance(tc, TestCase) and tc.weight_percent is not None
-            for tc in test_cases
-        )
+        has_weight_percent = any(tc.weight_percent is not None for tc in test_cases)
         max_exec_time = 0
         max_memory = 0
-        is_accepted = True
         final_status = 'AC'
         
         # Initialize judge
@@ -107,20 +77,12 @@ def judge_submission(submission_id):
                 if status == 'AC':
                     legacy_total_score += tc.score
                     passed_weight_sum += tc_weight
-                else:
-                    is_accepted = False
-                    if final_status == 'AC':  # First error
-                        final_status = status
-            
-                # Save result
-                # For custom test cases (MockTestCase), they don't have a DB ID, so test_case will be None
-                tc_instance = None
-                if isinstance(tc, TestCase):
-                     tc_instance = tc
+                elif final_status == 'AC':  # First error
+                    final_status = status
             
                 SubmissionResult.objects.create(
                     submission=submission,
-                    test_case=tc_instance,
+                    test_case=tc,
                     status=status,
                     exec_time=exec_time,
                     memory_usage=memory,
@@ -140,21 +102,14 @@ def judge_submission(submission_id):
         
         # Calculate final score
         total_score = legacy_total_score
-        if submission.source_type == 'contest' and submission.contest_id:
-            binding = submission.contest_question_binding
-            if binding is None and submission.problem_id:
-                binding = ContestQuestionBinding.objects.filter(
-                    contest_id=submission.contest_id,
-                    coding_problem_id=submission.problem_id,
-                    binding_type=QuestionAsset.AssetType.CODING,
-                ).only("score").first()
-            if binding:
-                if total_weight_sum > 0:
-                    total_score = round(binding.score * (passed_weight_sum / total_weight_sum))
-                elif final_status == 'AC':
-                    total_score = binding.score
-                else:
-                    total_score = 0
+        binding = submission.contest_question_binding
+        if submission.source_type == 'contest' and binding:
+            if total_weight_sum > 0:
+                total_score = round(binding.score * (passed_weight_sum / total_weight_sum))
+            elif final_status == 'AC':
+                total_score = binding.score
+            else:
+                total_score = 0
         elif has_weight_percent:
             if total_weight_sum > 0:
                 total_score = round(100 * (passed_weight_sum / total_weight_sum))
@@ -178,8 +133,7 @@ def judge_submission(submission_id):
                 exc_info=True,
             )
         
-        # Update problem stats (only for official submissions, not test runs)
-        if not submission.is_test and final_status != 'SE':
+        if final_status != 'SE':
             counts = {"submission_count": F("submission_count") + 1}
             status_field = {
                 "AC": "accepted_count", "WA": "wa_count", "TLE": "tle_count",
@@ -190,13 +144,10 @@ def judge_submission(submission_id):
             CodingProblem.objects.filter(pk=submission.problem_id).update(**counts)
         
         return f"Submission {submission_id} judged: {submission.status}"
-        
-    except Submission.DoesNotExist:
-        return f"Submission {submission_id} not found"
+
     except Exception:
         logger.exception("Error judging submission_id=%s", submission_id)
-        if 'submission' in locals():
-            submission.status = 'SE'
-            submission.error_message = "Judge internal error"
-            submission.save()
+        submission.status = 'SE'
+        submission.error_message = "Judge internal error"
+        submission.save()
         return f"Error judging submission {submission_id}"

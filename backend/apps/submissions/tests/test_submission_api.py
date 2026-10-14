@@ -340,6 +340,25 @@ int main() {
         self.assertEqual(submission.status, 'CE')
         self.assertIn('error', submission.error_message.lower())
 
+    def test_submission_is_judging_while_cases_run(self):
+        verdict = self.mock_judge.execute.return_value
+        statuses = []
+
+        def execute(**kwargs):
+            statuses.append(Submission.objects.values_list('status', flat=True).get())
+            return verdict
+
+        self.mock_judge.execute.side_effect = execute
+        response = self.client.post('/api/v1/submissions/', {
+            'problem': self.problem.id,
+            'language': 'cpp',
+            'code': 'int main(){}',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(statuses, ['judging'])
+        self.assertEqual(Submission.objects.get(id=response.data['id']).status, 'AC')
+
     def test_submission_rejects_test_only_fields(self):
         """Submit API should reject is_test/custom_test_cases payload."""
         self.client.force_authenticate(user=self.user)

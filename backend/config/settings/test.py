@@ -49,11 +49,6 @@ REDIS_URL = env('REDIS_URL', 'redis://localhost:6379/0')
 CELERY_TASK_ALWAYS_EAGER = env("CELERY_TASK_ALWAYS_EAGER", "true").lower() == "true"
 CELERY_TASK_EAGER_PROPAGATES = True
 
-# Judge Engine - 在測試環境中啟用
-JUDGE_ENGINE_ENABLED = True
-JUDGE_MAX_CPU_TIME = 10
-JUDGE_MAX_MEMORY = 256
-
 # Docker Judge Settings for Testing
 # 使用環境變數或預設值
 DOCKER_IMAGE_JUDGE = env('DOCKER_IMAGE_JUDGE', 'oj-judge:latest')
