@@ -109,13 +109,12 @@ def create_bank_membership(
             "metadata": metadata or {},
         }
     payload.update(payload_extra or {})
-    asset, _version = create_question_asset(
+    asset = create_question_asset(
         owner=owner,
         asset_type=asset_type,
         title=title,
         prompt=prompt,
         payload=payload,
-        actor=owner,
     )
     return ensure_question_bank_membership(
         bank=bank,
@@ -328,9 +327,7 @@ class TestQuestionBankAPI:
         assert resp.status_code == status.HTTP_200_OK
         assert len(resp.data) == 1
         assert "question_asset_id" in resp.data[0]
-        assert "question_version_id" in resp.data[0]
         assert resp.data[0]["question_asset_id"] == str(membership.question_asset_id)
-        assert resp.data[0]["question_version_id"] == str(membership.question_asset.latest_version_id)
 
     def test_list_bank_questions_projects_from_canonical_asset(
         self,
@@ -368,7 +365,7 @@ class TestQuestionBankAPI:
     ):
         from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 
-        asset, version = create_question_asset(
+        asset = create_question_asset(
             owner=teacher,
             asset_type="coding",
             title="Canonical Only",
@@ -387,7 +384,6 @@ class TestQuestionBankAPI:
                 "forbidden_keywords": [],
                 "required_keywords": [],
             },
-            actor=teacher,
         )
         membership = ensure_question_bank_membership(
             bank=teacher_private_bank,
@@ -404,7 +400,6 @@ class TestQuestionBankAPI:
         assert resp.data[0]["id"] == str(membership.id)
         assert resp.data[0]["title"] == "Canonical Only"
         assert resp.data[0]["question_asset_id"] == str(asset.id)
-        assert resp.data[0]["question_version_id"] == str(version.id)
         assert resp.data[0]["coding_ext"]["description"] == ""
 
     def test_upsert_problem_and_exam_question_into_bank(self, teacher: User):
@@ -421,20 +416,19 @@ class TestQuestionBankAPI:
 
         # Create asset (source of truth for content)
         from apps.question_bank.question_assets import write_coding_content_to_asset
-        asset, version = write_coding_content_to_asset(
+        asset = write_coding_content_to_asset(
             owner=teacher, title="Canonical Problem", prompt="canonical description",
             difficulty="easy", content_fields={
                 "description": "canonical description",
                 "input_description": "in", "output_description": "out", "hint": "",
-            }, source_type="problem", source_id=str(problem.id), actor=teacher,
+            }, source_type="problem", source_id=str(problem.id),
         )
         problem.question_asset = asset
-        problem.question_version = version
-        problem.save(update_fields=["question_asset", "question_version"])
+        problem.save(update_fields=["question_asset"])
 
         synced_problem_membership = upsert_problem_into_bank(problem, bank=bank_coding, created_by=teacher)
         assert synced_problem_membership is not None
-        problem_payload = synced_problem_membership.question_asset.latest_version.payload
+        problem_payload = synced_problem_membership.question_asset.payload
         assert problem_payload["source_type"] == "problem"
         assert problem_payload["source_id"] == str(problem.id)
 
@@ -456,7 +450,7 @@ class TestQuestionBankAPI:
 
         synced_exam_membership = upsert_exam_question_into_bank(exam_question, bank=bank_exam, created_by=teacher)
         assert synced_exam_membership is not None
-        exam_payload = synced_exam_membership.question_asset.latest_version.payload
+        exam_payload = synced_exam_membership.question_asset.payload
         assert exam_payload["source_type"] == "exam_question"
         assert exam_payload["source_id"] == str(exam_question.id)
 
@@ -513,7 +507,7 @@ class TestQuestionBankAPI:
         exam_question.refresh_from_db()
 
         assert synced_exam_membership is not None
-        payload = synced_exam_membership.question_asset.latest_version.payload
+        payload = synced_exam_membership.question_asset.payload
         assert payload["source_type"] == "exam_question"
         assert payload["source_id"] == str(exam_question.id)
         assert str(exam_question.source_bank_id) == str(bank_exam.uuid)
@@ -616,16 +610,15 @@ class TestQuestionBankAPI:
         ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", weight_percent=100)
 
         from apps.question_bank.question_assets import write_coding_content_to_asset
-        asset, version = write_coding_content_to_asset(
+        asset = write_coding_content_to_asset(
             owner=teacher, title="Needs Ingest", prompt="desc",
             difficulty="medium", content_fields={
                 "description": "desc", "input_description": "in",
                 "output_description": "out", "hint": "",
-            }, source_type="problem", source_id=str(problem.id), actor=teacher,
+            }, source_type="problem", source_id=str(problem.id),
         )
         problem.question_asset = asset
-        problem.question_version = version
-        problem.save(update_fields=["question_asset", "question_version"])
+        problem.save(update_fields=["question_asset"])
 
         api_client.force_authenticate(user=teacher)
         resp = api_client.post(
@@ -669,7 +662,7 @@ class TestQuestionBankAPI:
 
         from apps.question_bank.question_assets import write_coding_content_to_asset
 
-        asset, _version = write_coding_content_to_asset(
+        asset = write_coding_content_to_asset(
             owner=teacher,
             title="Contest Linked No Creator",
             prompt="desc",
@@ -677,11 +670,9 @@ class TestQuestionBankAPI:
             content_fields={},
             source_type="problem",
             source_id=str(problem.id),
-            actor=teacher,
         )
         problem.question_asset = asset
-        problem.question_version = _version
-        problem.save(update_fields=["question_asset", "question_version"])
+        problem.save(update_fields=["question_asset"])
 
         api_client.force_authenticate(user=teacher)
         inbox_resp = api_client.get("/api/v1/question-banks/inbox/?category=coding")
@@ -732,7 +723,7 @@ class TestQuestionBankAPI:
             created_by=teacher,
         )
         ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", weight_percent=100)
-        asset, version = write_coding_content_to_asset(
+        asset = write_coding_content_to_asset(
             owner=teacher,
             title="Foreign Copy",
             prompt="desc",
@@ -743,11 +734,9 @@ class TestQuestionBankAPI:
             },
             source_type="problem",
             source_id=str(problem.id),
-            actor=teacher,
         )
         problem.question_asset = asset
-        problem.question_version = version
-        problem.save(update_fields=["question_asset", "question_version"])
+        problem.save(update_fields=["question_asset"])
         ensure_question_bank_membership(
             bank=foreign_bank,
             question_asset=asset,
@@ -1136,7 +1125,7 @@ class TestMetadataReadOnly:
         )
         assert resp.status_code == status.HTTP_200_OK
         membership.question_asset.refresh_from_db()
-        payload = membership.question_asset.latest_version.payload
+        payload = membership.question_asset.payload
         assert payload["source_type"] == "problem"
         assert payload["source_id"] == "original-id"
 
@@ -1277,4 +1266,4 @@ class TestUpsertIdempotency:
         assert q1.id == q2.id
         assert bank.asset_memberships.count() == 1
         q2.refresh_from_db()
-        assert q2.question_asset.latest_version.prompt == "Updated?"
+        assert q2.question_asset.prompt == "Updated?"

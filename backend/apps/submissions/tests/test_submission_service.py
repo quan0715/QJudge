@@ -16,7 +16,7 @@ from pytest_mock import MockerFixture
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.problems.models import CodingProblem
-from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionVersion
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
 from apps.submissions.services import SubmissionService
 from apps.submissions.access_policy import SubmissionAccessError
@@ -301,18 +301,9 @@ def test_contest_submission_sets_binding_fk_from_problem_instance(judge_mock: Mo
         asset_type=QuestionAsset.AssetType.CODING,
         title="test",
     )
-    version = QuestionVersion.objects.create(
-        question_asset=asset,
-        version_number=1,
-        title="test",
-        created_by=teacher,
-    )
-    asset.latest_version = version
-    asset.save(update_fields=["latest_version"])
     binding = ContestQuestionBinding.objects.create(
         contest=contest,
         question_asset=asset,
-        question_version=version,
         coding_problem=problem,
         binding_type=QuestionAsset.AssetType.CODING,
         score=100,

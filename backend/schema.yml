@@ -8351,10 +8351,6 @@ components:
           type: string
           format: uuid
           readOnly: true
-        question_version_id:
-          type: string
-          format: uuid
-          readOnly: true
         binding_id:
           type: string
           readOnly: true
@@ -8385,7 +8381,6 @@ components:
       - max_score
       - problem_id
       - question_asset_id
-      - question_version_id
       - score
       - source_bank
       - source_mode
@@ -9627,10 +9622,6 @@ components:
           type: string
           format: uuid
           readOnly: true
-        question_version_id:
-          type: string
-          format: uuid
-          readOnly: true
         description:
           type: string
           readOnly: true
@@ -9675,7 +9666,6 @@ components:
       - language_configs
       - output_description
       - question_asset_id
-      - question_version_id
       - samples
       - tags
       - test_cases
@@ -9815,10 +9805,6 @@ components:
           type: string
           format: uuid
           readOnly: true
-        question_version_id:
-          type: string
-          format: uuid
-          readOnly: true
         language_configs:
           type: array
           items:
@@ -9842,7 +9828,6 @@ components:
       - is_solved
       - language_configs
       - question_asset_id
-      - question_version_id
       - tags
       - title
     PurposeEnum:

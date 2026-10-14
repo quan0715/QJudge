@@ -13,7 +13,7 @@ from apps.question_bank.question_assets import (
 
 
 class Command(BaseCommand):
-    help = "Backfill canonical question assets, versions, and contest bindings."
+    help = "Backfill canonical question assets and contest bindings."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -44,10 +44,7 @@ class Command(BaseCommand):
 
             for exam_question in ExamQuestion.objects.select_related("contest").order_by("created_at", "id"):
                 if not dry_run:
-                    sync_exam_question_question_asset(
-                        exam_question=exam_question,
-                        actor=exam_question.contest.owner,
-                    )
+                    sync_exam_question_question_asset(exam_question=exam_question)
                 stats["exam_questions_synced"] += 1
 
             for exam_question in ExamQuestion.objects.select_related("contest").order_by("created_at", "id"):

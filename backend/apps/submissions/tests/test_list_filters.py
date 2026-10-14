@@ -17,7 +17,7 @@ from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.problems.models import CodingProblem
-from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionVersion
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
 
 User = get_user_model()
@@ -63,19 +63,10 @@ class SubmissionListProblemFilterContractTests(TestCase):
             asset_type=QuestionAsset.AssetType.CODING,
             title="Contract Problem",
         )
-        version = QuestionVersion.objects.create(
-            question_asset=asset,
-            version_number=1,
-            title="Contract Problem",
-            created_by=cls.teacher,
-        )
-        asset.latest_version = version
-        asset.save(update_fields=["latest_version"])
 
         cls.binding = ContestQuestionBinding.objects.create(
             contest=cls.contest,
             question_asset=asset,
-            question_version=version,
             coding_problem=cls.coding_problem,
             binding_type=QuestionAsset.AssetType.CODING,
             score=100,

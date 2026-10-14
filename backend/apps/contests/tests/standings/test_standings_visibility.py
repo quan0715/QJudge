@@ -72,7 +72,6 @@ class ContestProblemBindingFactory(factory.django.DjangoModelFactory):
     _problem = factory.SubFactory(ProblemFactory)
     contest = factory.SubFactory(ContestFactory)
     question_asset = None
-    question_version = None
     coding_problem = factory.LazyAttribute(lambda o: o._problem)
     binding_type = QuestionAsset.AssetType.CODING
     order = 0
@@ -85,9 +84,8 @@ class ContestProblemBindingFactory(factory.django.DjangoModelFactory):
         if problem and not problem.question_asset_id:
             from apps.question_bank.question_assets import ensure_problem_question_asset
             ensure_problem_question_asset(problem=problem, actor=problem.created_by)
-            problem.refresh_from_db(fields=["question_asset", "question_version"])
+            problem.refresh_from_db(fields=["question_asset"])
         kwargs["question_asset"] = problem.question_asset
-        kwargs["question_version"] = problem.question_version
         kwargs["coding_problem"] = problem
         return super()._create(model_class, *args, **kwargs)
 

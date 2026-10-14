@@ -28,13 +28,12 @@ class Command(BaseCommand):
         from apps.question_bank.question_assets import ensure_problem_question_asset
         if not problem.question_asset_id:
             ensure_problem_question_asset(problem=problem, actor=problem.created_by or contest.owner)
-            problem.refresh_from_db(fields=["question_asset", "question_version"])
+            problem.refresh_from_db(fields=["question_asset"])
         ContestQuestionBinding.objects.get_or_create(
             contest=contest,
             coding_problem=problem,
             defaults={
                 "question_asset": problem.question_asset,
-                "question_version": problem.question_version,
                 "binding_type": QuestionAsset.AssetType.CODING,
                 "order": order,
                 "score": 100,
@@ -157,7 +156,7 @@ class Command(BaseCommand):
         )
 
         if created:
-            asset, version = write_coding_content_to_asset(
+            asset = write_coding_content_to_asset(
                 owner=admin, title="A+B Problem", prompt="計算兩個整數 $a$ 和 $b$ 的和。",
                 difficulty="easy",
                 content_fields={
@@ -166,11 +165,9 @@ class Command(BaseCommand):
                     "output_description": "輸出一個整數，即 $a$ 和 $b$ 的和。",
                     "hint": "使用標準輸入輸出。",
                 },
-                actor=admin,
             )
             prob1.question_asset = asset
-            prob1.question_version = version
-            prob1.save(update_fields=["question_asset", "question_version"])
+            prob1.save(update_fields=["question_asset"])
             
             TestCase.objects.create(
                 problem=prob1,
@@ -231,7 +228,7 @@ int main() {
         )
 
         if created:
-            asset, version = write_coding_content_to_asset(
+            asset = write_coding_content_to_asset(
                 owner=admin, title="Hello World", prompt='撰寫一個程式輸出 "Hello, World!"。',
                 difficulty="easy",
                 content_fields={
@@ -240,11 +237,9 @@ int main() {
                     "output_description": '輸出字串 "Hello, World!"。',
                     "hint": "",
                 },
-                actor=admin,
             )
             prob2.question_asset = asset
-            prob2.question_version = version
-            prob2.save(update_fields=["question_asset", "question_version"])
+            prob2.save(update_fields=["question_asset"])
 
             TestCase.objects.create(
                 problem=prob2,
@@ -285,7 +280,7 @@ int main() {
         )
 
         if created:
-            asset, version = write_coding_content_to_asset(
+            asset = write_coding_content_to_asset(
                 owner=admin, title="Factorial", prompt='計算給定整數 $n$ 的階乘 $n!$。',
                 difficulty="medium",
                 content_fields={
@@ -294,11 +289,9 @@ int main() {
                     "output_description": '輸出 $n!$ 的值。',
                     "hint": "$0! = 1$, $n! = n \\times (n-1) \\times ... \\times 1$",
                 },
-                actor=admin,
             )
             prob3.question_asset = asset
-            prob3.question_version = version
-            prob3.save(update_fields=["question_asset", "question_version"])
+            prob3.save(update_fields=["question_asset"])
 
             TestCase.objects.create(
                 problem=prob3,
@@ -563,8 +556,8 @@ int main() {
         )
         if teacher and not QuestionBankMembership.objects.filter(
             bank=exam_bank,
-            question_asset__latest_version__payload__source_type="exam_question",
-            question_asset__latest_version__payload__source_id=str(eq.id),
+            question_asset__payload__source_type="exam_question",
+            question_asset__payload__source_id=str(eq.id),
         ).exists():
             upsert_exam_question_into_bank(eq, bank=exam_bank, created_by=teacher)
             self.stdout.write('  ✓ 題庫題目: exam seed → E2E Exam Bank')

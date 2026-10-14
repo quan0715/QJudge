@@ -30,7 +30,7 @@ def test_resolve_bank_question_for_import_resolves_membership_and_enforces_type(
         name="Exam Bank",
         category=QuestionBank.Category.EXAM,
     )
-    asset, _version = create_question_asset(
+    asset = create_question_asset(
         owner=teacher,
         asset_type=QuestionAsset.AssetType.SINGLE_CHOICE,
         title="Short answer",
@@ -42,7 +42,6 @@ def test_resolve_bank_question_for_import_resolves_membership_and_enforces_type(
             "score": 1,
             "order": 0,
         },
-        actor=teacher,
     )
     membership = ensure_question_bank_membership(
         bank=bank,

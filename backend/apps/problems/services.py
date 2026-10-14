@@ -127,7 +127,7 @@ class ProblemService:
         prompt = content_fields.get("description", "")
 
         # 2. Write content to QuestionAsset first (source of truth)
-        question_asset, question_version = write_coding_content_to_asset(
+        question_asset = write_coding_content_to_asset(
             owner=owner,
             title=title,
             prompt=prompt,
@@ -139,12 +139,10 @@ class ProblemService:
             language_configs=[dict(lc) for lc in language_configs_data],
             forbidden_keywords=validated_data.get("forbidden_keywords", []),
             required_keywords=validated_data.get("required_keywords", []),
-            actor=owner,
         )
 
         # 3. Create CodingProblem with Asset link
         validated_data["question_asset"] = question_asset
-        validated_data["question_version"] = question_version
         problem = CodingProblem.objects.create(**validated_data)
 
         # 4. Create execution-related objects
@@ -240,7 +238,7 @@ class ProblemService:
             )
         )
 
-        question_asset, question_version = write_coding_content_to_asset(
+        question_asset = write_coding_content_to_asset(
             owner=owner,
             title=title,
             prompt=prompt,
@@ -255,13 +253,10 @@ class ProblemService:
             source_type="problem",
             source_id=str(instance.id),
             existing_asset=instance.question_asset,
-            actor=owner,
         )
 
-        # Update the problem's asset link to the new version
         instance.question_asset = question_asset
-        instance.question_version = question_version
-        instance.save(update_fields=["question_asset", "question_version"])
+        instance.save(update_fields=["question_asset"])
 
         return instance
 
@@ -282,7 +277,6 @@ class ProblemService:
             memory_limit=source_problem.memory_limit,
             created_by=created_by,
             question_asset=source_problem.question_asset,
-            question_version=source_problem.question_version,
         )
 
         if CodingProblem.objects.filter(slug=new_problem.slug).exclude(id=new_problem.id).exists():
@@ -304,19 +298,17 @@ class ProblemService:
 
         slug = f"contest-{contest.id}-problem-{uuid.uuid4().hex[:8]}"
 
-        question_asset, question_version = write_coding_content_to_asset(
+        question_asset = write_coding_content_to_asset(
             owner=created_by,
             title=title,
             prompt="",
             difficulty="medium",
             content_fields={},
-            actor=created_by,
         )
 
         problem = CodingProblem.objects.create(
             slug=slug,
             created_by=created_by,
             question_asset=question_asset,
-            question_version=question_version,
         )
         return problem

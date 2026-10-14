@@ -1,7 +1,7 @@
 """
 Write-side workflows for question bank item CRUD.
 
-Question bank writes publish `QuestionVersion` records and maintain
+Question bank writes update `QuestionAsset` content and maintain
 `QuestionBankMembership`; no materialized bank-question adapter is created.
 """
 from __future__ import annotations
@@ -15,7 +15,7 @@ from .question_assets import (
     create_question_asset_for_bank_payload,
     ensure_question_bank_membership,
     extract_content_from_payload,
-    publish_question_version,
+    update_question_asset_content,
 )
 
 QUESTION_TYPE_CODING = "coding"
@@ -27,9 +27,8 @@ def create_bank_question(*, bank, created_by, validated_data):
     payload = dict(validated_data)
     coding_ext = payload.pop("coding_ext", None)
     actor = created_by or bank.owner
-    question_asset, _question_version = create_question_asset_for_bank_payload(
+    question_asset = create_question_asset_for_bank_payload(
         owner=actor,
-        actor=actor,
         title=payload.get("title", ""),
         prompt=payload.get("prompt", ""),
         question_type=payload.get("question_type", QUESTION_TYPE_CODING),
@@ -69,8 +68,8 @@ def _coding_ext_from_payload(payload: dict) -> dict:
 
 
 def _payload_for_membership_update(*, membership, pending_data: dict, coding_ext: dict | None) -> dict[str, Any]:
-    version = membership.question_asset.latest_version
-    existing_payload = version.payload if version and isinstance(version.payload, dict) else {}
+    asset_payload = membership.question_asset.payload
+    existing_payload = asset_payload if isinstance(asset_payload, dict) else {}
     question_type = pending_data.get("question_type") or _asset_question_type(membership.question_asset)
     metadata = pending_data.get("metadata", existing_payload.get("metadata") or {})
 
@@ -112,28 +111,22 @@ def _payload_for_membership_update(*, membership, pending_data: dict, coding_ext
 
 
 @transaction.atomic
-def update_bank_question_membership(*, membership, validated_data, actor=None):
+def update_bank_question_membership(*, membership, validated_data):
     pending_data = dict(validated_data)
     coding_ext = pending_data.pop("coding_ext", None)
-    version = membership.question_asset.latest_version
-    if version is None:
-        raise ValueError("Question asset has no published version")
+    question_asset = membership.question_asset
 
     payload = _payload_for_membership_update(
         membership=membership,
         pending_data=pending_data,
         coding_ext=coding_ext,
     )
-    title = pending_data.get("title", version.title or membership.question_asset.title)
-    prompt = pending_data.get("prompt", version.prompt or membership.question_asset.prompt)
-    new_version = publish_question_version(
-        question_asset=membership.question_asset,
-        title=title,
-        prompt=prompt,
+    update_question_asset_content(
+        question_asset=question_asset,
+        title=pending_data.get("title", question_asset.title),
+        prompt=pending_data.get("prompt", question_asset.prompt),
         payload=payload,
-        actor=actor or membership.added_by or membership.question_asset.owner,
     )
-    membership.question_asset.latest_version = new_version
     if "order" in pending_data:
         membership.order = pending_data["order"]
         membership.save(update_fields=["order", "updated_at"])

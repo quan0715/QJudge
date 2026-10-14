@@ -78,14 +78,10 @@ def test_problem_api_create_and_update_dual_write_question_asset(api_client: API
     )
     assert create_resp.status_code == status.HTTP_201_CREATED
     assert create_resp.data["question_asset_id"] is not None
-    assert create_resp.data["question_version_id"] is not None
 
     problem = CodingProblem.objects.get(id=create_resp.data["id"])
     assert problem.question_asset_id is not None
-    assert problem.question_version_id is not None
     assert problem.question_asset.asset_type == QuestionAsset.AssetType.CODING
-    assert problem.question_asset.latest_version_id == problem.question_version_id
-    assert problem.question_asset.versions.count() == 1
 
     update_resp = api_client.patch(
         f"/api/v1/management/problems/{problem.id}/",
@@ -95,8 +91,6 @@ def test_problem_api_create_and_update_dual_write_question_asset(api_client: API
     assert update_resp.status_code == status.HTTP_200_OK
 
     problem.refresh_from_db()
-    assert problem.question_asset.versions.count() == 2
-    assert problem.question_asset.latest_version_id == problem.question_version_id
     assert problem.question_asset.title == "Canonical Coding Problem v2"
 
 
@@ -121,16 +115,13 @@ def test_exam_question_api_dual_writes_asset_and_binding(
     )
     assert resp.status_code == status.HTTP_201_CREATED
     assert resp.data["question_asset_id"] is not None
-    assert resp.data["question_version_id"] is not None
     assert resp.data["binding_id"] is not None
 
     exam_question = ExamQuestion.objects.get(id=resp.data["id"])
     assert exam_question.question_asset_id is not None
-    assert exam_question.question_version_id is not None
     binding = ContestQuestionBinding.objects.get(exam_question=exam_question)
     assert binding.contest_id == contest.id
     assert binding.question_asset_id == exam_question.question_asset_id
-    assert binding.question_version_id == exam_question.question_version_id
     assert binding.binding_type == QuestionAsset.AssetType.SINGLE_CHOICE
 
 
@@ -154,7 +145,6 @@ def test_contest_create_problem_title_mode_creates_asset_and_binding(
     )
     assert resp.status_code == status.HTTP_201_CREATED
     assert resp.data["question_asset_id"] is not None
-    assert resp.data["question_version_id"] is not None
 
     binding = ContestQuestionBinding.objects.get(contest=contest)
     assert binding.question_asset_id is not None
@@ -198,16 +188,14 @@ def test_question_bank_question_create_builds_asset_and_membership(
 
     membership = QuestionBankMembership.objects.get(id=resp.data["id"])
     assert membership.question_asset_id is not None
-    assert membership.question_asset.latest_version_id is not None
-    assert membership.question_asset.versions.count() == 1
     assert membership.question_asset.asset_type == QuestionAsset.AssetType.CODING
-    assert membership.question_asset.latest_version.payload["description"] == ""
-    assert membership.question_asset.latest_version.payload["test_cases"] == []
+    assert membership.question_asset.payload["description"] == ""
+    assert membership.question_asset.payload["test_cases"] == []
     assert membership.bank_id == bank.id
 
 
 @pytest.mark.django_db
-def test_question_bank_question_patch_publishes_new_version_via_write_workflow(
+def test_question_bank_question_patch_updates_asset_via_write_workflow(
     api_client: APIClient,
     teacher: User,
 ):
@@ -216,7 +204,7 @@ def test_question_bank_question_patch_publishes_new_version_via_write_workflow(
         name="Patch Asset Bank",
         category=QuestionBank.Category.CODING,
     )
-    asset, _version = create_question_asset(
+    asset = create_question_asset(
         owner=teacher,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Patch Me",
@@ -235,7 +223,6 @@ def test_question_bank_question_patch_publishes_new_version_via_write_workflow(
             "forbidden_keywords": [],
             "required_keywords": [],
         },
-        actor=teacher,
     )
     membership = ensure_question_bank_membership(
         bank=bank,
@@ -243,8 +230,6 @@ def test_question_bank_question_patch_publishes_new_version_via_write_workflow(
         order=0,
         actor=teacher,
     )
-    original_version_id = asset.latest_version_id
-    original_version_count = asset.versions.count()
 
     api_client.force_authenticate(user=teacher)
     resp = api_client.patch(
@@ -267,10 +252,8 @@ def test_question_bank_question_patch_publishes_new_version_via_write_workflow(
 
     assert resp.status_code == status.HTTP_200_OK
     membership.question_asset.refresh_from_db()
-    assert membership.question_asset.versions.count() == original_version_count + 1
-    assert membership.question_asset.latest_version_id != original_version_id
-    assert membership.question_asset.latest_version.payload["forbidden_keywords"] == ["scanf"]
-    assert membership.question_asset.latest_version.title == "Patch Me v2"
+    assert membership.question_asset.payload["forbidden_keywords"] == ["scanf"]
+    assert membership.question_asset.title == "Patch Me v2"
     assert membership.question_asset_id == asset.id
 
 
@@ -333,7 +316,7 @@ def test_reading_set_asset_fits_bank_and_contest_binding_shape(teacher: User):
         contest_type="paper_exam",
         status="draft",
     )
-    asset, version = create_question_asset(
+    asset = create_question_asset(
         owner=teacher,
         asset_type=QuestionAsset.AssetType.READING_SET,
         title="Passage 1",
@@ -344,7 +327,6 @@ def test_reading_set_asset_fits_bank_and_contest_binding_shape(teacher: User):
                 {"kind": "single_choice", "prompt": "Q1", "options": ["A", "B"], "correct_answer": 0}
             ],
         },
-        actor=teacher,
     )
 
     membership = ensure_question_bank_membership(
@@ -356,7 +338,6 @@ def test_reading_set_asset_fits_bank_and_contest_binding_shape(teacher: User):
     binding = ContestQuestionBinding.objects.create(
         contest=contest,
         question_asset=asset,
-        question_version=version,
         binding_type=QuestionAsset.AssetType.READING_SET,
         order=0,
         score=5,
@@ -365,7 +346,6 @@ def test_reading_set_asset_fits_bank_and_contest_binding_shape(teacher: User):
 
     assert membership.question_asset_id == asset.id
     assert binding.question_asset_id == asset.id
-    assert binding.question_version_id == version.id
 
 
 @pytest.mark.django_db
@@ -378,7 +358,7 @@ def test_question_viewset_can_retrieve_canonical_only_membership(
         name="Canonical Only Bank",
         category=QuestionBank.Category.CODING,
     )
-    asset, _version = create_question_asset(
+    asset = create_question_asset(
         owner=teacher,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Canonical Only Item",
@@ -398,7 +378,6 @@ def test_question_viewset_can_retrieve_canonical_only_membership(
             "forbidden_keywords": [],
             "required_keywords": [],
         },
-        actor=teacher,
     )
     membership = ensure_question_bank_membership(
         bank=bank,
@@ -427,7 +406,7 @@ def test_question_bank_item_route_can_retrieve_canonical_membership(
         name="Canonical Alias Bank",
         category=QuestionBank.Category.CODING,
     )
-    asset, _version = create_question_asset(
+    asset = create_question_asset(
         owner=teacher,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Alias Item",
@@ -447,7 +426,6 @@ def test_question_bank_item_route_can_retrieve_canonical_membership(
             "forbidden_keywords": [],
             "required_keywords": [],
         },
-        actor=teacher,
     )
     membership = ensure_question_bank_membership(
         bank=bank,
@@ -474,7 +452,7 @@ def test_question_viewset_can_patch_canonical_only_membership(
         name="Canonical Patch Bank",
         category=QuestionBank.Category.CODING,
     )
-    asset, _version = create_question_asset(
+    asset = create_question_asset(
         owner=teacher,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Before Patch",
@@ -494,7 +472,6 @@ def test_question_viewset_can_patch_canonical_only_membership(
             "forbidden_keywords": [],
             "required_keywords": [],
         },
-        actor=teacher,
     )
     membership = ensure_question_bank_membership(
         bank=bank,
@@ -524,8 +501,8 @@ def test_question_viewset_can_patch_canonical_only_membership(
 
     assert resp.status_code == status.HTTP_200_OK
     membership.refresh_from_db()
-    assert membership.question_asset.latest_version.title == "After Patch"
-    assert membership.question_asset.latest_version.payload["forbidden_keywords"] == ["scanf"]
+    assert membership.question_asset.title == "After Patch"
+    assert membership.question_asset.payload["forbidden_keywords"] == ["scanf"]
 
 
 @pytest.mark.django_db
@@ -538,7 +515,7 @@ def test_question_viewset_can_delete_canonical_only_membership(
         name="Canonical Delete Bank",
         category=QuestionBank.Category.CODING,
     )
-    asset, _version = create_question_asset(
+    asset = create_question_asset(
         owner=teacher,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Delete Me",
@@ -558,7 +535,6 @@ def test_question_viewset_can_delete_canonical_only_membership(
             "forbidden_keywords": [],
             "required_keywords": [],
         },
-        actor=teacher,
     )
     membership = ensure_question_bank_membership(
         bank=bank,
@@ -594,7 +570,7 @@ def test_clone_owned_canonical_membership_reuses_asset_membership(
         name="Target Asset Bank",
         category=QuestionBank.Category.CODING,
     )
-    asset, _version = create_question_asset(
+    asset = create_question_asset(
         owner=clone_user,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Clone Asset Only",
@@ -617,7 +593,6 @@ def test_clone_owned_canonical_membership_reuses_asset_membership(
             "forbidden_keywords": [],
             "required_keywords": [],
         },
-        actor=clone_user,
     )
     membership = ensure_question_bank_membership(
         bank=source_bank,
