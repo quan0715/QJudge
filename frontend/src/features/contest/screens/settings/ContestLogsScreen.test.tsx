@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
 import ContestLogsScreen from "./ContestLogsScreen";
@@ -96,6 +96,28 @@ const eventFeed: EventFeedItem[] = [
 ];
 
 describe("ContestLogsScreen", () => {
+  it("loads more embedded events within the feed scroll container", () => {
+    let notify: IntersectionObserverCallback;
+    const observe = vi.fn();
+    const observer = vi.fn(function (callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {
+      notify = callback;
+      return { observe, disconnect: vi.fn() };
+    });
+    vi.stubGlobal("IntersectionObserver", observer);
+    try {
+      render(<ContestLogsScreen embedded eventFeed={Array.from({ length: 120 }, (_, index) => ({
+        ...eventFeed[0], incidentKey: `event-${index}`,
+      }))} />);
+      const sentinel = observe.mock.calls[0][0] as HTMLElement;
+      expect(observer.mock.calls[0][1]?.root).toBe(sentinel.parentElement);
+      expect(screen.getAllByRole("button", { name: /mouse leave triggered/ })).toHaveLength(50);
+      act(() => notify([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver));
+      expect(screen.getAllByRole("button", { name: /mouse leave triggered/ })).toHaveLength(100);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("shows a unified embedded event record list", async () => {
     render(<ContestLogsScreen embedded eventFeed={eventFeed} />);
 
