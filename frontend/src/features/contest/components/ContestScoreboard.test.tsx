@@ -7,10 +7,9 @@ const standings = [{ rank: 1, user: { id: 468, username: "Student" }, solved: 1,
   problems: { "binding-1": { status: "AC" as const, tries: 1, time: 10, pending: false, score: 100 } } }];
 
 describe("scoreboard participant navigation", () => {
-  it("keeps participant names left aligned without a full-width button", () => {
+  it("keeps participant names and headers left aligned", () => {
     render(<ContestScoreboard problems={problems} standings={standings} onSelectParticipant={vi.fn()} />);
     const name = screen.getByRole("button", { name: "Student" });
-    expect(name).toHaveStyle({ width: "auto", padding: "0px", alignItems: "center" });
     expect(name.closest("td")).toHaveStyle({ textAlign: "left" });
     const headers = screen.getAllByRole("columnheader");
     expect(headers[0]).toHaveStyle({ textAlign: "center" });

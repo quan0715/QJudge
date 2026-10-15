@@ -40,3 +40,21 @@ export const Dark: Story = {
   ...Playground,
   decorators: [(Story) => <Theme theme="g100"><Story /></Theme>],
 };
+
+const manyProblems = Array.from({ length: 12 }, (_, index) => ({
+  id: `binding-${index}`, title: `Problem ${index + 1}`,
+  label: String.fromCharCode(65 + index), order: index,
+}));
+export const ManyProblems: Story = {
+  args: {
+    onSelectParticipant: fn(),
+    problems: manyProblems,
+    standings: ["姓名非常長的測試學生完整名稱", "測試學生乙"].map((displayName, index) => ({
+      rank: index + 1, user: { id: index + 1, username: displayName }, displayName,
+      solved: 12, total_score: 1200, time: 84269,
+      problems: Object.fromEntries(manyProblems.map(problem => [problem.id,
+        { status: "AC" as const, score: 100, tries: 1, time: 10, pending: false },
+      ])),
+    })),
+  },
+};
