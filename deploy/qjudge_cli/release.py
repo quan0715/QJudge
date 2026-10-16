@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import json
 import os
 import shlex
@@ -17,6 +18,7 @@ from urllib.parse import urlsplit
 
 from .check import check_env
 from .envfile import load, write_private
+from .release_lock import ReleaseBusy, release_lock
 from .stack import Runner, app_compose, bootstrap_secrets, ensure_network
 
 HttpStatus = Callable[[str, str, str], int]
@@ -31,6 +33,9 @@ MIGRATIONS = (
 # Validate with the new image before stopping the running application.
 MODEL_CONFIG_CHECK = ("ai-service", ("python", "-m", "infrastructure.agent.model_config"))
 JUDGE_REMOTE = "ghcr.io/quan0715/qjudge/judge"
+# One line per upgrade phase on stdout; the host agent reads these to show progress.
+STEP_MARKER = "::qjudge-step "
+STEPS = ("prepare", "build", "backup", "migrate", "switch", "verify")
 KEEP_BACKUPS = 10
 KEEP_IMAGES = 3
 POSTGRES_TIMEOUT = 120
@@ -53,6 +58,10 @@ def http_status(url: str, host_header: str, proto: str) -> int:
         return error.code
     except (urllib.error.URLError, OSError):
         return 0
+
+
+def _step(name: str) -> None:
+    print(f"{STEP_MARKER}{name}", flush=True)
 
 
 def read_version(deploy_dir: Path) -> dict[str, str]:
@@ -156,9 +165,14 @@ class _Stack:
     def app_ready(self, version: str) -> bool:
         if not self.app_services_ready(version):
             return False
-        host = self.env.get("FRONTEND_BIND_ADDRESS", "").strip() or "127.0.0.1"
-        host = "127.0.0.1" if host in ("0.0.0.0", "::") else f"[{host}]" if ":" in host else host
-        url = f"http://{host}:{self.env.get('FRONTEND_PORT', '').strip() or '8080'}/api/health/"
+        override = os.environ.get("QJUDGE_FRONTEND_URL", "").strip()
+        if override:
+            # An agent in a container cannot reach the host-published port.
+            url = f"{override.rstrip('/')}/api/health/"
+        else:
+            host = self.env.get("FRONTEND_BIND_ADDRESS", "").strip() or "127.0.0.1"
+            host = "127.0.0.1" if host in ("0.0.0.0", "::") else f"[{host}]" if ":" in host else host
+            url = f"http://{host}:{self.env.get('FRONTEND_PORT', '').strip() or '8080'}/api/health/"
         origin = urlsplit(self.env.get("QJUDGE_PUBLIC_ORIGIN", ""))
         return self.http(url, origin.netloc, origin.scheme or "http") == 200
 
@@ -229,6 +243,20 @@ def _backup_dirs(deploy_dir: Path) -> list[Path]:
     return sorted(p for p in backups.iterdir() if p.is_dir()) if backups.is_dir() else []
 
 
+def _exclusive(command):
+    """Run an upgrade or rollback under the host release lock."""
+    @functools.wraps(command)
+    def locked(deploy_dir: Path, *args, **kwargs) -> int:
+        try:
+            with release_lock(deploy_dir):
+                return command(deploy_dir, *args, **kwargs)
+        except ReleaseBusy:
+            print("Another upgrade or rollback is running; retry after it completes")
+            return 1
+    return locked
+
+
+@_exclusive
 def upgrade(
     deploy_dir: Path,
     env_file: Path,
@@ -237,6 +265,7 @@ def upgrade(
     sleep: Sleep = time.sleep,
     http_status: HttpStatus = http_status,
 ) -> int:
+    _step("prepare")
     stack = _Stack(deploy_dir, env_file, run, sleep, http_status)
     if stack.git("fetch", "--tags", "--prune", "origin").returncode != 0:
         print("warning: git fetch failed; using local refs")
@@ -261,6 +290,7 @@ def upgrade(
         print(error)
     if errors:
         return abort(f"{len(errors)} problem(s) in {env_file}")
+    _step("build")
     ensure_network(run)
     if not stack.judge_image():
         return abort("judge image unavailable")
@@ -269,11 +299,13 @@ def upgrade(
     service, command = MODEL_CONFIG_CHECK
     if stack.compose(version, "run", "--rm", "--no-deps", service, *command).returncode != 0:
         return abort("deploy/ai/models.yml is invalid; services still run the previous version")
+    _step("backup")
     if (stack.compose(version, "up", "-d", "postgres", "pgbouncer", "redis").returncode != 0
             or not stack.wait(lambda: stack.healthy(version, ("postgres",)), POSTGRES_TIMEOUT)):
         return abort("postgres is not healthy")
     if not stack.backup(version, sha):
         return abort("database backup failed")
+    _step("migrate")
     # `up` creates every container before starting any, and integrity-resident bind-mounts
     # files that only the secrets bootstrap writes, so the secrets must exist beforehand.
     if not bootstrap_secrets(deploy_dir, f"qjudge/backend:{version}", run):
@@ -284,7 +316,11 @@ def upgrade(
             return abort(f"{service} migrations failed; application services still run the previous version",
                          hint=True)
 
-    if not stack.start(version):
+    _step("switch")
+    started = stack.compose(version, "up", "-d", "--remove-orphans").returncode == 0
+    if started:
+        _step("verify")
+    if not (started and stack.wait(lambda: stack.app_ready(version), APP_TIMEOUT)):
         print(f"{version} is not healthy")
         if current:
             stack.restore(current)
@@ -299,6 +335,7 @@ def upgrade(
     return 0
 
 
+@_exclusive
 def rollback(
     deploy_dir: Path,
     env_file: Path,
@@ -327,3 +364,16 @@ def rollback(
     print(f"Rolled back to {version}")
     stack.restore_hint()
     return 0
+
+
+def site_ready(
+    deploy_dir: Path,
+    env_file: Path,
+    run: Runner = subprocess.run,
+    http_status: HttpStatus = http_status,
+) -> bool:
+    """Whether the recorded release is running and answering its health check."""
+    current = read_version(deploy_dir).get("current")
+    if not current:
+        return False
+    return _Stack(deploy_dir, env_file, run, time.sleep, http_status).app_ready(_version(current))

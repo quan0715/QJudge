@@ -75,6 +75,10 @@ jobs:
           PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
           DEPLOY_SHA: ${{ steps.sha.outputs.sha }}
         run: |
-          # Check out first so the server runs this release's deploy CLI.
+          # Check out first so the server runs this release's deploy CLI. Checkout and upgrade
+          # both run inside the release lock; QJUDGE_RELEASE_LOCK_HELD tells the CLI not to take
+          # it again. While an upgrade started from the web UI is running, flock gives up after
+          # 5 seconds and the deploy fails; the wait only covers the instant the host agent
+          # probes the lock. The server needs util-linux flock.
           tailscale ssh "$PROD_SSH_USER@$PROD_SSH_HOST" \
-            "cd '$PROD_DEPLOY_PATH' && git fetch --tags --prune origin && git checkout --detach '$DEPLOY_SHA' && deploy/qjudge upgrade '$DEPLOY_SHA'"
+            "cd '$PROD_DEPLOY_PATH' && flock -w 5 deploy/.release.lock env QJUDGE_RELEASE_LOCK_HELD=1 sh -c \"git fetch --tags --prune origin && git checkout --detach '$DEPLOY_SHA' && deploy/qjudge upgrade '$DEPLOY_SHA'\""

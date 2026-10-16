@@ -1,11 +1,16 @@
 import io
 import json
+import os
 import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
-from qjudge_cli.release import APP_SERVICES, _ps_rows, http_status, read_version, rollback, upgrade
+from qjudge_cli.release import (
+    APP_SERVICES, STEP_MARKER, STEPS, _ps_rows, http_status, read_version, rollback, site_ready, upgrade,
+)
+from qjudge_cli.release_lock import RELEASE_LOCK_HELD_ENV, release_lock, release_locked
 from qjudge_cli.tests.test_check import VALID
 
 OLD = "a" * 40
@@ -155,6 +160,53 @@ class ReleaseTests(unittest.TestCase):
         with redirect_stdout(io.StringIO()):
             return rollback(self.deploy, self.env_file, run=host, sleep=lambda s: None,
                             http_status=lambda url, host_header, proto: 200)
+
+    def _steps(self, host):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            upgrade(self.deploy, self.env_file, "v2", run=host, sleep=lambda s: None,
+                    http_status=lambda url, host_header, proto: 200)
+        return [line[len(STEP_MARKER):] for line in output.getvalue().splitlines() if line.startswith(STEP_MARKER)]
+
+    def test_upgrade_refuses_while_another_release_holds_the_lock(self):
+        host = FakeHost()
+        with release_lock(self.deploy):
+            self.assertEqual(self._upgrade(host), 1)
+        self.assertEqual(host.calls, [])
+
+    def test_rollback_refuses_while_locked(self):
+        (self.deploy / ".version").write_text(f"current={NEW}\nprevious={OLD}\n")
+        host = FakeHost(head=NEW)
+        with release_lock(self.deploy):
+            self.assertEqual(self._rollback(host), 1)
+        self.assertEqual(host.calls, [])
+
+    def test_lock_held_by_caller_is_not_taken_again(self):
+        with release_lock(self.deploy), patch.dict(os.environ, {RELEASE_LOCK_HELD_ENV: "1"}):
+            self.assertEqual(self._upgrade(FakeHost()), 0)
+
+    def test_release_locked_reports_the_holder(self):
+        self.assertFalse(release_locked(self.deploy))
+        with release_lock(self.deploy):
+            self.assertTrue(release_locked(self.deploy))
+
+    def test_upgrade_reports_every_step_in_order(self):
+        self.assertEqual(self._steps(FakeHost()), list(STEPS))
+
+    def test_failed_build_stops_reporting_at_build(self):
+        self.assertEqual(self._steps(FakeHost(fail_on=(" build",))), ["prepare", "build"])
+
+    def test_frontend_url_override_is_used_for_health(self):
+        seen = []
+        with patch.dict(os.environ, {"QJUDGE_FRONTEND_URL": "http://frontend:80"}), redirect_stdout(io.StringIO()):
+            upgrade(self.deploy, self.env_file, "v2", run=FakeHost(), sleep=lambda s: None,
+                    http_status=lambda url, h, p: seen.append(url) or 200)
+        self.assertIn("http://frontend:80/api/health/", seen)
+
+    def test_site_ready_checks_the_recorded_version(self):
+        (self.deploy / ".version").write_text(f"current={OLD}\n")
+        self.assertTrue(site_ready(self.deploy, self.env_file, run=FakeHost(), http_status=lambda *a: 200))
+        self.assertFalse(site_ready(self.deploy, self.env_file, run=FakeHost(), http_status=lambda *a: 502))
 
     def test_health_check_sends_the_origin_scheme(self):
         seen = []
