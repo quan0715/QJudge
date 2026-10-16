@@ -6288,6 +6288,75 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubmissionDetail'
           description: ''
+  /api/v1/system/ingress:
+    get:
+      operationId: v1_system_ingress_retrieve
+      description: |-
+        Public entry points probed from the host (platform admin only).
+
+        GET /api/v1/system/ingress
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/system/service-status:
     get:
       operationId: v1_system_service_status_retrieve
@@ -6295,6 +6364,217 @@ paths:
         Live status of the platform's own services (platform admin only).
 
         GET /api/v1/system/service-status
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+  /api/v1/system/upgrade:
+    post:
+      operationId: v1_system_upgrade_create
+      description: |-
+        Start an upgrade to the newest release (platform admin only).
+
+        POST /api/v1/system/upgrade {"target": "<commit sha>"}
+
+        The actor recorded on the job is always the signed-in user.
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+  /api/v1/system/version:
+    get:
+      operationId: v1_system_version_retrieve
+      description: |-
+        Deployed version, running upgrade job and its log (platform admin only).
+
+        GET /api/v1/system/version
+
+        A stack without a reachable agent still answers 200 with the agent state.
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+  /api/v1/system/version/check:
+    post:
+      operationId: v1_system_version_check_create
+      description: |-
+        Ask the agent which release is newest (platform admin only).
+
+        POST /api/v1/system/version/check
       tags:
       - v1
       security:
