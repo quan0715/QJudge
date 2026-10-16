@@ -9,6 +9,14 @@
       "database": "데이터베이스",
       "integrity_resident": "Integrity Resident"
     },
+    "containers": {
+      "title": "컨테이너",
+      "health": "헬스 체크",
+      "empty": "호스트 agent가 보고한 컨테이너가 없습니다",
+      "agent": {
+        "unsupported": "이 환경에는 호스트 agent가 없어 컨테이너 상태를 표시할 수 없습니다"
+      }
+    },
     "contest": "대회",
     "detail": "세부",
     "generatedAt": "진단 시각",
@@ -70,6 +78,33 @@
         "title": "시스템 버전",
         "unknown": "버전 기록 없음",
         "updateAvailable": "새 버전 있음"
+      }
+    },
+    "ingress": {
+      "title": "Ingress",
+      "subtitle": "결과는 호스트 자체에서 테스트한 것이며 외부 네트워크에서 반드시 접속된다는 보장은 아닙니다",
+      "retest": "다시 테스트",
+      "loadFailed": "Ingress 상태를 불러올 수 없습니다",
+      "agent": {
+        "unsupported": "이 환경에는 호스트 agent가 없어 입구를 테스트할 수 없습니다"
+      },
+      "columns": {
+        "entry": "입구",
+        "public": "공개 주소",
+        "target": "전달 대상",
+        "result": "결과",
+        "detail": "세부"
+      },
+      "result": {
+        "ok": "정상",
+        "fail": "이상"
+      },
+      "entries": {
+        "site": "사이트",
+        "mcp": "MCP",
+        "storage": "오브젝트 스토리지",
+        "media": "라이브 미디어 (LiveKit)",
+        "turn": "TURN"
       }
     }
   },

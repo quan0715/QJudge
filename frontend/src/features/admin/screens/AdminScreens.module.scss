@@ -44,6 +44,31 @@
   overflow-wrap: anywhere;
 }
 
+// Wide lists scroll inside their own box so the page itself never scrolls sideways.
+.tableScroll {
+  overflow-x: auto;
+}
+
+.ingressTable {
+  min-width: layout.rem(720px);
+}
+
+.containerGroup {
+  &:not(:first-child) {
+    margin-top: layout.$spacing-06;
+  }
+}
+
+// Equal fixed columns keep state and health lined up from one project to the next.
+.containerList {
+  table-layout: fixed;
+}
+
+.containerGroupTitle {
+  @include type.type-style("heading-compact-01");
+  margin-bottom: layout.$spacing-03;
+}
+
 .overviewGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, #{layout.rem(280px)}), 1fr));

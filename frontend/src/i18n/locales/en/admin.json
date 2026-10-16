@@ -9,6 +9,14 @@
       "database": "Database",
       "integrity_resident": "Integrity resident"
     },
+    "containers": {
+      "title": "Containers",
+      "health": "Health check",
+      "empty": "The host agent reported no containers",
+      "agent": {
+        "unsupported": "No host agent in this environment, so container status is unavailable"
+      }
+    },
     "contest": "Contest",
     "detail": "Detail",
     "generatedAt": "Probed at",
@@ -70,6 +78,33 @@
         "title": "System version",
         "unknown": "No version recorded",
         "updateAvailable": "Update available"
+      }
+    },
+    "ingress": {
+      "title": "Ingress",
+      "subtitle": "Results are tested from the host itself and do not guarantee the outside network can reach it",
+      "retest": "Test again",
+      "loadFailed": "Could not load ingress status",
+      "agent": {
+        "unsupported": "No host agent in this environment, so entries cannot be tested"
+      },
+      "columns": {
+        "entry": "Entry",
+        "public": "Public address",
+        "target": "Forwards to",
+        "result": "Result",
+        "detail": "Detail"
+      },
+      "result": {
+        "ok": "OK",
+        "fail": "Failed"
+      },
+      "entries": {
+        "site": "Site",
+        "mcp": "MCP",
+        "storage": "Object storage",
+        "media": "Live media (LiveKit)",
+        "turn": "TURN"
       }
     }
   },

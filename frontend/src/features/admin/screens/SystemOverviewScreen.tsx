@@ -11,6 +11,7 @@ import {
   getIngress,
   getSystemVersion,
 } from "@/infrastructure/api/repositories/system.repository";
+import { summarizeServices } from "@/core/entities/serviceStatus.entity";
 import { shortVersion, type AgentState } from "@/core/entities/systemVersion.entity";
 import { summarizeUsers } from "../domain/userSummary";
 import { useAsyncSource, type AsyncSource } from "../hooks/useAsyncSource";
@@ -104,8 +105,7 @@ const SystemOverviewScreen = () => {
           >
             <SourceBody source={services}>
               {(report) => {
-                const total = report.components.length;
-                const down = report.components.filter((c) => c.status !== "up").length;
+                const { total, failed: down } = summarizeServices(report);
                 return (
                   <>
                     <div className={styles.tileRow}>

@@ -9,6 +9,14 @@
       "database": "データベース",
       "integrity_resident": "Integrity Resident"
     },
+    "containers": {
+      "title": "コンテナ",
+      "health": "ヘルスチェック",
+      "empty": "ホスト agent からコンテナの報告がありません",
+      "agent": {
+        "unsupported": "この環境にはホスト agent がないため、コンテナの状態を表示できません"
+      }
+    },
     "contest": "コンテスト",
     "detail": "詳細",
     "generatedAt": "プローブ時刻",
@@ -70,6 +78,33 @@
         "title": "システムバージョン",
         "unknown": "バージョン記録なし",
         "updateAvailable": "新バージョンあり"
+      }
+    },
+    "ingress": {
+      "title": "Ingress",
+      "subtitle": "結果はホスト自身から測定したもので、外部ネットワークから必ず接続できることを保証するものではありません",
+      "retest": "再テスト",
+      "loadFailed": "Ingress の状態を取得できません",
+      "agent": {
+        "unsupported": "この環境にはホスト agent がないため、入口をテストできません"
+      },
+      "columns": {
+        "entry": "入口",
+        "public": "公開アドレス",
+        "target": "転送先",
+        "result": "結果",
+        "detail": "詳細"
+      },
+      "result": {
+        "ok": "正常",
+        "fail": "異常"
+      },
+      "entries": {
+        "site": "サイト",
+        "mcp": "MCP",
+        "storage": "オブジェクトストレージ",
+        "media": "ライブメディア (LiveKit)",
+        "turn": "TURN"
       }
     }
   },

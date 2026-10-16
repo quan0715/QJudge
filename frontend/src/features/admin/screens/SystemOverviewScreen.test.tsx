@@ -55,6 +55,7 @@ const report = (overrides: Partial<ServiceStatusReport> = {}): ServiceStatusRepo
     heartbeatStaleAfterSeconds: 120,
     unhealthyRuns: [],
   },
+  containers: { agent: "ok", items: [] },
   ...overrides,
 });
 
@@ -169,6 +170,26 @@ describe("SystemOverviewScreen", () => {
     expect(tile("integrity").textContent).toContain("4 項異常");
     expect(tile("integrity").textContent).toContain("4 個進行中");
     await waitFor(() => expect(tile("ingress").textContent).toContain("1 / 2 個入口正常"));
+  });
+
+  it("counts stopped and unhealthy containers as services too", async () => {
+    vi.mocked(getServiceStatus).mockResolvedValue(
+      report({
+        containers: {
+          agent: "ok",
+          items: [
+            { project: "qjudge", service: "backend", state: "running", health: "healthy" },
+            { project: "qjudge", service: "worker", state: "running", health: "unhealthy" },
+            { project: "qjudge-storage", service: "minio", state: "exited", health: "" },
+          ],
+        },
+      }),
+    );
+
+    renderOverview();
+
+    await waitFor(() => expect(tile("services").textContent).toContain("2 項服務異常"));
+    expect(tile("services").textContent).toContain("3 / 5 項正常");
   });
 
   it("does not call the integrity runs healthy while heartbeats are stale", async () => {

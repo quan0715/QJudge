@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Renew } from "@carbon/icons-react";
 import {
@@ -17,16 +17,105 @@ import {
 import { PageHeader } from "@/shared/layout/PageHeader";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import { getServiceStatus } from "@/infrastructure/api/repositories/serviceStatus.repository";
-import type {
-  ServiceComponentStatus,
-  ServiceStatusReport,
+import {
+  summarizeServices,
+  type ContainerStatus,
+  type ServiceComponentStatus,
+  type ServiceStatusReport,
 } from "@/core/entities/serviceStatus.entity";
+import AgentStateNote from "../components/AgentStateNote";
 import styles from "./AdminScreens.module.scss";
 
 const STATUS_TAG: Record<ServiceComponentStatus, "green" | "red" | "gray"> = {
   up: "green",
   down: "red",
   unknown: "gray",
+};
+
+/** Compose projects in the order the agent first listed them. */
+const groupByProject = (items: ContainerStatus[]): [string, ContainerStatus[]][] => {
+  const groups = new Map<string, ContainerStatus[]>();
+  for (const item of items) {
+    groups.set(item.project, [...(groups.get(item.project) ?? []), item]);
+  }
+  return [...groups];
+};
+
+const ContainerSection = ({ containers }: { containers: ServiceStatusReport["containers"] }) => {
+  const { t } = useTranslation("admin");
+  const groups = useMemo(() => groupByProject(containers.items), [containers.items]);
+
+  if (containers.agent !== "ok") {
+    return (
+      <AgentStateNote
+        agent={containers.agent}
+        unsupported={t(
+          "service.containers.agent.unsupported",
+          "此環境沒有主機 agent，無法顯示容器狀態",
+        )}
+      />
+    );
+  }
+  if (groups.length === 0) {
+    return (
+      <p className={styles.statLabel}>
+        {t("service.containers.empty", "主機 agent 沒有回報任何容器")}
+      </p>
+    );
+  }
+
+  return (
+    <div data-testid="service-containers">
+      {groups.map(([project, items]) => (
+        <div
+          key={project}
+          className={styles.containerGroup}
+          data-testid={`container-group-${project}`}
+        >
+          <h4 className={styles.containerGroupTitle}>{project}</h4>
+          <div className={styles.tableScroll}>
+            <StructuredListWrapper isCondensed className={styles.containerList}>
+              <StructuredListHead>
+                <StructuredListRow head>
+                  <StructuredListCell head>{t("service.component", "服務")}</StructuredListCell>
+                  <StructuredListCell head>{t("service.status", "狀態")}</StructuredListCell>
+                  <StructuredListCell head>
+                    {t("service.containers.health", "健康檢查")}
+                  </StructuredListCell>
+                </StructuredListRow>
+              </StructuredListHead>
+              <StructuredListBody>
+                {items.map((container, index) => (
+                  <StructuredListRow
+                    key={`${container.service}-${index}`}
+                    data-testid={`container-${project}-${container.service}`}
+                  >
+                    <StructuredListCell>
+                      <code className={styles.probeDetail}>{container.service}</code>
+                    </StructuredListCell>
+                    <StructuredListCell>
+                      <Tag type={container.state === "running" ? "green" : "red"}>
+                        {container.state}
+                      </Tag>
+                    </StructuredListCell>
+                    <StructuredListCell>
+                      {container.health === "" ? (
+                        "—"
+                      ) : (
+                        <Tag type={container.health === "healthy" ? "green" : "red"}>
+                          {container.health}
+                        </Tag>
+                      )}
+                    </StructuredListCell>
+                  </StructuredListRow>
+                ))}
+              </StructuredListBody>
+            </StructuredListWrapper>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 };
 
 const ServiceStatusScreen = () => {
@@ -51,8 +140,8 @@ const ServiceStatusScreen = () => {
     void load();
   }, [load]);
 
-  const down = report?.components.filter((c) => c.status !== "up") ?? [];
   const integrity = report?.integrity;
+  const failed = report ? summarizeServices(report).failed : 0;
 
   return (
     <div className={styles.pageWrapper}>
@@ -86,56 +175,62 @@ const ServiceStatusScreen = () => {
         />
       ) : null}
 
-      <ContainerCard>
-        {loading && !report ? (
+      {loading && !report ? (
+        <ContainerCard>
           <SkeletonText paragraph lineCount={5} />
-        ) : (
-          <>
-            <div className={styles.statusSummary} data-testid="service-summary">
-              <Tag type={down.length === 0 ? "green" : "red"}>
-                {down.length === 0
-                  ? t("service.allUp", "全部服務正常")
-                  : t("service.someDown", "{{count}} 項服務異常", { count: down.length })}
-              </Tag>
-              {report ? (
-                <span className={styles.statLabel}>
-                  {t("service.generatedAt", "探測時間")}:{" "}
-                  {new Date(report.generatedAt).toLocaleString()}
-                </span>
-              ) : null}
-            </div>
+        </ContainerCard>
+      ) : null}
 
-            <StructuredListWrapper isCondensed data-testid="service-components">
-              <StructuredListHead>
-                <StructuredListRow head>
-                  <StructuredListCell head>{t("service.component", "服務")}</StructuredListCell>
-                  <StructuredListCell head>{t("service.status", "狀態")}</StructuredListCell>
-                  <StructuredListCell head>{t("service.latency", "延遲")}</StructuredListCell>
-                  <StructuredListCell head>{t("service.detail", "細節")}</StructuredListCell>
+      {report ? (
+        <ContainerCard>
+          <div className={styles.statusSummary} data-testid="service-summary">
+            <Tag type={failed === 0 ? "green" : "red"}>
+              {failed === 0
+                ? t("service.allUp", "全部服務正常")
+                : t("service.someDown", "{{count}} 項服務異常", { count: failed })}
+            </Tag>
+            <span className={styles.statLabel}>
+              {t("service.generatedAt", "探測時間")}:{" "}
+              {new Date(report.generatedAt).toLocaleString()}
+            </span>
+          </div>
+
+          <StructuredListWrapper isCondensed data-testid="service-components">
+            <StructuredListHead>
+              <StructuredListRow head>
+                <StructuredListCell head>{t("service.component", "服務")}</StructuredListCell>
+                <StructuredListCell head>{t("service.status", "狀態")}</StructuredListCell>
+                <StructuredListCell head>{t("service.latency", "延遲")}</StructuredListCell>
+                <StructuredListCell head>{t("service.detail", "細節")}</StructuredListCell>
+              </StructuredListRow>
+            </StructuredListHead>
+            <StructuredListBody>
+              {report.components.map((component) => (
+                <StructuredListRow key={component.id} data-testid={`service-${component.id}`}>
+                  <StructuredListCell>
+                    {t(`service.components.${component.id}`, component.id)}
+                  </StructuredListCell>
+                  <StructuredListCell>
+                    <Tag type={STATUS_TAG[component.status]}>{component.status}</Tag>
+                  </StructuredListCell>
+                  <StructuredListCell>
+                    {component.latencyMs === null ? "—" : `${component.latencyMs} ms`}
+                  </StructuredListCell>
+                  <StructuredListCell>
+                    <code className={styles.probeDetail}>{component.detail}</code>
+                  </StructuredListCell>
                 </StructuredListRow>
-              </StructuredListHead>
-              <StructuredListBody>
-                {report?.components.map((component) => (
-                  <StructuredListRow key={component.id} data-testid={`service-${component.id}`}>
-                    <StructuredListCell>
-                      {t(`service.components.${component.id}`, component.id)}
-                    </StructuredListCell>
-                    <StructuredListCell>
-                      <Tag type={STATUS_TAG[component.status]}>{component.status}</Tag>
-                    </StructuredListCell>
-                    <StructuredListCell>
-                      {component.latencyMs === null ? "—" : `${component.latencyMs} ms`}
-                    </StructuredListCell>
-                    <StructuredListCell>
-                      <code className={styles.probeDetail}>{component.detail}</code>
-                    </StructuredListCell>
-                  </StructuredListRow>
-                ))}
-              </StructuredListBody>
-            </StructuredListWrapper>
-          </>
-        )}
-      </ContainerCard>
+              ))}
+            </StructuredListBody>
+          </StructuredListWrapper>
+        </ContainerCard>
+      ) : null}
+
+      {report ? (
+        <ContainerCard title={t("service.containers.title", "容器")}>
+          <ContainerSection containers={report.containers} />
+        </ContainerCard>
+      ) : null}
 
       {integrity ? (
         <ContainerCard>

@@ -6,6 +6,7 @@ import SystemLayout from "./components/SystemLayout";
 const SystemOverviewScreen = lazy(() => import("./screens/SystemOverviewScreen"));
 const UserManagementScreen = lazy(() => import("./screens/UserManagementScreen"));
 const ServiceStatusScreen = lazy(() => import("./screens/ServiceStatusScreen"));
+const IngressScreen = lazy(() => import("./screens/IngressScreen"));
 
 export const adminRoutes = (
   <Route path="/system" element={<SystemLayout />}>
@@ -30,6 +31,14 @@ export const adminRoutes = (
       element={
         <RouteLoadingBoundary>
           <ServiceStatusScreen />
+        </RouteLoadingBoundary>
+      }
+    />
+    <Route
+      path="ingress"
+      element={
+        <RouteLoadingBoundary>
+          <IngressScreen />
         </RouteLoadingBoundary>
       }
     />
