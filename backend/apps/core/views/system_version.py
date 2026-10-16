@@ -3,7 +3,7 @@
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from apps.core.api.envelope import contract_validation_error_response
+from apps.core.api.envelope import contract_error_response, contract_validation_error_response
 from apps.core.services.deploy_agent import (
     AgentBusy,
     AgentTargetNotLatest,
@@ -17,8 +17,19 @@ from apps.users.permissions import IsSuperAdmin
 from apps.users.views.common import SchemaAPIView
 
 
-def _unavailable(error: AgentUnavailable, *, http_status: int = status.HTTP_200_OK) -> Response:
-    return Response({"agent": error.state, "detail": error.detail}, status=http_status)
+def _unavailable_data(error: AgentUnavailable) -> Response:
+    """Reads that can still render: the page shows the agent state instead of an error."""
+    return Response({"agent": error.state, "detail": error.detail})
+
+
+def _unavailable_error(request, error: AgentUnavailable) -> Response:
+    return contract_error_response(
+        request,
+        "agent_unavailable",
+        "無法使用主機 agent",
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        details={"agent": error.state, "detail": error.detail},
+    )
 
 
 class UpgradeRequestSerializer(serializers.Serializer):
@@ -41,7 +52,7 @@ class SystemVersionView(SchemaAPIView):
         try:
             return Response({"agent": "ok", **agent_status()})
         except AgentUnavailable as error:
-            return _unavailable(error)
+            return _unavailable_data(error)
 
 
 class SystemVersionCheckView(SchemaAPIView):
@@ -58,7 +69,7 @@ class SystemVersionCheckView(SchemaAPIView):
         try:
             return Response(agent_check_updates())
         except AgentUnavailable as error:
-            return _unavailable(error, http_status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return _unavailable_error(request, error)
 
 
 class SystemUpgradeView(SchemaAPIView):
@@ -80,13 +91,19 @@ class SystemUpgradeView(SchemaAPIView):
         try:
             job = agent_start_upgrade(serializer.validated_data["target"], request.user.username)
         except AgentBusy:
-            return Response({"error": "busy"}, status=status.HTTP_409_CONFLICT)
+            return contract_error_response(
+                request, "agent_busy", "另一個更新正在進行", status=status.HTTP_409_CONFLICT
+            )
         except AgentTargetNotLatest as error:
-            return Response(
-                {"error": "not_latest", "latest": error.latest}, status=status.HTTP_400_BAD_REQUEST
+            return contract_error_response(
+                request,
+                "not_latest",
+                "main 已有更新的版本",
+                status=status.HTTP_400_BAD_REQUEST,
+                details={"latest": error.latest},
             )
         except AgentUnavailable as error:
-            return _unavailable(error, http_status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return _unavailable_error(request, error)
         return Response(job, status=status.HTTP_202_ACCEPTED)
 
 
@@ -104,4 +121,4 @@ class SystemIngressView(SchemaAPIView):
         try:
             return Response({"agent": "ok", "entries": agent_ingress()})
         except AgentUnavailable as error:
-            return _unavailable(error)
+            return _unavailable_data(error)

@@ -16,6 +16,11 @@ VIEWS = "apps.core.views.system_version"
 UNREACHABLE = AgentUnavailable("unreachable", "connection refused")
 
 
+def first_error(response):
+    """The single error of a project error envelope."""
+    return response.data["errors"][0]
+
+
 class SystemVersionApiTests(APITestCase):
     def setUp(self):
         self.admin = User.objects.create_user(
@@ -90,7 +95,11 @@ class SystemVersionApiTests(APITestCase):
             response = self.client.post(reverse("system-version-check"))
 
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
-        self.assertEqual(response.data, {"agent": "unreachable", "detail": "connection refused"})
+        self.assertEqual(first_error(response)["code"], "agent_unavailable")
+        self.assertEqual(
+            first_error(response)["details"], {"agent": "unreachable", "detail": "connection refused"}
+        )
+        self.assertIn("request_id", response.data["meta"])
 
     def test_upgrade_uses_the_signed_in_username(self):
         with patch(f"{VIEWS}.agent_start_upgrade", return_value={"id": "j"}) as start:
@@ -110,6 +119,8 @@ class SystemVersionApiTests(APITestCase):
                 with self.subTest(body=body):
                     response = self.client.post(reverse("system-upgrade"), body, format="json")
                     self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                    self.assertEqual(first_error(response)["code"], "validation_error")
+                    self.assertEqual(first_error(response)["field"], "target")
         start.assert_not_called()
 
     def test_busy_agent_returns_409(self):
@@ -117,21 +128,32 @@ class SystemVersionApiTests(APITestCase):
             response = self.client.post(reverse("system-upgrade"), {"target": "b" * 40}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertEqual(response.data, {"error": "busy"})
+        self.assertEqual(first_error(response)["code"], "agent_busy")
 
     def test_stale_target_returns_400_with_the_latest_sha(self):
         with patch(f"{VIEWS}.agent_start_upgrade", side_effect=AgentTargetNotLatest("c" * 40)):
             response = self.client.post(reverse("system-upgrade"), {"target": "b" * 40}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data, {"error": "not_latest", "latest": "c" * 40})
+        self.assertEqual(first_error(response)["code"], "not_latest")
+        self.assertEqual(first_error(response)["details"], {"latest": "c" * 40})
 
     def test_upgrade_with_an_unavailable_agent_returns_503(self):
         with patch(f"{VIEWS}.agent_start_upgrade", side_effect=UNREACHABLE):
             response = self.client.post(reverse("system-upgrade"), {"target": "b" * 40}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
-        self.assertEqual(response.data["agent"], "unreachable")
+        self.assertEqual(first_error(response)["code"], "agent_unavailable")
+        self.assertEqual(first_error(response)["details"]["agent"], "unreachable")
+
+    @override_settings(QJUDGE_AGENT_URL="")
+    def test_check_and_upgrade_without_an_agent_name_it_unsupported(self):
+        for name, body in (("system-version-check", None), ("system-upgrade", {"target": "b" * 40})):
+            with self.subTest(name=name):
+                response = self.client.post(reverse(name), body, format="json")
+
+                self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+                self.assertEqual(first_error(response)["details"]["agent"], "unsupported")
 
     def test_ingress_lists_entries(self):
         entries = [{"id": "web", "ok": True}]
