@@ -11,6 +11,21 @@
   min-height: 0;
 }
 
+// Keep summary labels and participant names readable when many problems are
+// present. Let the existing table scroller handle the extra width.
+.table th,
+.table td {
+  white-space: nowrap;
+}
+
+.table th {
+  min-width: 5rem;
+}
+
+.table th:nth-child(2) {
+  min-width: 10rem;
+}
+
 // Keep the header in the same table layout as the body while the Carbon table
 // content wrapper scrolls. The last header needs an explicit override because
 // Carbon's base table rule resets the final header cell to position: static.
@@ -19,4 +34,58 @@
   position: sticky;
   top: 0;
   z-index: 1;
+}
+
+.table {
+  table-layout: fixed;
+}
+
+.table th:first-child,
+.table td:first-child,
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  position: sticky;
+  z-index: 2;
+  background: var(--cds-layer);
+}
+
+.table th:first-child,
+.table td:first-child {
+  left: 0;
+}
+
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  left: 5rem;
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
+.table thead th:first-child,
+.table thead th:nth-child(2) {
+  z-index: 3;
+  background: var(--cds-layer-accent);
+}
+
+.nameButton {
+  padding: 0;
+  min-height: 2rem;
+  align-items: center;
+}
+
+.nameText {
+  display: block;
+  width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Keep the full-name tooltip above neighboring sticky cells.
+.table td:nth-child(2):is(:hover, :focus-within) {
+  z-index: 4;
+}
+
+.fullName {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }

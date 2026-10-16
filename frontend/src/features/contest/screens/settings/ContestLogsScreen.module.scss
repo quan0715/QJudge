@@ -31,8 +31,9 @@
   }
 
   .feedScroll {
-    max-height: none;
-    overflow: visible;
+    max-height: min(32rem, 60dvh);
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
     padding: 0;
   }
 

@@ -10,6 +10,7 @@ import {
   TableCell,
   SkeletonText,
   Button,
+  Tooltip,
 } from "@carbon/react";
 
 import { Link } from "react-router-dom";
@@ -252,7 +253,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
           getHeaderProps,
           getRowProps,
         }: any) => (
-          <Table {...getTableProps()} isSortable className={styles.table}>
+          <Table {...getTableProps()} isSortable className={styles.table} style={{ width: `max(100%, ${480 + problems.length * 80}px)` }}>
             <TableHead>
               <TableRow>
                 {headers.map((header: any) => {
@@ -282,8 +283,8 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                             : header.key === "time"
                             ? "80px"
                             : header.key.startsWith("problem_")
-                            ? "80px"
-                            : "auto",
+                            ? "auto"
+                            : "160px",
                       }}
                     >
                       <div
@@ -340,21 +341,26 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                           textAlign: cell.info.header === "user" ? "left" : "center",
                         }}
                       >
-                        {onSelectParticipant && participant && (cell.info.header === "user" || cell.info.header.startsWith("problem_")) ? (
+                        {cell.info.header === "user" ? (
+                          <Tooltip label={<span className={styles.fullName}>{String(cell.value)}</span>} align="bottom" autoAlign>
+                            {onSelectParticipant && participant ? (
+                              <Button kind="ghost" className={styles.nameButton}
+                                onClick={() => onSelectParticipant(String(participant.user.id))}>
+                                <span className={styles.nameText}>{String(cell.value)}</span>
+                              </Button>
+                            ) : (
+                              <span tabIndex={0} className={styles.nameText}>{String(cell.value)}</span>
+                            )}
+                          </Tooltip>
+                        ) : onSelectParticipant && participant && cell.info.header.startsWith("problem_") ? (
                           <Button
                             kind="ghost"
-                            aria-label={cell.info.header === "user" ? undefined : `${participant.displayName || participant.user.username} · ${problems.find((p) => `problem_${p.id}` === cell.info.header)?.label}`}
+                            aria-label={`${participant.displayName || participant.user.username} · ${problems.find((p) => `problem_${p.id}` === cell.info.header)?.label}`}
                             onClick={() => {
-                              if (cell.info.header === "user") {
-                                onSelectParticipant(String(participant.user.id));
-                              } else {
-                                const problem = problems.find((p) => `problem_${p.id}` === cell.info.header);
-                                onSelectParticipant(String(participant.user.id), problem?.problem_id || problem?.id);
-                              }
+                              const problem = problems.find((p) => `problem_${p.id}` === cell.info.header);
+                              onSelectParticipant(String(participant.user.id), problem?.problem_id || problem?.id);
                             }}
-                            style={cell.info.header.startsWith("problem_")
-                              ? { position: "absolute", inset: 0, height: "100%", width: "100%", maxWidth: "none", padding: 0 }
-                              : { height: "auto", width: "auto", maxWidth: "100%", padding: 0, alignItems: "center", textAlign: "left", overflowWrap: "anywhere" }}
+                            style={{ position: "absolute", inset: 0, height: "100%", width: "100%", maxWidth: "none", padding: 0 }}
                           >
                             {renderCell(cell, problems) || "—"}
                           </Button>

@@ -188,7 +188,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
       (entries) => {
         if (entries[0].isIntersecting) handleLoadMore();
       },
-      { root: embedded ? null : container, rootMargin: "200px" },
+      { root: container, rootMargin: "200px" },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
