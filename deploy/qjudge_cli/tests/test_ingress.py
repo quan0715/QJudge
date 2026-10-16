@@ -1,6 +1,6 @@
 import unittest
 
-from qjudge_cli.ingress import render_ingress, render_nginx
+from qjudge_cli.ingress import ingress_entries, render_ingress, render_nginx
 from qjudge_cli.tests.test_check import VALID
 
 
@@ -173,6 +173,30 @@ class IngressTests(unittest.TestCase):
                 ):
                     self.assertNotIn(bundled_marker, ingress)
                     self.assertNotIn(bundled_marker, nginx)
+
+    def test_site_and_mcp_entries_always_exist(self):
+        entries = {e.id: e for e in ingress_entries({**VALID, "STORAGE_MODE": "external"})}
+        self.assertEqual(list(entries), ["site", "mcp"])
+        self.assertEqual(entries["site"].probe, "https://judge.example.edu/api/health/")
+        self.assertEqual(entries["site"].expect, "200")
+        self.assertEqual(entries["site"].target, "http://127.0.0.1:8080")
+
+    def test_same_origin_storage_is_probed_through_the_bucket_path(self):
+        entries = {e.id: e for e in ingress_entries({**VALID, "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": ""})}
+        self.assertEqual(entries["storage"].public, "https://judge.example.edu/qjudge/")
+        self.assertEqual(entries["storage"].expect, "reachable")
+
+    def test_storage_domain_probes_minio_health(self):
+        entry = next(e for e in ingress_entries(VALID) if e.id == "storage")
+        self.assertEqual(entry.probe, "https://files.example.edu/minio/health/live")
+        self.assertEqual(entry.target, "http://127.0.0.1:9000")
+
+    def test_bundled_media_adds_media_and_turn(self):
+        env = {**VALID, "MEDIA_MODE": "bundled", "LIVEKIT_PUBLIC_URL": "wss://live.example.edu",
+               "LIVEKIT_TURN_HOST": "turn.example.edu", "LIVEKIT_NODE_IP": "192.0.2.10"}
+        entries = {e.id: e for e in ingress_entries(env)}
+        self.assertEqual(entries["media"].probe, "https://live.example.edu")
+        self.assertEqual((entries["turn"].probe, entries["turn"].expect), ("turn.example.edu:443", "tcp"))
 
 
 if __name__ == "__main__":

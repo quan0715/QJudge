@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from urllib.parse import urlsplit
 
 from .media_config import TURN_TCP_PORT
@@ -36,6 +37,47 @@ def _bundled_media(env: Env) -> str:
         return public
     origin = env.get("QJUDGE_PUBLIC_ORIGIN", "").strip().rstrip("/")
     return origin.replace("http", "ws", 1) + "/livekit"
+
+
+@dataclass(frozen=True)
+class IngressEntry:
+    """One public entry point and how to probe it from the host."""
+
+    id: str       # "site" | "mcp" | "storage" | "media" | "turn"
+    public: str   # address users connect to
+    target: str   # where the reverse proxy should forward
+    probe: str    # http(s) URL, or "host:port" for tcp
+    expect: str   # "200" (must be 200) | "reachable" (HTTP 1-499) | "tcp"
+
+
+def ingress_entries(env: Env) -> list[IngressEntry]:
+    origin = env.get("QJUDGE_PUBLIC_ORIGIN", "").strip().rstrip("/")
+    frontend = _frontend(env)
+    entries = [
+        IngressEntry("site", origin, frontend, f"{origin}/api/health/", "200"),
+        IngressEntry("mcp", f"{origin}/mcp", frontend, f"{origin}/mcp", "reachable"),
+    ]
+    storage = _bundled_storage(env)
+    if storage:
+        if uses_public_origin(env, storage):
+            public = f"{storage}/{env.get('OBJECT_STORAGE_BUCKET', '').strip()}/"
+            entries.append(IngressEntry("storage", public, frontend, public, "reachable"))
+        else:
+            entries.append(IngressEntry(
+                "storage", storage, f"http://{_bind_address(env)}:{MINIO_PORT}",
+                f"{storage}/minio/health/live", "200",
+            ))
+    media = _bundled_media(env)
+    if media:
+        target = frontend if uses_public_origin(env, media) else f"http://{_bind_address(env)}:7880"
+        # wss -> https, ws -> http
+        probe = "http" + media[2:] if media.startswith("ws") else media
+        entries.append(IngressEntry("media", media, target, probe, "reachable"))
+        turn = f"{env.get('LIVEKIT_TURN_HOST', '').strip()}:443"
+        entries.append(IngressEntry(
+            "turn", turn, f"tcp {_bind_address(env)}:{TURN_TCP_PORT}", turn, "tcp",
+        ))
+    return entries
 
 
 def render_ingress(env: Env) -> str:
