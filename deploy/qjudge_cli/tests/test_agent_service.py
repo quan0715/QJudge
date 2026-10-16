@@ -2,6 +2,7 @@ import io
 import json
 import os
 import socket
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -21,6 +22,11 @@ from qjudge_cli.tests.test_release import NEW, OLD
 
 SEPARATOR = "\x1f"
 COMMITTED = 1_700_000_000  # 2023-11-14T22:13:20Z
+AHEAD = "c" * 40     # a descendant of NEW: deployed from a branch that main has not merged yet
+DIVERGED = "d" * 40  # shares history with NEW but is neither behind nor ahead of it
+UNKNOWN = "e" * 40   # not in the local repository
+KNOWN = {OLD, NEW, AHEAD, DIVERGED}
+ANCESTORS = {(OLD, NEW), (OLD, AHEAD), (NEW, AHEAD), (OLD, DIVERGED)}
 
 
 def container(project, service, status="running", health=None):
@@ -51,13 +57,15 @@ class ServiceHost(Host):
         self.listed = containers
 
     def __call__(self, args, **kwargs):
-        handled = (args[:2] == ["git", "-C"] and "log" in args) or args[:3] in (
+        handled = (args[:2] == ["git", "-C"] and ("log" in args or "merge-base" in args)) or args[:3] in (
             ["docker", "ps", "-a"], ["docker", "container", "inspect"])
         if not handled:
             return super().__call__(args, **kwargs)
         self.calls.append((list(args), None))
         if any(part in " ".join(args) for part in self.fail_on):
             return self._result("", 128, "boom")
+        if "merge-base" in args:
+            return self._is_ancestor(*args[-2:])
         if args[0] == "git":
             return self._git_log(args)
         if args[1] == "ps":
@@ -70,6 +78,13 @@ class ServiceHost(Host):
         if args[-1] == f"{OLD}..origin/main":
             return self._result(f"{NEW}{SEPARATOR}Release: b\n")
         return self._result("")
+
+    def _is_ancestor(self, ancestor, descendant):
+        """git merge-base --is-ancestor: 0 yes, 1 no, 128 when a commit is unknown."""
+        if ancestor not in KNOWN or descendant not in KNOWN:
+            return self._result("", 128, "fatal: Not a valid commit name")
+        yes = ancestor == descendant or (ancestor, descendant) in ANCESTORS
+        return self._result("", 0 if yes else 1)
 
     @staticmethod
     def _result(stdout, code=0, stderr=""):
@@ -128,6 +143,53 @@ class CheckTests(ServiceTestCase):
         result = self.service().check()
         self.assertEqual(result["releases"], [])
         self.assertFalse(result["update_available"])
+
+    def merge_base_commands(self):
+        return [c for c in self.host.commands() if "merge-base" in c]
+
+    def test_main_behind_the_deployed_commit_is_not_an_update(self):
+        (self.deploy / ".version").write_text(f"current={AHEAD}\n")
+        result = self.service().check()
+        self.assertEqual(result["latest"]["sha"], NEW)
+        self.assertEqual(result["releases"], [])
+        self.assertFalse(result["update_available"])
+        self.assertEqual(self.merge_base_commands(),
+                         [f"git -C {self.deploy.parent} merge-base --is-ancestor {NEW} {AHEAD}"])
+
+    def test_main_ahead_of_the_deployed_commit_is_an_update(self):
+        (self.deploy / ".version").write_text(f"current={OLD}\n")
+        self.assertTrue(self.service().check()["update_available"])
+        self.assertEqual(len(self.merge_base_commands()), 1)
+
+    def test_diverged_history_is_an_update(self):
+        (self.deploy / ".version").write_text(f"current={DIVERGED}\n")
+        self.assertTrue(self.service().check()["update_available"])
+
+    def test_a_deployed_commit_missing_locally_is_an_update(self):
+        (self.deploy / ".version").write_text(f"current={UNKNOWN}\n")
+        result = self.service().check()
+        self.assertTrue(result["update_available"])
+        self.assertEqual(result["releases"], [])
+
+    def test_no_deployed_version_is_an_update_without_asking_git(self):
+        self.assertTrue(self.service().check()["update_available"])
+        self.assertEqual(self.merge_base_commands(), [])
+
+    def test_deployed_main_head_needs_no_ancestry_check(self):
+        (self.deploy / ".version").write_text(f"current={NEW}\n")
+        self.assertFalse(self.service().check()["update_available"])
+        self.assertEqual(self.merge_base_commands(), [])
+
+    def test_a_hung_ancestry_check_is_reported(self):
+        (self.deploy / ".version").write_text(f"current={AHEAD}\n")
+
+        def run(args, **kwargs):
+            if "merge-base" in args:
+                raise subprocess.TimeoutExpired(args, 60)
+            return self.host(args, **kwargs)
+
+        with self.assertRaises(RuntimeError):
+            self.service(run=run).check()
 
     def test_failed_commit_listing_does_not_hide_the_update(self):
         (self.deploy / ".version").write_text(f"current={OLD}\n")

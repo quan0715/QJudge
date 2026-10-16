@@ -104,8 +104,19 @@ class AgentService:
         return {
             "latest": {"sha": sha, **self._commit(repo, sha)},
             "releases": self._releases(repo, current) if current else [],
-            "update_available": current != sha,
+            "update_available": self._newer(repo, sha, current),
         }
+
+    def _newer(self, repo: str, sha: str, current: str | None) -> bool:
+        """Whether main's head is newer than the deployed commit, not merely different from it."""
+        if not current:
+            return True
+        if current == sha:
+            return False
+        # Exit 0: main's head is already in the deployed history (deployed from a branch main has not merged
+        # yet). Anything else is a real update: 1 is diverged, 128 a deployed commit this repository lacks.
+        result = git(self.run, repo, "merge-base", "--is-ancestor", sha, current)
+        return result.returncode != 0
 
     def _commit(self, repo: str, sha: str) -> dict:
         result = git(self.run, repo, "log", "-1", "--format=%s%x1f%ct", sha)
