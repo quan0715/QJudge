@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import SystemLayout from "./SystemLayout";
 
@@ -42,7 +42,25 @@ const navLink = (name: string) => {
   return link;
 };
 
+const contentOffset = () =>
+  (screen.getByRole("main").parentElement as HTMLElement).style.getPropertyValue(
+    "--admin-shell-sidenav-width",
+  );
+
+// The global test setup answers every media query with `matches: false` (a wide screen).
+const originalMatchMedia = window.matchMedia;
+const useViewport = (matchesQuery: (query: string) => boolean) => {
+  window.matchMedia = ((query: string) => ({
+    ...originalMatchMedia(query),
+    matches: matchesQuery(query),
+  })) as typeof window.matchMedia;
+};
+
 describe("SystemLayout", () => {
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
   it("lists the five sections in order", () => {
     renderAt("/system");
 
@@ -86,5 +104,23 @@ describe("SystemLayout", () => {
     const header = screen.getByRole("banner");
     expect(within(header).getByText("系統管理")).toBeTruthy();
     expect(within(header).getByTestId("user-menu")).toBeTruthy();
+  });
+
+  it("keeps the full side nav beside the content on wide screens", () => {
+    renderAt("/system");
+
+    expect(contentOffset()).toBe("16rem");
+  });
+
+  it("collapses the side nav to a rail on phones so the content keeps its width", async () => {
+    useViewport((query) => query === "(max-width: 671px)");
+
+    renderAt("/system/ingress");
+
+    expect(contentOffset()).toBe("3rem");
+    // The sections stay reachable from the rail.
+    expect(navLink("Ingress").getAttribute("aria-current")).toBe("page");
+    await userEvent.click(navLink("系統版本"));
+    expect(currentPath()).toBe("/system/version");
   });
 });

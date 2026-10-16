@@ -46,7 +46,7 @@
 
 .overviewGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(layout.rem(280px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, #{layout.rem(280px)}), 1fr));
   gap: layout.$spacing-05;
 }
 

@@ -10,6 +10,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { UserMenu } from "@/features/app/components/UserMenu";
+import { useMediaQuery } from "@/shared/hooks";
 import AdminShellLayout, { type NavItem } from "@/shared/layout/AdminShellLayout";
 import styles from "./SystemLayout.module.scss";
 
@@ -32,11 +33,15 @@ const isCurrentSection = (pathname: string, sectionPath: string) => {
   return current === sectionPath || (sectionPath !== "/system" && current.startsWith(`${sectionPath}/`));
 };
 
+// Below Carbon's md breakpoint a 16rem nav would leave the content about 120px.
+const PHONE_QUERY = "(max-width: 671px)";
+
 const SystemLayout = () => {
   const { t } = useTranslation("admin");
   const { t: tc } = useTranslation("common");
   const location = useLocation();
   const navigate = useNavigate();
+  const isPhone = useMediaQuery(PHONE_QUERY);
 
   const navItems: NavItem[] = SECTIONS.map((section) => ({
     id: section.id,
@@ -61,7 +66,7 @@ const SystemLayout = () => {
       }
       headerActions={<UserMenu />}
       sideNavAriaLabel={tc("header.adminNavigation", "管理導覽")}
-      sideNavMode={{ variant: "expanded" }}
+      sideNavMode={{ variant: isPhone ? "rail" : "expanded" }}
       navItems={navItems}
     >
       <div className={styles.scroll}>
