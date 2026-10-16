@@ -86,7 +86,7 @@ const AdminShellLayout = ({
 
       <SideNav
         aria-label={sideNavAriaLabel}
-        {...(isRail ? { isRail: true } : { expanded: true })}
+        {...(isRail ? { isRail: true } : { expanded: true, isFixedNav: true })}
         style={{ top: "3rem", height: "calc(100dvh - 3rem)" }}
         className={`${styles.sidenav}${!isRail ? ` ${styles.sidenavExpanded}` : ""}`}
       >
@@ -96,6 +96,7 @@ const AdminShellLayout = ({
               key={item.id}
               renderIcon={item.icon}
               isActive={item.isActive}
+              aria-current={item.isActive ? "page" : undefined}
               onClick={item.onClick}
             >
               {item.label}

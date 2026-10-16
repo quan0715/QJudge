@@ -30,6 +30,49 @@
     "unhealthyRuns": "Unhealthy",
     "worker": "Worker"
   },
+  "system": {
+    "nav": {
+      "overview": "Overview",
+      "users": "Users",
+      "serviceStatus": "Service status",
+      "ingress": "Ingress",
+      "version": "System version"
+    },
+    "overview": {
+      "title": "System overview",
+      "subtitle": "A summary of services, users and version. Select a card for details.",
+      "loadFailed": "Could not load",
+      "agent": {
+        "unsupported": "No host agent in this environment",
+        "unreachable": "Cannot reach the host agent"
+      },
+      "services": {
+        "title": "Services",
+        "up": "{{up}} / {{total}} up"
+      },
+      "integrity": {
+        "title": "Integrity runs",
+        "allHealthy": "All healthy",
+        "problems": "{{count}} problem(s)",
+        "live": "{{count}} live"
+      },
+      "users": {
+        "title": "Users",
+        "total": "{{count}} user(s)",
+        "teachers": "{{count}} teacher(s)",
+        "pending": "{{count}} pending onboarding"
+      },
+      "ingress": {
+        "title": "Ingress",
+        "summary": "{{ok}} / {{total}} entries OK"
+      },
+      "version": {
+        "title": "System version",
+        "unknown": "No version recorded",
+        "updateAvailable": "Update available"
+      }
+    }
+  },
   "user": {
     "management": {
       "activateTeacher": "Activate Teacher Access",

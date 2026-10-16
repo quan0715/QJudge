@@ -35,6 +35,7 @@ import {
 import type { ManagedUser } from "@/core/entities/auth.entity";
 import { EnvelopeError } from "@/infrastructure/api/envelope";
 import { useCopyText } from "@/shared/hooks";
+import { summarizeUsers } from "../domain/userSummary";
 
 const UserManagementScreen = () => {
   const { t } = useTranslation("admin");
@@ -199,10 +200,7 @@ const UserManagementScreen = () => {
     return user.role === roleFilter;
   });
 
-  const pendingOnboardingCount = users.filter(
-    (user) => !user.onboarding_completed_at
-  ).length;
-  const teacherCount = users.filter((user) => user.role === "teacher").length;
+  const summary = summarizeUsers(users);
 
   return (
     <div className={styles.pageWrapper}>
@@ -217,19 +215,19 @@ const UserManagementScreen = () => {
             <p className={styles.statLabel}>
               {t("user.management.summary.totalUsers", "總使用者")}
             </p>
-            <strong className={styles.statValue}>{users.length}</strong>
+            <strong className={styles.statValue}>{summary.total}</strong>
           </Tile>
           <Tile>
             <p className={styles.statLabel}>
               {t("user.management.summary.teachers", "已開通教師")}
             </p>
-            <strong className={styles.statValue}>{teacherCount}</strong>
+            <strong className={styles.statValue}>{summary.teachers}</strong>
           </Tile>
           <Tile>
             <p className={styles.statLabel}>
               {t("user.management.summary.pendingOnboarding", "未完成 onboarding")}
             </p>
-            <strong className={styles.statValue}>{pendingOnboardingCount}</strong>
+            <strong className={styles.statValue}>{summary.pendingOnboarding}</strong>
           </Tile>
         </div>
 

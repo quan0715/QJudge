@@ -30,6 +30,49 @@
     "unhealthyRuns": "unhealthy",
     "worker": "Worker"
   },
+  "system": {
+    "nav": {
+      "overview": "概要",
+      "users": "ユーザー",
+      "serviceStatus": "サービス状態",
+      "ingress": "Ingress",
+      "version": "システムバージョン"
+    },
+    "overview": {
+      "title": "システム概要",
+      "subtitle": "サービス・ユーザー・バージョンの概要です。カードを選択すると詳細を表示します。",
+      "loadFailed": "取得できません",
+      "agent": {
+        "unsupported": "この環境にはホスト agent がありません",
+        "unreachable": "ホスト agent に接続できません"
+      },
+      "services": {
+        "title": "サービス",
+        "up": "{{up}} / {{total}} 件正常"
+      },
+      "integrity": {
+        "title": "試験監視 Run",
+        "allHealthy": "すべて正常",
+        "problems": "{{count}} 件の異常",
+        "live": "{{count}} 件進行中"
+      },
+      "users": {
+        "title": "ユーザー",
+        "total": "{{count}} 人のユーザー",
+        "teachers": "{{count}} 人の教員",
+        "pending": "{{count}} 人がオンボーディング未完了"
+      },
+      "ingress": {
+        "title": "Ingress",
+        "summary": "{{ok}} / {{total}} 件の入口が正常"
+      },
+      "version": {
+        "title": "システムバージョン",
+        "unknown": "バージョン記録なし",
+        "updateAvailable": "新バージョンあり"
+      }
+    }
+  },
   "user": {
     "management": {
       "activateTeacher": "教員権限を有効化",

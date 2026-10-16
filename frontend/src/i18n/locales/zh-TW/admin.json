@@ -30,6 +30,49 @@
     "unhealthyRuns": "unhealthy",
     "worker": "Worker"
   },
+  "system": {
+    "nav": {
+      "overview": "概覽",
+      "users": "使用者",
+      "serviceStatus": "服務狀態",
+      "ingress": "Ingress",
+      "version": "系統版本"
+    },
+    "overview": {
+      "title": "系統概覽",
+      "subtitle": "平台目前的服務、使用者與版本摘要，點選卡片查看詳細。",
+      "loadFailed": "無法讀取",
+      "agent": {
+        "unsupported": "此環境沒有主機 agent",
+        "unreachable": "無法連線到主機 agent"
+      },
+      "services": {
+        "title": "服務",
+        "up": "{{up}} / {{total}} 項正常"
+      },
+      "integrity": {
+        "title": "監考 Run",
+        "allHealthy": "全部正常",
+        "problems": "{{count}} 項異常",
+        "live": "{{count}} 個進行中"
+      },
+      "users": {
+        "title": "使用者",
+        "total": "{{count}} 位使用者",
+        "teachers": "{{count}} 位教師",
+        "pending": "{{count}} 位未完成 onboarding"
+      },
+      "ingress": {
+        "title": "Ingress",
+        "summary": "{{ok}} / {{total}} 個入口正常"
+      },
+      "version": {
+        "title": "系統版本",
+        "unknown": "尚無版本紀錄",
+        "updateAvailable": "有新版"
+      }
+    }
+  },
   "user": {
     "management": {
       "activateTeacher": "直接開通教師",

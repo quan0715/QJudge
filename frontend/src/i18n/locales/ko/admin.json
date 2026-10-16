@@ -30,6 +30,49 @@
     "unhealthyRuns": "unhealthy",
     "worker": "Worker"
   },
+  "system": {
+    "nav": {
+      "overview": "개요",
+      "users": "사용자",
+      "serviceStatus": "서비스 상태",
+      "ingress": "Ingress",
+      "version": "시스템 버전"
+    },
+    "overview": {
+      "title": "시스템 개요",
+      "subtitle": "서비스, 사용자, 버전 요약입니다. 카드를 선택하면 자세히 볼 수 있습니다.",
+      "loadFailed": "불러올 수 없음",
+      "agent": {
+        "unsupported": "이 환경에는 호스트 agent가 없습니다",
+        "unreachable": "호스트 agent에 연결할 수 없습니다"
+      },
+      "services": {
+        "title": "서비스",
+        "up": "{{up}} / {{total}}개 정상"
+      },
+      "integrity": {
+        "title": "감독 Run",
+        "allHealthy": "모두 정상",
+        "problems": "{{count}}개 이상",
+        "live": "{{count}}개 진행 중"
+      },
+      "users": {
+        "title": "사용자",
+        "total": "사용자 {{count}}명",
+        "teachers": "교사 {{count}}명",
+        "pending": "온보딩 미완료 {{count}}명"
+      },
+      "ingress": {
+        "title": "Ingress",
+        "summary": "{{ok}} / {{total}}개 입구 정상"
+      },
+      "version": {
+        "title": "시스템 버전",
+        "unknown": "버전 기록 없음",
+        "updateAvailable": "새 버전 있음"
+      }
+    }
+  },
   "user": {
     "management": {
       "activateTeacher": "교사 권한 활성화",
