@@ -16,13 +16,15 @@ from pathlib import Path
 from typing import Callable
 from urllib.parse import urlsplit
 
+from .agent.install import agent_up
 from .check import check_env
 from .envfile import load, write_private
-from .release_lock import ReleaseBusy, release_lock
+from .release_lock import AGENT_JOB_ENV, ReleaseBusy, release_lock
 from .stack import Runner, app_compose, bootstrap_secrets, ensure_network
 
 HttpStatus = Callable[[str, str, str], int]
 Sleep = Callable[[float], None]
+StartAgent = Callable[[Path, Path, Runner], bool]
 
 DATABASES = ("online_judge", "qjudge_ai")
 APP_SERVICES = ("backend", "ai-service", "qjudge-mcp", "integrity-resident", "celery", "ai-worker", "integrity-reconciler")
@@ -243,6 +245,14 @@ def _backup_dirs(deploy_dir: Path) -> list[Path]:
     return sorted(p for p in backups.iterdir() if p.is_dir()) if backups.is_dir() else []
 
 
+def _refresh_agent(start_agent: StartAgent, deploy_dir: Path, env_file: Path, run: Runner) -> None:
+    """Rebuild the agent on the release just installed; its failure never fails the release."""
+    # A job started by the agent runs inside the agent container, and recreating that
+    # container would kill the job. The agent restarts itself once the job is done.
+    if os.environ.get(AGENT_JOB_ENV) != "1":
+        start_agent(deploy_dir, env_file, run)
+
+
 def _exclusive(command):
     """Run an upgrade or rollback under the host release lock."""
     @functools.wraps(command)
@@ -264,6 +274,7 @@ def upgrade(
     run: Runner = subprocess.run,
     sleep: Sleep = time.sleep,
     http_status: HttpStatus = http_status,
+    start_agent: StartAgent = agent_up,
 ) -> int:
     _step("prepare")
     stack = _Stack(deploy_dir, env_file, run, sleep, http_status)
@@ -332,6 +343,7 @@ def upgrade(
     _write_version(deploy_dir, sha, previous)
     stack.prune_images({version} | ({_version(previous)} if previous else set()))
     print(f"Upgraded to {version}")
+    _refresh_agent(start_agent, deploy_dir, env_file, run)
     return 0
 
 
@@ -342,6 +354,7 @@ def rollback(
     run: Runner = subprocess.run,
     sleep: Sleep = time.sleep,
     http_status: HttpStatus = http_status,
+    start_agent: StartAgent = agent_up,
 ) -> int:
     recorded = read_version(deploy_dir)
     previous = recorded.get("previous")
@@ -363,6 +376,7 @@ def rollback(
     _write_version(deploy_dir, previous, recorded.get("current"))
     print(f"Rolled back to {version}")
     stack.restore_hint()
+    _refresh_agent(start_agent, deploy_dir, env_file, run)
     return 0
 
 

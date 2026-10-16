@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import shutil
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -10,11 +11,16 @@ from unittest.mock import patch
 from qjudge_cli.release import (
     APP_SERVICES, STEP_MARKER, STEPS, _ps_rows, http_status, read_version, rollback, site_ready, upgrade,
 )
-from qjudge_cli.release_lock import RELEASE_LOCK_HELD_ENV, release_lock, release_locked
+from qjudge_cli.release_lock import AGENT_JOB_ENV, RELEASE_LOCK_HELD_ENV, release_lock, release_locked
 from qjudge_cli.tests.test_check import VALID
 
 OLD = "a" * 40
 NEW = "b" * 40
+
+
+def no_agent(*args):
+    """Keep results independent of whether the machine running the tests has a docker socket."""
+    return True
 
 
 def app_containers(healthy=True, legacy=False):
@@ -147,26 +153,73 @@ class ReleaseTests(unittest.TestCase):
         self.deploy.mkdir()
         self.env_file = self.deploy / ".env"
         self.env_file.write_text("".join(f"{k}={v}\n" for k, v in VALID.items()))
+        environment = patch.dict(os.environ)
+        environment.start()
+        self.addCleanup(environment.stop)
+        os.environ.pop(AGENT_JOB_ENV, None)  # Tests may themselves run inside an agent job.
 
     def tearDown(self):
         self.directory.cleanup()
 
-    def _upgrade(self, host, http=200):
+    def _upgrade(self, host, http=200, start_agent=no_agent):
         with redirect_stdout(io.StringIO()):
             return upgrade(self.deploy, self.env_file, "v2", run=host, sleep=lambda s: None,
-                           http_status=lambda url, host_header, proto: http)
+                           http_status=lambda url, host_header, proto: http, start_agent=start_agent)
 
-    def _rollback(self, host):
+    def _rollback(self, host, http=200, start_agent=no_agent):
         with redirect_stdout(io.StringIO()):
             return rollback(self.deploy, self.env_file, run=host, sleep=lambda s: None,
-                            http_status=lambda url, host_header, proto: 200)
+                            http_status=lambda url, host_header, proto: http, start_agent=start_agent)
 
     def _steps(self, host):
         output = io.StringIO()
         with redirect_stdout(output):
             upgrade(self.deploy, self.env_file, "v2", run=host, sleep=lambda s: None,
-                    http_status=lambda url, host_header, proto: 200)
+                    http_status=lambda url, host_header, proto: 200, start_agent=no_agent)
         return [line[len(STEP_MARKER):] for line in output.getvalue().splitlines() if line.startswith(STEP_MARKER)]
+
+    def test_successful_upgrade_starts_the_agent_unless_run_by_it(self):
+        started = []
+        self.assertEqual(self._upgrade(FakeHost(), start_agent=lambda *a: started.append(a) or True), 0)
+        self.assertEqual(len(started), 1)
+        started.clear()
+        shutil.rmtree(self.deploy / "backups")  # Backups are named by second and release.
+        with patch.dict(os.environ, {AGENT_JOB_ENV: "1"}):
+            self._upgrade(FakeHost(), start_agent=lambda *a: started.append(a) or True)
+        self.assertEqual(started, [])
+
+    def test_agent_failure_does_not_fail_the_upgrade(self):
+        self.assertEqual(self._upgrade(FakeHost(), start_agent=lambda *a: False), 0)
+
+    def test_agent_is_started_with_the_deploy_dir_env_file_and_runner(self):
+        started = []
+        host = FakeHost()
+        self._upgrade(host, start_agent=lambda *a: started.append(a) or True)
+        self.assertEqual(started, [(self.deploy, self.env_file, host)])
+
+    def test_failed_upgrade_does_not_start_the_agent(self):
+        started = []
+        self.assertEqual(self._upgrade(FakeHost(fail_on=(" build",)), start_agent=lambda *a: started.append(a)), 1)
+        self.assertEqual(self._upgrade(FakeHost(), http=502, start_agent=lambda *a: started.append(a)), 1)
+        self.assertEqual(started, [])
+
+    def test_successful_rollback_starts_the_agent_unless_run_by_it(self):
+        (self.deploy / ".version").write_text(f"current={NEW}\nprevious={OLD}\n")
+        started = []
+        self.assertEqual(self._rollback(FakeHost(head=NEW), start_agent=lambda *a: started.append(a) or True), 0)
+        self.assertEqual(len(started), 1)
+        started.clear()
+        (self.deploy / ".version").write_text(f"current={NEW}\nprevious={OLD}\n")
+        with patch.dict(os.environ, {AGENT_JOB_ENV: "1"}):
+            self._rollback(FakeHost(head=NEW), start_agent=lambda *a: started.append(a) or True)
+        self.assertEqual(started, [])
+
+    def test_failed_rollback_does_not_start_the_agent(self):
+        started = []
+        self.assertEqual(self._rollback(FakeHost(), start_agent=lambda *a: started.append(a)), 1)
+        (self.deploy / ".version").write_text(f"current={NEW}\nprevious={OLD}\n")
+        self.assertEqual(self._rollback(FakeHost(head=NEW), http=502, start_agent=lambda *a: started.append(a)), 1)
+        self.assertEqual(started, [])
 
     def test_upgrade_refuses_while_another_release_holds_the_lock(self):
         host = FakeHost()
@@ -200,7 +253,7 @@ class ReleaseTests(unittest.TestCase):
         seen = []
         with patch.dict(os.environ, {"QJUDGE_FRONTEND_URL": "http://frontend:80"}), redirect_stdout(io.StringIO()):
             upgrade(self.deploy, self.env_file, "v2", run=FakeHost(), sleep=lambda s: None,
-                    http_status=lambda url, h, p: seen.append(url) or 200)
+                    http_status=lambda url, h, p: seen.append(url) or 200, start_agent=no_agent)
         self.assertIn("http://frontend:80/api/health/", seen)
 
     def test_site_ready_checks_the_recorded_version(self):
@@ -217,7 +270,7 @@ class ReleaseTests(unittest.TestCase):
 
         with redirect_stdout(io.StringIO()):
             upgrade(self.deploy, self.env_file, "v2", run=FakeHost(), sleep=lambda s: None,
-                    http_status=status)
+                    http_status=status, start_agent=no_agent)
         self.assertIn(("http://127.0.0.1:8080/api/health/", "judge.example.edu", "https"), seen)
 
     def test_failure_restores_the_deployed_version_even_if_already_checked_out(self):
@@ -232,7 +285,7 @@ class ReleaseTests(unittest.TestCase):
         host = FakeHost(head=NEW)
         with redirect_stdout(io.StringIO()):
             code = rollback(self.deploy, self.env_file, run=host, sleep=lambda s: None,
-                            http_status=lambda url, host_header, proto: 502)
+                            http_status=lambda url, host_header, proto: 502, start_agent=no_agent)
         self.assertEqual(code, 1)
         self.assertEqual(host.head, NEW)
         last_up = [v for c, v in host.calls if "--remove-orphans" in c][-1]

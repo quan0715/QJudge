@@ -62,13 +62,16 @@ jobs:
 
       - name: Deploy Compose Lint and Config
         run: |
-          deploy/qjudge lint-compose deploy/compose.yml deploy/addons/storage/compose.yml deploy/addons/media/compose.yml deploy/addons/postal/compose.yml deploy/addons/postal/compose.qjudge.yml
+          deploy/qjudge lint-compose deploy/compose.yml deploy/addons/storage/compose.yml deploy/addons/media/compose.yml deploy/addons/postal/compose.yml deploy/addons/postal/compose.qjudge.yml deploy/agent/compose.yml
           QJUDGE_VERSION=ci docker compose --project-directory deploy --env-file deploy/.env.example \
             -f deploy/compose.yml -f deploy/compose.build.yml config --quiet
           docker compose --project-directory deploy --env-file deploy/.env.example \
             -f deploy/addons/storage/compose.yml config --quiet
           docker compose --project-directory deploy --env-file deploy/.env.example \
             -f deploy/addons/media/compose.yml config --quiet
+          QJUDGE_REPO_DIR=$PWD QJUDGE_AGENT_UID=1000 QJUDGE_AGENT_GID=1000 QJUDGE_DOCKER_GID=999 \
+            docker compose --project-directory deploy --env-file deploy/.env.example \
+            -f deploy/agent/compose.yml config --quiet
           POSTAL_CONFIG_DIR=/tmp/postal-config-fixture POSTAL_HOSTNAME=postal.example.test \
             docker compose --project-directory deploy --env-file deploy/.env.example \
             -f deploy/addons/postal/compose.yml -f deploy/addons/postal/compose.qjudge.yml config --quiet

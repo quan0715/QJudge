@@ -1,0 +1,28 @@
+# Host agent that runs `deploy/qjudge upgrade` for the web UI. A separate project so
+# application upgrades never restart it. Started by `deploy/qjudge agent up`, which
+# every successful upgrade and rollback runs. The repository is mounted at its own host
+# path so the paths compose passes to the Docker daemon resolve on the host.
+
+services:
+  agent:
+    build:
+      context: agent
+    image: qjudge/agent:local
+    # Compose sets COMPOSE_PROJECT_NAME to this project's name, "<stack>-agent".
+    container_name: ${COMPOSE_PROJECT_NAME}
+    restart: unless-stopped
+    user: "${QJUDGE_AGENT_UID}:${QJUDGE_AGENT_GID}"
+    group_add: ["${QJUDGE_DOCKER_GID}"]
+    working_dir: ${QJUDGE_REPO_DIR}
+    command: ["python3", "deploy/qjudge", "agent", "serve"]
+    environment:
+      HOME: /tmp
+      QJUDGE_FRONTEND_URL: "http://frontend:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${QJUDGE_REPO_DIR}:${QJUDGE_REPO_DIR}
+
+networks:
+  default:
+    name: qjudge
+    external: true

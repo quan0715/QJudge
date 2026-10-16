@@ -39,6 +39,21 @@ class CliTests(unittest.TestCase):
                 self.assertEqual(run_addon(Path("/unused"), Path("/unused/.env"), {}, name, "backup", run=run), 1)
                 run.assert_not_called()
 
+    def test_agent_up_dispatches_and_maps_the_result_to_the_exit_code(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = write_env(directory, VALID)
+            for started, expected in ((True, 0), (False, 1)):
+                with mock.patch("qjudge_cli.cli.agent_up", return_value=started) as agent_up:
+                    code, _ = self.run_cli("agent", "up", "--env-file", str(path))
+                self.assertEqual(code, expected)
+                self.assertEqual(agent_up.call_args.args[1], path)
+
+    def test_agent_up_fails_when_env_file_is_missing(self):
+        with mock.patch("qjudge_cli.cli.agent_up") as agent_up:
+            code, _ = self.run_cli("agent", "up", "--env-file", "/nonexistent/.env")
+        self.assertEqual(code, 1)
+        agent_up.assert_not_called()
+
     def test_check_passes_for_valid_env(self):
         with tempfile.TemporaryDirectory() as directory:
             path = write_env(directory, VALID)
