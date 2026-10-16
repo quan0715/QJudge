@@ -1,5 +1,6 @@
 import os
 import stat
+import subprocess
 import tempfile
 import threading
 import time
@@ -226,6 +227,39 @@ class AgentJobTests(unittest.TestCase):
         commands = self.host.commands()
         repo = str(self.deploy.parent)
         self.assertEqual(commands, [f"git -C {repo} fetch origin main", f"git -C {repo} rev-parse origin/main"])
+
+    def test_latest_main_bounds_both_git_calls_with_a_timeout(self):
+        timeouts = []
+
+        def run(args, **kwargs):
+            timeouts.append(kwargs.get("timeout"))
+            return self.host(args, **kwargs)
+
+        latest_main(self.deploy, run)
+        self.assertEqual(timeouts, [60, 60])
+
+    def test_git_timeout_is_reported_like_any_other_git_failure(self):
+        for hanging in ("fetch", "rev-parse"):
+            with self.subTest(hanging=hanging):
+                def run(args, **kwargs):
+                    if hanging in args:
+                        raise subprocess.TimeoutExpired(args, 60)
+                    return self.host(args, **kwargs)
+
+                with self.assertRaises(RuntimeError):
+                    latest_main(self.deploy, run)
+                with self.assertRaises(RuntimeError):
+                    create_job(self.deploy, NEW, "root", run=run)
+                self.assertIsNone(read_job(self.deploy))
+
+    def test_job_child_has_unbuffered_output_and_no_stdin(self):
+        seen = {}
+        job = create_job(self.deploy, NEW, "root", run=self.host)
+        run_job(self.deploy, self.env_file, job, popen=fake_popen([], 0, seen), run=self.host,
+                http_status=lambda *a: 200)
+        self.assertEqual(seen["env"]["PYTHONUNBUFFERED"], "1")
+        self.assertEqual(seen["env"][AGENT_JOB_ENV], "1")
+        self.assertIs(seen["stdin"], subprocess.DEVNULL)
 
     def test_lock_probe_errors_are_not_treated_as_free(self):
         missing = self.deploy / "missing"

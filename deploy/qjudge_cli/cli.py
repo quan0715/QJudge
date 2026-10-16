@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .addon import ACTIONS, ADDONS, run_addon
 from .agent.install import agent_up
+from .agent.server import serve
 from .check import check_env
 from .envfile import load
 from .example import render
@@ -16,6 +17,7 @@ from .ingress import render_ingress, render_nginx
 from .init import run_init
 from .lint import lint_compose_text
 from .release import _version, read_version, rollback, upgrade
+from .release_lock import release_locked
 from .stack import bootstrap_secrets
 
 DEPLOY_DIR = Path(__file__).resolve().parent.parent
@@ -47,7 +49,7 @@ def main(argv: list[str] | None = None) -> int:
     rollback_parser = commands.add_parser("rollback", help="start the previously deployed version again")
     rollback_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
     agent_parser = commands.add_parser("agent", help="manage the host agent that runs upgrades for the web UI")
-    agent_parser.add_argument("action", choices=("up",))
+    agent_parser.add_argument("action", choices=("up", "serve"), help="up: (re)start the agent container; serve: run the agent")
     agent_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
     secrets_parser = commands.add_parser("secrets", help="create missing AI OAuth and Integrity keys")
     secrets_parser.add_argument("--image", help="backend image to run the scripts with (default: the deployed version)")
@@ -75,7 +77,17 @@ def main(argv: list[str] | None = None) -> int:
         return upgrade(DEPLOY_DIR, args.env_file, args.ref)
     if args.command == "rollback":
         return rollback(DEPLOY_DIR, args.env_file)
+    if args.command == "agent" and args.action == "serve":
+        return serve(DEPLOY_DIR, args.env_file)
     if args.command == "agent":
+        # Recreating the agent kills the upgrade job it runs.
+        try:
+            if release_locked(DEPLOY_DIR):
+                print("A release is running; retry agent up after it completes")
+                return 1
+        except OSError as error:
+            print(f"cannot check the release lock: {error}")
+            return 1
         return 0 if agent_up(DEPLOY_DIR, args.env_file, subprocess.run) else 1
     if args.command == "secrets":
         current = read_version(DEPLOY_DIR).get("current")

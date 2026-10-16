@@ -16,6 +16,9 @@ from . import state
 
 Popen = Callable[..., subprocess.Popen]
 
+# Bounds a git call that waits on the network, so a stalled fetch cannot hold the start lock forever.
+GIT_TIMEOUT = 60
+
 # Makes the busy check and the job write one step, so two requests cannot both pass the check.
 _start_lock = threading.Lock()
 
@@ -26,13 +29,21 @@ class TargetNotLatest(Exception):
         self.latest = latest
 
 
+def git(run: Runner, repo: str, *args: str) -> subprocess.CompletedProcess:
+    command = ["git", "-C", repo, *args]
+    try:
+        return run(command, capture_output=True, text=True, timeout=GIT_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"git {' '.join(args)} timed out after {GIT_TIMEOUT}s") from None
+
+
 def latest_main(deploy_dir: Path, run: Runner) -> str:
     repo = str(deploy_dir.parent)
-    fetch = run(["git", "-C", repo, "fetch", "origin", "main"], capture_output=True, text=True)
+    fetch = git(run, repo, "fetch", "origin", "main")
     if fetch.returncode != 0:
         # A stale origin/main would let an outdated target through as "latest".
         raise RuntimeError(f"git fetch origin main failed: {(fetch.stderr or '').strip()}")
-    head = run(["git", "-C", repo, "rev-parse", "origin/main"], capture_output=True, text=True)
+    head = git(run, repo, "rev-parse", "origin/main")
     sha = (head.stdout or "").strip()
     if head.returncode != 0 or not sha:
         raise RuntimeError(f"git rev-parse origin/main failed: {(head.stderr or '').strip()}")
@@ -73,8 +84,10 @@ def _step_of(line: str) -> str | None:
 def _execute(deploy_dir: Path, job: dict, popen: Popen) -> int:
     command = [str(deploy_dir / "qjudge"), "upgrade", job["target"]]
     try:
-        process = popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                        encoding="utf-8", errors="replace", env={**os.environ, AGENT_JOB_ENV: "1"})
+        # Unbuffered so plain output lines reach the log as they happen; no stdin so a prompt cannot hang the job.
+        process = popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                        text=True, encoding="utf-8", errors="replace",
+                        env={**os.environ, AGENT_JOB_ENV: "1", "PYTHONUNBUFFERED": "1"})
     except OSError as error:
         try:
             state.append_log(deploy_dir, f"cannot start {command[0]}: {error}\n")
