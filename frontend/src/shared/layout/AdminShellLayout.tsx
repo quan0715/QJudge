@@ -99,6 +99,8 @@ const AdminShellLayout = ({
       </Header>
 
       <SideNav
+        // Carbon fixes controlled vs uncontrolled mode at mount, so a variant change must remount.
+        key={isRail ? "rail" : "expanded"}
         aria-label={sideNavAriaLabel}
         {...(isRail ? { isRail: true } : { expanded: true, isFixedNav: true })}
         style={{ top: "3rem", height: "calc(100dvh - 3rem)" }}

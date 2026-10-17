@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { Dashboard } from "@carbon/icons-react";
 import { describe, expect, it, vi } from "vitest";
 
-import AdminShellLayout, { type NavItem } from "./AdminShellLayout";
+import AdminShellLayout, { type NavItem, type SideNavMode } from "./AdminShellLayout";
 
 const navItem = (overrides: Partial<NavItem> = {}): NavItem => ({
   id: "overview",
@@ -14,19 +14,20 @@ const navItem = (overrides: Partial<NavItem> = {}): NavItem => ({
   ...overrides,
 });
 
-const renderShell = (item: NavItem) =>
-  render(
-    <AdminShellLayout
-      headerAriaLabel="Admin"
-      headerLeft={null}
-      headerActions={null}
-      sideNavAriaLabel="Admin navigation"
-      sideNavMode={{ variant: "expanded" }}
-      navItems={[item]}
-    >
-      <p>content</p>
-    </AdminShellLayout>,
-  );
+const shell = (item: NavItem, sideNavMode: SideNavMode = { variant: "expanded" }) => (
+  <AdminShellLayout
+    headerAriaLabel="Admin"
+    headerLeft={null}
+    headerActions={null}
+    sideNavAriaLabel="Admin navigation"
+    sideNavMode={sideNavMode}
+    navItems={[item]}
+  >
+    <p>content</p>
+  </AdminShellLayout>
+);
+
+const renderShell = (item: NavItem) => render(shell(item));
 
 const navLink = () => {
   const link = screen.getByText("Overview").closest("a");
@@ -83,5 +84,31 @@ describe("AdminShellLayout nav items", () => {
     expect(navLink().hasAttribute("href")).toBe(false);
     await userEvent.click(navLink());
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("AdminShellLayout side nav mode", () => {
+  const sideNav = () => screen.getByRole("navigation", { name: "Admin navigation" });
+
+  it("shows the expanded nav after growing out of rail mode", () => {
+    const item = navItem();
+    const { rerender } = render(shell(item, { variant: "rail" }));
+    expect(sideNav().classList.contains("cds--side-nav--rail")).toBe(true);
+
+    rerender(shell(item, { variant: "expanded" }));
+
+    expect(sideNav().classList.contains("cds--side-nav--collapsed")).toBe(false);
+    expect(sideNav().classList.contains("cds--side-nav--expanded")).toBe(true);
+  });
+
+  it("returns to rail mode after shrinking out of expanded mode", () => {
+    const item = navItem();
+    const { rerender } = render(shell(item, { variant: "expanded" }));
+    expect(sideNav().classList.contains("cds--side-nav--expanded")).toBe(true);
+
+    rerender(shell(item, { variant: "rail" }));
+
+    expect(sideNav().classList.contains("cds--side-nav--rail")).toBe(true);
+    expect(sideNav().classList.contains("cds--side-nav--collapsed")).toBe(false);
   });
 });
