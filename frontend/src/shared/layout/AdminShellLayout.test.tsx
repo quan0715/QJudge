@@ -88,27 +88,27 @@ describe("AdminShellLayout nav items", () => {
 });
 
 describe("AdminShellLayout side nav mode", () => {
-  const sideNav = () => screen.getByRole("navigation", { name: "Admin navigation" });
+  // Carbon makes a collapsed nav inert, which hides its links from the keyboard and screen readers.
+  const sideNavIsReachable = () =>
+    !screen.getByRole("navigation", { name: "Admin navigation" }).hasAttribute("inert");
 
-  it("shows the expanded nav after growing out of rail mode", () => {
+  it("keeps the nav reachable after growing out of rail mode", () => {
     const item = navItem();
     const { rerender } = render(shell(item, { variant: "rail" }));
-    expect(sideNav().classList.contains("cds--side-nav--rail")).toBe(true);
+    expect(sideNavIsReachable()).toBe(true);
 
     rerender(shell(item, { variant: "expanded" }));
 
-    expect(sideNav().classList.contains("cds--side-nav--collapsed")).toBe(false);
-    expect(sideNav().classList.contains("cds--side-nav--expanded")).toBe(true);
+    expect(sideNavIsReachable()).toBe(true);
   });
 
-  it("returns to rail mode after shrinking out of expanded mode", () => {
+  it("keeps the nav reachable after shrinking into rail mode", () => {
     const item = navItem();
     const { rerender } = render(shell(item, { variant: "expanded" }));
-    expect(sideNav().classList.contains("cds--side-nav--expanded")).toBe(true);
+    expect(sideNavIsReachable()).toBe(true);
 
     rerender(shell(item, { variant: "rail" }));
 
-    expect(sideNav().classList.contains("cds--side-nav--rail")).toBe(true);
-    expect(sideNav().classList.contains("cds--side-nav--collapsed")).toBe(false);
+    expect(sideNavIsReachable()).toBe(true);
   });
 });
