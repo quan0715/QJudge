@@ -119,6 +119,43 @@ describe("useUpgradeJob", () => {
     expect(getSystemVersion).toHaveBeenCalledTimes(1);
   });
 
+  describe("a finished job and a later release", () => {
+    const FINISHED_AT = "2026-10-17T08:05:00Z";
+    const deployedAt = (at: string) => ({ current: CURRENT, previous: null, deployedAt: at });
+
+    it.each(["succeeded", "failed", "interrupted"] as const)(
+      "drops a %s job once a terminal or CD release deployed after it",
+      async (status) => {
+        vi.mocked(getSystemVersion).mockResolvedValue(
+          state({
+            version: deployedAt("2026-10-18T02:00:00Z"),
+            job: job({ status, step: "migrate", siteHealthy: true, finishedAt: FINISHED_AT }),
+          }),
+        );
+
+        const { result } = renderHook(() => useUpgradeJob(vi.fn()));
+        await flush();
+
+        expect(result.current.phase).toBe("idle");
+      },
+    );
+
+    it.each([
+      ["the same second", FINISHED_AT],
+      ["an earlier second", "2026-10-17T08:04:59Z"],
+    ])("keeps the result of the job that deployed the version in %s", async (_name, at) => {
+      // A successful job writes .version before its finished_at.
+      vi.mocked(getSystemVersion).mockResolvedValue(
+        state({ version: deployedAt(at), job: job({ status: "succeeded", finishedAt: FINISHED_AT }) }),
+      );
+
+      const { result } = renderHook(() => useUpgradeJob(vi.fn()));
+      await flush();
+
+      expect(result.current.phase).toBe("succeeded");
+    });
+  });
+
   it("does not poll while idle", async () => {
     vi.mocked(getSystemVersion).mockResolvedValue(state());
 

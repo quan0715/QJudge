@@ -41,6 +41,18 @@ const reloadPage = () => window.location.reload();
 const isBusy = (state: SystemVersionState | null) =>
   state !== null && (state.job?.status === "running" || state.externalBusy);
 
+/**
+ * The host keeps the last job until the agent runs another, so a release from the terminal or CD
+ * that deployed after the job finished makes its result old news. A successful job records the
+ * deployed version before its finish time, so a deploy in the same second is still its own.
+ */
+const isSuperseded = (state: SystemVersionState): boolean => {
+  const finishedAt = state.job?.finishedAt;
+  const deployedAt = state.version?.deployedAt;
+  if (!finishedAt || !deployedAt) return false;
+  return Date.parse(deployedAt) > Date.parse(finishedAt);
+};
+
 const derivePhase = (
   state: SystemVersionState | null,
   error: string,
@@ -51,6 +63,7 @@ const derivePhase = (
   if (state.externalBusy) return "external";
   if (!state.job) return "idle";
   if (state.job.status === "running") return switching ? "switching" : "running";
+  if (isSuperseded(state)) return "idle";
   return state.job.status;
 };
 

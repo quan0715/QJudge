@@ -553,6 +553,22 @@ describe("SystemVersionScreen", () => {
       }
     });
 
+    it("stops reporting an old failure once a later release was deployed from the terminal or CD", async () => {
+      vi.mocked(getSystemVersion).mockResolvedValue(
+        state({
+          version: { current: NEWER, previous: CURRENT, deployedAt: "2026-10-18T02:00:00Z" },
+          job: job({ status: "failed", step: "migrate", siteHealthy: true, finishedAt: "2026-10-17T08:05:00Z" }),
+        }),
+      );
+
+      render(<SystemVersionScreen />);
+
+      expect(await screen.findByText("sha-cccccccccccc")).toBeTruthy();
+      expect(await screen.findByRole("button", { name: "更新到 sha-bbbbbbbbbbbb" })).toBeTruthy();
+      expect(screen.queryByText(/^更新失敗/)).toBeNull();
+      expect(screen.queryByRole("button", { name: "再試一次" })).toBeNull();
+    });
+
     it("does not name a version when the host has none recorded", async () => {
       vi.mocked(getSystemVersion).mockResolvedValue(
         state({
