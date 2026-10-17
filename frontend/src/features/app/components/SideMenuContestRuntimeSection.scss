@@ -1,5 +1,17 @@
 @use "@carbon/colors";
 
+.contest-runtime-problem-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+
+  > * {
+    flex-shrink: 0;
+  }
+}
+
 .contest-runtime-problem {
   --problem-current: var(--problem-ink);
   --problem-ink: var(--cds-tag-color-gray);

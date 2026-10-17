@@ -62,7 +62,7 @@ export const SideMenuContestRuntimeSection = ({
           hideHeader
         />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 0, minHeight: 0 }}>
+        <div className="contest-runtime-problem-list">
           {displayedProblems.length === 0 ? (
             <p style={{ color: "var(--cds-text-secondary)", fontSize: "0.75rem" }}>
               {compact ? "" : "尚無題目"}
