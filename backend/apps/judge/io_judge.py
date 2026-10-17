@@ -246,7 +246,8 @@ class IOJudge:
             if not os.path.isabs(profile):
                 profile = os.path.join(settings.BASE_DIR, profile)
             if os.path.exists(profile):
-                security_opts.append(f"seccomp={profile}")
+                with open(profile, encoding="utf-8") as profile_file:
+                    security_opts.append(f"seccomp={profile_file.read()}")
 
         run_kwargs = {
             "image": self.image,
