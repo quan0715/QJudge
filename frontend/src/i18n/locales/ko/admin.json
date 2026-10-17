@@ -17,6 +17,7 @@
         "unsupported": "이 환경에는 호스트 agent가 없어 컨테이너 상태를 표시할 수 없습니다"
       }
     },
+    "containersUnread": "프로브 정상, 컨테이너 상태를 읽을 수 없음",
     "contest": "대회",
     "detail": "세부",
     "generatedAt": "진단 시각",

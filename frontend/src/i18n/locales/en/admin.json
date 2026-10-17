@@ -17,6 +17,7 @@
         "unsupported": "No host agent in this environment, so container status is unavailable"
       }
     },
+    "containersUnread": "Probes up; container status unavailable",
     "contest": "Contest",
     "detail": "Detail",
     "generatedAt": "Probed at",

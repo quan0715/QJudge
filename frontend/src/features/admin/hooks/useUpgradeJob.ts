@@ -185,6 +185,14 @@ export function useUpgradeJob(reload: () => void = reloadPage): {
     void load();
   }, [load]);
 
+  // A request still pending when the page goes away must not reload whatever page came next.
+  useEffect(
+    () => () => {
+      requestRef.current += 1;
+    },
+    [],
+  );
+
   const phase = derivePhase(state, error, switching);
   const polling = POLLING_PHASES.includes(phase);
   // Not a job in progress: the agent could not be reached on load, or while it restarts itself.

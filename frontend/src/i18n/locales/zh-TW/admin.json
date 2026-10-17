@@ -17,6 +17,7 @@
         "unsupported": "此環境沒有主機 agent，無法顯示容器狀態"
       }
     },
+    "containersUnread": "探測正常，無法讀取容器狀態",
     "contest": "競賽",
     "detail": "細節",
     "generatedAt": "探測時間",

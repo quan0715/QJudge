@@ -141,7 +141,9 @@ const ServiceStatusScreen = () => {
   }, [load]);
 
   const integrity = report?.integrity;
-  const failed = report ? summarizeServices(report).failed : 0;
+  const { failed, containersUnread } = report
+    ? summarizeServices(report)
+    : { failed: 0, containersUnread: false };
 
   return (
     <div className={styles.pageWrapper}>
@@ -184,10 +186,12 @@ const ServiceStatusScreen = () => {
       {report ? (
         <ContainerCard>
           <div className={styles.statusSummary} data-testid="service-summary">
-            <Tag type={failed === 0 ? "green" : "red"}>
-              {failed === 0
-                ? t("service.allUp", "全部服務正常")
-                : t("service.someDown", "{{count}} 項服務異常", { count: failed })}
+            <Tag type={failed > 0 ? "red" : containersUnread ? "gray" : "green"}>
+              {failed > 0
+                ? t("service.someDown", "{{count}} 項服務異常", { count: failed })
+                : containersUnread
+                  ? t("service.containersUnread", "探測正常，無法讀取容器狀態")
+                  : t("service.allUp", "全部服務正常")}
             </Tag>
             <span className={styles.statLabel}>
               {t("service.generatedAt", "探測時間")}:{" "}

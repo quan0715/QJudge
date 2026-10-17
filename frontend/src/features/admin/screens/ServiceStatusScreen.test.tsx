@@ -263,6 +263,32 @@ describe("ServiceStatusScreen", () => {
     expect(screen.getByTestId("service-components")).toBeTruthy();
   });
 
+  it("does not call everything up while the containers cannot be read", async () => {
+    vi.mocked(getServiceStatus).mockResolvedValue(
+      report({ containers: { agent: "unreachable", items: [] } }),
+    );
+
+    render(<ServiceStatusScreen />);
+
+    const summary = await screen.findByTestId("service-summary");
+    expect(summary.textContent).toContain("探測正常，無法讀取容器狀態");
+    expect(summary.textContent).not.toContain("全部服務正常");
+  });
+
+  it("still counts failed probes while the containers cannot be read", async () => {
+    vi.mocked(getServiceStatus).mockResolvedValue(
+      report({
+        components: [{ id: "database", status: "down", detail: "refused", latencyMs: null }],
+        containers: { agent: "unreachable", items: [] },
+      }),
+    );
+
+    render(<ServiceStatusScreen />);
+
+    const summary = await screen.findByTestId("service-summary");
+    expect(summary.textContent).toContain("1 項服務異常");
+  });
+
   it("says so when the agent answers with no containers", async () => {
     vi.mocked(getServiceStatus).mockResolvedValue(report());
 

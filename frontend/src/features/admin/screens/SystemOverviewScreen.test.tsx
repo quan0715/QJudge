@@ -172,6 +172,19 @@ describe("SystemOverviewScreen", () => {
     await waitFor(() => expect(tile("ingress").textContent).toContain("1 / 2 個入口正常"));
   });
 
+  it("does not call the services healthy while the containers cannot be read", async () => {
+    vi.mocked(getServiceStatus).mockResolvedValue(
+      report({ containers: { agent: "unreachable", items: [] } }),
+    );
+
+    renderOverview();
+
+    await waitFor(() =>
+      expect(tile("services").textContent).toContain("探測正常，無法讀取容器狀態"),
+    );
+    expect(tile("services").textContent).not.toContain("全部服務正常");
+  });
+
   it("counts stopped and unhealthy containers as services too", async () => {
     vi.mocked(getServiceStatus).mockResolvedValue(
       report({

@@ -105,14 +105,16 @@ const SystemOverviewScreen = () => {
           >
             <SourceBody source={services}>
               {(report) => {
-                const { total, failed: down } = summarizeServices(report);
+                const { total, failed: down, containersUnread } = summarizeServices(report);
                 return (
                   <>
                     <div className={styles.tileRow}>
-                      <Tag type={down === 0 ? "green" : "red"}>
-                        {down === 0
-                          ? t("service.allUp", "全部服務正常")
-                          : t("service.someDown", "{{count}} 項服務異常", { count: down })}
+                      <Tag type={down > 0 ? "red" : containersUnread ? "gray" : "green"}>
+                        {down > 0
+                          ? t("service.someDown", "{{count}} 項服務異常", { count: down })
+                          : containersUnread
+                            ? t("service.containersUnread", "探測正常，無法讀取容器狀態")
+                            : t("service.allUp", "全部服務正常")}
                       </Tag>
                     </div>
                     <p className={styles.tileMeta}>

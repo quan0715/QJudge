@@ -57,15 +57,22 @@ export interface ServiceStatusReport {
   containers: ContainerReport;
 }
 
+export interface ServicesSummary {
+  total: number;
+  failed: number;
+  /** The host agent did not answer, so nothing is known about the containers. */
+  containersUnread: boolean;
+}
+
 /** Probes and containers count as services alike, so every page agrees on the totals. */
-export const summarizeServices = (
-  report: ServiceStatusReport,
-): { total: number; failed: number } => {
+export const summarizeServices = (report: ServiceStatusReport): ServicesSummary => {
   const { components, containers } = report;
   return {
     total: components.length + containers.items.length,
     failed:
       components.filter((component) => component.status !== "up").length +
       containers.items.filter((container) => !isContainerHealthy(container)).length,
+    // An environment without an agent ("unsupported") has no containers to miss.
+    containersUnread: containers.agent === "unreachable",
   };
 };

@@ -546,6 +546,26 @@ describe("useUpgradeJob", () => {
     expect(reload).toHaveBeenCalledTimes(1);
   });
 
+  it("does not reload once unmounted, even when a pending poll finds the job succeeded", async () => {
+    const reload = vi.fn();
+    let answer: (value: SystemVersionState) => void = () => undefined;
+    vi.mocked(getSystemVersion)
+      .mockResolvedValueOnce(state({ job: job({ status: "running" }) }))
+      .mockReturnValueOnce(new Promise<SystemVersionState>((resolve) => (answer = resolve)));
+
+    const { unmount } = renderHook(() => useUpgradeJob(reload));
+    await flush();
+    await advance(POLL_INTERVAL_MS);
+    expect(getSystemVersion).toHaveBeenCalledTimes(2);
+
+    // The admin has moved to another page by the time the poll answers.
+    unmount();
+    answer(state({ job: job({ status: "succeeded" }) }));
+    await flush();
+
+    expect(reload).not.toHaveBeenCalled();
+  });
+
   it("does not reload when the page opens on a finished job", async () => {
     const reload = vi.fn();
     vi.mocked(getSystemVersion).mockResolvedValue(state({ job: job({ status: "succeeded" }) }));

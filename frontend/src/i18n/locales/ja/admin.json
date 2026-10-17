@@ -17,6 +17,7 @@
         "unsupported": "この環境にはホスト agent がないため、コンテナの状態を表示できません"
       }
     },
+    "containersUnread": "プローブは正常、コンテナの状態は取得できません",
     "contest": "コンテスト",
     "detail": "詳細",
     "generatedAt": "プローブ時刻",
