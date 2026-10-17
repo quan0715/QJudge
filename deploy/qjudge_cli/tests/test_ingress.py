@@ -198,6 +198,40 @@ class IngressTests(unittest.TestCase):
         self.assertEqual(entries["media"].probe, "https://live.example.edu")
         self.assertEqual((entries["turn"].probe, entries["turn"].expect), ("turn.example.edu:443", "tcp"))
 
+    def test_tunnel_entries_target_the_tunnel_routes(self):
+        bundled = {**VALID, "MEDIA_MODE": "bundled", "LIVEKIT_PUBLIC_URL": "wss://live.example.edu",
+                   "LIVEKIT_TURN_HOST": "turn.example.edu", "COMPOSE_PROFILES": "postal, tunnel"}
+        targets = {e.id: e.target for e in ingress_entries(bundled)}
+        self.assertEqual(targets, {
+            "site": "http://frontend:80",
+            "mcp": "http://frontend:80",
+            "storage": "http://minio:9000",
+            "media": "http://livekit:7880",
+            # Cloudflare Tunnel has no route for TURN; the proxy host still terminates it.
+            "turn": "tcp 127.0.0.1:5349",
+        })
+        text = render_ingress(bundled)
+        for target in ("http://frontend:80", "http://minio:9000", "http://livekit:7880"):
+            self.assertIn(f"-> {target}", text)
+
+    def test_tunnel_entries_on_the_main_origin_target_the_frontend_route(self):
+        env = {**VALID, "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": "", "MEDIA_MODE": "bundled",
+               "LIVEKIT_PUBLIC_URL": "", "LIVEKIT_TURN_HOST": "turn.example.edu", "COMPOSE_PROFILES": "tunnel"}
+        targets = {e.id: e.target for e in ingress_entries(env)}
+        self.assertEqual(targets["storage"], "http://frontend:80")
+        self.assertEqual(targets["media"], "http://frontend:80")
+
+    def test_external_media_is_listed_without_turn(self):
+        env = {**VALID, "MEDIA_MODE": "external", "LIVEKIT_PUBLIC_URL": "wss://live.example.edu/",
+               "LIVEKIT_TURN_HOST": "turn.example.edu", "COMPOSE_PROFILES": "tunnel"}
+        entries = {e.id: e for e in ingress_entries(env)}
+        self.assertNotIn("turn", entries)
+        media = entries["media"]
+        self.assertEqual(
+            (media.public, media.target, media.probe, media.expect),
+            ("wss://live.example.edu", "external (existing LiveKit)", "https://live.example.edu", "reachable"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

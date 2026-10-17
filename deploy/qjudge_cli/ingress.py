@@ -9,6 +9,12 @@ from .media_config import TURN_TCP_PORT
 from .schema import Env, uses_public_origin
 
 MINIO_PORT = 9000
+# Cloudflare Tunnel reaches the services by name on the compose network, not through host ports.
+TUNNEL_FRONTEND = "http://frontend:80"
+TUNNEL_MINIO = f"http://minio:{MINIO_PORT}"
+TUNNEL_LIVEKIT = "http://livekit:7880"
+# MEDIA_MODE=external: an existing LiveKit that QJudge does not route to.
+EXTERNAL_MEDIA_TARGET = "external (existing LiveKit)"
 
 
 def _bind_address(env: Env) -> str:
@@ -18,6 +24,10 @@ def _bind_address(env: Env) -> str:
 def _frontend(env: Env) -> str:
     port = env.get("FRONTEND_PORT", "").strip() or "8080"
     return f"http://{_bind_address(env)}:{port}"
+
+
+def _tunnel(env: Env) -> bool:
+    return "tunnel" in [item.strip() for item in env.get("COMPOSE_PROFILES", "").split(",")]
 
 
 def _bundled_storage(env: Env) -> str:
@@ -39,20 +49,33 @@ def _bundled_media(env: Env) -> str:
     return origin.replace("http", "ws", 1) + "/livekit"
 
 
+def _external_media(env: Env) -> str:
+    """Public LiveKit URL when QJudge uses an existing LiveKit, else ''."""
+    if env.get("MEDIA_MODE", "").strip() != "external":
+        return ""
+    return env.get("LIVEKIT_PUBLIC_URL", "").strip().rstrip("/")
+
+
+def _http_probe(url: str) -> str:
+    # wss -> https, ws -> http
+    return "http" + url[2:] if url.startswith("ws") else url
+
+
 @dataclass(frozen=True)
 class IngressEntry:
     """One public entry point and how to probe it from the host."""
 
     id: str       # "site" | "mcp" | "storage" | "media" | "turn"
     public: str   # address users connect to
-    target: str   # where the reverse proxy should forward
+    target: str   # where the reverse proxy or tunnel route forwards; a description for external services
     probe: str    # http(s) URL, or "host:port" for tcp
     expect: str   # "200" (must be 200) | "reachable" (HTTP 1-499) | "tcp"
 
 
 def ingress_entries(env: Env) -> list[IngressEntry]:
     origin = env.get("QJUDGE_PUBLIC_ORIGIN", "").strip().rstrip("/")
-    frontend = _frontend(env)
+    tunnel = _tunnel(env)
+    frontend = TUNNEL_FRONTEND if tunnel else _frontend(env)
     entries = [
         IngressEntry("site", origin, frontend, f"{origin}/api/health/", "200"),
         IngressEntry("mcp", f"{origin}/mcp", frontend, f"{origin}/mcp", "reachable"),
@@ -64,19 +87,22 @@ def ingress_entries(env: Env) -> list[IngressEntry]:
             entries.append(IngressEntry("storage", public, frontend, public, "reachable"))
         else:
             entries.append(IngressEntry(
-                "storage", storage, f"http://{_bind_address(env)}:{MINIO_PORT}",
+                "storage", storage, TUNNEL_MINIO if tunnel else f"http://{_bind_address(env)}:{MINIO_PORT}",
                 f"{storage}/minio/health/live", "200",
             ))
     media = _bundled_media(env)
     if media:
-        target = frontend if uses_public_origin(env, media) else f"http://{_bind_address(env)}:7880"
-        # wss -> https, ws -> http
-        probe = "http" + media[2:] if media.startswith("ws") else media
-        entries.append(IngressEntry("media", media, target, probe, "reachable"))
+        livekit = TUNNEL_LIVEKIT if tunnel else f"http://{_bind_address(env)}:7880"
+        target = frontend if uses_public_origin(env, media) else livekit
+        entries.append(IngressEntry("media", media, target, _http_probe(media), "reachable"))
+        # A tunnel cannot carry TURN, so the proxy host terminates it either way.
         turn = f"{env.get('LIVEKIT_TURN_HOST', '').strip()}:443"
         entries.append(IngressEntry(
             "turn", turn, f"tcp {_bind_address(env)}:{TURN_TCP_PORT}", turn, "tcp",
         ))
+    external = _external_media(env)
+    if external:
+        entries.append(IngressEntry("media", external, EXTERNAL_MEDIA_TARGET, _http_probe(external), "reachable"))
     return entries
 
 
@@ -99,7 +125,7 @@ def render_ingress(env: Env) -> str:
         f"  Remote MCP clients connect to {origin}/mcp",
     ]
     # Tunnel routes match by hostname; a port here would never match.
-    routes = [(origin_parts.hostname, "http://frontend:80")]
+    routes = [(origin_parts.hostname, TUNNEL_FRONTEND)]
     storage = _bundled_storage(env)
     if storage:
         if uses_public_origin(env, storage):
@@ -115,7 +141,7 @@ def render_ingress(env: Env) -> str:
                 f"  Reverse proxy -> http://{_bind_address(env)}:{MINIO_PORT} "
                 "(MinIO; pass Host unchanged, no body size limit, buffering off)",
             ]
-            routes.append((urlsplit(storage).hostname, f"http://minio:{MINIO_PORT}"))
+            routes.append((urlsplit(storage).hostname, TUNNEL_MINIO))
     media = _bundled_media(env)
     if media:
         media_host = urlsplit(media).hostname
@@ -132,7 +158,7 @@ def render_ingress(env: Env) -> str:
         else:
             lines.append(f"  Reverse proxy -> http://{_bind_address(env)}:7880 (LiveKit HTTP/WebSocket signaling)")
             if media_host:
-                routes.append((media_host, "http://livekit:7880"))
+                routes.append((media_host, TUNNEL_LIVEKIT))
         lines += [
             f"  Open directly on {env.get('LIVEKIT_NODE_IP', '').strip()}: TCP 7881, UDP 50000-50099, "
             "UDP 3478 and UDP 50300-50399 (media, TURN and TURN relay)",
@@ -141,8 +167,7 @@ def render_ingress(env: Env) -> str:
             f"  TLS termination on 443 -> tcp {_bind_address(env)}:{TURN_TCP_PORT} (LiveKit TURN; forward plain TCP)",
             f"  The proxy host manages the {turn_host} certificate; reload the proxy after renewal.",
         ]
-    profiles = [item.strip() for item in env.get("COMPOSE_PROFILES", "").split(",")]
-    if "tunnel" in profiles:
+    if _tunnel(env):
         lines += ["", "Cloudflare Tunnel"]
         lines += [f"  route {name} -> {target}" for name, target in routes]
     lines += ["", "Run `deploy/qjudge ingress --nginx` for reverse proxy server blocks."]
