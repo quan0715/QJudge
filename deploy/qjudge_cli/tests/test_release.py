@@ -115,7 +115,7 @@ class ReleaseTests(unittest.TestCase):
         build = next(i for i, command in enumerate(commands) if command.startswith("docker build "))
         inspect = next(i for i, command in enumerate(commands)
                        if i > build and command == "docker image inspect qjudge/judge:sha-" + NEW[:12])
-        start = next(i for i, command in enumerate(commands) if "up -d postgres" in command)
+        start = next(i for i, command in enumerate(commands) if "up -d --no-recreate postgres" in command)
         self.assertLess(inspect, start)
 
     def test_upgrade_aborts_when_fallback_build_fails_or_image_is_missing(self):
@@ -136,6 +136,16 @@ class ReleaseTests(unittest.TestCase):
         self.assertFalse(any("pg_dump" in c for c in commands))
         self.assertFalse(any(" up -d " in f" {c} " for c in commands))
 
+    def test_data_services_are_started_but_never_recreated_before_the_switch(self):
+        host = FakeHost()
+        self.assertEqual(self._upgrade(host), 0)
+        ups = [c for c in host.commands() if " up -d " in f" {c} "]
+        [infrastructure] = [c for c in ups if "postgres" in c]
+        self.assertTrue(infrastructure.endswith(" up -d --no-recreate postgres pgbouncer redis"), infrastructure)
+        [switch] = [c for c in ups if "--remove-orphans" in c]
+        self.assertNotIn("--no-recreate", switch)
+        self.assertLess(host.commands().index(infrastructure), host.commands().index(switch))
+
     def test_model_config_is_checked_right_after_build(self):
         host = FakeHost()
         self.assertEqual(self._upgrade(host), 0)
@@ -143,7 +153,7 @@ class ReleaseTests(unittest.TestCase):
         build = next(i for i, c in enumerate(order) if c.endswith(" build"))
         check = next(i for i, c in enumerate(order)
                      if "run --rm --no-deps ai-service python -m infrastructure.agent.model_config" in c)
-        postgres = next(i for i, c in enumerate(order) if "up -d postgres" in c)
+        postgres = next(i for i, c in enumerate(order) if "up -d --no-recreate postgres" in c)
         self.assertLess(build, check)
         self.assertLess(check, postgres)
 

@@ -311,7 +311,10 @@ def upgrade(
     if stack.compose(version, "run", "--rm", "--no-deps", service, *command).returncode != 0:
         return abort("deploy/ai/models.yml is invalid; services still run the previous version")
     _step("backup")
-    if (stack.compose(version, "up", "-d", "postgres", "pgbouncer", "redis").returncode != 0
+    # --no-recreate: only start what is stopped. The agent image's compose and the host's can hash
+    # the same config differently, and a plain `up` would then recreate postgres and pgbouncer here
+    # and take the site down before the switch. Changes to these services apply at the switch below.
+    if (stack.compose(version, "up", "-d", "--no-recreate", "postgres", "pgbouncer", "redis").returncode != 0
             or not stack.wait(lambda: stack.healthy(version, ("postgres",)), POSTGRES_TIMEOUT)):
         return abort("postgres is not healthy")
     if not stack.backup(version, sha):
