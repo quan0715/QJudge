@@ -130,6 +130,7 @@
       "retry": "再試一次",
       "succeeded": "已更新到 {{version}}",
       "switching": "正在切換服務，網站暫時無法連線。這是正常的，頁面會自動重新連線，不需要重新整理。",
+      "switchingTooLong": "切換時間超過預期。若網站仍無法連線，請聯絡維護者並提供主機上的 deploy/.agent/job.log。",
       "failed": {
         "healthy": "更新失敗，網站維持在 {{version}} 正常運作。",
         "healthyUnknown": "更新失敗，網站維持在目前版本正常運作。",

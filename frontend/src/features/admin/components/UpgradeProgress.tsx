@@ -68,10 +68,17 @@ interface UpgradeProgressProps {
   log: string;
   /** The API is out of reach because the services are being replaced, which is expected. */
   switching?: boolean;
+  /** It has been unreachable for longer than a switch takes, so stop saying it is normal. */
+  switchingTooLong?: boolean;
 }
 
 /** The six upgrade steps, how long the job has run, and the host's log of it. */
-const UpgradeProgress = ({ job, log, switching = false }: UpgradeProgressProps) => {
+const UpgradeProgress = ({
+  job,
+  log,
+  switching = false,
+  switchingTooLong = false,
+}: UpgradeProgressProps) => {
   const { t } = useTranslation("admin");
 
   const stepIndex = job.step ? UPGRADE_STEPS.indexOf(job.step) : -1;
@@ -106,7 +113,19 @@ const UpgradeProgress = ({ job, log, switching = false }: UpgradeProgressProps) 
         {job.status === "running" ? <ElapsedTime startedAt={job.startedAt} /> : null}
       </div>
 
-      {switching ? (
+      {switching && switchingTooLong ? (
+        <InlineNotification
+          kind="warning"
+          lowContrast
+          hideCloseButton
+          className={styles.notice}
+          title={t(
+            "system.version.switchingTooLong",
+            "切換時間超過預期。若網站仍無法連線，請聯絡維護者並提供主機上的 deploy/.agent/job.log。",
+          )}
+        />
+      ) : null}
+      {switching && !switchingTooLong ? (
         <InlineNotification
           kind="info"
           lowContrast

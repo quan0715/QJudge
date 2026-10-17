@@ -130,6 +130,7 @@
       "retry": "Try again",
       "succeeded": "Updated to {{version}}",
       "switching": "Switching services. The site is briefly unreachable, which is expected. This page reconnects on its own, so there is no need to refresh.",
+      "switchingTooLong": "Switching is taking longer than expected. If the site is still unreachable, contact the maintainer and provide deploy/.agent/job.log on the host.",
       "failed": {
         "healthy": "Update failed. The site is still running {{version}} normally.",
         "healthyUnknown": "Update failed. The site is still running the current version normally.",

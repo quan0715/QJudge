@@ -21,6 +21,13 @@ export type UpgradePhase =
 
 export const POLL_INTERVAL_MS = 3000;
 
+/**
+ * How long polls may keep failing before "switching" stops being a normal answer. A switch
+ * takes about a minute, so past this the site is probably down and the host job result cannot
+ * reach this page, which reads it through the same backend.
+ */
+export const SWITCHING_WARN_AFTER_MS = 10 * 60 * 1000;
+
 const reloadPage = () => window.location.reload();
 
 /** An upgrade is under way, started here, by another admin, or by the terminal or CD. */
@@ -53,16 +60,21 @@ export function useUpgradeJob(reload: () => void = reloadPage): {
   phase: UpgradePhase;
   state: SystemVersionState | null;
   error: string;
+  /** Polls have kept failing for longer than a service switch should take. */
+  switchingTooLong: boolean;
   refresh: () => Promise<void>;
   start: (target: string) => Promise<StartUpgradeResult>;
 } {
   const [state, setState] = useState<SystemVersionState | null>(null);
   const [error, setError] = useState("");
   const [switching, setSwitching] = useState(false);
+  const [switchingTooLong, setSwitchingTooLong] = useState(false);
 
   // The latest state for callbacks that outlive a render, and which request answered last.
   const stateRef = useRef<SystemVersionState | null>(null);
   const requestRef = useRef(0);
+  // When the polls started failing without an answer in between.
+  const switchingSinceRef = useRef<number | null>(null);
   const reloadRef = useRef(reload);
   const reloadedRef = useRef(false);
 
@@ -76,6 +88,8 @@ export function useUpgradeJob(reload: () => void = reloadPage): {
     stateRef.current = next;
     setState(next);
     setSwitching(false);
+    switchingSinceRef.current = null;
+    setSwitchingTooLong(false);
     setError("");
     // Only a job watched going from running to succeeded means this page holds stale assets.
     if (
@@ -88,6 +102,13 @@ export function useUpgradeJob(reload: () => void = reloadPage): {
     }
   }, []);
 
+  const markSwitching = useCallback(() => {
+    const now = Date.now();
+    switchingSinceRef.current ??= now;
+    setSwitching(true);
+    if (now - switchingSinceRef.current >= SWITCHING_WARN_AFTER_MS) setSwitchingTooLong(true);
+  }, []);
+
   const refresh = useCallback(async () => {
     requestRef.current += 1;
     const request = requestRef.current;
@@ -97,7 +118,7 @@ export function useUpgradeJob(reload: () => void = reloadPage): {
     } catch (caught) {
       if (request !== requestRef.current) return;
       if (isBusy(stateRef.current)) {
-        setSwitching(true);
+        markSwitching();
       } else {
         setError(caught instanceof Error ? caught.message : String(caught));
       }
@@ -106,11 +127,11 @@ export function useUpgradeJob(reload: () => void = reloadPage): {
     if (request !== requestRef.current) return;
     if (next.agent === "unreachable" && isBusy(stateRef.current)) {
       // The host agent restarts itself after an upgrade, so it may vanish for a moment.
-      setSwitching(true);
+      markSwitching();
       return;
     }
     accept(next);
-  }, [accept]);
+  }, [accept, markSwitching]);
 
   const start = useCallback(
     async (target: string): Promise<StartUpgradeResult> => {
@@ -154,5 +175,12 @@ export function useUpgradeJob(reload: () => void = reloadPage): {
     };
   }, [polling, refresh]);
 
-  return { phase, state, error, refresh, start };
+  return {
+    phase,
+    state,
+    error,
+    switchingTooLong: phase === "switching" && switchingTooLong,
+    refresh,
+    start,
+  };
 }

@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { POLL_INTERVAL_MS, useUpgradeJob } from "./useUpgradeJob";
+import { POLL_INTERVAL_MS, SWITCHING_WARN_AFTER_MS, useUpgradeJob } from "./useUpgradeJob";
 import { EnvelopeError } from "@/infrastructure/api/envelope";
 import {
   getSystemVersion,
@@ -209,6 +209,107 @@ describe("useUpgradeJob", () => {
     await advance(POLL_INTERVAL_MS);
     expect(result.current.phase).toBe("succeeded");
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  describe("switching for too long", () => {
+    /** The API answers while `failing` is false, and fails like a dead backend otherwise. */
+    const flakyApi = (running = state({ job: job({ step: "switch" }) })) => {
+      const api = { failing: false };
+      vi.mocked(getSystemVersion).mockImplementation(async () => {
+        if (api.failing) throw new TypeError("Failed to fetch");
+        return running;
+      });
+      return api;
+    };
+
+    it("warns after ten minutes of failed polls, and keeps polling without an error", async () => {
+      const api = flakyApi();
+      const { result } = renderHook(() => useUpgradeJob(vi.fn()));
+      await flush();
+      expect(result.current.switchingTooLong).toBe(false);
+
+      api.failing = true;
+      await advance(POLL_INTERVAL_MS);
+      expect(result.current.phase).toBe("switching");
+
+      // The last failed poll before the limit still counts as an expected switch.
+      await advance(SWITCHING_WARN_AFTER_MS - POLL_INTERVAL_MS);
+      expect(result.current.phase).toBe("switching");
+      expect(result.current.switchingTooLong).toBe(false);
+
+      await advance(POLL_INTERVAL_MS);
+      expect(result.current.phase).toBe("switching");
+      expect(result.current.switchingTooLong).toBe(true);
+      expect(result.current.error).toBe("");
+
+      const polls = vi.mocked(getSystemVersion).mock.calls.length;
+      await advance(POLL_INTERVAL_MS * 2);
+      expect(vi.mocked(getSystemVersion).mock.calls.length).toBe(polls + 2);
+    });
+
+    it("starts counting again after a poll succeeds", async () => {
+      const api = flakyApi();
+      const { result } = renderHook(() => useUpgradeJob(vi.fn()));
+      await flush();
+
+      api.failing = true;
+      await advance(SWITCHING_WARN_AFTER_MS - POLL_INTERVAL_MS * 2);
+      expect(result.current.phase).toBe("switching");
+
+      api.failing = false;
+      await advance(POLL_INTERVAL_MS);
+      expect(result.current.phase).toBe("running");
+
+      // Another stretch just under the limit is a new, short switch, not a long one.
+      api.failing = true;
+      await advance(SWITCHING_WARN_AFTER_MS - POLL_INTERVAL_MS * 2);
+      expect(result.current.phase).toBe("switching");
+      expect(result.current.switchingTooLong).toBe(false);
+
+      // The first failed poll of this stretch came one interval after the answer, so the limit
+      // is reached three intervals after the point where the stretch above ended.
+      await advance(POLL_INTERVAL_MS * 3);
+      expect(result.current.switchingTooLong).toBe(true);
+    });
+
+    it("clears the warning once the API answers again", async () => {
+      const api = flakyApi();
+      const { result } = renderHook(() => useUpgradeJob(vi.fn()));
+      await flush();
+
+      api.failing = true;
+      await advance(SWITCHING_WARN_AFTER_MS + POLL_INTERVAL_MS * 2);
+      expect(result.current.switchingTooLong).toBe(true);
+
+      api.failing = false;
+      await advance(POLL_INTERVAL_MS);
+      expect(result.current.phase).toBe("running");
+      expect(result.current.switchingTooLong).toBe(false);
+    });
+
+    it("counts the host agent being unreachable as part of the same switch", async () => {
+      vi.mocked(getSystemVersion)
+        .mockResolvedValueOnce(state({ job: job({ step: "verify" }) }))
+        .mockResolvedValue(state({ agent: "unreachable", version: null, job: null }));
+
+      const { result } = renderHook(() => useUpgradeJob(vi.fn()));
+      await flush();
+      await advance(SWITCHING_WARN_AFTER_MS + POLL_INTERVAL_MS);
+
+      expect(result.current.phase).toBe("switching");
+      expect(result.current.switchingTooLong).toBe(true);
+    });
+
+    it("is never set outside the switching phase", async () => {
+      vi.mocked(getSystemVersion).mockResolvedValue(state());
+
+      const { result } = renderHook(() => useUpgradeJob(vi.fn()));
+      await flush();
+      await advance(SWITCHING_WARN_AFTER_MS * 2);
+
+      expect(result.current.phase).toBe("idle");
+      expect(result.current.switchingTooLong).toBe(false);
+    });
   });
 
   it("reloads once after watching the job succeed", async () => {

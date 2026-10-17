@@ -71,7 +71,7 @@ const VersionPanel = ({ label, version, meta, muted = false }: VersionPanelProps
 
 const SystemVersionScreen = () => {
   const { t } = useTranslation("admin");
-  const { phase, state, error, refresh, start } = useUpgradeJob();
+  const { phase, state, error, switchingTooLong, refresh, start } = useUpgradeJob();
   const { release, checking, error: checkError, check } = useReleaseCheck();
 
   const [confirmTarget, setConfirmTarget] = useState<string | null>(null);
@@ -232,7 +232,12 @@ const SystemVersionScreen = () => {
       case "switching":
         return job ? (
           <ContainerCard>
-            <UpgradeProgress job={job} log={state?.log ?? ""} switching={phase === "switching"} />
+            <UpgradeProgress
+              job={job}
+              log={state?.log ?? ""}
+              switching={phase === "switching"}
+              switchingTooLong={switchingTooLong}
+            />
           </ContainerCard>
         ) : null;
       case "failed":

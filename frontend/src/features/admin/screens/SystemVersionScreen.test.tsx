@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import SystemVersionScreen from "./SystemVersionScreen";
+import { POLL_INTERVAL_MS, SWITCHING_WARN_AFTER_MS } from "../hooks/useUpgradeJob";
 import { EnvelopeError } from "@/infrastructure/api/envelope";
 import {
   checkSystemUpdates,
@@ -40,6 +41,8 @@ const CONFIRM_TEXT =
   "更新前會先備份資料庫。切換服務時網站會中斷約 30 秒到 1 分鐘，正在作答的學生可能會短暫看到錯誤頁。更新失敗會自動維持在目前版本。";
 const SWITCHING_TEXT =
   "正在切換服務，網站暫時無法連線。這是正常的，頁面會自動重新連線，不需要重新整理。";
+const SWITCHING_TOO_LONG_TEXT =
+  "切換時間超過預期。若網站仍無法連線，請聯絡維護者並提供主機上的 deploy/.agent/job.log。";
 const NOT_LATEST_TEXT = "main 已有更新的版本，請確認後再更新";
 const HEALTHY_FAILURE_TEXT = "更新失敗，網站維持在 sha-aaaaaaaaaaaa 正常運作。";
 const UNHEALTHY_FAILURE_TEXT = "更新失敗，網站可能異常，請把紀錄交給維護者。";
@@ -417,6 +420,61 @@ describe("SystemVersionScreen", () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(3000);
       });
+      expect(screen.queryByText(SWITCHING_TEXT)).toBeNull();
+      expect(within(stepItem("健康檢查")).getByText("進行中")).toBeTruthy();
+    });
+  });
+
+  describe("when switching services takes too long", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const advance = (ms: number) =>
+      act(async () => {
+        await vi.advanceTimersByTimeAsync(ms);
+      });
+
+    it("keeps reassuring for ten minutes, then warns and points to the job log", async () => {
+      vi.mocked(getSystemVersion)
+        .mockResolvedValueOnce(state({ job: job({ step: "switch" }) }))
+        .mockRejectedValue(new TypeError("Failed to fetch"));
+
+      render(<SystemVersionScreen />);
+      await advance(0);
+      await advance(POLL_INTERVAL_MS);
+      expect(screen.getByText(SWITCHING_TEXT)).toBeTruthy();
+
+      await advance(SWITCHING_WARN_AFTER_MS - POLL_INTERVAL_MS);
+      expect(screen.getByText(SWITCHING_TEXT)).toBeTruthy();
+      expect(screen.queryByText(SWITCHING_TOO_LONG_TEXT)).toBeNull();
+
+      await advance(POLL_INTERVAL_MS);
+      expect(screen.getByText(SWITCHING_TOO_LONG_TEXT)).toBeTruthy();
+      expect(screen.queryByText(SWITCHING_TEXT)).toBeNull();
+      // Still no error page, and the steps stay on screen.
+      expect(screen.queryByText("無法讀取系統版本")).toBeNull();
+      expect(within(stepItem("切換服務")).getByText("進行中")).toBeTruthy();
+    });
+
+    it("drops the warning when the API answers again", async () => {
+      vi.mocked(getSystemVersion)
+        .mockResolvedValueOnce(state({ job: job({ step: "switch" }) }))
+        .mockRejectedValue(new TypeError("Failed to fetch"));
+
+      render(<SystemVersionScreen />);
+      await advance(0);
+      await advance(SWITCHING_WARN_AFTER_MS + POLL_INTERVAL_MS * 2);
+      expect(screen.getByText(SWITCHING_TOO_LONG_TEXT)).toBeTruthy();
+
+      vi.mocked(getSystemVersion).mockResolvedValue(state({ job: job({ step: "verify" }) }));
+      await advance(POLL_INTERVAL_MS);
+
+      expect(screen.queryByText(SWITCHING_TOO_LONG_TEXT)).toBeNull();
       expect(screen.queryByText(SWITCHING_TEXT)).toBeNull();
       expect(within(stepItem("健康檢查")).getByText("進行中")).toBeTruthy();
     });
