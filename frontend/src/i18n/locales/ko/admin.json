@@ -106,6 +106,65 @@
         "media": "라이브 미디어 (LiveKit)",
         "turn": "TURN"
       }
+    },
+    "version": {
+      "title": "시스템 버전",
+      "subtitle": "현재 배포된 버전과 업데이트할 수 있는 main 최신 버전입니다.",
+      "recheck": "다시 확인",
+      "reconnect": "다시 연결",
+      "current": "현재 버전",
+      "latest": "main 최신 버전",
+      "deployedAt": "{{time}}에 배포됨",
+      "committedAt": "{{time}}에 커밋됨",
+      "contains": "이번 업데이트에 포함된 내용",
+      "updateTo": "{{version}}(으)로 업데이트",
+      "upToDate": "최신 버전입니다",
+      "update": "업데이트",
+      "checkFailed": "새 버전을 확인할 수 없습니다",
+      "loadFailed": "시스템 버전을 불러올 수 없습니다",
+      "startFailed": "업데이트를 시작할 수 없습니다",
+      "notLatest": "main에 더 새로운 버전이 있습니다. 확인한 뒤 업데이트하세요",
+      "unsupported": "이 환경은 온라인 업데이트를 지원하지 않습니다",
+      "external": "다른 업데이트가 진행 중입니다(터미널 또는 CD에서 시작됨)",
+      "interrupted": "지난 업데이트가 진행 중에 중단되었습니다. 사이트 상태는 현재 버전을 기준으로 합니다.",
+      "retry": "다시 시도",
+      "succeeded": "{{version}}(으)로 업데이트했습니다",
+      "switching": "서비스를 전환하는 중입니다. 사이트에 잠시 연결할 수 없지만 정상적인 동작입니다. 페이지가 자동으로 다시 연결되므로 새로고침할 필요가 없습니다.",
+      "failed": {
+        "healthy": "업데이트에 실패했습니다. 사이트는 {{version}} 상태로 정상 동작하고 있습니다.",
+        "healthyUnknown": "업데이트에 실패했습니다. 사이트는 현재 버전 상태로 정상 동작하고 있습니다.",
+        "unhealthy": "업데이트에 실패했습니다. 사이트에 문제가 있을 수 있습니다. 로그를 유지보수 담당자에게 전달하세요.",
+        "step": "실패한 단계: {{step}}"
+      },
+      "confirm": {
+        "title": "{{version}}(으)로 업데이트 확인",
+        "start": "업데이트 시작",
+        "body": "업데이트 전에 데이터베이스를 먼저 백업합니다. 서비스를 전환하는 동안 사이트가 약 30초에서 1분 정도 중단되며, 응시 중인 학생에게 잠시 오류 페이지가 보일 수 있습니다. 업데이트에 실패하면 자동으로 현재 버전을 유지합니다."
+      },
+      "progress": {
+        "target": "대상 버전",
+        "elapsed": "경과 시간 {{time}}",
+        "steps": {
+          "prepare": "새 버전 내려받기 및 설정 확인",
+          "build": "이미지 빌드",
+          "backup": "데이터베이스 백업",
+          "migrate": "데이터베이스 마이그레이션",
+          "switch": "서비스 전환",
+          "verify": "상태 점검"
+        },
+        "status": {
+          "complete": "완료",
+          "current": "진행 중",
+          "incomplete": "시작 전",
+          "failed": "오류 발생",
+          "interrupted": "중단됨"
+        }
+      },
+      "log": {
+        "toggle": "상세 로그",
+        "copy": "로그 복사",
+        "copied": "복사됨"
+      }
     }
   },
   "user": {

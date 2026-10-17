@@ -106,6 +106,65 @@
         "media": "Live media (LiveKit)",
         "turn": "TURN"
       }
+    },
+    "version": {
+      "title": "System version",
+      "subtitle": "The version deployed now, and the latest main you can update to.",
+      "recheck": "Check again",
+      "reconnect": "Reconnect",
+      "current": "Current version",
+      "latest": "Latest on main",
+      "deployedAt": "Deployed {{time}}",
+      "committedAt": "Committed {{time}}",
+      "contains": "This update includes",
+      "updateTo": "Update to {{version}}",
+      "upToDate": "Already up to date",
+      "update": "Update",
+      "checkFailed": "Could not check for updates",
+      "loadFailed": "Could not load the system version",
+      "startFailed": "Could not start the update",
+      "notLatest": "main has a newer version. Review it before updating.",
+      "unsupported": "This environment does not support online updates",
+      "external": "Another update is in progress (started from a terminal or CD)",
+      "interrupted": "The last update was interrupted. The site is on the current version.",
+      "retry": "Try again",
+      "succeeded": "Updated to {{version}}",
+      "switching": "Switching services. The site is briefly unreachable, which is expected. This page reconnects on its own, so there is no need to refresh.",
+      "failed": {
+        "healthy": "Update failed. The site is still running {{version}} normally.",
+        "healthyUnknown": "Update failed. The site is still running the current version normally.",
+        "unhealthy": "Update failed. The site may be unhealthy. Hand the log to the maintainer.",
+        "step": "Failed step: {{step}}"
+      },
+      "confirm": {
+        "title": "Confirm update to {{version}}",
+        "start": "Start update",
+        "body": "The database is backed up first. While services are switched over, the site is unavailable for about 30 seconds to 1 minute, and students taking an exam may briefly see an error page. If the update fails, the site stays on the current version."
+      },
+      "progress": {
+        "target": "Target version",
+        "elapsed": "Elapsed {{time}}",
+        "steps": {
+          "prepare": "Fetch the release and check settings",
+          "build": "Build images",
+          "backup": "Back up the database",
+          "migrate": "Migrate the database",
+          "switch": "Switch services",
+          "verify": "Health check"
+        },
+        "status": {
+          "complete": "Complete",
+          "current": "In progress",
+          "incomplete": "Not started",
+          "failed": "Failed",
+          "interrupted": "Interrupted"
+        }
+      },
+      "log": {
+        "toggle": "Detailed log",
+        "copy": "Copy log",
+        "copied": "Copied"
+      }
     }
   },
   "user": {

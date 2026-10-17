@@ -1,0 +1,59 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: layout.$spacing-03;
+}
+
+.target {
+  @include type.type-style("body-compact-02");
+}
+
+.targetSha {
+  @include type.type-style("code-02");
+}
+
+.elapsed {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+// Carbon caps notifications at a fixed width; this one explains the whole page.
+.notice {
+  max-inline-size: none;
+}
+
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.logActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+}
+
+// Long log lines wrap so the page itself never scrolls sideways.
+.logBody {
+  @include type.type-style("code-01");
+  max-block-size: layout.rem(320px);
+  margin: 0;
+  padding: layout.$spacing-04;
+  overflow: auto;
+  background-color: var(--cds-background);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
