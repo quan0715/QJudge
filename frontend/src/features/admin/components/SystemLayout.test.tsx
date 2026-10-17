@@ -80,6 +80,32 @@ describe("SystemLayout", () => {
     expect(navLink("Ingress").getAttribute("aria-current")).toBeNull();
   });
 
+  it("makes every section a real link to its path", () => {
+    renderAt("/system");
+
+    const hrefs = Array.from(sideNav().querySelectorAll("a")).map((link) => link.getAttribute("href"));
+    expect(hrefs).toEqual([
+      "/system",
+      "/system/users",
+      "/system/service-status",
+      "/system/ingress",
+      "/system/version",
+    ]);
+  });
+
+  it("reaches and opens a section from the keyboard", async () => {
+    renderAt("/system");
+
+    const target = navLink("系統版本");
+    for (let presses = 0; presses < 10 && document.activeElement !== target; presses += 1) {
+      await userEvent.tab();
+    }
+    expect(document.activeElement).toBe(target);
+
+    await userEvent.keyboard("{Enter}");
+    expect(currentPath()).toBe("/system/version");
+  });
+
   it("marks only the overview at /system, not every section under it", () => {
     renderAt("/system");
 

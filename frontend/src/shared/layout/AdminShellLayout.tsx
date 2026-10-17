@@ -1,4 +1,4 @@
-import { useEffect, type ComponentType, type ReactNode } from "react";
+import { useEffect, type ComponentType, type MouseEvent, type ReactNode } from "react";
 import {
   Header,
   HeaderGlobalBar,
@@ -13,8 +13,22 @@ export interface NavItem {
   icon: ComponentType<{ size?: number }>;
   label: string;
   isActive: boolean;
+  /** Makes the item a real link, so the keyboard can open it and modified clicks open a new tab. */
+  href?: string;
   onClick: () => void;
 }
+
+/** A plain left click stays in the app; modified clicks are left to the browser. */
+const isPlainLeftClick = (event: MouseEvent) =>
+  event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+
+const handleNavClick = (item: NavItem) => (event: MouseEvent<HTMLAnchorElement>) => {
+  if (item.href) {
+    if (!isPlainLeftClick(event)) return;
+    event.preventDefault();
+  }
+  item.onClick();
+};
 
 export type SideNavMode =
   | { variant: "rail" }
@@ -97,7 +111,8 @@ const AdminShellLayout = ({
               renderIcon={item.icon}
               isActive={item.isActive}
               aria-current={item.isActive ? "page" : undefined}
-              onClick={item.onClick}
+              href={item.href}
+              onClick={handleNavClick(item)}
             >
               {item.label}
             </SideNavLink>

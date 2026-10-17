@@ -48,6 +48,7 @@ const SystemLayout = () => {
     icon: section.icon,
     label: t(section.labelKey, section.label),
     isActive: isCurrentSection(location.pathname, section.path),
+    href: section.path,
     onClick: () => navigate(section.path),
   }));
 
