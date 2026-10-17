@@ -677,6 +677,44 @@ describe("SystemVersionScreen", () => {
       expect(screen.queryByText("無法連線到主機 agent")).toBeNull();
     });
 
+    it("reconnects by itself when the agent comes back after a reload that followed an upgrade", async () => {
+      vi.useFakeTimers();
+      const reload = vi.fn();
+      vi.stubGlobal("location", { ...window.location, reload });
+      try {
+        vi.mocked(getSystemVersion)
+          .mockResolvedValueOnce(state({ agent: "unreachable", version: null }))
+          .mockResolvedValue(
+            state({
+              version: { current: LATEST, previous: CURRENT, deployedAt: "2026-10-17T08:10:00Z" },
+              job: job({ status: "succeeded", step: "verify", finishedAt: "2026-10-17T08:10:00Z" }),
+            }),
+          );
+        vi.mocked(checkSystemUpdates).mockResolvedValue(
+          release({ releases: [], updateAvailable: false }),
+        );
+
+        render(<SystemVersionScreen />);
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(0);
+        });
+        expect(screen.getByText("無法連線到主機 agent")).toBeTruthy();
+        expect(screen.getByRole("button", { name: "重新連線" })).toBeTruthy();
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
+        });
+
+        expect(screen.getByText("已更新到 sha-bbbbbbbbbbbb")).toBeTruthy();
+        expect(screen.queryByText("無法連線到主機 agent")).toBeNull();
+        expect(screen.queryByRole("button", { name: "重新連線" })).toBeNull();
+        expect(reload).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+      }
+    });
+
     it("still shows the deployed version when the host reported one", async () => {
       vi.mocked(getSystemVersion).mockResolvedValue(state({ agent: "unsupported" }));
 

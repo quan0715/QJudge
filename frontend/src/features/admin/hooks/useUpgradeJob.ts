@@ -28,6 +28,13 @@ export const POLL_INTERVAL_MS = 3000;
  */
 export const SWITCHING_WARN_AFTER_MS = 10 * 60 * 1000;
 
+/**
+ * How long the page keeps asking again while the host agent cannot be reached. The agent
+ * restarts itself right after an upgrade, so a page that loads or reloads then is usually a few
+ * seconds early. Past this the agent is probably down for good, and the reconnect button remains.
+ */
+export const UNREACHABLE_RETRY_MS = 2 * 60 * 1000;
+
 const reloadPage = () => window.location.reload();
 
 /** An upgrade is under way, started here, by another admin, or by the terminal or CD. */
@@ -69,6 +76,8 @@ export function useUpgradeJob(reload: () => void = reloadPage): {
   const [error, setError] = useState("");
   const [switching, setSwitching] = useState(false);
   const [switchingTooLong, setSwitchingTooLong] = useState(false);
+  // Counts the times the admin asked by hand; each one restarts the unreachable retries.
+  const [retryWindow, setRetryWindow] = useState(0);
 
   // The latest state for callbacks that outlive a render, and which request answered last.
   const stateRef = useRef<SystemVersionState | null>(null);
@@ -109,7 +118,7 @@ export function useUpgradeJob(reload: () => void = reloadPage): {
     if (now - switchingSinceRef.current >= SWITCHING_WARN_AFTER_MS) setSwitchingTooLong(true);
   }, []);
 
-  const refresh = useCallback(async () => {
+  const load = useCallback(async () => {
     requestRef.current += 1;
     const request = requestRef.current;
     let next: SystemVersionState;
@@ -133,6 +142,12 @@ export function useUpgradeJob(reload: () => void = reloadPage): {
     accept(next);
   }, [accept, markSwitching]);
 
+  // Asking by hand also gives an unreachable agent a fresh window of automatic retries.
+  const refresh = useCallback(async () => {
+    setRetryWindow((count) => count + 1);
+    await load();
+  }, [load]);
+
   const start = useCallback(
     async (target: string): Promise<StartUpgradeResult> => {
       const result = await startSystemUpgrade(target);
@@ -146,26 +161,28 @@ export function useUpgradeJob(reload: () => void = reloadPage): {
           externalBusy: false,
         });
       } else if (result.kind === "busy") {
-        await refresh();
+        await load();
       }
       return result;
     },
-    [accept, refresh],
+    [accept, load],
   );
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    void load();
+  }, [load]);
 
   const phase = derivePhase(state, error, switching);
   const polling = POLLING_PHASES.includes(phase);
+  // Not a job in progress: the agent could not be reached on load, or while it restarts itself.
+  const reconnecting = phase === "unreachable";
 
   useEffect(() => {
     if (!polling) return undefined;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     const tick = async () => {
-      await refresh();
+      await load();
       if (!cancelled) timer = setTimeout(tick, POLL_INTERVAL_MS);
     };
     timer = setTimeout(tick, POLL_INTERVAL_MS);
@@ -173,7 +190,25 @@ export function useUpgradeJob(reload: () => void = reloadPage): {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [polling, refresh]);
+  }, [polling, load]);
+
+  useEffect(() => {
+    if (!reconnecting) return undefined;
+    const startedAt = Date.now();
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = async () => {
+      await load();
+      if (!cancelled && Date.now() - startedAt < UNREACHABLE_RETRY_MS) {
+        timer = setTimeout(tick, POLL_INTERVAL_MS);
+      }
+    };
+    timer = setTimeout(tick, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [reconnecting, retryWindow, load]);
 
   return {
     phase,

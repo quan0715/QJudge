@@ -1,7 +1,12 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { POLL_INTERVAL_MS, SWITCHING_WARN_AFTER_MS, useUpgradeJob } from "./useUpgradeJob";
+import {
+  POLL_INTERVAL_MS,
+  SWITCHING_WARN_AFTER_MS,
+  UNREACHABLE_RETRY_MS,
+  useUpgradeJob,
+} from "./useUpgradeJob";
 import { EnvelopeError } from "@/infrastructure/api/envelope";
 import {
   getSystemVersion,
@@ -309,6 +314,186 @@ describe("useUpgradeJob", () => {
 
       expect(result.current.phase).toBe("idle");
       expect(result.current.switchingTooLong).toBe(false);
+    });
+  });
+
+  describe("while the host agent is unreachable", () => {
+    const unreachable = () => state({ agent: "unreachable", version: null, job: null });
+    const polls = () => vi.mocked(getSystemVersion).mock.calls.length;
+
+    it("asks again every POLL_INTERVAL_MS and recovers by itself", async () => {
+      vi.mocked(getSystemVersion)
+        .mockResolvedValueOnce(unreachable())
+        .mockResolvedValueOnce(unreachable())
+        .mockResolvedValue(state());
+
+      const { result } = renderHook(() => useUpgradeJob(vi.fn()));
+      await flush();
+      expect(result.current.phase).toBe("unreachable");
+
+      await advance(POLL_INTERVAL_MS - 1);
+      expect(polls()).toBe(1);
+      await advance(1);
+      expect(polls()).toBe(2);
+      expect(result.current.phase).toBe("unreachable");
+
+      await advance(POLL_INTERVAL_MS);
+      expect(result.current.phase).toBe("idle");
+      expect(result.current.state?.version?.current).toBe(CURRENT);
+      expect(result.current.error).toBe("");
+
+      await advance(POLL_INTERVAL_MS * 3);
+      expect(polls()).toBe(3);
+    });
+
+    it("shows the success state of a reloaded page without reloading again", async () => {
+      const reload = vi.fn();
+      // The page reloaded after watching the job succeed, while the agent was restarting.
+      vi.mocked(getSystemVersion)
+        .mockResolvedValueOnce(unreachable())
+        .mockResolvedValue(state({ job: job({ status: "succeeded", step: "verify" }) }));
+
+      const { result } = renderHook(() => useUpgradeJob(reload));
+      await flush();
+      expect(result.current.phase).toBe("unreachable");
+
+      await advance(POLL_INTERVAL_MS);
+      expect(result.current.phase).toBe("succeeded");
+
+      await advance(POLL_INTERVAL_MS * 3);
+      expect(reload).not.toHaveBeenCalled();
+      expect(polls()).toBe(2);
+    });
+
+    it("recovers from a failed first load by itself", async () => {
+      vi.mocked(getSystemVersion)
+        .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+        .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+        .mockResolvedValue(state());
+
+      const { result } = renderHook(() => useUpgradeJob(vi.fn()));
+      await flush();
+      expect(result.current.phase).toBe("unreachable");
+      expect(result.current.error).toBe("Failed to fetch");
+
+      await advance(POLL_INTERVAL_MS);
+      expect(result.current.phase).toBe("unreachable");
+
+      await advance(POLL_INTERVAL_MS);
+      expect(result.current.phase).toBe("idle");
+      expect(result.current.error).toBe("");
+    });
+
+    it.each([
+      ["answers unreachable", () => vi.mocked(getSystemVersion).mockResolvedValue(unreachable())],
+      [
+        "cannot be asked",
+        () => vi.mocked(getSystemVersion).mockRejectedValue(new TypeError("Failed to fetch")),
+      ],
+    ])("stops asking after two minutes when the agent %s", async (_name, arrange) => {
+      arrange();
+
+      const { result } = renderHook(() => useUpgradeJob(vi.fn()));
+      await flush();
+      await advance(UNREACHABLE_RETRY_MS - POLL_INTERVAL_MS);
+      const before = polls();
+      await advance(POLL_INTERVAL_MS);
+      expect(polls()).toBeGreaterThan(before);
+
+      const stopped = polls();
+      await advance(UNREACHABLE_RETRY_MS);
+      expect(polls()).toBe(stopped);
+      expect(result.current.phase).toBe("unreachable");
+    });
+
+    it("starts a new two minutes when the admin reconnects by hand", async () => {
+      vi.mocked(getSystemVersion).mockResolvedValue(unreachable());
+
+      const { result } = renderHook(() => useUpgradeJob(vi.fn()));
+      await flush();
+      await advance(UNREACHABLE_RETRY_MS * 2);
+      const stopped = polls();
+
+      await act(async () => {
+        await result.current.refresh();
+      });
+      expect(polls()).toBe(stopped + 1);
+      expect(result.current.phase).toBe("unreachable");
+
+      await advance(POLL_INTERVAL_MS);
+      expect(polls()).toBe(stopped + 2);
+
+      await advance(UNREACHABLE_RETRY_MS * 2);
+      const stoppedAgain = polls();
+      expect(stoppedAgain).toBeGreaterThan(stopped + 2);
+      await advance(UNREACHABLE_RETRY_MS);
+      expect(polls()).toBe(stoppedAgain);
+    });
+
+    it("does not ask again while the previous request is still pending", async () => {
+      let answer: (value: SystemVersionState) => void = () => undefined;
+      vi.mocked(getSystemVersion)
+        .mockResolvedValueOnce(unreachable())
+        .mockReturnValueOnce(new Promise<SystemVersionState>((resolve) => (answer = resolve)))
+        .mockResolvedValue(state());
+
+      const { result } = renderHook(() => useUpgradeJob(vi.fn()));
+      await flush();
+      await advance(POLL_INTERVAL_MS);
+      expect(polls()).toBe(2);
+
+      await advance(POLL_INTERVAL_MS * 5);
+      expect(polls()).toBe(2);
+
+      answer(unreachable());
+      await flush();
+      await advance(POLL_INTERVAL_MS);
+      expect(polls()).toBe(3);
+      expect(result.current.phase).toBe("idle");
+    });
+
+    it("never asks about an environment that does not support upgrades", async () => {
+      vi.mocked(getSystemVersion).mockResolvedValue(state({ agent: "unsupported", version: null }));
+
+      const { result } = renderHook(() => useUpgradeJob(vi.fn()));
+      await flush();
+      await advance(UNREACHABLE_RETRY_MS);
+
+      expect(result.current.phase).toBe("unsupported");
+      expect(polls()).toBe(1);
+    });
+
+    it("stops asking once unmounted", async () => {
+      vi.mocked(getSystemVersion).mockResolvedValue(unreachable());
+
+      const { unmount } = renderHook(() => useUpgradeJob(vi.fn()));
+      await flush();
+      await advance(POLL_INTERVAL_MS);
+      expect(polls()).toBe(2);
+
+      unmount();
+      await advance(UNREACHABLE_RETRY_MS);
+
+      expect(polls()).toBe(2);
+    });
+
+    it("does not schedule another ask when unmounted during a pending request", async () => {
+      let answer: (value: SystemVersionState) => void = () => undefined;
+      vi.mocked(getSystemVersion)
+        .mockResolvedValueOnce(unreachable())
+        .mockReturnValueOnce(new Promise<SystemVersionState>((resolve) => (answer = resolve)));
+
+      const { unmount } = renderHook(() => useUpgradeJob(vi.fn()));
+      await flush();
+      await advance(POLL_INTERVAL_MS);
+      expect(polls()).toBe(2);
+
+      unmount();
+      answer(unreachable());
+      await flush();
+      await advance(UNREACHABLE_RETRY_MS);
+
+      expect(polls()).toBe(2);
     });
   });
 
