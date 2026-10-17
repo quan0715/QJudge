@@ -15,7 +15,8 @@ import httpx
 from django.conf import settings
 
 QUICK_TIMEOUT_SECONDS = 5.0
-# Checking for updates fetches from GitHub and the ingress probes hit public hosts.
+# Checking for updates and starting an upgrade both fetch main from GitHub first, and the
+# ingress probes hit public hosts.
 SLOW_TIMEOUT_SECONDS = 30.0
 DETAIL_LIMIT = 200
 
@@ -105,7 +106,8 @@ def agent_check_updates() -> dict:
 
 
 def agent_start_upgrade(target: str, triggered_by: str) -> dict:
-    return _call("POST", "/v1/upgrade", body={"target": target, "triggered_by": triggered_by})
+    return _call("POST", "/v1/upgrade", body={"target": target, "triggered_by": triggered_by},
+                 timeout=SLOW_TIMEOUT_SECONDS)
 
 
 def agent_containers() -> list[dict]:

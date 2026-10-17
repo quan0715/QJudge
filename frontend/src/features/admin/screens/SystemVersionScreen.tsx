@@ -129,6 +129,8 @@ const SystemVersionScreen = () => {
       }
     } catch (caught) {
       setStartError(messageOf(caught));
+      // The agent may have started the job after the request gave up waiting, so look again.
+      await refresh();
     } finally {
       setSubmitting(false);
     }

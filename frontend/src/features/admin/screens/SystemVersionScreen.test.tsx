@@ -309,6 +309,28 @@ describe("SystemVersionScreen", () => {
         (screen.getByRole("button", { name: "開始更新" }) as HTMLButtonElement).disabled,
       ).toBe(false);
     });
+
+    it("follows a job the agent started even when the start request failed", async () => {
+      const user = userEvent;
+      vi.mocked(getSystemVersion)
+        .mockResolvedValueOnce(state())
+        .mockResolvedValue(state({ job: job({ step: "prepare" }) }));
+      // The backend gave up waiting while the agent was still fetching main, then started anyway.
+      vi.mocked(startSystemUpgrade).mockRejectedValue(
+        new EnvelopeError(503, [
+          { code: "agent_unavailable", message: "Host agent is unreachable", field: null, details: { agent: "unreachable" } },
+        ]),
+      );
+
+      render(<SystemVersionScreen />);
+      await user.click(await openConfirm(user, "更新到 sha-bbbbbbbbbbbb"));
+
+      expect(await screen.findByText("無法開始更新")).toBeTruthy();
+      expect(getSystemVersion).toHaveBeenCalledTimes(2);
+      await user.click(screen.getByRole("button", { name: "取消" }));
+      expect(within(stepItem("下載新版並檢查設定")).getByText("進行中")).toBeTruthy();
+      expect(screen.queryByRole("button", { name: /^更新到/ })).toBeNull();
+    });
   });
 
   describe("while an upgrade runs", () => {

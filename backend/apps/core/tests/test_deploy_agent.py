@@ -139,6 +139,11 @@ class DeployAgentClientTests(unittest.TestCase):
         self.assertEqual(request.call_args.args, ("POST", f"{AGENT_URL}/v1/upgrade"))
         self.assertEqual(request.call_args.kwargs["json"], {"target": "b" * 40, "triggered_by": "root"})
 
+    def test_upgrade_waits_as_long_as_a_check_because_the_agent_fetches_main_first(self):
+        with self.agent(status_code=202, json={"id": "j", "status": "running"}) as request:
+            agent_start_upgrade("b" * 40, "root")
+        self.assertEqual(request.call_args.kwargs["timeout"], 30.0)
+
     def test_upgrade_maps_busy_and_not_latest(self):
         with self.agent(status_code=409, json={"error": "busy"}), self.assertRaises(AgentBusy):
             agent_start_upgrade("b" * 40, "root")
