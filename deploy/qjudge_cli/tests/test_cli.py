@@ -39,6 +39,60 @@ class CliTests(unittest.TestCase):
                 self.assertEqual(run_addon(Path("/unused"), Path("/unused/.env"), {}, name, "backup", run=run), 1)
                 run.assert_not_called()
 
+    def test_agent_up_dispatches_and_maps_the_result_to_the_exit_code(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = write_env(directory, VALID)
+            for started, expected in ((True, 0), (False, 1)):
+                with mock.patch("qjudge_cli.cli.release_locked", return_value=False), \
+                        mock.patch("qjudge_cli.cli.agent_up", return_value=started) as agent_up:
+                    code, _ = self.run_cli("agent", "up", "--env-file", str(path))
+                self.assertEqual(code, expected)
+                self.assertEqual(agent_up.call_args.args[1], path)
+
+    def test_agent_up_fails_when_env_file_is_missing(self):
+        with mock.patch("qjudge_cli.cli.agent_up") as agent_up:
+            code, _ = self.run_cli("agent", "up", "--env-file", "/nonexistent/.env")
+        self.assertEqual(code, 1)
+        agent_up.assert_not_called()
+
+    def test_agent_up_refuses_while_a_release_is_running(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = write_env(directory, VALID)
+            with mock.patch("qjudge_cli.cli.release_locked", return_value=True), \
+                    mock.patch("qjudge_cli.cli.agent_up") as agent_up:
+                code, output = self.run_cli("agent", "up", "--env-file", str(path))
+        self.assertEqual(code, 1)
+        self.assertEqual(output, "A release is running; retry agent up after it completes\n")
+        agent_up.assert_not_called()
+
+    def test_agent_up_reports_a_lock_it_cannot_probe(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = write_env(directory, VALID)
+            with mock.patch("qjudge_cli.cli.release_locked", side_effect=OSError("lock is a symlink")), \
+                    mock.patch("qjudge_cli.cli.agent_up") as agent_up:
+                code, output = self.run_cli("agent", "up", "--env-file", str(path))
+        self.assertEqual(code, 1)
+        self.assertIn("lock is a symlink", output)
+        agent_up.assert_not_called()
+
+    def test_agent_serve_dispatches_and_returns_its_exit_code(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = write_env(directory, VALID)
+            for served in (0, 1):
+                with mock.patch("qjudge_cli.cli.serve", return_value=served) as serve, \
+                        mock.patch("qjudge_cli.cli.release_locked") as locked:
+                    code, _ = self.run_cli("agent", "serve", "--env-file", str(path))
+                self.assertEqual(code, served)
+                self.assertEqual(serve.call_args.args[1], path)
+                # An upgrade running on the host must not stop the agent from starting.
+                locked.assert_not_called()
+
+    def test_agent_serve_fails_when_env_file_is_missing(self):
+        with mock.patch("qjudge_cli.cli.serve") as serve:
+            code, _ = self.run_cli("agent", "serve", "--env-file", "/nonexistent/.env")
+        self.assertEqual(code, 1)
+        serve.assert_not_called()
+
     def test_check_passes_for_valid_env(self):
         with tempfile.TemporaryDirectory() as directory:
             path = write_env(directory, VALID)

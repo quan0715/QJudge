@@ -390,6 +390,11 @@ INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE = env(
 INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS = 1.0
 INTEGRITY_WORKER_READ_TIMEOUT_SECONDS = 5.0
 
+# Host deploy agent behind the admin system dashboard. An empty URL (dev, CI) means
+# the stack has no agent and the dashboard reports "unsupported".
+QJUDGE_AGENT_URL = env("QJUDGE_AGENT_URL", "")
+QJUDGE_AGENT_TOKEN_FILE = env("QJUDGE_AGENT_TOKEN_FILE", "/run-secrets/agent-token")
+
 # ---------------------------------------------------------------------------
 # S3-compatible object storage. Every object lives in one bucket; object keys
 # already carry their own prefixes (markdown/, integrity/, ai-artifacts/,

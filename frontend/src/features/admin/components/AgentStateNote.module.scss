@@ -1,0 +1,6 @@
+@use "@carbon/type";
+
+.note {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+}

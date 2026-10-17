@@ -1,6 +1,6 @@
 # Deployment Troubleshooting
 
-When encountering an issue, identify the earliest failure point first rather than immediately restarting all services, rebuilding `deploy/.env`, or removing Docker volumes. In the commands below, `qjudge` refers to your Compose project name (or the custom `COMPOSE_PROJECT_NAME` set in `deploy/.env`). Addons run under the `qjudge-storage` and `qjudge-media` projects.
+When encountering an issue, identify the earliest failure point first rather than immediately restarting all services, rebuilding `deploy/.env`, or removing Docker volumes. In the commands below, `qjudge` refers to your Compose project name (or the custom `COMPOSE_PROJECT_NAME` set in `deploy/.env`). Addons run under the `qjudge-storage` and `qjudge-media` projects, and the host agent under `qjudge-agent`.
 
 ## First Three Checks
 
@@ -50,10 +50,14 @@ The `upgrade` script logs exactly where the process halted:
 | `postgres is not healthy`, `database backup failed` | Check `postgres` logs and host disk space |
 | `secrets bootstrap failed; …`, `<service> migrations failed; …` | Secret generation or database migrations failed. Services continue running the previous version |
 | `sha-… is not healthy` | New containers failed health checks within 5 minutes. If a previous version was running, it will automatically roll back |
+| `Another upgrade or rollback is running; retry after it completes` | Another web, terminal or CD release holds `deploy/.release.lock`; retry once it completes. A web upgrade's progress is in `deploy/.agent/job.log` |
+| `warning: agent not started: …` | The upgrade itself succeeded; only the host agent did not start. Fix the cause (Docker socket, Docker Hub access), then run `deploy/qjudge agent up` |
 
 When rolled back, code is checked out to the previous commit, but the database is not automatically restored. If `Database not restored` is printed, the output provides the command to restore the latest pre-upgrade backup if needed (see Section 9 in the [Deployment Guide](deployment.md)).
 
 Health checks require `backend`, `ai-service`, and `integrity-resident` to be healthy, and frontend's `/api/health/` must respond with HTTP 200 directly.
+
+When the System Version page says the host agent is unreachable, check `docker compose -p qjudge-agent ps --all` and `docker compose -p qjudge-agent logs --tail=200 agent`. After the first upgrade from an older CLI there is no agent yet; run `deploy/qjudge agent up` once. The full output of a failed web upgrade is in `deploy/.agent/job.log`.
 
 ## Site Inaccessible or Infinite Redirects
 

@@ -10,7 +10,6 @@ import {
   Code,
   Book,
   Settings,
-  UserMultiple,
   BareMetalServer,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
@@ -226,33 +225,22 @@ export const UserMenu: React.FC<UserMenuProps> = ({
             {t("settings.title")}
           </button>
 
-          {/* Admin Links */}
+          {/* Admin Link */}
           {user.role === "admin" && (
             <>
               <div className="user-menu-divider" />
               <button
+                data-testid="user-menu-system-btn"
                 type="button"
                 className="user-menu-link"
                 onClick={() => {
-                  navigate("/system/users");
-                  setIsExpandedInternal(false);
-                  onExpandedChange?.(false);
-                }}
-              >
-                <UserMultiple size={16} />
-                {t("header.userManagement", "用戶管理")}
-              </button>
-              <button
-                type="button"
-                className="user-menu-link"
-                onClick={() => {
-                  navigate("/system/service-status");
+                  navigate("/system");
                   setIsExpandedInternal(false);
                   onExpandedChange?.(false);
                 }}
               >
                 <BareMetalServer size={16} />
-                {t("header.serviceStatus", "服務狀態")}
+                {t("header.systemAdmin", "系統管理")}
               </button>
             </>
           )}

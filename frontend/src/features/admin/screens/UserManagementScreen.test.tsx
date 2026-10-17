@@ -55,3 +55,24 @@ describe("UserManagementScreen canonical errors", () => {
     await waitFor(() => expect(screen.getByText("user.management.loadFailed")).toBeTruthy());
   });
 });
+
+describe("UserManagementScreen summary", () => {
+  it("shows the totals computed from the loaded users", async () => {
+    const teacher = {
+      ...student,
+      id: 2,
+      username: "teacher-a",
+      role: "teacher" as const,
+      onboarding_completed_at: "2026-09-01T00:00:00Z",
+    };
+    vi.mocked(searchUsers).mockResolvedValueOnce({ data: [student, teacher], meta: {} });
+
+    render(<UserManagementScreen />);
+    await screen.findByText("teacher-a");
+
+    const valueOf = (label: string) => screen.getByText(label).nextElementSibling?.textContent;
+    expect(valueOf("總使用者")).toBe("2");
+    expect(valueOf("已開通教師")).toBe("1");
+    expect(valueOf("未完成 onboarding")).toBe("1");
+  });
+});

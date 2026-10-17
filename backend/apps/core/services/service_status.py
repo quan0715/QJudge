@@ -17,6 +17,8 @@ from django.core.cache import cache
 from django.db import connection
 from django.utils import timezone
 
+from apps.core.services.deploy_agent import AgentUnavailable, agent_containers
+
 PROBE_TIMEOUT_SECONDS = 2.0
 # A resident that stopped checking in is not "down" -- it may simply have no
 # active exam. Report the age and let the operator judge.
@@ -131,10 +133,19 @@ def collect_integrity_run_summary() -> dict:
     }
 
 
+def collect_container_summary() -> dict:
+    """Container states as the host agent sees them; absent without an agent, never an error."""
+    try:
+        return {"agent": "ok", "items": agent_containers()}
+    except AgentUnavailable as unavailable:
+        return {"agent": unavailable.state, "items": []}
+
+
 def build_service_status_report() -> dict:
     components = collect_component_statuses()
     return {
         "generated_at": timezone.now().isoformat(),
         "components": [asdict(component) for component in components],
         "integrity": collect_integrity_run_summary(),
+        "containers": collect_container_summary(),
     }
