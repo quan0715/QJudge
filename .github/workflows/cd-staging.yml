@@ -28,8 +28,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$GITHUB_REF" == refs/heads/dev ]]
-          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$GITHUB_REF" == refs/heads/dev ]] || exit 1
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 1
           for key in STAGING_SSH_HOST STAGING_SSH_USER STAGING_SSH_PRIVATE_KEY STAGING_SSH_KNOWN_HOSTS; do
             if [[ -z "${!key:-}" ]]; then
               echo "Missing required secret: $key" >&2
