@@ -115,6 +115,16 @@ describe("getSystemVersion", () => {
 });
 
 describe("checkSystemUpdates", () => {
+  it("preserves the tracked branch reported by the agent", async () => {
+    vi.mocked(httpClient.get).mockResolvedValue(ok({ agent: "ok", tracked_branch: "dev" }));
+    expect((await getSystemVersion()).trackedBranch).toBe("dev");
+    vi.mocked(httpClient.post).mockResolvedValue(ok({
+      tracked_branch: "dev", latest: { sha: SHA_LATEST, subject: "staging", committed_at: "now" },
+      releases: [], update_available: false,
+    }));
+    expect((await checkSystemUpdates()).trackedBranch).toBe("dev");
+  });
+
   it("maps the release check", async () => {
     vi.mocked(httpClient.post).mockResolvedValue(
       ok({

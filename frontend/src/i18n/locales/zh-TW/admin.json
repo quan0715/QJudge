@@ -110,11 +110,11 @@
     },
     "version": {
       "title": "系統版本",
-      "subtitle": "目前部署的版本，以及可以更新到的 main 最新版。",
+      "subtitle": "目前部署的版本，以及可以更新到的 {{branch}} 最新版。",
       "recheck": "重新檢查",
       "reconnect": "重新連線",
       "current": "目前版本",
-      "latest": "main 最新版",
+      "latest": "{{branch}} 最新版",
       "deployedAt": "部署於 {{time}}",
       "committedAt": "提交於 {{time}}",
       "contains": "這次更新包含",
@@ -124,7 +124,7 @@
       "checkFailed": "無法檢查新版",
       "loadFailed": "無法讀取系統版本",
       "startFailed": "無法開始更新",
-      "notLatest": "main 已有更新的版本，請確認後再更新",
+      "notLatest": "{{branch}} 已有更新的版本，請確認後再更新",
       "unsupported": "此環境不支援線上更新",
       "external": "另一個更新正在進行（由終端機或 CD 觸發）",
       "interrupted": "上次更新在進行中被中斷，網站狀態以目前版本為準。",
@@ -141,7 +141,7 @@
       "confirm": {
         "title": "確認更新到 {{version}}",
         "start": "開始更新",
-        "body": "更新前會先備份資料庫。切換服務時網站會中斷約 30 秒到 1 分鐘，正在作答的學生可能會短暫看到錯誤頁。更新失敗會自動維持在目前版本。"
+        "body": "更新前會先備份資料庫。切換服務時網站會中斷約 30 秒到 1 分鐘，正在作答的學生可能會短暫看到錯誤頁。更新失敗時請查看紀錄及服務狀態，必要時由維護者復原。"
       },
       "progress": {
         "target": "目標版本",

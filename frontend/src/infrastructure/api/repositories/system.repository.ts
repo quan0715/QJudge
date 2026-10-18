@@ -26,6 +26,7 @@ interface UpgradeJobDto {
 }
 
 interface SystemVersionDto {
+  tracked_branch?: string;
   agent: AgentState;
   version?: {
     current: string | null;
@@ -38,6 +39,7 @@ interface SystemVersionDto {
 }
 
 interface ReleaseCheckDto {
+  tracked_branch?: string;
   latest: { sha: string; subject: string; committed_at: string };
   releases: { sha: string; subject: string }[];
   update_available: boolean;
@@ -71,6 +73,7 @@ export const getSystemVersion = async (): Promise<SystemVersionState> => {
     "Failed to load system version",
   );
   return {
+    ...(data.tracked_branch ? { trackedBranch: data.tracked_branch } : {}),
     agent: data.agent,
     version: data.version ? toVersion(data.version) : null,
     job: data.job ? toJob(data.job) : null,
@@ -86,6 +89,7 @@ export const checkSystemUpdates = async (): Promise<ReleaseCheck> => {
     "Failed to check for updates",
   );
   return {
+    ...(data.tracked_branch ? { trackedBranch: data.tracked_branch } : {}),
     latest: {
       sha: data.latest.sha,
       subject: data.latest.subject,
