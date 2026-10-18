@@ -10,6 +10,7 @@ import { useContestProblemSelection } from "@/features/contest/hooks/useContestP
 
 // Components
 import { useCodingRuntimeNavigator } from "@/features/contest/hooks/useCodingRuntimeNavigator";
+import { useJudgeProblemStatuses } from "@/features/problems/contexts/useJudgeQueue";
 import { ProblemFullPageSolve } from "@/features/problems/components/solve/editorview/ProblemFullPageSolve";
 import ContestProblemSubmissions from "@/features/contest/components/solver/submissions/ContestProblemSubmissions";
 import {
@@ -111,7 +112,8 @@ const ContestProblemScreen = () => {
   ]);
 
   const solvedIds = useMemo(() => new Set(problemSelection.problems.filter((p) => p.isSolved).map((p) => p.id)), [problemSelection.problems]);
-  const statementNavigation = useCodingRuntimeNavigator(contest?.problems ?? [], problemSelection.selectedProblemId, solvedIds, problemSelection.selectProblem);
+  const judgeStatuses = useJudgeProblemStatuses();
+  const statementNavigation = useCodingRuntimeNavigator(contest?.problems ?? [], problemSelection.selectedProblemId, solvedIds, problemSelection.selectProblem, judgeStatuses);
 
   // Check view permissions
   const canView =

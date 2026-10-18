@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
 import type { ContestProblemSummary } from "@/core/entities/contest.entity";
+import type { JudgeProblemStatus } from "@/features/problems/contexts/judgeQueueStore";
 import { useRegisterContestRuntimeNavigator } from "../contexts/useContestRuntimeNavigator";
 
 export function useCodingRuntimeNavigator(
@@ -7,6 +8,7 @@ export function useCodingRuntimeNavigator(
   selectedId: string | null | undefined,
   answeredIds: Set<string>,
   selectProblem: (id: string) => void,
+  judgeStatuses: Record<string, JudgeProblemStatus>,
 ) {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
@@ -22,8 +24,9 @@ export function useCodingRuntimeNavigator(
     items: problems.map((data) => ({ kind: "coding" as const, data })),
     activeIndex: Math.max(0, problems.findIndex((p) => p.id === selectedId)),
     answeredIds,
+    judgeStatuses,
     onSelect: (index: number) => { if (problems[index]) { selectProblem(problems[index].id); selectTab(0); } },
-  } : null, [problems, selectedId, answeredIds, selectProblem, activeTabIndex, selectTab, collapsed]);
+  } : null, [problems, selectedId, answeredIds, judgeStatuses, selectProblem, activeTabIndex, selectTab, collapsed]);
   useRegisterContestRuntimeNavigator(state, problems.length > 0);
   return { activeTabIndex, selectTab, collapsed, setCollapsed };
 }
