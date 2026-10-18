@@ -32,7 +32,7 @@ Create a private JSON file, for example `runtime/agent-config.json` (mode 0600):
   "systemd_unit": "qjudge-staging-agent.service",
   "ingress": [
     {"id": "site", "public": "https://staging.example.com", "target": "Traefik → frontend:80", "probe": "https://staging.example.com/api/health/", "expect": "200"},
-    {"id": "mcp", "public": "https://staging.example.com/mcp", "target": "frontend → qjudge-mcp:8000", "probe": "https://staging.example.com/mcp", "expect": "reachable"}
+    {"id": "mcp", "public": "https://staging.example.com/mcp", "target": "frontend → qjudge-mcp:9000", "probe": "https://staging.example.com/mcp", "expect": "reachable"}
   ]
 }
 ```
@@ -65,6 +65,11 @@ TimeoutStopSec=30
 [Install]
 WantedBy=multi-user.target
 ```
+
+If the host firewall rejects container-to-host traffic, allow TCP 8090 only
+from this app's bridge interface and subnet to its gateway address. Persist
+that scoped rule using the host firewall tooling; do not open public ingress.
+Verify a backend-container request without a token gets HTTP 401.
 
 The service user needs permission to restart this specific unit through sudo.
 The deployment runner atomically updates `agent-current` after success and then
