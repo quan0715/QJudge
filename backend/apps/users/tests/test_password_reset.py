@@ -530,7 +530,7 @@ def test_blocked_password_login_does_not_deadlock_with_integrity_lock_order(user
 @pytest.mark.django_db
 def test_admin_link_works_without_mail_and_is_single_use(user, settings):
     settings.EMAIL_MODE = 'disabled'
-    admin = User.objects.create_user(username='reset-admin', password='AdminPassword93!', role='admin', is_superuser=True)
+    admin = User.objects.create_user(username='reset-admin', email='reset-admin@example.test', password='AdminPassword93!', role='admin', is_superuser=True)
     client = APIClient()
     client.force_authenticate(admin)
     with patch('apps.users.password_reset.send_mail') as send:
@@ -560,10 +560,10 @@ def test_admin_link_rejects_non_super_admin(user, role, superuser):
 
 @pytest.mark.django_db
 def test_admin_link_rejects_oauth_inactive_and_disabled_password_login(user, settings):
-    admin = User.objects.create_user(username='reset-admin', role='admin', is_superuser=True)
+    admin = User.objects.create_user(username='reset-admin', email='reset-admin@example.test', role='admin', is_superuser=True)
     client = APIClient()
     client.force_authenticate(admin)
-    oauth = User.objects.create_user(username='reset-oauth', auth_provider='google')
+    oauth = User.objects.create_user(username='reset-oauth', email='reset-oauth@example.test', auth_provider='google')
     assert client.post('/api/v1/auth/password/admin-reset-links', {'user_id': oauth.pk}, format='json').status_code == 400
     user.is_active = False
     user.save()
