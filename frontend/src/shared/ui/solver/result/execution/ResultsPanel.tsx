@@ -43,7 +43,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   executionState,
   testCases,
 }) => {
-  const [selectedResult, setSelectedResult] = useState<TestResult | null>(null);
+  const [pickedResult, setSelectedResult] = useState<TestResult | null>(null);
   const [expanded, setExpanded] = useState(false);
   const itemRefs = useRef(new Map<TestResult["id"], HTMLElement>());
 
@@ -62,13 +62,13 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
     [caseResults]
   );
 
-  // Once results arrive, open the first failed case (or the first case).
+  // Once results arrive, open the first failed case (or the first case) until the student picks one.
+  const autoResult = isPending ? null : testResults[Math.max(0, caseResults.findIndex((c) => c.status === "failed"))] ?? null;
+  const selectedResult = pickedResult ?? autoResult;
+  const autoId = autoResult?.id;
   useEffect(() => {
-    if (testResults.length === 0 || selectedResult || isPending) return;
-    const target = testResults[Math.max(0, caseResults.findIndex((c) => c.status === "failed"))];
-    setSelectedResult(target);
-    itemRefs.current.get(target.id)?.scrollIntoView?.({ block: "nearest" });
-  }, [caseResults, testResults, selectedResult, isPending]);
+    if (autoId !== undefined) itemRefs.current.get(autoId)?.scrollIntoView?.({ block: "nearest" });
+  }, [autoId]);
 
   const header = getHeaderInfo(executionState);
 
