@@ -38,9 +38,6 @@ ENV PIP_NO_CACHE_DIR=1
 # Copy project
 COPY . .
 
-# Create logs directory
-RUN mkdir -p logs
-
 # Collect static files
 # RUN python manage.py collectstatic --noinput || true
 

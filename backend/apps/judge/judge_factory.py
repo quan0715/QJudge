@@ -6,8 +6,9 @@ def get_judge(language: str) -> IOJudge:
     """
     Return a new IOJudge for one submission or test run in *language*.
 
-    Use it as a context manager across that submission's cases: they share one
-    container and one compilation. Never share an instance across submissions.
+    Inside a ``with`` block, pass all of that submission's cases to one ``run``
+    call: one container compiles once and runs them all. Never share an
+    instance across submissions.
 
     Raises ValueError for unsupported languages so callers can surface SE.
     """

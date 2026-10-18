@@ -484,7 +484,7 @@ class ProblemTestRunTests(TestCase):
     def _run(self, execute_results, **payload):
         with patch('apps.judge.judge_factory.get_judge') as mock_get_judge:
             mock_judge = MagicMock()
-            mock_judge.execute.side_effect = [
+            mock_judge.run.return_value = [
                 {'time': 1, 'memory': 1, 'error': '', **result} for result in execute_results
             ]
             mock_get_judge.return_value = mock_judge
@@ -526,7 +526,7 @@ class ProblemTestRunTests(TestCase):
         response, judge = self._run([{'status': 'AC', 'output': '3'}])
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(judge.execute.call_count, 1)
+        self.assertEqual(judge.run.call_args.kwargs['cases'], [('1 2', '3')])
         self.assertEqual(len(response.data['results']), 1)
         self.assertNotIn('SECRET', str(response.data))
         self.assertNotIn('NON-SAMPLE', str(response.data))
@@ -545,7 +545,7 @@ class ProblemTestRunTests(TestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        inputs = [call.kwargs['input_data'] for call in judge.execute.call_args_list]
+        inputs = [case_input for case_input, _ in judge.run.call_args.kwargs['cases']]
         self.assertEqual(inputs, ['1 2', '2 3', 'hello'])
         sample, with_expected, output_only = response.data['results']
         self.assertEqual(sample['source'], 'sample')
@@ -583,8 +583,7 @@ class ProblemTestRunTests(TestCase):
             custom_test_cases=[{'input': '  x\n', 'expected_output': '  x\n'}],
         )
 
-        self.assertEqual(judge.execute.call_args_list[1].kwargs['input_data'], '  x\n')
-        self.assertEqual(judge.execute.call_args_list[1].kwargs['expected_output'], '  x\n')
+        self.assertEqual(judge.run.call_args.kwargs['cases'][1], ('  x\n', '  x\n'))
 
     def test_too_many_custom_cases_are_rejected(self):
         response = self.client.post(
@@ -633,7 +632,7 @@ class ProblemTestRunTests(TestCase):
 
         with patch('apps.judge.judge_factory.get_judge') as mock_get_judge:
             mock_judge = MagicMock()
-            mock_judge.execute.side_effect = [
+            mock_judge.run.return_value = [
                 {
                     'status': 'CE',
                     'time': 0,
@@ -664,7 +663,7 @@ class ProblemTestRunTests(TestCase):
         self.assertEqual(response.data['status'], 'CE')
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['status'], 'CE')
-        self.assertEqual(mock_judge.execute.call_count, 1)
+        self.assertEqual(mock_judge.run.call_count, 1)
 
 
 class ProblemTestRunContestAccessTests(TestCase):
@@ -721,9 +720,10 @@ class ProblemTestRunContestAccessTests(TestCase):
         mock_get_judge = patcher.start()
         self.addCleanup(patcher.stop)
         mock_judge = MagicMock()
-        mock_judge.execute.return_value = {
-            'status': 'AC', 'time': 1, 'memory': 1, 'output': '3', 'error': '',
-        }
+        mock_judge.run.side_effect = lambda **kwargs: [
+            {'status': 'AC', 'time': 1, 'memory': 1, 'output': '3', 'error': ''}
+            for _ in kwargs['cases']
+        ]
         mock_get_judge.return_value = mock_judge
         return mock_judge
 
