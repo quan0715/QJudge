@@ -1,7 +1,6 @@
 """
 Production settings
 """
-import os
 from config.env import env
 from .base import *
 from .database import build_database_config
@@ -81,33 +80,26 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
-            'maxBytes': 1024 * 1024 * 15,  # 15MB
-            'backupCount': 10,
-            'formatter': 'verbose',
-        },
-        # The log file is not on a volume; container logs keep recovery
-        # delivery failures visible to operators.
+        # Container logs only: the image has no log volume, and several worker
+        # processes cannot safely rotate one shared file.
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
     },
     'root': {
-        'handlers': ['file'],
+        'handlers': ['console'],
         'level': 'WARNING',
     },
     'loggers': {
-        'qjudge.auth': {'handlers': ['file', 'console'], 'level': 'INFO', 'propagate': False},
+        'qjudge.auth': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
         'django': {
-            'handlers': ['file'],
+            'handlers': ['console'],
             'level': 'WARNING',
             'propagate': False,
         },
         'qjudge.requests': {
-            'handlers': ['file'],
+            'handlers': ['console'],
             'level': 'WARNING',
             'propagate': False,
         },

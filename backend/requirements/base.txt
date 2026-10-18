@@ -21,7 +21,7 @@ whitenoise>=6.6,<7.0  # Serve static files (Django Admin)
 django-ratelimit>=4.1,<5.0  # API 速率限制
 
 # ASGI server and AI Service HTTP client
-daphne>=4.0,<5.0
+uvicorn[standard]>=0.34,<1.0  # --workers restarts a worker that dies
 httpx>=0.26.0  # Async HTTP client for AI Service communication
 cryptography>=42,<46  # Ed25519 signing for the integrity Worker gateway
 jsonpatch>=1.33  # RFC 6902 JSON Patch for problem mutations
