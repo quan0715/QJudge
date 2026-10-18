@@ -10,13 +10,15 @@
     docker exec oj_backend_dev python manage.py test apps.judge.tests.IOJudgeMockTests
 """
 
+import shlex
 from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch
 
-import docker.errors
+import docker
+from django.conf import settings
 
-from apps.judge.io_judge import IOJudge
+from apps.judge.io_judge import IOJudge, _LANG_SPECS
 
 
 # ---------------------------------------------------------------------------
@@ -94,6 +96,47 @@ class CppIntegrationTests(TestCase):
         code = "#include<vector>\nint main(){std::vector<int>v(75000000,1);}"
         r = judge_one(self.judge, code, "", "", 3000, 128)
         self.assertIn(r["status"], ["MLE", "RE"])
+
+    def test_bits_stdcpp_compiles_for_a_128mb_problem(self):
+        # The second program cannot use the precompiled header: g++ needs
+        # about 210 MiB for it, beyond the problem's limit but within the
+        # compile budget.
+        body = "using namespace std;\nint main(){int a,b;cin>>a>>b;cout<<a+b;}"
+        for code in ["#include <bits/stdc++.h>\n" + body, "#include <cstdio>\n#include <bits/stdc++.h>\n" + body]:
+            with self.subTest(code=code[:30]):
+                r = judge_one(self.judge, code, "3 4", "7", 1000, 128)
+                self.assertEqual(r["status"], "AC", r)
+
+    def test_compile_budget_and_timeout_stop_template_bombs(self):
+        code = (
+            "template<int D, long I> struct T { static const long v = T<D-1, 2*I>::v + T<D-1, 2*I+1>::v; };\n"
+            "template<long I> struct T<0, I> { static const long v = I; };\n"
+            "int main(){ return T<26, 0>::v; }"
+        )
+        for limit, value, error in [
+            ("_COMPILE_MEMORY_MB", 256, "Killed signal terminated program cc1plus"),
+            ("_COMPILE_TIMEOUT_SECONDS", 2, "Compilation time limit exceeded"),
+        ]:
+            with self.subTest(limit=limit), patch(f"apps.judge.io_judge.{limit}", value):
+                r = judge_one(self.judge, code, "", "", 1000, 128)
+                self.assertEqual(r["status"], "CE", r)
+                self.assertIn(error, r["error"])
+
+    def test_compile_command_uses_the_precompiled_header(self):
+        # g++ silently ignores a precompiled header built with other flags.
+        script = (
+            "cd /tmp && printf '#include <bits/stdc++.h>\\nint main(){}\\n' > main.cpp && "
+            + shlex.join([*_LANG_SPECS["cpp"].compile_cmd, "-H"]) + " 2>&1"
+        )
+        client = docker.from_env()
+        self.addCleanup(client.close)
+        output = client.containers.run(
+            settings.DOCKER_IMAGE_JUDGE, ["sh", "-c", script],
+            platform=settings.DOCKER_JUDGE_PLATFORM, remove=True,
+        ).decode()
+        # "!" marks a precompiled header g++ used, "x" one it rejected.
+        headers = [line for line in output.splitlines() if line.endswith("/bits/stdc++.h.gch")]
+        self.assertEqual([line[0] for line in headers], ["!"], headers)
 
     def test_empty_input(self):
         code = '#include<iostream>\nint main(){std::cout<<"OK";}'

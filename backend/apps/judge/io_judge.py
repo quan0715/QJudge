@@ -19,7 +19,7 @@ import socket
 from contextlib import closing, suppress
 from dataclasses import dataclass
 from pathlib import Path
-from threading import Thread, Timer
+from threading import Event, Thread, Timer
 from typing import Any, Dict, Iterator, Optional, Sequence, Tuple
 
 import docker
@@ -29,6 +29,8 @@ from docker.utils.socket import STDERR, frames_iter
 _RUNNER = Path(__file__).with_name("runner.py").read_text(encoding="utf-8")
 _PUBLIC_SYSTEM_ERROR = "Judge system error"
 _COMPILE_TIMEOUT_SECONDS = 30
+# Memory and swap while compiling; the cases get only the problem's limit.
+_COMPILE_MEMORY_MB = 1024
 _SESSION_SECONDS = 3600
 logger = logging.getLogger(__name__)
 
@@ -129,7 +131,8 @@ class IOJudge:
 
         time_limit bounds each case's CPU time.  Its wall-clock time may reach
         twice that plus a second, so CPU contention between concurrent judges
-        does not turn a solution near the limit into TLE.
+        does not turn a solution near the limit into TLE.  memory_limit bounds
+        the cases but not the compiler.
         """
         if not cases:
             return
@@ -137,7 +140,7 @@ class IOJudge:
         try:
             self._ensure_docker_client()
             self.close()
-            self._container = self._start_container(memory_limit)
+            self._container = self._start_container(_COMPILE_MEMORY_MB)
             with closing(self._records(code, cases, time_limit, memory_limit)) as records:
                 build = next(records, None)
                 if build is not None and (build["exit"] or build["timeout"]):
@@ -196,24 +199,37 @@ class IOJudge:
         )
         deadline.daemon = True
         deadline.start()
-        Thread(target=self._send, args=(sock, code, cases), daemon=True).start()
+        cases_released = Event()
+        Thread(target=self._send, args=(sock, code, cases, cases_released), daemon=True).start()
         try:
-            yield from self._parse(frames_iter(stream, tty=False))
+            for record in self._parse(frames_iter(stream, tty=False)):
+                yield record
+                if not cases_released.is_set():
+                    # The build had the compile budget. The runner gets no case
+                    # input, so runs nothing, until the problem's limit applies.
+                    container.update(mem_limit=f"{memory_limit}m", memswap_limit=f"{memory_limit}m")
+                    cases_released.set()
         finally:
             deadline.cancel()
             with suppress(OSError):
                 sock.shutdown(socket.SHUT_RDWR)
+            cases_released.set()  # the writer then finds the socket closed
             stream.close()
             sock.close()
 
     @staticmethod
-    def _send(sock, code: str, cases: Sequence[Tuple[str, str]]) -> None:
-        """Stream the source and every input; the runner reads them as it goes."""
+    def _send(sock, code: str, cases: Sequence[Tuple[str, str]], cases_released: Event) -> None:
+        """Stream the source, then each input; the runner reads them as it goes."""
+        def send(text):
+            data = text.encode()
+            sock.sendall(b"%d\n" % len(data))
+            sock.sendall(data)
+
         with suppress(OSError):
-            for text in [code, *(case_input for case_input, _ in cases)]:
-                data = text.encode()
-                sock.sendall(b"%d\n" % len(data))
-                sock.sendall(data)
+            send(code)
+            cases_released.wait()
+            for case_input, _ in cases:
+                send(case_input)
 
     @staticmethod
     def _parse(frames) -> Iterator[Dict[str, Any]]:

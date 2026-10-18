@@ -1,8 +1,11 @@
 """Failure boundaries of the per-submission container and runner; no Docker or database required."""
 import json
+from threading import Condition, Thread
 from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
+
+import docker
 
 from .io_judge import IOJudge
 
@@ -117,39 +120,111 @@ class RunnerProtocolTests(TestCase):
         ])
         self.assertIn("runner detail", logs.output[0])
 
-    def run_runner(self, language, cases, memory_limit=256):
-        """Drive _records against a fake Docker API; return (argv, sent bytes)."""
-        judge = IOJudge(language)
-        sock = MagicMock()
-        judge._client = MagicMock()
-        judge._client.api.exec_create.return_value = {"Id": "exec"}
-        judge._client.api.exec_start.return_value = SimpleNamespace(_sock=sock, close=lambda: None)
-        judge._container = SimpleNamespace(id="container")
-        sent_synchronously = lambda target, args, daemon: SimpleNamespace(start=lambda: target(*args))
-        frames = [(1, b'{"exit": 0, "timeout": false, "ole": false, "size": 0}\n')]
-        with patch("apps.judge.io_judge.Thread", sent_synchronously), \
-                patch("apps.judge.io_judge.frames_iter", return_value=iter(frames)):
-            records = list(judge._records("print(1)", cases, 1000, memory_limit))
-        self.assertEqual([r["exit"] for r in records], [0])
-        argv = judge._client.api.exec_create.call_args.args[1]
-        self.assertEqual(judge._client.api.exec_create.call_args.kwargs["user"], "0")
-        sock.settimeout.assert_called_once_with(None)
-        sock.close.assert_called_once_with()
-        return argv, b"".join(call.args[0] for call in sock.sendall.call_args_list)
-
     def test_source_and_inputs_go_through_stdin_not_argv(self):
-        argv, sent = self.run_runner("python", [("1 2", "3"), ("你", "x")])
+        judge, sock = runner_judge("python", 2)
+        results = judge_all(judge, [("1 2", "3"), ("你", "3")])
+        self.assertEqual([r["status"] for r in results], ["AC", "AC"])
+        argv = judge._client.api.exec_create.call_args.args[1]
         self.assertEqual(argv[:4], ["python3", "-I", "-S", "-c"])
-        self.assertEqual(sent, b"8\nprint(1)3\n1 23\n\xe4\xbd\xa0")
+        self.assertEqual(judge._client.api.exec_create.call_args.kwargs["user"], "0")
+        self.assertEqual(b"".join(data for _, data in sock.sent), b"8\nprint(1)3\n1 23\n\xe4\xbd\xa0")
         self.assertNotIn("1 2", " ".join(argv))
         config = json.loads(argv[-1])
         self.assertEqual(config["cases"], 2)
         self.assertIsNone(config["compile"])
         self.assertEqual(config["run"], ["python3", "/tmp/build/main.py"])
         self.assertEqual((config["time_limit"], config["wall_limit"]), (1000, 3000))
+        self.assertIsNone(sock.timeout)
+        self.assertTrue(sock.closed)
 
     def test_java_runs_with_the_memory_limit(self):
-        argv, _ = self.run_runner("java", [("", "")], memory_limit=256)
-        config = json.loads(argv[-1])
+        judge, _ = runner_judge("java", 0)
+        judge_all(judge, [("", "")])
+        config = json.loads(judge._client.api.exec_create.call_args.args[1][-1])
         self.assertEqual(config["compile"], ["javac", "Main.java"])
         self.assertIn("-Xmx256m", config["run"])
+
+    def test_cases_get_input_only_after_the_problem_limit_applies(self):
+        judge, sock = runner_judge("cpp", 1)
+        self.assertEqual([r["status"] for r in judge_all(judge, [("1 2", "3")])], ["AC"])
+        self.assertEqual(judge.budgets, [1024])
+        self.assertEqual(judge.updates, [{"mem_limit": "256m", "memswap_limit": "256m"}])
+        self.assertEqual([data for _, data in sock.sent], [b"8\n", b"print(1)", b"3\n", b"1 2"])
+        self.assertEqual([updates for updates, _ in sock.sent[2:]], [1, 1])
+
+    def test_failed_limit_drop_is_se_and_runs_no_case(self):
+        def refuse(**limits):
+            raise docker.errors.APIError("cannot update memory")
+
+        judge, sock = runner_judge("cpp", 1, update=refuse)
+        self.assertEqual(judge_all(judge, [("1 2", "3")]), [SE])
+        self.assertEqual([data for _, data in sock.sent], [b"8\n", b"print(1)"])
+
+
+BUILD_FRAME = (1, b'{"exit": 0, "timeout": false, "ole": false, "size": 0}\n')
+CASE_FRAME = (1, b'{"exit": 0, "time": 1, "memory": 1, "tle": false, "ole": false, "size": 1}\n3')
+
+
+class FakeSocket:
+    def __init__(self, updates):
+        self.updates, self.sent, self.closed = updates, [], False
+        self.condition = Condition()
+
+    def settimeout(self, timeout):
+        self.timeout = timeout
+
+    def sendall(self, data):
+        if self.closed:
+            raise BrokenPipeError
+        with self.condition:
+            self.sent.append((len(self.updates), data))
+            self.condition.notify_all()
+
+    def wait_for(self, sends):
+        with self.condition:
+            self.condition.wait_for(lambda: len(self.sent) >= sends, timeout=5)
+
+    def shutdown(self, how):
+        self.closed = True
+
+    def close(self):
+        self.closed = True
+
+
+def runner_judge(language, case_count, update=None):
+    """A judge whose Docker API is faked down to the exec socket; like the
+    runner, it reports a case only once that case's input has arrived."""
+    judge = IOJudge(language)
+    judge._ensure_docker_client = lambda: None
+    judge.budgets, judge.updates, judge.writers = [], [], []
+    sock = FakeSocket(judge.updates)
+    judge._client = MagicMock()
+    judge._client.api.exec_create.return_value = {"Id": "exec"}
+    judge._client.api.exec_start.return_value = SimpleNamespace(_sock=sock, close=lambda: None)
+    container = SimpleNamespace(
+        id="container", remove=lambda **kwargs: None,
+        update=update or (lambda **limits: judge.updates.append(limits)),
+    )
+    judge._start_container = lambda memory_mb: judge.budgets.append(memory_mb) or container
+
+    def frames():
+        yield BUILD_FRAME
+        for case in range(1, case_count + 1):
+            sock.wait_for(2 + 2 * case)  # the source, then one input per case
+            yield CASE_FRAME
+
+    judge.frames = frames()
+    return judge, sock
+
+
+def judge_all(judge, cases):
+    def writer(**kwargs):
+        judge.writers.append(Thread(**kwargs))
+        return judge.writers[-1]
+
+    with patch("apps.judge.io_judge.Thread", writer), \
+            patch("apps.judge.io_judge.frames_iter", return_value=judge.frames):
+        results = list(judge.run("print(1)", cases, 1000, 256))
+    for thread in judge.writers:
+        thread.join(5)
+    return results

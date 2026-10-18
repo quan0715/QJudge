@@ -117,6 +117,27 @@ int main() { int n; scanf("%d", &n);
         self.assertEqual(results[3]["error"], "Output limit exceeded (1 MiB)")
         self.assert_containers(1)
 
+    def test_other_cases_inputs_do_not_take_the_memory_limit(self):
+        # 100 MB of inputs in all, yet each case can use 80 of its 128 MB.
+        code = r'''
+#include <iostream>
+#include <string>
+#include <vector>
+int main() {
+  std::string s; std::cin >> s;
+  std::vector<char> block(80 << 20, 1);
+  long touched = 0;
+  for (size_t i = 0; i < block.size(); i += 4096) touched += block[i];
+  std::cout << s.size() << " " << (touched > 0);
+}
+'''
+        big_input = "7" * (1 << 20)
+        with self.judge("cpp") as judge:
+            results = list(judge.run(code, [(big_input, f"{1 << 20} 1")] * 100, 1000, 128))
+        self.assertEqual({r["status"] for r in results}, {"AC"}, results[:1])
+        self.assertEqual(len(results), 100)
+        self.assert_containers(1)
+
     def test_many_cases_keep_their_order(self):
         code = "n = int(input())\nprint(n * n)"
         cases = [(str(n), str(n * n)) for n in range(50)]
