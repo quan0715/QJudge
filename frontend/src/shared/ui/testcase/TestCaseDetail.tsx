@@ -34,6 +34,8 @@ export interface TestCaseDetailProps {
   onClose?: () => void;
   /** 額外 CSS class */
   className?: string;
+  /** writable 模式 Input 欄位的 ref */
+  inputRef?: React.Ref<HTMLTextAreaElement>;
 }
 
 /**
@@ -50,6 +52,7 @@ export const TestCaseDetail: React.FC<TestCaseDetailProps> = ({
   onDuplicate,
   onClose,
   className,
+  inputRef,
 }) => {
   const fieldId = useId();
 
@@ -143,6 +146,7 @@ export const TestCaseDetail: React.FC<TestCaseDetailProps> = ({
             <div className={styles.section}>
               {isWritable ? (
                 <TextArea
+                  ref={inputRef}
                   id={`${fieldId}-input`}
                   labelText="Input"
                   placeholder="輸入測試資料..."
