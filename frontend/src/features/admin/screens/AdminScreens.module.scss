@@ -169,3 +169,29 @@
   flex-wrap: wrap;
   gap: layout.$spacing-03;
 }
+
+// Keep short values intact; TableContainer owns horizontal scrolling on narrow screens.
+.userTable {
+  th,
+  td {
+    white-space: nowrap;
+  }
+}
+
+.userIdentity {
+  display: block;
+  min-inline-size: 8rem;
+  max-inline-size: 16rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.userActions {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+
+  > * {
+    flex-shrink: 0;
+  }
+}
