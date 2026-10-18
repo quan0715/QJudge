@@ -428,7 +428,7 @@ const UserManagementScreen = () => {
             padding="none"
           >
             <TableContainer>
-                  <Table>
+                  <Table className={styles.userTable}>
                     <TableHead>
                       <TableRow>
                         <TableHeader>
@@ -460,9 +460,9 @@ const UserManagementScreen = () => {
                     <TableBody>
                       {filteredUsers.map((user) => (
                         <TableRow key={user.id}>
-                          <TableCell>{user.username}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>{user.profile?.display_name || "—"}</TableCell>
+                          <TableCell><span className={styles.userIdentity}>{user.username}</span></TableCell>
+                          <TableCell><span className={styles.userIdentity}>{user.email}</span></TableCell>
+                          <TableCell><span className={styles.userIdentity}>{user.profile?.display_name || "—"}</span></TableCell>
                           <TableCell>
                             <Tag
                               type={
@@ -488,7 +488,7 @@ const UserManagementScreen = () => {
                           </TableCell>
                           <TableCell>{formatDateTime(user.last_login_at)}</TableCell>
                           <TableCell>
-                            <div style={{ display: "flex", gap: "0.5rem" }}>
+                            <div className={styles.userActions}>
                               {["email", "password"].includes(user.auth_provider || "") && (
                                 <Button kind="tertiary" size="sm" disabled={issuingReset}
                                   onClick={() => handleIssueReset(user)}>
