@@ -8,26 +8,38 @@ from ..agent import state
 from ..agent.jobs import TargetNotLatest, git
 from ..agent.service import AgentService, _spawn_thread
 from ..ingress import IngressEntry
-from ..release_lock import release_lock, release_locked
+from ..release_lock import ReleaseBusy, release_lock, release_locked
+from ..envfile import write_private
 from .deployment import Deployment
 
 
 class DokployAgentService(AgentService):
-    def __init__(self, deployment: Deployment, *, spawn=_spawn_thread, after_success=lambda: None):
+    def __init__(self, deployment: Deployment, *, spawn=_spawn_thread, after_success=lambda: None, restart_agent=False):
         # Reuse commit descriptions and network probes; do not run standard CLI upgrades.
         super().__init__(deployment.repo / 'deploy', deployment.runtime / 'agent.env',
                          spawn=spawn, after_success=after_success)
         self.deployment = deployment
         self.runtime = deployment.runtime
+        self.restart_agent = restart_agent
 
     def status(self):
         record = self.deployment.current()
+        try:
+            with release_lock(self.runtime):
+                self.deployment.reconcile_pending()
+                job = state.read_job(self.runtime)
+                if job and job.get('status') == 'running':
+                    state.write_job(self.runtime, {**job, 'status': 'interrupted', 'finished_at': state.now()})
+        except ReleaseBusy:
+            pass
         job = state.read_job(self.runtime)
+        pending = (self.runtime / 'deployment-pending.json').exists()
+        restarting = (self.runtime / 'agent-restarting').exists()
         return {'tracked_branch': self.deployment.branch, 'deployment_mode': 'dokploy',
                 'version': {'current': record.get('sha'), 'previous': record.get('previous'),
                             'deployed_at': record.get('finishedAt')},
                 'job': job, 'log': state.log_tail(self.runtime),
-                'external_busy': release_locked(self.runtime) and (job or {}).get('status') != 'running'}
+                'external_busy': (restarting or pending or release_locked(self.runtime)) and (job or {}).get('status') != 'running'}
 
     def check(self):
         sha = self.deployment.latest()
@@ -47,6 +59,8 @@ class DokployAgentService(AgentService):
         lock = release_lock(self.runtime)
         lock.__enter__()
         try:
+            if (self.runtime / 'agent-restarting').exists() or self.deployment.reconcile_pending():
+                raise ReleaseBusy('Agent restart or Dokploy deployment is still pending')
             latest = self.deployment.latest()
             if target != latest:
                 raise TargetNotLatest(latest)
@@ -92,18 +106,22 @@ class DokployAgentService(AgentService):
             job.update(status='succeeded', site_healthy=True)
         except Exception as error:
             log(f'Deployment failed: {type(error).__name__}: {error}\n')
-            job.update(status='failed', site_healthy=False)
+            job.update(status='failed', site_healthy=self.deployment.public_healthy())
         finally:
             try:
                 job['finished_at'] = state.now()
                 state.write_job(self.runtime, job)
+                if job['status'] == 'succeeded':
+                    marker = self.runtime / 'agent-restarting'
+                    if self.restart_agent:
+                        write_private(marker, state.now())
+                    try:
+                        self.after_success()
+                    except Exception as error:
+                        marker.unlink(missing_ok=True)
+                        log(f'Agent restart failed: {error}\n')
             finally:
                 lock.__exit__(None, None, None)
-        if job['status'] == 'succeeded':
-            try:
-                self.after_success()
-            except Exception as error:
-                log(f'Agent restart failed: {error}\n')
         return job['status'] == 'succeeded'
 
     def containers(self):

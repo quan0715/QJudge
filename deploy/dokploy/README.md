@@ -112,3 +112,16 @@ A failed job keeps the last successful deployment record and its backup. A
 failure during the switch can leave partially updated services; recovery is
 explicit, not an automatic database restore. Do not delete the private backups
 or treat an HTTP timeout as proof that the deployment did not start.
+
+An asynchronous Dokploy switch is recorded in `deployment-pending.json` before
+sending the request. Timeouts and lost connections do not release admission for
+another switch: status/admission reconcile that title with Dokploy until it has
+a terminal result. If the title never appears, inspect Dokploy before manually
+clearing the record; a missing response is not cancellation. Orphaned CD jobs are
+marked interrupted without forgetting an outstanding switch.
+
+Successful jobs set `agent-restarting` before releasing the deployment lock. The
+new agent process clears this admission barrier on startup, so requests cannot
+start a worker in the old process just before systemd stops it. If restarting the
+unit fails, inspect its service status; a stuck barrier requires restarting the
+unit after confirming no deployment is active.

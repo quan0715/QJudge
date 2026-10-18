@@ -61,14 +61,41 @@ class Deployment:
     def healthy(self):
         rows = self.output(self.docker('ps', '-a', '--filter',
             'label=com.docker.compose.project=' + self.config['project'],
-            '--format', '{{.Names}}|{{.State}}|{{.Status}}|{{.Image}}')).splitlines()
-        # Require every service in this project's rendered configuration, not a partial startup.
+            '--format', '{{.Label "com.docker.compose.service"}}|{{.State}}|{{.Status}}|{{.Image}}')).splitlines()
         app = self.api('compose.one', query={'composeId': self.config['compose_id']})
         services = self.parse_app(app['composeFile'])['services']
-        images = {row.rsplit('|', 1)[-1] for row in rows}
-        expected_images = {s['image'] for s in services.values() if s.get('image', '').startswith('qjudge/')}
-        return expected_images <= images and len(rows) >= len(services) and all('|running|' in row and '(unhealthy)' not in row
-            and '(health: starting)' not in row for row in rows)
+        for name, service in services.items():
+            instances = [row.split('|') for row in rows if row.split('|')[0] == name]
+            replicas = service.get('deploy', {}).get('replicas', 1)
+            if len(instances) < replicas or any(len(row) != 4 or row[1] != 'running'
+                or '(unhealthy)' in row[2] or '(health: starting)' in row[2]
+                or row[3] != service['image'] for row in instances):
+                return False
+        return True
+
+    def public_healthy(self):
+        try:
+            with urllib.request.urlopen(self.config['public_origin'] + '/api/health/', timeout=5) as response:
+                return response.status == 200
+        except (OSError, ValueError):
+            return False
+
+    def reconcile_pending(self):
+        """Called under the release lock; an uncertain asynchronous switch blocks admission."""
+        path = self.runtime / 'deployment-pending.json'
+        if not path.exists():
+            return False
+        title = json.loads(path.read_text())['title']
+        try:
+            rows = self.api('deployment.allByCompose', query={'composeId': self.config['compose_id']})
+        except (OSError, ValueError):
+            return True
+        matches = [row for row in rows if row.get('title') == title]
+        if matches and matches[0]['status'] in ('done', 'error', 'cancelled'):
+            path.unlink()
+            return False
+        # A missing result is also uncertain: the deploy request may still be queued.
+        return True
 
     def execute(self, sha, step, log):
         if not re.fullmatch('[0-9a-f]{40}', sha):
@@ -128,6 +155,7 @@ class Deployment:
         step('switch')
         self.api('compose.update', {'composeId': self.config['compose_id'], 'composeFile': rendered})
         title = f"{self.config['project']}-{sha}-{uuid.uuid4().hex[:8]}"
+        write_private(self.runtime / 'deployment-pending.json', json.dumps({'title': title, 'sha': sha}))
         self.api('compose.deploy', {'composeId': self.config['compose_id'], 'title': title,
                                   'description': f'Pinned {self.branch} {sha}', 'freshVolumes': False})
         deployment = self.wait_deployment(title)
@@ -138,10 +166,8 @@ class Deployment:
             time.sleep(5)
         else:
             raise RuntimeError('Containers failed readiness checks')
-        # Confirm public routing too; container health alone is insufficient.
-        with urllib.request.urlopen(self.config['public_origin'] + '/api/health/', timeout=15) as response:
-            if response.status != 200:
-                raise RuntimeError('Public health check failed')
+        if not self.public_healthy():
+            raise RuntimeError('Public health check failed')
         previous = self.current().get('sha')
         write_private(self.runtime / 'deployed.json', json.dumps({
             'sha': sha, 'previous': previous, 'version': version, 'deploymentId': deployment['deploymentId'],
@@ -203,6 +229,8 @@ class Deployment:
             rows = self.api('deployment.allByCompose', query={'composeId': self.config['compose_id']})
             matches = [row for row in rows if row.get('title') == title]
             if matches:
+                if matches[0]['status'] in ('done', 'error', 'cancelled'):
+                    (self.runtime / 'deployment-pending.json').unlink(missing_ok=True)
                 if matches[0]['status'] == 'done':
                     return matches[0]
                 if matches[0]['status'] in ('error', 'cancelled'):

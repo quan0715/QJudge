@@ -11,7 +11,7 @@ from pathlib import Path
 from ..agent import state
 from ..agent.jobs import TargetNotLatest
 from ..agent.server import make_server
-from ..release_lock import ReleaseBusy
+from ..release_lock import ReleaseBusy, release_lock
 from .config import load_config
 from .deployment import Deployment
 from .service import DokployAgentService
@@ -31,8 +31,10 @@ def main():
             if not re.fullmatch(r'qjudge-[a-z0-9-]+\.service', unit):
                 raise ValueError('Invalid agent systemd unit')
             subprocess.run(['sudo', '-n', 'systemctl', 'restart', '--no-block', unit], check=True)
-    service = DokployAgentService(Deployment(config), after_success=restart)
+    service = DokployAgentService(Deployment(config), after_success=restart, restart_agent=bool(config.get('systemd_unit')))
     if args.command == 'serve':
+        with release_lock(service.runtime):
+            (service.runtime / 'agent-restarting').unlink(missing_ok=True)
         state.mark_interrupted(service.runtime)
         token = Path(config['token_file']).read_text().strip()
         server = make_server(service, token, host=config['listen_host'], port=config.get('port', 8090))

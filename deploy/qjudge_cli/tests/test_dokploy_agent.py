@@ -32,6 +32,10 @@ class FakeDeployment:
         return self.record
     def healthy(self):
         return True
+    def public_healthy(self):
+        return True
+    def reconcile_pending(self):
+        return (self.runtime / 'deployment-pending.json').exists()
     def execute(self, sha, step, log):
         self.executions.append(sha)
         step('build')
@@ -189,6 +193,67 @@ class DokployAgentTests(unittest.TestCase):
         self.assertIn('SCMP_ARCH_AARCH64', profile['architectures'])
         self.assertEqual([call.args[0] for call in api.call_args_list], ['compose.one'])
         self.assertFalse((self.root / 'deployed.json').exists())
+
+    def test_restart_marker_blocks_admission_until_new_server_starts(self):
+        agent = DokployAgentService(self.deployment, spawn=self.work.append, restart_agent=True)
+        agent.start_upgrade(SHA, 'admin')
+        self.work.pop()()
+        self.assertTrue((self.root / 'agent-restarting').exists())
+        with self.assertRaises(ReleaseBusy):
+            agent.start_upgrade(SHA, 'other')
+        (self.root / 'agent-restarting').unlink()
+        self.assertTrue(agent.run_sync(SHA))
+
+    def test_orphaned_cd_job_is_settled_without_clearing_pending_switch(self):
+        state.write_job(self.root, {'status': 'running', 'id': 'dead-cd'})
+        (self.root / 'deployment-pending.json').write_text('{}')
+        status = self.agent.status()
+        self.assertEqual(status['job']['status'], 'interrupted')
+        self.assertTrue(status['external_busy'])
+        with self.assertRaises(ReleaseBusy):
+            self.agent.start_upgrade(SHA, 'admin')
+
+    def test_status_does_not_interrupt_a_live_worker(self):
+        self.agent.start_upgrade(SHA, 'admin')
+        self.assertEqual(self.agent.status()['job']['status'], 'running')
+        self.work.pop()()
+
+    def test_failure_reports_independent_public_health(self):
+        self.deployment.fail = True
+        self.agent.start_upgrade(SHA, 'admin')
+        self.work.pop()()
+        self.assertTrue(state.read_job(self.root)['site_healthy'])
+
+    def test_uncertain_dokploy_switch_blocks_until_terminal_status(self):
+        deployment = Deployment({'repo': str(self.root), 'runtime': str(self.root),
+                                 'branch': 'dev', 'compose_id': 'staging'})
+        pending = self.root / 'deployment-pending.json'
+        pending.write_text(json.dumps({'title': 'release'}))
+        for rows in ([], [{'title': 'release', 'status': 'running'}]):
+            with patch.object(deployment, 'api', return_value=rows):
+                self.assertTrue(deployment.reconcile_pending())
+                self.assertTrue(pending.exists())
+        with patch.object(deployment, 'api', side_effect=OSError('connection lost')):
+            self.assertTrue(deployment.reconcile_pending())
+        with patch.object(deployment, 'api', return_value=[{'title': 'release', 'status': 'done'}]):
+            self.assertFalse(deployment.reconcile_pending())
+            self.assertFalse(pending.exists())
+
+    def test_health_checks_each_service_image_and_missing_services(self):
+        deployment = Deployment({'repo': str(self.root), 'runtime': str(self.root),
+                                 'branch': 'dev', 'project': 'staging', 'compose_id': 'staging'})
+        app = {'services': {'backend': {'image': 'qjudge/backend:new'},
+                            'celery': {'image': 'qjudge/backend:new'}}}
+        cases = [
+            ('backend|running|Up (healthy)|qjudge/backend:new\ncelery|running|Up|qjudge/backend:old', False),
+            ('backend|running|Up|qjudge/backend:new\nbackend|running|Up|qjudge/backend:new', False),
+            ('backend|running|Up (unhealthy)|qjudge/backend:new\ncelery|running|Up|qjudge/backend:new', False),
+            ('backend|running|Up (healthy)|qjudge/backend:new\ncelery|running|Up|qjudge/backend:new', True),
+        ]
+        for rows, expected in cases:
+            with self.subTest(rows=rows), patch.object(deployment, 'output', return_value=rows), \
+                 patch.object(deployment, 'api', return_value={'composeFile': json.dumps(app)}):
+                self.assertEqual(deployment.healthy(), expected)
 
     def test_dokploy_render_preserves_routes_data_and_other_images(self):
         config = {'repo': str(self.root), 'runtime': str(self.root), 'branch': 'dev',
