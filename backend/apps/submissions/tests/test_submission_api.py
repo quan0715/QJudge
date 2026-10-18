@@ -268,13 +268,14 @@ class SubmissionExecutionTestCase(TestCase):
         # Setup default mock judge behavior (AC)
         self.mock_judge = MagicMock()
         self.mock_get_judge.return_value = self.mock_judge
-        self.mock_judge.execute.return_value = {
+        self.verdict = {
             'status': 'AC',
             'time': 10,
             'memory': 1024,
             'output': '3',
             'error': ''
         }
+        self.mock_judge.run.side_effect = lambda **kwargs: [self.verdict for _ in kwargs['cases']]
 
         self.user = User.objects.create_user(
             username='exec_user',
@@ -349,7 +350,7 @@ int main() {
 }'''
         
         # Override mock to simulate CE
-        self.mock_judge.execute.return_value = {
+        self.verdict = {
             'status': 'CE',
             'time': 0,
             'memory': 0,
@@ -372,14 +373,14 @@ int main() {
         self.assertIn('error', submission.error_message.lower())
 
     def test_submission_is_judging_while_cases_run(self):
-        verdict = self.mock_judge.execute.return_value
         statuses = []
 
-        def execute(**kwargs):
-            statuses.append(Submission.objects.values_list('status', flat=True).get())
-            return verdict
+        def run(**kwargs):
+            for _ in kwargs['cases']:
+                statuses.append(Submission.objects.values_list('status', flat=True).get())
+                yield self.verdict
 
-        self.mock_judge.execute.side_effect = execute
+        self.mock_judge.run.side_effect = run
         response = self.client.post('/api/v1/submissions/', {
             'problem': self.problem.id,
             'contest': self.contest.id,

@@ -39,16 +39,15 @@ def judge_submission(submission_id):
             submission.save()
             return f"Submission {submission_id} failed: Unsupported language"
         
+        case_results = []
         with judge:
-            for tc in test_cases:
-                result = judge.execute(
-                    code=submission.code,
-                    input_data=tc.input_data,
-                    expected_output=tc.output_data,
-                    time_limit=submission.problem.time_limit,
-                    memory_limit=submission.problem.memory_limit,
-                )
-
+            verdicts = judge.run(
+                code=submission.code,
+                cases=[(tc.input_data, tc.output_data) for tc in test_cases],
+                time_limit=submission.problem.time_limit,
+                memory_limit=submission.problem.memory_limit,
+            )
+            for tc, result in zip(test_cases, verdicts):
                 status = result['status']
                 exec_time = result['time']
                 memory = result['memory']
@@ -64,7 +63,7 @@ def judge_submission(submission_id):
                 elif final_status == 'AC':  # First error
                     final_status = status
             
-                SubmissionResult.objects.create(
+                case_results.append(SubmissionResult(
                     submission=submission,
                     test_case=tc,
                     status=status,
@@ -75,15 +74,16 @@ def judge_submission(submission_id):
                     input_data=tc.input_data[:2000],  # Save snapshot of input
                     expected_output=tc.output_data[:2000],
                     is_hidden=tc.is_hidden,
-                )
-            
+                ))
+
                 # If CE or SE, stop testing other cases
                 if status in ['CE', 'SE']:
                     final_status = status
                     # Save the error message to the submission itself for easy access
                     submission.error_message = error_msg
                     break
-        
+        SubmissionResult.objects.bulk_create(case_results)
+
         binding = submission.contest_question_binding
         full_score = binding.score if binding else 100
         if total_weight_sum > 0:
