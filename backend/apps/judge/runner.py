@@ -138,6 +138,11 @@ def spawn(argv, fds, cwd, uid=0, limits=None):
             os.dup2(fd, target)
         for limit, value in (limits or {}).items():
             resource.setrlimit(limit, (value, value))
+        # Whatever this runs shares the container's memory limit with the
+        # runner; make it the out-of-memory killer's first choice so a program
+        # over the limit dies instead of the runner. Raising needs no privilege.
+        with open("/proc/self/oom_score_adj", "w") as score:
+            score.write("1000")
         os.chdir(cwd)
         if uid:
             os.setgroups([])
