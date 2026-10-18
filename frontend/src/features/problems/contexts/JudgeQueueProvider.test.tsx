@@ -8,6 +8,7 @@ import {
   submitSolution,
 } from "@/infrastructure/api/repositories/submission.repository";
 import { JudgeQueueProvider } from "./JudgeQueueProvider";
+import { useWatchProblem } from "./useJudgeQueue";
 import { summarizeProblemStatuses, type JudgedEvent, type JudgeRun } from "./judgeQueueStore";
 
 vi.mock("@/infrastructure/api/repositories/problem.repository", () => ({ testRun: vi.fn(), getTestRunProgress: vi.fn() }));
@@ -28,7 +29,10 @@ const wrapper = ({ children }: { children: ReactNode }) => (
   <JudgeQueueProvider userId="u1" onJudged={onJudged}>{children}</JudgeQueueProvider>
 );
 const renderSolver = (problemId = "p1") =>
-  renderHook(({ problemId: id }) => useSubmission({ ...base, problemId: id }), {
+  renderHook(({ problemId: id }) => {
+    useWatchProblem(id, true);
+    return useSubmission({ ...base, problemId: id });
+  }, {
     wrapper,
     initialProps: { problemId },
   });

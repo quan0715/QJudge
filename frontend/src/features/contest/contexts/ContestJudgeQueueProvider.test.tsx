@@ -3,6 +3,7 @@ import { act, fireEvent, renderHook, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/shared/contexts/ToastContext";
 import { useSubmission } from "@/features/problems/hooks/useSubmission";
+import { useWatchProblem } from "@/features/problems/contexts/useJudgeQueue";
 import { testRun } from "@/infrastructure/api/repositories/problem.repository";
 import {
   getSubmission,
@@ -30,7 +31,10 @@ const wrapper = ({ children }: { children: ReactNode }) => (
   <ToastProvider><ContestJudgeQueueProvider>{children}</ContestJudgeQueueProvider></ToastProvider>
 );
 const renderSolver = () =>
-  renderHook(({ problemId }) => useSubmission({ problemId, contestId: "c1", code: "x", language: "cpp", customTestCases: [] }), {
+  renderHook(({ problemId }) => {
+    useWatchProblem(problemId, true);
+    return useSubmission({ problemId, contestId: "c1", code: "x", language: "cpp", customTestCases: [] });
+  }, {
     wrapper,
     initialProps: { problemId: "p1" },
   });

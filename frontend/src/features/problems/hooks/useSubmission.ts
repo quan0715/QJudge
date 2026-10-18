@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { TestRunCustomCase } from "@/core/ports/problem.repository";
 import { INITIAL_EXECUTION_STATE, type ExecutionState, type ExecutionType } from "@/core/types/solver.types";
 import { isRunActive } from "@/features/problems/contexts/judgeQueueStore";
@@ -8,13 +8,7 @@ export function useSubmission({ problemId, contestId, code, language, customTest
   problemId?: string; contestId: string; code: string; language: string;
   customTestCases: TestRunCustomCase[];
 }) {
-  const { runs, displayed, start, setViewing } = useJudgeQueue();
-
-  useEffect(() => {
-    if (!problemId) return;
-    setViewing(problemId);
-    return () => setViewing(null);
-  }, [problemId, setViewing]);
+  const { runs, displayed, start } = useJudgeQueue();
 
   const problemRuns = useMemo(() => runs.filter((run) => run.problemId === problemId), [runs, problemId]);
   const shownKey = problemId ? displayed[problemId] : undefined;

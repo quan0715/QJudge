@@ -42,6 +42,7 @@ export interface JudgeQueueValue {
   displayed: Record<string, string>;
   start: (type: ExecutionType, payload: JudgeStartPayload) => Promise<void>;
   show: (problemId: string, key: string) => void;
+  /** The problem whose result panel is showing its run, or null. */
   setViewing: (problemId: string | null) => void;
 }
 

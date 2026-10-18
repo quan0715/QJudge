@@ -3,7 +3,8 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { JudgeQueueProvider } from "@/features/problems/contexts/JudgeQueueProvider";
 import { testRun } from "@/infrastructure/api/repositories/problem.repository";
-import { getSubmissions, submitSolution } from "@/infrastructure/api/repositories/submission.repository";
+import { getSubmission, getSubmissions, submitSolution } from "@/infrastructure/api/repositories/submission.repository";
+import type { JudgedEvent } from "@/features/problems/contexts/judgeQueueStore";
 import { ProblemFullPageSolve } from "./ProblemFullPageSolve";
 
 vi.mock("@/infrastructure/api/repositories/problem.repository", () => ({ testRun: vi.fn(), getTestRunProgress: vi.fn() }));
@@ -30,9 +31,9 @@ const problem = (id: string) => ({
   languageConfigs: [{ language: "cpp", templateCode: "int main() {}", isEnabled: true }],
   testCases: [],
 }) as never;
-const renderSolve = (id = "p1") => {
+const renderSolve = (id = "p1", onJudged?: (event: JudgedEvent) => void) => {
   const view = (problemId: string) => (
-    <JudgeQueueProvider userId="u1">
+    <JudgeQueueProvider userId="u1" onJudged={onJudged}>
       <ProblemFullPageSolve key={problemId} problem={problem(problemId)} problemLabel="B" contestId="c1" renderSubmissions={() => null} />
     </JudgeQueueProvider>
   );
@@ -98,5 +99,36 @@ describe("ProblemFullPageSolve", () => {
     switchTo("p1");
     expect(screen.getByText("排隊中")).toBeInTheDocument();
     expect(screen.getByText("這筆提交正在排隊")).toBeInTheDocument();
+  });
+
+  const judgeAs = (status: string) => {
+    vi.mocked(submitSolution).mockResolvedValue({ id: "s1", status: "pending", createdAt: "2026-10-18T10:00:00Z", results: [] } as never);
+    vi.mocked(getSubmissions).mockResolvedValue({ results: [{ id: "s1", status, problemId: "p1", createdAt: "" }], count: 1 } as never);
+    vi.mocked(getSubmission).mockResolvedValue({ id: "s1", status, score: 100, results: [], totalTestCases: 0 } as never);
+  };
+
+  it("notifies a verdict once the student collapses the result panel", async () => {
+    judgeAs("pending");
+    const onJudged = vi.fn();
+    renderSolve("p1", onJudged);
+    await submitOnce(1);
+    fireEvent.click(screen.getByRole("button", { name: "收合" }));
+    judgeAs("AC");
+    await waitFor(() => expect(onJudged).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    expect(onJudged.mock.calls[0][0].onScreen).toBe(false);
+  });
+
+  it("opens the result panel on a submission shown from its notification", async () => {
+    judgeAs("pending");
+    vi.mocked(testRun).mockResolvedValue({ run_id: "r1", execution_status: "complete", results: [] } as never);
+    const onJudged = vi.fn();
+    renderSolve("p1", onJudged);
+    await submitOnce(1);
+    await act(async () => { fireEvent.click(toolbarButton("測試")); });
+    fireEvent.click(screen.getByRole("button", { name: "收合" }));
+    judgeAs("AC");
+    await waitFor(() => expect(onJudged).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    act(() => { onJudged.mock.calls[0][0].show(); });
+    expect(screen.getByText("Accepted")).toBeInTheDocument();
   });
 });
