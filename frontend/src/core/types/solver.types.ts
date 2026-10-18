@@ -81,7 +81,10 @@ export interface ExecutionState {
   status: ExecutionStatus;
   result: TestRunResult | SubmissionResult | null;
   error?: string;
-  pollingId?: string;
+  /** Client time (ms) when this run was started. */
+  startedAt?: number;
+  /** A submission still waiting in the judge queue. */
+  queued?: boolean;
 }
 
 /**

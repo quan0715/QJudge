@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { TestCaseItem } from "@/core/entities/testcase.entity";
@@ -55,5 +56,36 @@ describe("EditTestCasesPanel", () => {
       "updated input",
       "custom output",
     );
+  });
+
+  it("focuses the new case's input after it renders", () => {
+    const onUpdateTestCase = vi.fn();
+    const Harness = () => {
+      const [testCases, setTestCases] = useState<TestCaseItem[]>(mixedOrderCases);
+      const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+      return (
+        <EditTestCasesPanel
+          testCases={testCases}
+          selectedCaseId={selectedCaseId}
+          onSelectCase={setSelectedCaseId}
+          onAddTestCase={(input, output) => setTestCases((previous) => [...previous, { id: "custom-new", source: "custom", input, output }])}
+          onDeleteTestCase={vi.fn()}
+          onUpdateTestCase={onUpdateTestCase}
+        />
+      );
+    };
+    render(<Harness />);
+
+    fireEvent.click(screen.getByText("Custom 1"));
+    screen.getByPlaceholderText("輸入測試資料...").focus();
+    const add = screen.getByRole("button", { name: "新增測資" });
+    add.focus();
+    fireEvent.click(add);
+
+    const input = screen.getByPlaceholderText("輸入測試資料...");
+    expect(input).toHaveValue("");
+    expect(document.activeElement).toBe(input);
+    fireEvent.change(input, { target: { value: "7" } });
+    expect(onUpdateTestCase).toHaveBeenLastCalledWith("custom-new", "7", "");
   });
 });

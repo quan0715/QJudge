@@ -17,6 +17,7 @@ import type {
   ExecutionType,
 } from "@/core/types/solver.types";
 import { loadCode, loadCustomCases, saveCode, saveCustomCases as persistCustomCases } from "./solverStorage";
+import { useWatchProblem } from "@/features/problems/contexts/useJudgeQueue";
 
 export type { ResultMode, ExecutionState, SubmissionResult, TestCaseResult, ExecutionStatus, ExecutionType };
 export type TestResult = TestRunResult;
@@ -58,6 +59,10 @@ interface UseProblemSolverReturn {
   
   // Unified State
   executionState: ExecutionState;
+  /** This problem has a submission still waiting for its verdict. */
+  hasPendingSubmission: boolean;
+  testRunning: boolean;
+  submitting: boolean;
   
   // Error state
   error: string | null;
@@ -73,8 +78,8 @@ export function useProblemSolver({
   contestId,
 }: UseProblemSolverProps): UseProblemSolverReturn {
   // Result panel state
-  const [resultOpen, setResultOpen] = useState(false);
-  const [resultMode, setResultMode] = useState<ResultMode>("testcases");
+  // The student's panel choices, kept for the run they were made on: a newly shown run opens on its result.
+  const [panelChoice, setPanelChoice] = useState<{ run?: number; open?: boolean; mode?: ResultMode }>({});
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
 
   // Error state
@@ -107,7 +112,18 @@ export function useProblemSolver({
       .map((testCase) => ({ input: testCase.input, expected_output: testCase.output ?? "" })),
     [testCases],
   );
-  const { executionState, execute } = useSubmission({ problemId: problem?.id, contestId, code, language, customTestCases });
+  const { executionState, execute, hasPendingSubmission, testRunning, submitting } = useSubmission({ problemId: problem?.id, contestId, code, language, customTestCases });
+  const hasRun = executionState.status !== "idle";
+  const shownRun = executionState.startedAt;
+  const choice = panelChoice.run === shownRun ? panelChoice : {};
+  const resultOpen = choice.open ?? hasRun;
+  const resultMode = choice.mode ?? (hasRun ? "results" : "testcases");
+  const choose = useCallback((next: { open?: boolean; mode?: ResultMode }) => {
+    setPanelChoice((previous) => ({ ...(previous.run === shownRun ? previous : {}), run: shownRun, ...next }));
+  }, [shownRun]);
+  const setResultOpen = useCallback((open: boolean) => choose({ open }), [choose]);
+  const setResultMode = useCallback((mode: ResultMode) => choose({ mode }), [choose]);
+  useWatchProblem(problem?.id, resultOpen && resultMode === "results");
 
   // Initialize when problem changes
   useEffect(() => {
@@ -185,8 +201,8 @@ export function useProblemSolver({
   );
 
   const toggleResult = useCallback(() => {
-    setResultOpen((prev) => !prev);
-  }, []);
+    setResultOpen(!resultOpen);
+  }, [resultOpen, setResultOpen]);
 
   const selectCase = useCallback((id: string | null) => {
     setSelectedCaseId(id);
@@ -283,6 +299,9 @@ export function useProblemSolver({
     runTest,
     submit,
     executionState,
+    hasPendingSubmission,
+    testRunning,
+    submitting,
     error,
   };
 }

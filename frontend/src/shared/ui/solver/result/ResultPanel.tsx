@@ -26,6 +26,8 @@ interface ResultPanelProps {
   // Actions
   onRunTest?: () => void;
   onSubmit?: () => void;
+  testDisabled?: boolean;
+  submitDisabled?: boolean;
 
   // Execution
   executionState: ExecutionState;
@@ -71,6 +73,8 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
   executionState,
   onRunTest,
   onSubmit,
+  testDisabled,
+  submitDisabled,
 }) => {
   // Check if we have results to show
   const { status, result } = executionState;
@@ -98,7 +102,8 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
     }
 
     // Results mode - show ResultsPanel (handles its own skeleton/loading states)
-    return <ResultsPanel executionState={executionState} testCases={testCases} />;
+    // A different run remounts the panel, so its selection and expansion start fresh.
+    return <ResultsPanel key={executionState.startedAt} executionState={executionState} testCases={testCases} />;
   };
 
   return (
@@ -111,7 +116,8 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
         onToggle={onToggle}
         onRunTest={onRunTest}
         onSubmit={onSubmit}
-        isRunning={isRunning}
+        testDisabled={testDisabled}
+        submitDisabled={submitDisabled}
       />
 
       {/* Content - hidden when collapsed */}
