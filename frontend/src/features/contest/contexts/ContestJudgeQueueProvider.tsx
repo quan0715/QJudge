@@ -1,17 +1,48 @@
 import { useCallback, type ReactNode } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { isContestEnded } from "@/core/entities/contest.entity";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
 import { JudgeQueueProvider } from "@/features/problems/contexts/JudgeQueueProvider";
 import type { JudgedEvent } from "@/features/problems/contexts/judgeQueueStore";
+import { useToast } from "@/shared/contexts/ToastContext";
+import { useContestRuntimeNavigator } from "./useContestRuntimeNavigator";
 import { useOptionalContest } from "./useOptionalContest";
 
 /** Exam-wide judge queue: what happens when a submission gets its verdict. */
 export function ContestJudgeQueueProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const refreshStandings = useOptionalContest()?.refreshStandings;
+  const contestValue = useOptionalContest();
+  const navigator = useContestRuntimeNavigator();
+  const navigate = useNavigate();
+  const { classroomId } = useParams<{ classroomId?: string }>();
+  const { showToast } = useToast();
+  const contest = contestValue?.contest;
+  const refreshStandings = contestValue?.refreshStandings;
 
-  const handleJudged = useCallback(({ run }: JudgedEvent) => {
-    if (run.result?.type === "submit" && run.result.status === "AC") void refreshStandings?.();
-  }, [refreshStandings]);
+  const handleJudged = useCallback(({ run, onScreen, show }: JudgedEvent) => {
+    const verdict = run.result?.type === "submit" ? run.result.status : "";
+    if (verdict === "AC") void refreshStandings?.();
+    if (onScreen) return;
+
+    const summary = contest?.problems?.find((problem) => problem.problemId === run.problemId);
+    const answering = !!contest && !isContestEnded(contest) && contest.examStatus !== "submitted";
+    const openProblem = () => {
+      show();
+      const index = navigator?.items.findIndex((item) => item.kind === "coding" && item.data.problemId === run.problemId) ?? -1;
+      if (navigator && index >= 0) navigator.onSelect(index);
+      else {
+        const classroom = classroomId || contest?.boundClassroomId;
+        if (classroom && contest && summary) navigate(getClassroomContestSolvePath(classroom, contest.id, summary.id));
+      }
+    };
+    showToast({
+      kind: verdict === "AC" ? "success" : "error",
+      title: `${summary?.label ?? ""} 題判完：${verdict}`,
+      timeout: 8000,
+      action: answering ? { label: "查看", onClick: openProblem } : undefined,
+    });
+  }, [classroomId, contest, navigate, navigator, refreshStandings, showToast]);
 
   return (
     <JudgeQueueProvider userId={String(user?.id ?? "")} onJudged={handleJudged}>

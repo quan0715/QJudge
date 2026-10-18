@@ -5,7 +5,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { ToastNotification } from "@carbon/react";
+import { ActionableNotification, ToastNotification } from "@carbon/react";
 
 type ToastKind =
   | "error"
@@ -21,6 +21,8 @@ interface Toast {
   title: string;
   subtitle?: string;
   timeout?: number;
+  /** A follow-up action; clicking it also closes the toast. */
+  action?: { label: string; onClick: () => void };
 }
 
 interface ToastContextType {
@@ -32,14 +34,16 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = useCallback((toast: Omit<Toast, "id">) => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    setToasts((prev) => [...prev, { ...toast, id }]);
-  }, []);
-
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
+
+  const showToast = useCallback((toast: Omit<Toast, "id">) => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    setToasts((prev) => [...prev, { ...toast, id }]);
+    // ActionableNotification has no timeout of its own.
+    if (toast.action) window.setTimeout(() => removeToast(id), toast.timeout ?? 3000);
+  }, [removeToast]);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
@@ -55,7 +59,25 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
           gap: "0.5rem",
         }}
       >
-        {toasts.map((toast) => (
+        {toasts.map((toast) => toast.action ? (
+          <ActionableNotification
+            key={toast.id}
+            kind={toast.kind}
+            title={toast.title}
+            subtitle={toast.subtitle}
+            actionButtonLabel={toast.action.label}
+            onActionButtonClick={() => {
+              toast.action?.onClick();
+              removeToast(toast.id);
+            }}
+            onClose={() => removeToast(toast.id)}
+            hasFocus={false}
+            style={{
+              minWidth: "20rem",
+              maxWidth: "25rem",
+            }}
+          />
+        ) : (
           <ToastNotification
             key={toast.id}
             kind={toast.kind}
