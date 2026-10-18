@@ -34,7 +34,6 @@ SECRET_KEY = env("SECRET_KEY", "django-insecure-default-key-change-in-production
 
 # Application definition
 INSTALLED_APPS = [
-    "daphne",  # ASGI server, must be first for runserver to use ASGI
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

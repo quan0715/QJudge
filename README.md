@@ -15,7 +15,7 @@ QJudge 是一個整合競賽、教學、評測與 AI 助教流程的線上評測
 | 層級 | 技術 |
 | --- | --- |
 | Frontend | React 19、TypeScript、Carbon Design System、Vite |
-| Backend | Django 4.2、Django REST Framework、Daphne、Celery |
+| Backend | Django 4.2、Django REST Framework、Uvicorn、Celery |
 | AI Service | FastAPI、LangGraph DeepAgent、SSE |
 | Database/Queue | PostgreSQL 15、Redis 7 |
 | Judge | Docker 容器隔離執行 |

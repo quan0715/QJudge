@@ -110,13 +110,13 @@ def test_task_result_is_json_serialisable(db):
         memory_limit=128,
     )
     judge = MagicMock()
-    judge.execute.return_value = {
+    judge.run.return_value = [{
         "status": "AC",
         "time": 12,
         "memory": 2048,
         "output": "3",
         "error": "",
-    }
+    }]
 
     with patch(
         "apps.problems.tasks.CodingProblem.objects.get", return_value=problem
@@ -228,7 +228,7 @@ def test_worker_reports_completed_cases_as_they_finish():
     cases = [SimpleNamespace(id=i, input_data=str(i), output_data=str(i), is_hidden=False) for i in range(4)]
     problem = SimpleNamespace(public_sample_cases=lambda: cases, time_limit=1000, memory_limit=128)
     judge = MagicMock()
-    judge.execute.return_value = {"status": "AC", "output": "ok"}
+    judge.run.return_value = [{"status": "AC", "output": "ok"}] * len(cases)
     updates = []
     with patch("apps.problems.test_run_service.judge_factory.get_judge", return_value=judge):
         result = ProblemTestRunService.run(problem=problem, language="cpp", source_code="code", on_progress=updates.append)

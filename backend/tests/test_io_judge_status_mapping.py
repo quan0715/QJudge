@@ -1,50 +1,36 @@
 import pytest
-from apps.judge.io_judge import IOJudge, _CE_SENTINEL
+from apps.judge.io_judge import IOJudge
+
+
+def record(**fields):
+    return {"exit": 0, "time": 10, "memory": 5, "tle": False, "ole": False, "output": "", **fields}
 
 
 @pytest.mark.parametrize(
-    "exit_code,output,expected_status",
+    "fields,expected_status",
     [
-        (124, "", "TLE"),
-        (1, f"{_CE_SENTINEL}\nerror: 'x' was not declared", "CE"),
-        (137, "Segmentation fault", "RE"),
+        ({"exit": 137, "tle": True}, "TLE"),
+        ({"exit": 0, "tle": True, "output": "42"}, "TLE"),
+        ({"exit": 137, "output": "Segmentation fault"}, "RE"),
+        ({"exit": 153, "ole": True, "tle": True}, "RE"),
+        ({"output": "42\n"}, "AC"),
+        ({"output": "41\n"}, "WA"),
     ],
 )
-def test_judge_error_status_mapping(monkeypatch, exit_code, output, expected_status):
-    judge = IOJudge("cpp")
-    monkeypatch.setattr(judge, "_ensure_docker_client", lambda: None)
-    monkeypatch.setattr(judge, "_prepare", lambda code, memory_limit: None)
-
-    def fake_run(command, timeout, **kwargs):
-        return {"exit_code": exit_code, "output": output, "time": 10, "memory": 5}
-
-    monkeypatch.setattr(judge, "_exec", fake_run)
-
-    result = judge.execute("int main(){}", "", "", 1000, 128)
-    assert result["status"] == expected_status
+def test_judge_status_mapping(fields, expected_status):
+    assert IOJudge._interpret(record(**fields), "42", 1000)["status"] == expected_status
 
 
-def test_judge_success_and_wrong_answer(monkeypatch):
-    judge = IOJudge("cpp")
-    monkeypatch.setattr(judge, "_ensure_docker_client", lambda: None)
-    monkeypatch.setattr(judge, "_prepare", lambda code, memory_limit: None)
-    responses = [
-        {"exit_code": 0, "output": "42\n", "time": 8, "memory": 4},
-        {"exit_code": 0, "output": "41\n", "time": 8, "memory": 4},
-    ]
+def test_judge_success_and_wrong_answer_errors():
+    assert IOJudge._interpret(record(output="42\n"), "42", 1000)["error"] == ""
+    assert IOJudge._interpret(record(output="41\n"), "42", 1000)["error"] == "Wrong Answer"
 
-    def fake_run(command, timeout, **kwargs):
-        return responses.pop(0)
 
-    monkeypatch.setattr(judge, "_exec", fake_run)
-
-    ac_result = judge.execute("int main(){return 0;}", "", "42", 1000, 128)
-    assert ac_result["status"] == "AC"
-    assert ac_result["error"] == ""
-
-    wa_result = judge.execute("int main(){return 0;}", "", "42", 1000, 128)
-    assert wa_result["status"] == "WA"
-    assert wa_result["error"] == "Wrong Answer"
+def test_compile_error_status():
+    build = {"exit": 1, "timeout": False, "ole": False, "output": "error: 'x' was not declared"}
+    assert IOJudge._compile_error(build) == {
+        "status": "CE", "output": "", "error": "error: 'x' was not declared", "time": 0, "memory": 0,
+    }
 
 
 @pytest.mark.parametrize("language", ["cpp", "c", "python", "java"])

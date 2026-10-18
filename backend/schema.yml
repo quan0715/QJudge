@@ -4402,7 +4402,7 @@ paths:
           - python
         description: |-
           * `python` - Python 3.11
-          * `cpp` - C++ 20
+          * `cpp` - C++ 17
           * `c` - C 11
           * `java` - Java 17
       - name: ordering
@@ -6167,7 +6167,7 @@ paths:
           - python
         description: |-
           * `python` - Python 3.11
-          * `cpp` - C++ 20
+          * `cpp` - C++ 17
           * `c` - C 11
           * `java` - Java 17
       - name: ordering
@@ -9025,7 +9025,7 @@ components:
       type: string
       description: |-
         * `python` - Python 3.11
-        * `cpp` - C++ 20
+        * `cpp` - C++ 17
         * `c` - C 11
         * `java` - Java 17
     LanguageConfig:
