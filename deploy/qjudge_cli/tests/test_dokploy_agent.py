@@ -251,7 +251,7 @@ class DokployAgentTests(unittest.TestCase):
             ('backend|running|Up (healthy)|qjudge/backend:new\ncelery|running|Up|qjudge/backend:new', True),
         ]
         for rows, expected in cases:
-            with self.subTest(rows=rows), patch.object(deployment, 'output', return_value=rows), \
+            with self.subTest(rows=rows), patch.object(deployment, 'output', side_effect=['container-ids', rows]), \
                  patch.object(deployment, 'api', return_value={'composeFile': json.dumps(app)}):
                 self.assertEqual(deployment.healthy(), expected)
 

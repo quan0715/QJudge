@@ -59,16 +59,21 @@ class Deployment:
         return subprocess.check_output(args, text=True, timeout=30).strip()
 
     def healthy(self):
-        rows = self.output(self.docker('ps', '-a', '--filter',
-            'label=com.docker.compose.project=' + self.config['project'],
-            '--format', '{{.Label "com.docker.compose.service"}}|{{.State}}|{{.Status}}|{{.Image}}')).splitlines()
+        ids = self.output(self.docker('ps', '-aq', '--filter',
+            'label=com.docker.compose.project=' + self.config['project'])).split()
+        if not ids:
+            return False
+        # inspect preserves digest-pinned image references; docker ps drops the digest.
+        rows = self.output(self.docker('inspect', '--format',
+            '{{index .Config.Labels "com.docker.compose.service"}}|{{.State.Status}}|{{if .State.Health}}({{.State.Health.Status}}){{end}}|{{.Config.Image}}',
+            *ids)).splitlines()
         app = self.api('compose.one', query={'composeId': self.config['compose_id']})
         services = self.parse_app(app['composeFile'])['services']
         for name, service in services.items():
             instances = [row.split('|') for row in rows if row.split('|')[0] == name]
             replicas = service.get('deploy', {}).get('replicas', 1)
             if len(instances) < replicas or any(len(row) != 4 or row[1] != 'running'
-                or '(unhealthy)' in row[2] or '(health: starting)' in row[2]
+                or '(unhealthy)' in row[2] or '(starting)' in row[2]
                 or row[3] != service['image'] for row in instances):
                 return False
         return True
