@@ -91,6 +91,7 @@ const SystemVersionScreen = () => {
   const job: UpgradeJob | null = state?.job ?? null;
   const currentSha = state?.version?.current ?? null;
   const deployedAt = state?.version?.deployedAt ?? null;
+  const branch = release?.trackedBranch ?? state?.trackedBranch ?? "main";
 
   const recheck = async () => {
     setStaleNotice(false);
@@ -164,7 +165,7 @@ const SystemVersionScreen = () => {
           {currentPanel}
           {release ? (
             <VersionPanel
-              label={t("system.version.latest", "main 最新版")}
+              label={t("system.version.latest", "{{branch}} 最新版", { branch })}
               version={shortVersion(release.latest.sha)}
               meta={t("system.version.committedAt", "提交於 {{time}}", {
                 time: formatTime(release.latest.committedAt),
@@ -173,7 +174,7 @@ const SystemVersionScreen = () => {
           ) : null}
           {!release && checking ? (
             <Tile className={styles.versionPanel}>
-              <p className={styles.statLabel}>{t("system.version.latest", "main 最新版")}</p>
+              <p className={styles.statLabel}>{t("system.version.latest", "{{branch}} 最新版", { branch })}</p>
               <SkeletonText />
             </Tile>
           ) : null}
@@ -338,7 +339,7 @@ const SystemVersionScreen = () => {
       <div className={styles.pageInner}>
         <PageHeader
           title={t("system.version.title", "系統版本")}
-          subtitle={t("system.version.subtitle", "目前部署的版本，以及可以更新到的 main 最新版。")}
+          subtitle={t("system.version.subtitle", "目前部署的版本，以及可以更新到的 {{branch}} 最新版。", { branch })}
           action={
             canCheck ? (
               <Button
@@ -370,7 +371,7 @@ const SystemVersionScreen = () => {
               kind="info"
               lowContrast
               hideCloseButton
-              title={t("system.version.notLatest", "main 已有更新的版本，請確認後再更新")}
+              title={t("system.version.notLatest", "{{branch}} 已有更新的版本，請確認後再更新", { branch })}
             />
           ) : null}
           {checkError && (canCheck || canRetry) ? (

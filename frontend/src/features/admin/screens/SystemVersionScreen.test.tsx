@@ -38,7 +38,7 @@ const LATEST = "b".repeat(40);
 const NEWER = "c".repeat(40);
 
 const CONFIRM_TEXT =
-  "更新前會先備份資料庫。切換服務時網站會中斷約 30 秒到 1 分鐘，正在作答的學生可能會短暫看到錯誤頁。更新失敗會自動維持在目前版本。";
+  "更新前會先備份資料庫。切換服務時網站會中斷約 30 秒到 1 分鐘，正在作答的學生可能會短暫看到錯誤頁。更新失敗時請查看紀錄及服務狀態，必要時由維護者復原。";
 const SWITCHING_TEXT =
   "正在切換服務，網站暫時無法連線。這是正常的，頁面會自動重新連線，不需要重新整理。";
 const SWITCHING_TOO_LONG_TEXT =
@@ -99,6 +99,14 @@ describe("SystemVersionScreen", () => {
   });
 
   describe("when idle", () => {
+    it("shows the configured dev branch for Dokploy staging", async () => {
+      vi.mocked(getSystemVersion).mockResolvedValue(state({ trackedBranch: "dev" }));
+      vi.mocked(checkSystemUpdates).mockResolvedValue(release({ trackedBranch: "dev" }));
+      render(<SystemVersionScreen />);
+      expect(await screen.findByText("dev 最新版")).toBeTruthy();
+      expect(screen.queryByText("main 最新版")).toBeNull();
+    });
+
     it("shows the deployed version beside the newest main and checks once on open", async () => {
       vi.mocked(getSystemVersion).mockResolvedValue(state());
 

@@ -98,7 +98,7 @@ class SystemUpgradeView(SchemaAPIView):
             return contract_error_response(
                 request,
                 "not_latest",
-                "main 已有更新的版本",
+                "追蹤分支已有更新的版本",
                 status=status.HTTP_400_BAD_REQUEST,
                 details={"latest": error.latest},
             )

@@ -110,11 +110,11 @@
     },
     "version": {
       "title": "System version",
-      "subtitle": "The version deployed now, and the latest main you can update to.",
+      "subtitle": "The version deployed now, and the latest {{branch}} you can update to.",
       "recheck": "Check again",
       "reconnect": "Reconnect",
       "current": "Current version",
-      "latest": "Latest on main",
+      "latest": "Latest on {{branch}}",
       "deployedAt": "Deployed {{time}}",
       "committedAt": "Committed {{time}}",
       "contains": "This update includes",
@@ -124,7 +124,7 @@
       "checkFailed": "Could not check for updates",
       "loadFailed": "Could not load the system version",
       "startFailed": "Could not start the update",
-      "notLatest": "main has a newer version. Review it before updating.",
+      "notLatest": "{{branch}} has a newer version. Review it before updating.",
       "unsupported": "This environment does not support online updates",
       "external": "Another update is in progress (started from a terminal or CD)",
       "interrupted": "The last update was interrupted. The site is on the current version.",
@@ -141,7 +141,7 @@
       "confirm": {
         "title": "Confirm update to {{version}}",
         "start": "Start update",
-        "body": "The database is backed up first. While services are switched over, the site is unavailable for about 30 seconds to 1 minute, and students taking an exam may briefly see an error page. If the update fails, the site stays on the current version."
+        "body": "The database is backed up first. While services are switched over, the site is unavailable for about 30 seconds to 1 minute, and students taking an exam may briefly see an error page. If the update fails, check the logs and service status; a maintainer may need to recover the deployment."
       },
       "progress": {
         "target": "Target version",

@@ -34,6 +34,7 @@ export interface DeployedVersion {
 }
 
 export interface SystemVersionState {
+  trackedBranch?: string;
   agent: AgentState;
   version: DeployedVersion | null;
   job: UpgradeJob | null;
@@ -42,6 +43,7 @@ export interface SystemVersionState {
 }
 
 export interface ReleaseCheck {
+  trackedBranch?: string;
   latest: { sha: string; subject: string; committedAt: string };
   releases: { sha: string; subject: string }[];
   updateAvailable: boolean;
