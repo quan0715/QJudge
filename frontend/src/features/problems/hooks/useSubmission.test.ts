@@ -64,3 +64,27 @@ it("sends the custom cases with a test run but not with a submission", async () 
   expect(vi.mocked(testRun)).toHaveBeenCalledWith("p1", expect.objectContaining({ custom_test_cases: customTestCases }));
   expect(vi.mocked(submitSolution).mock.calls[0][0]).not.toHaveProperty("custom_test_cases");
 });
+
+it("ends a test run that the server reports failed or expired", async () => {
+  vi.mocked(testRun).mockResolvedValue({ run_id: "run", execution_status: "pending", total: 1, results: [] } as never);
+  vi.mocked(getTestRunProgress).mockRejectedValue(Object.assign(new Error("Test run expired or unavailable"), { status: 404 }));
+  const { result } = renderHook(() => useSubmission(props), { wrapper });
+  await act(async () => { await result.current.execute("test"); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+  expect(result.current.executionState).toMatchObject({ status: "error", error: "Test run expired or unavailable" });
+  expect(result.current.testRunning).toBe(false);
+  await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+  expect(getTestRunProgress).toHaveBeenCalledTimes(1);
+});
+
+it("keeps polling a test run through a temporary gateway error", async () => {
+  vi.mocked(testRun).mockResolvedValue({ run_id: "run", execution_status: "pending", total: 1, results: [] } as never);
+  vi.mocked(getTestRunProgress).mockRejectedValueOnce(Object.assign(new Error("Bad Gateway"), { status: 502 }));
+  vi.mocked(getTestRunProgress).mockResolvedValueOnce({ execution_status: "complete", run_id: "run", results: [{ status: "AC" }] } as never);
+  const { result } = renderHook(() => useSubmission(props), { wrapper });
+  await act(async () => { await result.current.execute("test"); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+  expect(result.current.executionState.status).toBe("polling");
+  await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+  expect(result.current.executionState.status).toBe("complete");
+});

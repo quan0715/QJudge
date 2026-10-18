@@ -33,6 +33,9 @@ const fromSubmission = (data: SubmissionDetail): RunUpdate => ({
   status: data.status === "pending" || data.status === "judging" ? "polling" : "complete",
   queued: data.status === "pending",
 });
+// test_run_status reports a failed run as 500 and an expired one as 404; anything else is retried.
+const isFinishedTestRun = (error: unknown) => [404, 500].includes((error as { status?: number }).status ?? 0);
+const errorMessage = (error: unknown) => (error instanceof Error ? error.message : "執行失敗");
 const earliest = (values: Array<string | undefined>) =>
   values.filter((value): value is string => !!value).sort((a, b) => Date.parse(a) - Date.parse(b))[0];
 
@@ -100,7 +103,7 @@ export function JudgeQueueProvider({ userId, onJudged, children }: {
         ? fromTest(await testRun(problemId, { ...request, asynchronous: true, custom_test_cases: customTestCases }))
         : fromSubmission(await submitSolution({ ...request, problem_id: problemId })));
     } catch (error) {
-      settle(key, { status: "error", error: error instanceof Error ? error.message : "執行失敗" });
+      settle(key, { status: "error", error: errorMessage(error) });
     }
   }, [settle, show]);
 
@@ -138,7 +141,10 @@ export function JudgeQueueProvider({ userId, onJudged, children }: {
       }),
       ...polling.filter((run) => run.type === "test").map(async (run) => {
         try { settle(run.key, fromTest(await getTestRunProgress(run.problemId, run.remoteId!), run.remoteId, run.result?.total)); }
-        catch { failed = true; }
+        catch (error) {
+          if (isFinishedTestRun(error)) settle(run.key, { status: "error", error: errorMessage(error) });
+          else failed = true;
+        }
       }),
     ]);
     if (!aliveRef.current) return;
