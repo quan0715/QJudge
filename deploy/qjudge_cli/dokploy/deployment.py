@@ -12,6 +12,7 @@ from pathlib import Path
 
 from ..agent.jobs import git
 from ..envfile import write_private
+from ..release import MIGRATIONS, MODEL_CONFIG_CHECK
 
 IMAGES = [('backend', 'backend', 'Dockerfile'), ('ai-service', 'ai-service', 'Dockerfile'),
           ('frontend', 'frontend', 'Dockerfile'), ('integrity-resident', 'integrity-service', 'Dockerfile.resident'),
@@ -63,7 +64,7 @@ class Deployment:
             '--format', '{{.Names}}|{{.State}}|{{.Status}}|{{.Image}}')).splitlines()
         # Require every service in this project's rendered configuration, not a partial startup.
         app = self.api('compose.one', query={'composeId': self.config['compose_id']})
-        services = json.loads(app['composeFile'])['services']
+        services = self.parse_app(app['composeFile'])['services']
         images = {row.rsplit('|', 1)[-1] for row in rows}
         expected_images = {s['image'] for s in services.values() if s.get('image', '').startswith('qjudge/')}
         return expected_images <= images and len(rows) >= len(services) and all('|running|' in row and '(unhealthy)' not in row
@@ -94,7 +95,7 @@ class Deployment:
         current = self.api('compose.one', query={'composeId': self.config['compose_id']})
         if current['appName'] != self.config['project'] or current['sourceType'] != 'raw':
             raise RuntimeError('Dokploy app does not match the configured project')
-        app = json.loads(current['composeFile'])
+        app = self.parse_app(current['composeFile'])
         if app['networks']['default']['name'] != self.config['network']:
             raise RuntimeError('Dokploy network does not match')
         step('backup')
@@ -119,8 +120,11 @@ class Deployment:
                 profile['architectures'].append(arch)
         if not any('statx' in rule['names'] for rule in profile['syscalls']):
             profile['syscalls'].append({'names': ['statx'], 'action': 'SCMP_ACT_ALLOW'})
-        (self.runtime / 'backend/judge/seccomp_profiles/cpp.json').write_text(json.dumps(profile))
-        # Migrations run in the application's existing startup commands.
+        profile_path = self.runtime / 'backend/judge/seccomp_profiles/cpp.json'
+        profile_path.parent.mkdir(parents=True, exist_ok=True)
+        profile_path.write_text(json.dumps(profile))
+        step('migrate')
+        self.migrate(backup / 'next-compose.json', log)
         step('switch')
         self.api('compose.update', {'composeId': self.config['compose_id'], 'composeFile': rendered})
         title = f"{self.config['project']}-{sha}-{uuid.uuid4().hex[:8]}"
@@ -151,6 +155,28 @@ class Deployment:
         for old in backups[:-5]:
             shutil.rmtree(old)
         log(f'Staging deployed: {sha}\n')
+
+    def parse_app(self, source):
+        try:
+            return json.loads(source)
+        except json.JSONDecodeError:
+            # Let the installed Compose parser handle YAML without resolving host paths,
+            # env files or interpolation that belongs to Dokploy's configuration.
+            result = subprocess.run(self.docker('compose', '-f', '-', 'config',
+                '--format', 'json', '--no-interpolate', '--no-normalize',
+                '--no-path-resolution', '--no-env-resolution'), input=source,
+                capture_output=True, text=True, timeout=30)
+            if result.returncode:
+                raise RuntimeError('Cannot parse Dokploy Compose configuration')
+            return json.loads(result.stdout)
+
+    def migrate(self, compose_file, log):
+        # One-off new-image commands use the existing network and databases. They do
+        # not replace running services, and failure prevents the Dokploy switch.
+        for service, command in (MODEL_CONFIG_CHECK, *MIGRATIONS):
+            self._stream(self.docker('compose', '-p', self.config['project'],
+                '-f', str(compose_file), 'run', '--rm', '--no-deps', '--pull', 'never',
+                service, *command), log)
 
     def render_app(self, app, version):
         for service in app['services'].values():

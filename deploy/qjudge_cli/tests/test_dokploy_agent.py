@@ -138,6 +138,58 @@ class DokployAgentTests(unittest.TestCase):
         self.assertEqual([call.args[0] for call in api.call_args_list], ['compose.one'])
         self.assertFalse((self.root / 'deployed.json').exists())
 
+    def test_yaml_uses_compose_parser_without_resolving_private_values(self):
+        deployment = Deployment({'repo': str(self.root), 'runtime': str(self.root), 'branch': 'dev'})
+        source = 'services:\n  backend:\n    image: qjudge/backend:old\n'
+        app = {'services': {'backend': {'image': 'qjudge/backend:old'}}}
+        with patch('qjudge_cli.dokploy.deployment.subprocess.run',
+                   return_value=subprocess.CompletedProcess([], 0, json.dumps(app), '')) as run:
+            self.assertEqual(deployment.parse_app(source), app)
+        self.assertEqual(run.call_args.kwargs['input'], source)
+        for flag in ('--no-interpolate', '--no-path-resolution', '--no-env-resolution'):
+            self.assertIn(flag, run.call_args.args[0])
+
+    def test_migrations_use_new_compose_without_replacing_services(self):
+        deployment = Deployment({'repo': str(self.root), 'runtime': str(self.root),
+                                 'branch': 'dev', 'project': 'staging'})
+        with patch.object(deployment, '_stream') as stream:
+            deployment.migrate(self.root / 'next-compose.json', lambda line: None)
+        commands = [call.args[0] for call in stream.call_args_list]
+        self.assertEqual(len(commands), 3)
+        self.assertIn('infrastructure.agent.model_config', commands[0])
+        self.assertEqual(commands[1][-4:], ['python', 'manage.py', 'migrate', '--noinput'])
+        self.assertIn('alembic upgrade head', commands[2][-1])
+        for command in commands:
+            self.assertIn('--no-deps', command)
+            self.assertIn(str(self.root / 'next-compose.json'), command)
+            self.assertNotIn('up', command)
+
+    def test_first_runtime_creates_profile_and_migration_failure_prevents_switch(self):
+        config = {'repo': str(self.root), 'runtime': str(self.root), 'branch': 'dev',
+                  'compose_id': 'app', 'project': 'staging', 'network': 'isolated',
+                  'agent_url': 'http://172.19.0.1:8090', 'token_file': '/private/token'}
+        deployment = Deployment(config)
+        app = {'services': {'backend': {'image': 'qjudge/backend:old'}},
+               'networks': {'default': {'name': 'isolated'}}}
+        source = self.root / 'releases' / SHA / 'backend/judge/seccomp_profiles/cpp.json'
+        source.parent.mkdir(parents=True)
+        source.write_text(json.dumps({'architectures': [], 'syscalls': []}))
+        process = type('Process', (), {'stdout': io.BytesIO(), 'wait': lambda self: 0})()
+        steps = []
+        with patch.object(deployment, '_stream'), patch.object(deployment, 'output', return_value='postgres'), \
+             patch.object(deployment, 'api', return_value={'appName': 'staging', 'sourceType': 'raw',
+                 'composeFile': json.dumps(app)}) as api, \
+             patch.object(deployment, 'migrate', side_effect=RuntimeError('migration failed')), \
+             patch('qjudge_cli.dokploy.deployment.subprocess.Popen', return_value=process), \
+             patch('qjudge_cli.dokploy.deployment.subprocess.run', return_value=subprocess.CompletedProcess([], 0)):
+            with self.assertRaisesRegex(RuntimeError, 'migration failed'):
+                deployment.execute(SHA, steps.append, lambda line: None)
+        self.assertEqual(steps, ['prepare', 'build', 'backup', 'migrate'])
+        profile = json.loads((self.root / 'backend/judge/seccomp_profiles/cpp.json').read_text())
+        self.assertIn('SCMP_ARCH_AARCH64', profile['architectures'])
+        self.assertEqual([call.args[0] for call in api.call_args_list], ['compose.one'])
+        self.assertFalse((self.root / 'deployed.json').exists())
+
     def test_dokploy_render_preserves_routes_data_and_other_images(self):
         config = {'repo': str(self.root), 'runtime': str(self.root), 'branch': 'dev',
                   'agent_url': 'http://172.19.0.1:8090', 'token_file': '/private/token'}

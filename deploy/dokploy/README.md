@@ -1,7 +1,8 @@
 # Dokploy host agent
 
 This adapter keeps an existing **raw Compose Dokploy app** in charge of services
-and Traefik routes. It is separate from the standard CLI agent container. It runs
+and Traefik routes. JSON and YAML Compose documents are supported through Docker
+Compose's parser; use resolved environment values and absolute host mount paths. It is separate from the standard CLI agent container. It runs
 as a host systemd service because native builds and the Dokploy API live on the
 host. Python 3, Git, Docker, and passwordless `sudo docker` are required.
 
@@ -84,9 +85,11 @@ Both web jobs and SSH CD run `DokployAgentService` and `Deployment.execute()`:
 3. Back up both databases and the current raw Compose file.
 4. Preserve volumes, secrets, routes and unrelated images; set QJudge image tags
    and mount the agent token in the backend.
-5. Ask Dokploy to deploy without fresh volumes; wait for its result, all expected
+5. Validate AI configuration and run Django/Alembic/checkpoint migrations with the
+   new images against existing databases, before replacing running services.
+6. Ask Dokploy to deploy without fresh volumes; wait for its result, all expected
    containers/images, and public HTTP health.
-6. Save `deployed.json`, update the agent code symlink and restart the agent.
+7. Save `deployed.json`, update the agent code symlink and restart the agent.
 
 Point the existing SSH forced-command wrapper at:
 
