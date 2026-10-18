@@ -10,6 +10,7 @@ from pathlib import Path
 from .addon import ACTIONS, ADDONS, run_addon
 from .agent.install import agent_up
 from .agent.server import serve
+from .agent.state import read_job
 from .check import check_env
 from .envfile import load
 from .example import render
@@ -17,7 +18,7 @@ from .ingress import render_ingress, render_nginx
 from .init import run_init
 from .lint import lint_compose_text
 from .release import _version, read_version, rollback, upgrade
-from .release_lock import release_locked
+from .release_lock import ReleaseBusy, release_lock
 from .stack import bootstrap_secrets
 
 DEPLOY_DIR = Path(__file__).resolve().parent.parent
@@ -80,15 +81,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "agent" and args.action == "serve":
         return serve(DEPLOY_DIR, args.env_file)
     if args.command == "agent":
-        # Recreating the agent kills the upgrade job it runs.
+        # Admission writes the running job under this same lock. Keep it until
+        # recreation finishes so an accepted job cannot lose its worker container.
         try:
-            if release_locked(DEPLOY_DIR):
-                print("A release is running; retry agent up after it completes")
-                return 1
-        except OSError as error:
-            print(f"cannot check the release lock: {error}")
+            with release_lock(DEPLOY_DIR):
+                if (read_job(DEPLOY_DIR) or {}).get("status") == "running":
+                    raise ReleaseBusy
+                return 0 if agent_up(DEPLOY_DIR, args.env_file, subprocess.run) else 1
+        except ReleaseBusy:
+            print("A release is running; retry agent up after it completes")
             return 1
-        return 0 if agent_up(DEPLOY_DIR, args.env_file, subprocess.run) else 1
+        except OSError as error:
+            print(f"cannot acquire the release lock: {error}")
+            return 1
     if args.command == "secrets":
         current = read_version(DEPLOY_DIR).get("current")
         image = args.image or (current and f"qjudge/backend:{_version(current)}")

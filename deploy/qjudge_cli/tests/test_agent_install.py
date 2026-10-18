@@ -10,6 +10,7 @@ from qjudge_cli.agent.install import (
     AGENT_TOKEN_NAME, agent_compose, agent_up, agent_variables, ensure_token, restart_self,
 )
 from qjudge_cli.tests.test_check import VALID
+from qjudge_cli.agent.state import write_job
 from qjudge_cli.tests.test_release import FakeHost
 
 
@@ -111,3 +112,29 @@ class AgentInstallTests(unittest.TestCase):
         self.assertTrue(restart_self(self.deploy, self.env_file, run=FakeHost()))
         with redirect_stdout(io.StringIO()):
             self.assertFalse(restart_self(self.deploy, self.env_file, run=FakeHost(fail_on=("run -d",))))
+
+    def test_agent_up_keeps_an_admitted_job_alive(self):
+        host = FakeHost()
+        socket = self.deploy / "docker.sock"; socket.touch()
+        write_job(self.deploy, {"status": "running"})
+        with redirect_stdout(io.StringIO()):
+            self.assertFalse(agent_up(self.deploy, self.env_file, run=host, socket=socket))
+        self.assertEqual(host.commands(), [])
+
+    def test_custom_external_env_path_survives_install_and_self_restart(self):
+        with tempfile.TemporaryDirectory() as external_dir:
+            external = Path(external_dir) / "production.env"
+            external.write_text(self.env_file.read_text())
+            socket = self.deploy / "docker.sock"; socket.touch()
+            seen = []
+
+            def run(args, **kwargs):
+                seen.append((args, kwargs["env"]))
+                return FakeHost()(args, **kwargs)
+
+            self.assertTrue(agent_up(self.deploy, external, run=run, socket=socket))
+            self.assertTrue(restart_self(self.deploy, external, run=run))
+            for args, env in seen:
+                self.assertEqual(args[args.index("--env-file") + 1], str(external.resolve()))
+                self.assertEqual(env["QJUDGE_AGENT_ENV_FILE"], str(external.resolve()))
+            self.assertEqual(seen[-1][0][-2:], ["--env-file", str(external.resolve())])

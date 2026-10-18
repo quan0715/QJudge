@@ -10,7 +10,7 @@ from .auth import (
 )
 from .token import TokenRefreshView, LogoutView
 from .account import CurrentUserView
-from .admin import UserSearchView, UserRoleUpdateView
+from .admin import UserSearchView, UserRoleUpdateView, UserSummaryView
 from .avatar import UserAvatarUploadView
 from .sessions import AuthSessionListView, LogoutOtherSessionsView
 from .action_link import ActionLinkInspectView, ActionLinkIssueView, ActionLinkRedeemView
@@ -27,6 +27,7 @@ __all__ = [
     "LogoutView",
     "CurrentUserView",
     "UserSearchView",
+    "UserSummaryView",
     "UserRoleUpdateView",
     "ActionLinkIssueView",
     "ActionLinkInspectView",

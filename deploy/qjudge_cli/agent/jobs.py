@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import os
 import subprocess
-import threading
 import uuid
 from pathlib import Path
 from typing import Callable
 
 from ..release import STEP_MARKER, STEPS, HttpStatus, site_ready
-from ..release_lock import AGENT_JOB_ENV, ReleaseBusy, release_locked
+from ..release_lock import AGENT_JOB_ENV, ReleaseBusy, release_lock
 from ..stack import Runner
 from . import state
 
@@ -20,9 +19,6 @@ Popen = Callable[..., subprocess.Popen]
 # Starting a job makes two Git calls; keep their combined budget below the
 # backend proxy's 30-second deadline so a timeout cannot start an unseen upgrade.
 GIT_TIMEOUT = 10
-
-# Makes the busy check and the job write one step, so two requests cannot both pass the check.
-_start_lock = threading.Lock()
 
 
 class TargetNotLatest(Exception):
@@ -53,10 +49,11 @@ def latest_main(deploy_dir: Path, run: Runner) -> str:
 
 
 def create_job(deploy_dir: Path, target: str, triggered_by: str, run: Runner) -> dict:
-    with _start_lock:
+    # Serialize admission with recreation across both threads and processes. The
+    # bounded release-lock wait also prevents requests queuing past the proxy deadline.
+    with release_lock(deploy_dir):
         running = (state.read_job(deploy_dir) or {}).get("status") == "running"
-        # An OSError from the probe (missing deploy dir, symlinked lock) is the caller's to report.
-        if running or release_locked(deploy_dir):
+        if running:
             raise ReleaseBusy
         latest = latest_main(deploy_dir, run)
         if target != latest:
@@ -83,8 +80,8 @@ def _step_of(line: str) -> str | None:
     return step if step in STEPS else None
 
 
-def _execute(deploy_dir: Path, job: dict, popen: Popen) -> int:
-    command = [str(deploy_dir / "qjudge"), "upgrade", job["target"]]
+def _execute(deploy_dir: Path, env_file: Path, job: dict, popen: Popen) -> int:
+    command = [str(deploy_dir / "qjudge"), "upgrade", job["target"], "--env-file", str(env_file.resolve())]
     try:
         # Unbuffered so plain output lines reach the log as they happen; no stdin so a prompt cannot hang the job.
         process = popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -120,7 +117,7 @@ def _site_healthy(deploy_dir: Path, env_file: Path, run: Runner, http_status: Ht
 def run_job(deploy_dir: Path, env_file: Path, job: dict, popen: Popen, run: Runner,
             http_status: HttpStatus) -> dict:
     job = dict(job)
-    code = _execute(deploy_dir, job, popen)
+    code = _execute(deploy_dir, env_file, job, popen)
     job["status"] = "succeeded" if code == 0 else "failed"
     if code != 0:
         job["site_healthy"] = _site_healthy(deploy_dir, env_file, run, http_status)

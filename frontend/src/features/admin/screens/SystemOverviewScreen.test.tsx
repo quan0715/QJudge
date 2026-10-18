@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import SystemOverviewScreen from "./SystemOverviewScreen";
 import { getServiceStatus } from "@/infrastructure/api/repositories/serviceStatus.repository";
-import { searchUsers } from "@/infrastructure/api/repositories/user.repository";
+import { getUserSummary } from "@/infrastructure/api/repositories/user.repository";
 import {
   checkSystemUpdates,
   getIngress,
@@ -14,7 +14,6 @@ import {
 import type { ServiceStatusReport } from "@/core/entities/serviceStatus.entity";
 import type { IngressEntry, IngressReport } from "@/core/entities/ingress.entity";
 import type { ReleaseCheck, SystemVersionState } from "@/core/entities/systemVersion.entity";
-import type { ManagedUser } from "@/core/entities/auth.entity";
 
 const interpolate = (text: string, values?: unknown) =>
   text.replace(/\{\{(\w+)\}\}/g, (_, name: string) =>
@@ -31,7 +30,7 @@ vi.mock("@/infrastructure/api/repositories/serviceStatus.repository", () => ({
   getServiceStatus: vi.fn(),
 }));
 vi.mock("@/infrastructure/api/repositories/user.repository", () => ({
-  searchUsers: vi.fn(),
+  getUserSummary: vi.fn(),
 }));
 vi.mock("@/infrastructure/api/repositories/system.repository", () => ({
   getIngress: vi.fn(),
@@ -56,14 +55,6 @@ const report = (overrides: Partial<ServiceStatusReport> = {}): ServiceStatusRepo
     unhealthyRuns: [],
   },
   containers: { agent: "ok", items: [] },
-  ...overrides,
-});
-
-const user = (id: number, overrides: Partial<ManagedUser> = {}): ManagedUser => ({
-  id,
-  username: `user-${id}`,
-  role: "student",
-  onboarding_completed_at: "2026-09-01T00:00:00Z",
   ...overrides,
 });
 
@@ -107,14 +98,7 @@ const tile = (name: string) => screen.getByTestId(`overview-${name}`);
 
 beforeEach(() => {
   vi.mocked(getServiceStatus).mockReset().mockResolvedValue(report());
-  vi.mocked(searchUsers).mockReset().mockResolvedValue({
-    data: [
-      user(1, { role: "admin" }),
-      user(2, { role: "teacher" }),
-      user(3, { onboarding_completed_at: null }),
-    ],
-    meta: {},
-  });
+  vi.mocked(getUserSummary).mockReset().mockResolvedValue({ total: 153, teachers: 21, pendingOnboarding: 41 });
   vi.mocked(getIngress)
     .mockReset()
     .mockResolvedValue({
@@ -134,9 +118,9 @@ describe("SystemOverviewScreen", () => {
     );
     await waitFor(() => expect(tile("integrity").textContent).toContain("4 個進行中"));
     expect(tile("integrity").textContent).toContain("全部正常");
-    await waitFor(() => expect(tile("users").textContent).toContain("3 位使用者"));
-    expect(tile("users").textContent).toContain("1 位教師");
-    expect(tile("users").textContent).toContain("1 位未完成 onboarding");
+    await waitFor(() => expect(tile("users").textContent).toContain("153 位使用者"));
+    expect(tile("users").textContent).toContain("21 位教師");
+    expect(tile("users").textContent).toContain("41 位未完成 onboarding");
     await waitFor(() => expect(tile("ingress").textContent).toContain("2 / 2 個入口正常"));
     await waitFor(() => expect(tile("version").textContent).toContain("sha-0123456789ab"));
   });
@@ -234,7 +218,7 @@ describe("SystemOverviewScreen", () => {
       expect(tile("services").textContent).toContain("全部服務正常"),
     );
     expect(tile("ingress").textContent).toContain("無法讀取");
-    await waitFor(() => expect(tile("users").textContent).toContain("3 位使用者"));
+    await waitFor(() => expect(tile("users").textContent).toContain("153 位使用者"));
     await waitFor(() => expect(tile("version").textContent).toContain("sha-0123456789ab"));
   });
 
@@ -245,13 +229,13 @@ describe("SystemOverviewScreen", () => {
 
     await waitFor(() => expect(tile("services").textContent).toContain("無法讀取"));
     expect(tile("integrity").textContent).toContain("無法讀取");
-    await waitFor(() => expect(tile("users").textContent).toContain("3 位使用者"));
+    await waitFor(() => expect(tile("users").textContent).toContain("153 位使用者"));
     await waitFor(() => expect(tile("ingress").textContent).toContain("2 / 2 個入口正常"));
     expect(getServiceStatus).toHaveBeenCalledTimes(1);
   });
 
   it("fails the users tile alone", async () => {
-    vi.mocked(searchUsers).mockRejectedValue(new Error("403"));
+    vi.mocked(getUserSummary).mockRejectedValue(new Error("403"));
 
     renderOverview();
 
@@ -336,7 +320,7 @@ describe("SystemOverviewScreen", () => {
     ["version", "/system/version"],
   ])("links the %s tile to %s", async (name, path) => {
     renderOverview();
-    await waitFor(() => expect(within(tile("users")).queryByText("3 位使用者")).toBeTruthy());
+    await waitFor(() => expect(within(tile("users")).queryByText("153 位使用者")).toBeTruthy());
 
     expect(tile(name).getAttribute("href")).toBe(path);
     await userEvent.click(tile(name));

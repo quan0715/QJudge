@@ -7,6 +7,12 @@ from .serializers import UserSerializer, UserSettingsSerializer, UserLoginRecord
 from .schema_examples import error_example, success_example
 
 
+class UserSummaryObject(serializers.Serializer):
+    total = serializers.IntegerField()
+    teachers = serializers.IntegerField()
+    pending_onboarding = serializers.IntegerField()
+
+
 class AuthSessionObject(serializers.Serializer):
     access_token = serializers.CharField()
     refresh_token = serializers.CharField()
@@ -123,6 +129,7 @@ class UserContractSchema(AutoSchema):
             'CurrentUserView': UserSerializer,
             'UserPreferencesView': UserSettingsSerializer,
             'UserSearchView': UserSerializer(many=True),
+            'UserSummaryView': UserSummaryObject,
             'UserRoleUpdateView': UserSerializer,
             'RegisterView': {201: AuthSessionObject},
             'AuthOptionsView': AuthProviderOptionsObject,

@@ -31,12 +31,12 @@ import {
 } from "@/infrastructure/api/repositories/auth.repository";
 import {
   searchUsers,
+  getUserSummary,
   updateUserRole,
 } from "@/infrastructure/api/repositories/user.repository";
-import type { ManagedUser } from "@/core/entities/auth.entity";
+import type { ManagedUser, UserSummary } from "@/core/entities/auth.entity";
 import { EnvelopeError } from "@/infrastructure/api/envelope";
 import { useCopyText } from "@/shared/hooks";
-import { summarizeUsers } from "../domain/userSummary";
 
 const UserManagementScreen = () => {
   const { t } = useTranslation("admin");
@@ -59,12 +59,26 @@ const UserManagementScreen = () => {
   const { isCopied: resetCopied, copy: copyReset } = useCopyText();
   const { isCopied, copy } = useCopyText();
 
+  const [summary, setSummary] = useState<UserSummary | null>(null);
+  const [summaryFailed, setSummaryFailed] = useState(false);
+  const loadSummary = useCallback(async () => {
+    setSummary(null);
+    setSummaryFailed(false);
+    try {
+      setSummary(await getUserSummary());
+    } catch {
+      setSummaryFailed(true);
+    }
+  }, []);
+
+  useEffect(() => { void loadSummary(); }, [loadSummary]);
+
   const loadAllUsers = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const response = await searchUsers(""); // Empty query = all users
+      const response = await searchUsers(""); // The recent-user list is capped by the API.
       if (response.data) {
         setUsers(response.data);
       } else {
@@ -137,6 +151,7 @@ const UserManagementScreen = () => {
           )
         );
         setConfirmModalOpen(false);
+        void loadSummary();
       } else {
         setError(t("user.management.updateFailed"));
       }
@@ -218,7 +233,6 @@ const UserManagementScreen = () => {
     return user.role === roleFilter;
   });
 
-  const summary = summarizeUsers(users);
 
   return (
     <div className={styles.pageWrapper}>
@@ -228,24 +242,25 @@ const UserManagementScreen = () => {
           subtitle={t("user.management.description")}
         />
 
+        {summaryFailed && <p role="status">{t("system.overview.loadFailed", "無法讀取")}</p>}
         <div className={styles.statTileRow}>
           <Tile>
             <p className={styles.statLabel}>
               {t("user.management.summary.totalUsers", "總使用者")}
             </p>
-            <strong className={styles.statValue}>{summary.total}</strong>
+            <strong className={styles.statValue}>{summary?.total ?? "—"}</strong>
           </Tile>
           <Tile>
             <p className={styles.statLabel}>
               {t("user.management.summary.teachers", "已開通教師")}
             </p>
-            <strong className={styles.statValue}>{summary.teachers}</strong>
+            <strong className={styles.statValue}>{summary?.teachers ?? "—"}</strong>
           </Tile>
           <Tile>
             <p className={styles.statLabel}>
               {t("user.management.summary.pendingOnboarding", "未完成 onboarding")}
             </p>
-            <strong className={styles.statValue}>{summary.pendingOnboarding}</strong>
+            <strong className={styles.statValue}>{summary?.pendingOnboarding ?? "—"}</strong>
           </Tile>
         </div>
 

@@ -5,7 +5,7 @@ import { ClickableTile, SkeletonText, Tag } from "@carbon/react";
 
 import { PageHeader } from "@/shared/layout/PageHeader";
 import { getServiceStatus } from "@/infrastructure/api/repositories/serviceStatus.repository";
-import { searchUsers } from "@/infrastructure/api/repositories/user.repository";
+import { getUserSummary } from "@/infrastructure/api/repositories/user.repository";
 import {
   checkSystemUpdates,
   getIngress,
@@ -13,15 +13,8 @@ import {
 } from "@/infrastructure/api/repositories/system.repository";
 import { summarizeServices } from "@/core/entities/serviceStatus.entity";
 import { shortVersion, type AgentState } from "@/core/entities/systemVersion.entity";
-import { summarizeUsers } from "../domain/userSummary";
 import { useAsyncSource, type AsyncSource } from "../hooks/useAsyncSource";
 import styles from "./AdminScreens.module.scss";
-
-const loadUserSummary = async () => {
-  const response = await searchUsers("");
-  if (!response.data) throw new Error("Failed to load users");
-  return summarizeUsers(response.data);
-};
 
 interface OverviewTileProps {
   id: string;
@@ -82,7 +75,7 @@ const AgentNote = ({ agent }: { agent: Exclude<AgentState, "ok"> }) => {
 const SystemOverviewScreen = () => {
   const { t } = useTranslation("admin");
   const services = useAsyncSource(getServiceStatus);
-  const users = useAsyncSource(loadUserSummary);
+  const users = useAsyncSource(getUserSummary);
   const ingress = useAsyncSource(getIngress);
   const version = useAsyncSource(getSystemVersion);
   // Asking the host for the newest release only makes sense when an agent answered.

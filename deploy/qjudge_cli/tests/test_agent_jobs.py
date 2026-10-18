@@ -12,7 +12,7 @@ from qjudge_cli.agent import state
 from qjudge_cli.agent.jobs import TargetNotLatest, create_job, latest_main, run_job
 from qjudge_cli.agent.state import log_tail, mark_interrupted, read_job, write_job
 from qjudge_cli.release import STEP_MARKER
-from qjudge_cli.release_lock import AGENT_JOB_ENV, ReleaseBusy, release_lock
+from qjudge_cli.release_lock import AGENT_JOB_ENV, ReleaseBusy, release_lock, release_locked
 from qjudge_cli.tests.test_check import VALID
 from qjudge_cli.tests.test_release import NEW, OLD, FakeHost
 
@@ -117,9 +117,29 @@ class AgentJobTests(unittest.TestCase):
         job = create_job(self.deploy, NEW, "root", run=self.host)
         run_job(self.deploy, self.env_file, job, popen=fake_popen([], 0, seen), run=self.host,
                 http_status=lambda *a: 200)
-        self.assertEqual(seen["args"][-2:], ["upgrade", NEW])
+        self.assertEqual(seen["args"][1:], ["upgrade", NEW, "--env-file", str(self.env_file.resolve())])
         self.assertEqual(seen["args"][0], str(self.deploy / "qjudge"))
         self.assertEqual(seen["env"][AGENT_JOB_ENV], "1")
+
+    def test_admission_holds_release_lock_until_running_state_is_written(self):
+        original = state.write_job
+
+        def write(deploy, job):
+            self.assertTrue(release_locked(deploy))
+            original(deploy, job)
+
+        with patch.object(state, "write_job", side_effect=write):
+            create_job(self.deploy, NEW, "root", run=self.host)
+        self.assertFalse(release_locked(self.deploy))
+
+    def test_job_passes_external_env_file_as_absolute_path(self):
+        seen = {}
+        external = self.deploy.parent / "production.env"
+        external.write_text(self.env_file.read_text())
+        job = create_job(self.deploy, NEW, "root", run=self.host)
+        run_job(self.deploy, external, job, popen=fake_popen([], 0, seen), run=self.host,
+                http_status=lambda *a: 200)
+        self.assertEqual(seen["args"][-2:], ["--env-file", str(external.resolve())])
 
     def test_new_job_has_the_documented_fields(self):
         job = create_job(self.deploy, NEW, "root", run=self.host)
@@ -236,7 +256,9 @@ class AgentJobTests(unittest.TestCase):
             return self.host(args, **kwargs)
 
         latest_main(self.deploy, run)
-        self.assertEqual(timeouts, [60, 60])
+        self.assertEqual(len(timeouts), 2)
+        self.assertTrue(all(timeout > 0 for timeout in timeouts))
+        self.assertLess(sum(timeouts), 30)
 
     def test_git_timeout_is_reported_like_any_other_git_failure(self):
         for hanging in ("fetch", "rev-parse"):

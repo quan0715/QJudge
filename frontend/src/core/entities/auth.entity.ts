@@ -187,3 +187,9 @@ export interface UserLoginRecord {
   created_at: string;
   is_current: boolean;
 }
+
+export interface UserSummary {
+  total: number;
+  teachers: number;
+  pendingOnboarding: number;
+}
