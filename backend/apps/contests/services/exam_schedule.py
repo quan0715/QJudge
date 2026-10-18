@@ -18,11 +18,33 @@ ACTIVE_STATUSES = (ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED)
 logger = logging.getLogger(__name__)
 
 
+def _live_runs(contest_id):
+    return ExamIntegrityRun.objects.filter(
+        contest_id=contest_id, session_state__in=("prepared", "active", "draining")
+    ).order_by("id")
+
+
 def lock_exam_runs(contest_id):
     """Caller owns Contest; evaluate before taking any Participant row lock."""
-    return list(ExamIntegrityRun.objects.select_for_update().filter(
-        contest_id=contest_id, session_state__in=("prepared", "active", "draining")
-    ).order_by("id"))
+    return list(_live_runs(contest_id).select_for_update())
+
+
+def share_exam_lock(contest_id):
+    """Lock Contest, then its live runs, FOR SHARE and return the Contest.
+
+    For writers that only add their own rows, such as submissions: they no
+    longer queue behind each other, but still wait for and block every
+    Contest or run FOR UPDATE and UPDATE (schedule edits, deadline
+    finalization, attempt transitions). Take Participant locks afterwards.
+    A waiting FOR UPDATE does not hold back new share lockers, so such a
+    writer waits for a submission burst to drain; late submissions still fail
+    the caller's recheck under the lock.
+    """
+    with connection.cursor() as cursor:
+        for queryset in (Contest.objects.filter(pk=contest_id), _live_runs(contest_id)):
+            sql, params = queryset.values("pk").query.sql_with_params()
+            cursor.execute(f"{sql} FOR SHARE", params)
+    return Contest.objects.get(pk=contest_id)
 
 
 @transaction.atomic

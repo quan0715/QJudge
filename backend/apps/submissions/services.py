@@ -90,10 +90,9 @@ class SubmissionService:
         create_payload = dict(data)
 
         with transaction.atomic():
-            contest = Contest.objects.select_for_update().get(pk=contest.pk)
-            from apps.contests.services.exam_schedule import lock_exam_runs
+            from apps.contests.services.exam_schedule import share_exam_lock
             from apps.contests.models import ContestParticipant
-            lock_exam_runs(contest.pk)
+            contest = share_exam_lock(contest.pk)
             list(ContestParticipant.objects.select_for_update().filter(contest=contest, user=user))
             create_payload["contest"] = contest
             create_payload["contest_question_binding"] = SubmissionAccessPolicy.enforce_problem_access(
