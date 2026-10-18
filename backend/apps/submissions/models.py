@@ -28,7 +28,7 @@ class Submission(models.Model):
     
     LANGUAGE_CHOICES = [
         ('python', 'Python 3.11'),
-        ('cpp', 'C++ 20'),
+        ('cpp', 'C++ 17'),
         ('c', 'C 11'),
         ('java', 'Java 17'),
     ]

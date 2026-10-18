@@ -164,15 +164,13 @@ class ProblemTestRunService:
         if on_progress:
             on_progress({"total": len(test_cases), "results": []})
         with judge:
-            for tc in test_cases:
-                exec_result = judge.execute(
-                    code=source_code,
-                    input_data=tc.input_data,
-                    expected_output=tc.output_data or "",
-                    time_limit=problem.time_limit,
-                    memory_limit=problem.memory_limit,
-                )
-
+            verdicts = judge.run(
+                code=source_code,
+                cases=[(tc.input_data, tc.output_data or "") for tc in test_cases],
+                time_limit=problem.time_limit,
+                memory_limit=problem.memory_limit,
+            )
+            for tc, exec_result in zip(test_cases, verdicts):
                 case_result = cls._build_case_result(tc, exec_result)
                 results.append(case_result)
                 if on_progress:
