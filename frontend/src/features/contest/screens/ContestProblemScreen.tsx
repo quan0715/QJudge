@@ -27,7 +27,7 @@ const ContestProblemScreen = () => {
   }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { contest, scoreboardData, loading: contestLoading, refreshStandings } = useContest();
+  const { contest, scoreboardData, loading: contestLoading } = useContest();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const classroomContestContext = useMemo(
     () => (classroomId && contestId ? { classroomId, contestId } : null),
@@ -177,7 +177,6 @@ const ContestProblemScreen = () => {
       <ProblemFullPageSolve
         statementNavigation={statementNavigation}
         key={problemSelection.selectedProblemId} // Reset state when problem changes
-        onAccepted={refreshStandings}
         problem={problemSelection.selectedProblem}
         problemLabel={problemSelection.selectedProblemLabel}
         contestId={contestId!}

@@ -1,52 +1,62 @@
+import { createElement, type ReactNode } from "react";
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { JudgeQueueProvider } from "@/features/problems/contexts/JudgeQueueProvider";
 import { useSubmission } from "./useSubmission";
 import { testRun, getTestRunProgress } from "@/infrastructure/api/repositories/problem.repository";
-import { submitSolution, getSubmission } from "@/infrastructure/api/repositories/submission.repository";
+import { submitSolution, getSubmissions } from "@/infrastructure/api/repositories/submission.repository";
 vi.mock("@/infrastructure/api/repositories/problem.repository", () => ({ testRun: vi.fn(), getTestRunProgress: vi.fn() }));
-vi.mock("@/infrastructure/api/repositories/submission.repository", () => ({ submitSolution: vi.fn(), getSubmission: vi.fn() }));
+vi.mock("@/infrastructure/api/repositories/submission.repository", () => ({ submitSolution: vi.fn(), getSubmission: vi.fn(), getSubmissions: vi.fn() }));
 const props = { problemId: "p1", contestId: "c1", code: "code", language: "cpp", customTestCases: [] };
-beforeEach(() => { vi.resetAllMocks(); vi.useFakeTimers(); });
+const wrapper = ({ children }: { children: ReactNode }) => createElement(JudgeQueueProvider, { userId: "u1" }, children);
+beforeEach(() => {
+  vi.resetAllMocks();
+  vi.useFakeTimers();
+  vi.mocked(getSubmissions).mockResolvedValue({ results: [], count: 0 });
+});
 afterEach(() => { vi.useRealTimers(); });
 
-describe.each(["test", "submit"] as const)("%s execution", type => {
-  it("shares pending, progressive completion and error transitions", async () => {
-    const start = type === "test" ? vi.mocked(testRun) : vi.mocked(submitSolution);
-    const poll = type === "test" ? vi.mocked(getTestRunProgress) : vi.mocked(getSubmission);
-    start.mockResolvedValue({ id: "run", run_id: "run", status: "pending", total: 4, totalTestCases: 4, results: [] } as never);
-    poll.mockResolvedValueOnce({ execution_status: "judging", id: "run", status: "judging", total: 4, totalTestCases: 4, results: [{ status: "AC" }] } as never);
-    poll.mockResolvedValueOnce({ execution_status: "complete", id: "run", status: "AC", results: [{ status: "AC" }] } as never);
-    const { result } = renderHook(() => useSubmission(props));
-    await act(async () => { await result.current.execute(type); });
-    expect(result.current.executionState.status).toBe("polling");
-    expect(result.current.executionState.result?.total).toBe(4);
-    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
-    expect(result.current.executionState.status).toBe("polling");
-    expect(result.current.executionState.result?.cases).toHaveLength(1);
-    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
-    expect(result.current.executionState.status).toBe("complete");
-    start.mockRejectedValueOnce(new Error("Unavailable"));
-    await act(async () => { await result.current.execute(type); });
-    expect(result.current.executionState.status).toBe("error");
-    expect(result.current.executionState.error).toBe("Unavailable");
-  });
+it("polls a test run's progress until it completes", async () => {
+  vi.mocked(testRun).mockResolvedValue({ run_id: "run", execution_status: "pending", total: 4, results: [] } as never);
+  vi.mocked(getTestRunProgress)
+    .mockResolvedValueOnce({ execution_status: "judging", run_id: "run", total: 4, results: [{ status: "AC" }] } as never)
+    .mockResolvedValueOnce({ execution_status: "complete", run_id: "run", results: [{ status: "AC" }] } as never);
+  const { result } = renderHook(() => useSubmission(props), { wrapper });
+  await act(async () => { await result.current.execute("test"); });
+  expect(result.current.executionState.status).toBe("polling");
+  expect(result.current.executionState.result?.total).toBe(4);
+  await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+  expect(getTestRunProgress).toHaveBeenCalledWith("p1", "run");
+  expect(result.current.executionState.status).toBe("polling");
+  expect(result.current.executionState.result?.cases).toHaveLength(1);
+  await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+  expect(result.current.executionState.status).toBe("complete");
 });
 
-it("ignores an old problem's in-flight result", async () => {
-  let resolve!: (value: never) => void;
-  vi.mocked(testRun).mockImplementation(() => new Promise(r => { resolve = r; }));
-  const { result, rerender } = renderHook(({ problemId }) => useSubmission({ ...props, problemId }), { initialProps: { problemId: "p1" } });
-  act(() => { void result.current.execute("test"); });
-  rerender({ problemId: "p2" });
-  await act(async () => { resolve({ status: "AC", results: [] } as never); });
-  expect(result.current.executionState.status).toBe("idle");
+it("blocks a second test run on the same problem but allows a second submission", async () => {
+  vi.mocked(testRun).mockResolvedValue({ run_id: "run", execution_status: "pending", total: 1, results: [] } as never);
+  vi.mocked(getTestRunProgress).mockResolvedValue({ execution_status: "judging", run_id: "run", total: 1, results: [] } as never);
+  vi.mocked(submitSolution)
+    .mockResolvedValueOnce({ id: "s1", status: "pending", createdAt: "2026-10-18T10:00:00Z", results: [] } as never)
+    .mockResolvedValueOnce({ id: "s2", status: "pending", createdAt: "2026-10-18T10:00:01Z", results: [] } as never);
+  const { result } = renderHook(() => useSubmission(props), { wrapper });
+
+  await act(async () => { await result.current.execute("test"); });
+  expect(result.current.testRunning).toBe(true);
+  await act(async () => { await result.current.execute("test"); });
+  expect(testRun).toHaveBeenCalledTimes(1);
+
+  await act(async () => { await result.current.execute("submit"); });
+  expect(result.current.hasPendingSubmission).toBe(true);
+  await act(async () => { await result.current.execute("submit"); });
+  expect(submitSolution).toHaveBeenCalledTimes(2);
 });
 
 it("sends the custom cases with a test run but not with a submission", async () => {
   vi.mocked(testRun).mockResolvedValue({ execution_status: "complete", status: "AC", results: [] } as never);
   vi.mocked(submitSolution).mockResolvedValue({ id: "s1", status: "AC", results: [] } as never);
   const customTestCases = [{ input: "2 3", expected_output: "5" }];
-  const { result } = renderHook(() => useSubmission({ ...props, customTestCases }));
+  const { result } = renderHook(() => useSubmission({ ...props, customTestCases }), { wrapper });
 
   await act(async () => { await result.current.execute("test"); });
   await act(async () => { await result.current.execute("submit"); });

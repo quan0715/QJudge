@@ -58,6 +58,10 @@ interface UseProblemSolverReturn {
   
   // Unified State
   executionState: ExecutionState;
+  /** This problem has a submission still waiting for its verdict. */
+  hasPendingSubmission: boolean;
+  testRunning: boolean;
+  submitting: boolean;
   
   // Error state
   error: string | null;
@@ -107,7 +111,7 @@ export function useProblemSolver({
       .map((testCase) => ({ input: testCase.input, expected_output: testCase.output ?? "" })),
     [testCases],
   );
-  const { executionState, execute } = useSubmission({ problemId: problem?.id, contestId, code, language, customTestCases });
+  const { executionState, execute, hasPendingSubmission, testRunning, submitting } = useSubmission({ problemId: problem?.id, contestId, code, language, customTestCases });
 
   // Initialize when problem changes
   useEffect(() => {
@@ -283,6 +287,9 @@ export function useProblemSolver({
     runTest,
     submit,
     executionState,
+    hasPendingSubmission,
+    testRunning,
+    submitting,
     error,
   };
 }

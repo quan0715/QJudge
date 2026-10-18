@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { ContestProvider } from "@/features/contest/contexts/ContestContext";
 import { ContestRuntimeNavigatorProvider } from "@/features/contest/contexts/ContestRuntimeNavigatorContext";
+import { ContestJudgeQueueProvider } from "@/features/contest/contexts/ContestJudgeQueueProvider";
 import ExamModeWrapper from "@/features/contest/components/ExamModeWrapper";
 import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
 import { useContestExamActions } from "@/features/contest/hooks/useContestExamActions";
@@ -153,7 +154,9 @@ const ContestWorkspaceLayout = () => {
       onRefresh={refreshContest}
     >
       <ContestRuntimeNavigatorProvider>
-        {contestSurface}
+        <ContestJudgeQueueProvider>
+          {contestSurface}
+        </ContestJudgeQueueProvider>
       </ContestRuntimeNavigatorProvider>
 
       <ExamSubmissionProgressModal
