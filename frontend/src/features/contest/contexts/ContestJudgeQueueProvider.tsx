@@ -15,7 +15,7 @@ export function ContestJudgeQueueProvider({ children }: { children: ReactNode })
   const contestValue = useOptionalContest();
   const navigator = useContestRuntimeNavigator();
   const navigate = useNavigate();
-  const { classroomId } = useParams<{ classroomId?: string }>();
+  const { classroomId, contestId } = useParams<{ classroomId?: string; contestId?: string }>();
   const { showToast } = useToast();
   const contest = contestValue?.contest;
   const refreshStandings = contestValue?.refreshStandings;
@@ -45,7 +45,8 @@ export function ContestJudgeQueueProvider({ children }: { children: ReactNode })
   }, [classroomId, contest, navigate, navigator, refreshStandings, showToast]);
 
   return (
-    <JudgeQueueProvider userId={String(user?.id ?? "")} onJudged={handleJudged}>
+    // A new exam starts an empty queue; the layout survives moving between exams.
+    <JudgeQueueProvider key={contestId} userId={String(user?.id ?? "")} onJudged={handleJudged}>
       {children}
     </JudgeQueueProvider>
   );

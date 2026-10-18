@@ -19,10 +19,15 @@ vi.mock("@/infrastructure/api/repositories/submission.repository", () => ({
   getSubmissions: vi.fn(),
 }));
 vi.mock("@/features/auth/contexts/AuthContext", () => ({ useAuth: () => ({ user: { id: 7 } }) }));
-const mocks = vi.hoisted(() => ({ contest: null as unknown, navigator: null as unknown, navigate: () => {} }));
+const mocks = vi.hoisted(() => ({
+  contest: null as unknown,
+  navigator: null as unknown,
+  navigate: () => {},
+  params: {} as { classroomId?: string; contestId?: string },
+}));
 vi.mock("./useOptionalContest", () => ({ useOptionalContest: () => mocks.contest }));
 vi.mock("./useContestRuntimeNavigator", () => ({ useContestRuntimeNavigator: () => mocks.navigator }));
-vi.mock("react-router-dom", () => ({ useNavigate: () => mocks.navigate, useParams: () => ({ classroomId: "cls1" }) }));
+vi.mock("react-router-dom", () => ({ useNavigate: () => mocks.navigate, useParams: () => mocks.params }));
 
 const refreshStandings = vi.fn();
 const navigate = vi.fn();
@@ -50,6 +55,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.useFakeTimers();
   mocks.navigate = navigate;
+  mocks.params = { classroomId: "cls1", contestId: "c1" };
   mocks.navigator = {
     coding: true,
     items: [
@@ -66,6 +72,17 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe("ContestJudgeQueueProvider", () => {
+  it("starts an empty queue when the route moves to another contest", async () => {
+    judge("pending");
+    const { result, rerender } = renderSolver();
+    await act(async () => { await result.current.execute("submit"); });
+    expect(result.current.executionState.status).toBe("polling");
+
+    mocks.params = { classroomId: "cls1", contestId: "c2" };
+    rerender({ problemId: "p1" });
+    expect(result.current.executionState.status).toBe("idle");
+  });
+
   it("polls as the signed-in user and refreshes standings when a submission is accepted", async () => {
     judge("AC");
     const { result } = renderSolver();
