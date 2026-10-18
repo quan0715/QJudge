@@ -8,6 +8,9 @@ import sys
 from pathlib import Path
 
 from .addon import ACTIONS, ADDONS, run_addon
+from .agent.install import agent_up
+from .agent.server import serve
+from .agent.state import read_job
 from .check import check_env
 from .envfile import load
 from .example import render
@@ -15,6 +18,7 @@ from .ingress import render_ingress, render_nginx
 from .init import run_init
 from .lint import lint_compose_text
 from .release import _version, read_version, rollback, upgrade
+from .release_lock import ReleaseBusy, release_lock
 from .stack import bootstrap_secrets
 
 DEPLOY_DIR = Path(__file__).resolve().parent.parent
@@ -45,6 +49,9 @@ def main(argv: list[str] | None = None) -> int:
     upgrade_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
     rollback_parser = commands.add_parser("rollback", help="start the previously deployed version again")
     rollback_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
+    agent_parser = commands.add_parser("agent", help="manage the host agent that runs upgrades for the web UI")
+    agent_parser.add_argument("action", choices=("up", "serve"), help="up: (re)start the agent container; serve: run the agent")
+    agent_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
     secrets_parser = commands.add_parser("secrets", help="create missing AI OAuth and Integrity keys")
     secrets_parser.add_argument("--image", help="backend image to run the scripts with (default: the deployed version)")
     args = parser.parse_args(argv)
@@ -64,13 +71,29 @@ def main(argv: list[str] | None = None) -> int:
                 parser.error(f"--set expects KEY=VALUE: {item}")
         values = dict(item.split("=", 1) for item in args.set)
         return run_init(DEPLOY_DIR, args.env_file, values, not args.non_interactive, subprocess.run)
-    if args.command in ("addon", "upgrade", "rollback") and not args.env_file.is_file():
+    if args.command in ("addon", "upgrade", "rollback", "agent") and not args.env_file.is_file():
         print(f"{args.env_file}: not found")
         return 1
     if args.command == "upgrade":
         return upgrade(DEPLOY_DIR, args.env_file, args.ref)
     if args.command == "rollback":
         return rollback(DEPLOY_DIR, args.env_file)
+    if args.command == "agent" and args.action == "serve":
+        return serve(DEPLOY_DIR, args.env_file)
+    if args.command == "agent":
+        # Admission writes the running job under this same lock. Keep it until
+        # recreation finishes so an accepted job cannot lose its worker container.
+        try:
+            with release_lock(DEPLOY_DIR):
+                if (read_job(DEPLOY_DIR) or {}).get("status") == "running":
+                    raise ReleaseBusy
+                return 0 if agent_up(DEPLOY_DIR, args.env_file, subprocess.run) else 1
+        except ReleaseBusy:
+            print("A release is running; retry agent up after it completes")
+            return 1
+        except OSError as error:
+            print(f"cannot acquire the release lock: {error}")
+            return 1
     if args.command == "secrets":
         current = read_version(DEPLOY_DIR).get("current")
         image = args.image or (current and f"qjudge/backend:{_version(current)}")

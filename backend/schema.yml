@@ -1323,6 +1323,106 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+  /api/v1/auth/password/admin-reset-links:
+    post:
+      operationId: v1_auth_password_admin_reset_links_create
+      description: APIView with serializer support for schema generation.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminPasswordResetRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminPasswordResetRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminPasswordResetRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - reset_url
+                    - expires_in
+                    properties:
+                      reset_url:
+                        type: string
+                        format: uri
+                      expires_in:
+                        type: integer
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/auth/password/reset-requests:
     post:
       operationId: v1_auth_password_reset_requests_create
@@ -6288,6 +6388,75 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubmissionDetail'
           description: ''
+  /api/v1/system/ingress:
+    get:
+      operationId: v1_system_ingress_retrieve
+      description: |-
+        Public entry points probed from the host (platform admin only).
+
+        GET /api/v1/system/ingress
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
   /api/v1/system/service-status:
     get:
       operationId: v1_system_service_status_retrieve
@@ -6295,6 +6464,217 @@ paths:
         Live status of the platform's own services (platform admin only).
 
         GET /api/v1/system/service-status
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+  /api/v1/system/upgrade:
+    post:
+      operationId: v1_system_upgrade_create
+      description: |-
+        Start an upgrade to the newest release (platform admin only).
+
+        POST /api/v1/system/upgrade {"target": "<commit sha>"}
+
+        The actor recorded on the job is always the signed-in user.
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+  /api/v1/system/version:
+    get:
+      operationId: v1_system_version_retrieve
+      description: |-
+        Deployed version, running upgrade job and its log (platform admin only).
+
+        GET /api/v1/system/version
+
+        A stack without a reachable agent still answers 200 with the agent state.
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+  /api/v1/system/version/check:
+    post:
+      operationId: v1_system_version_check_create
+      description: |-
+        Ask the agent which release is newest (platform admin only).
+
+        POST /api/v1/system/version/check
       tags:
       - v1
       security:
@@ -7177,6 +7557,93 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorObject'
+  /api/v1/users/summary:
+    get:
+      operationId: v1_users_summary_retrieve
+      description: Platform-wide user totals, independent of the capped search results.
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserSummaryObject'
+                  meta:
+                    type: object
+                    additionalProperties: true
+              examples:
+                Success:
+                  value:
+                    data:
+                      total: 151
+                      teachers: 25
+                      pending_onboarding: 41
+                    meta: {}
+          description: ''
+        '400':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '401':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '403':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '404':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '405':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '409':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '429':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '500':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
+        '503':
+          description: Canonical error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorObject'
 components:
   schemas:
     AccessTokenObject:
@@ -7335,6 +7802,16 @@ components:
         * `other_devices_logged_out` - Other Devices Logged Out
         * `announce` - Announce
         * `other` - Other
+    AdminPasswordResetRequest:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          format: int64
+      required:
+      - user_id
     ApiErrorObject:
       type: object
       required:
@@ -8432,7 +8909,7 @@ components:
           title: 考試
         language:
           allOf:
-          - $ref: '#/components/schemas/Language040Enum'
+          - $ref: '#/components/schemas/Language357Enum'
           title: 語言
         code:
           type: string
@@ -8476,7 +8953,7 @@ components:
           title: 考試
         language:
           allOf:
-          - $ref: '#/components/schemas/Language040Enum'
+          - $ref: '#/components/schemas/Language357Enum'
           title: 語言
         code:
           type: string
@@ -8736,7 +9213,7 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           title: 排序
-    Language040Enum:
+    Language357Enum:
       enum:
       - python
       - cpp
@@ -8776,15 +9253,15 @@ components:
     LanguageConfigLanguageEnum:
       enum:
       - cpp
+      - c
       - python
       - java
-      - javascript
       type: string
       description: |-
         * `cpp` - C++
+        * `c` - C
         * `python` - Python
         * `java` - Java
-        * `javascript` - JavaScript
     LanguageConfigRequest:
       type: object
       description: Serializer for language configuration.
@@ -9720,10 +10197,6 @@ components:
           type: string
           format: uuid
           readOnly: true
-        question_version_id:
-          type: string
-          format: uuid
-          readOnly: true
         language_configs:
           type: array
           items:
@@ -9758,7 +10231,6 @@ components:
       - is_solved
       - language_configs
       - question_asset_id
-      - question_version_id
       - submission_count
       - tags
       - title
@@ -9959,7 +10431,7 @@ components:
           title: 考試
         language:
           allOf:
-          - $ref: '#/components/schemas/Language040Enum'
+          - $ref: '#/components/schemas/Language357Enum'
           title: 語言
         code:
           type: string
@@ -10049,7 +10521,7 @@ components:
           nullable: true
         language:
           allOf:
-          - $ref: '#/components/schemas/Language040Enum'
+          - $ref: '#/components/schemas/Language357Enum'
           title: 語言
         status:
           allOf:
@@ -10360,6 +10832,19 @@ components:
       required:
       - preferences
       - profile
+    UserSummaryObject:
+      type: object
+      properties:
+        total:
+          type: integer
+        teachers:
+          type: integer
+        pending_onboarding:
+          type: integer
+      required:
+      - pending_onboarding
+      - teachers
+      - total
   securitySchemes:
     cookieJwtAuth:
       type: apiKey

@@ -183,7 +183,7 @@ const LoginPage = () => {
               required
             />
 
-            {options.password_reset_enabled && <Link to="/forgot-password">{t("auth.passwordReset.requestTitle")}</Link>}
+            {options.password_enabled && <Link to="/forgot-password">{t("auth.passwordReset.requestTitle")}</Link>}
 
             {error && (
               <p className="auth-error" data-testid="auth-form-error">

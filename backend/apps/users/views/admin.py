@@ -1,7 +1,7 @@
 """Admin user-management views."""
 
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Count, Q
 from rest_framework import serializers, status
 from rest_framework.response import Response
 from apps.core.api.envelope import contract_error_response, contract_validation_error_response
@@ -11,6 +11,20 @@ from ..serializers import UserRoleUpdateSerializer, UserSerializer
 from .common import SchemaAPIView
 
 User = get_user_model()
+
+
+class UserSummaryView(SchemaAPIView):
+    """Platform-wide user totals, independent of the capped search results."""
+
+    permission_classes = [IsSuperAdmin]
+    serializer_class = serializers.Serializer
+
+    def get(self, request):
+        return Response(User.objects.aggregate(
+            total=Count('pk'),
+            teachers=Count('pk', filter=Q(role='teacher')),
+            pending_onboarding=Count('pk', filter=Q(profile__onboarding_completed_at__isnull=True)),
+        ))
 
 
 class UserSearchView(SchemaAPIView):
@@ -93,4 +107,4 @@ class UserRoleUpdateView(SchemaAPIView):
         return Response(user_serializer.data)
 
 
-__all__ = ["UserSearchView", "UserRoleUpdateView"]
+__all__ = ["UserSearchView", "UserRoleUpdateView", "UserSummaryView"]

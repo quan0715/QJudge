@@ -9,6 +9,15 @@
       "database": "資料庫",
       "integrity_resident": "Integrity Resident"
     },
+    "containers": {
+      "title": "容器",
+      "health": "健康檢查",
+      "empty": "主機 agent 沒有回報任何容器",
+      "agent": {
+        "unsupported": "此環境沒有主機 agent，無法顯示容器狀態"
+      }
+    },
+    "containersUnread": "探測正常，無法讀取容器狀態",
     "contest": "競賽",
     "detail": "細節",
     "generatedAt": "探測時間",
@@ -30,18 +39,148 @@
     "unhealthyRuns": "unhealthy",
     "worker": "Worker"
   },
+  "system": {
+    "nav": {
+      "overview": "概覽",
+      "users": "使用者",
+      "serviceStatus": "服務狀態",
+      "ingress": "Ingress",
+      "version": "系統版本"
+    },
+    "overview": {
+      "title": "系統概覽",
+      "subtitle": "平台目前的服務、使用者與版本摘要，點選卡片查看詳細。",
+      "loadFailed": "無法讀取",
+      "agent": {
+        "unsupported": "此環境沒有主機 agent",
+        "unreachable": "無法連線到主機 agent"
+      },
+      "services": {
+        "title": "服務",
+        "up": "{{up}} / {{total}} 項正常"
+      },
+      "integrity": {
+        "title": "監考 Run",
+        "allHealthy": "全部正常",
+        "problems": "{{count}} 項異常",
+        "live": "{{count}} 個進行中"
+      },
+      "users": {
+        "title": "使用者",
+        "total": "{{count}} 位使用者",
+        "teachers": "{{count}} 位教師",
+        "pending": "{{count}} 位未完成 onboarding"
+      },
+      "ingress": {
+        "title": "Ingress",
+        "summary": "{{ok}} / {{total}} 個入口正常"
+      },
+      "version": {
+        "title": "系統版本",
+        "unknown": "尚無版本紀錄",
+        "updateAvailable": "有新版"
+      }
+    },
+    "ingress": {
+      "title": "Ingress",
+      "subtitle": "結果是從主機本身測試，不保證外部網路一定連得到",
+      "retest": "重新測試",
+      "loadFailed": "無法讀取 Ingress 狀態",
+      "agent": {
+        "unsupported": "此環境沒有主機 agent，無法測試入口"
+      },
+      "columns": {
+        "entry": "入口",
+        "public": "對外位址",
+        "target": "應轉到",
+        "result": "結果",
+        "detail": "細節"
+      },
+      "result": {
+        "ok": "正常",
+        "fail": "異常"
+      },
+      "entries": {
+        "site": "網站",
+        "mcp": "MCP",
+        "storage": "物件儲存",
+        "media": "即時媒體 (LiveKit)",
+        "turn": "TURN"
+      }
+    },
+    "version": {
+      "title": "系統版本",
+      "subtitle": "目前部署的版本，以及可以更新到的 main 最新版。",
+      "recheck": "重新檢查",
+      "reconnect": "重新連線",
+      "current": "目前版本",
+      "latest": "main 最新版",
+      "deployedAt": "部署於 {{time}}",
+      "committedAt": "提交於 {{time}}",
+      "contains": "這次更新包含",
+      "updateTo": "更新到 {{version}}",
+      "upToDate": "已是最新版本",
+      "update": "更新",
+      "checkFailed": "無法檢查新版",
+      "loadFailed": "無法讀取系統版本",
+      "startFailed": "無法開始更新",
+      "notLatest": "main 已有更新的版本，請確認後再更新",
+      "unsupported": "此環境不支援線上更新",
+      "external": "另一個更新正在進行（由終端機或 CD 觸發）",
+      "interrupted": "上次更新在進行中被中斷，網站狀態以目前版本為準。",
+      "retry": "再試一次",
+      "succeeded": "已更新到 {{version}}",
+      "switching": "正在切換服務，網站暫時無法連線。這是正常的，頁面會自動重新連線，不需要重新整理。",
+      "switchingTooLong": "切換時間超過預期。若網站仍無法連線，請聯絡維護者並提供主機上的 deploy/.agent/job.log。",
+      "failed": {
+        "healthy": "更新失敗，網站維持在 {{version}} 正常運作。",
+        "healthyUnknown": "更新失敗，網站維持在目前版本正常運作。",
+        "unhealthy": "更新失敗，網站可能異常，請把紀錄交給維護者。",
+        "step": "失敗的步驟：{{step}}"
+      },
+      "confirm": {
+        "title": "確認更新到 {{version}}",
+        "start": "開始更新",
+        "body": "更新前會先備份資料庫。切換服務時網站會中斷約 30 秒到 1 分鐘，正在作答的學生可能會短暫看到錯誤頁。更新失敗會自動維持在目前版本。"
+      },
+      "progress": {
+        "target": "目標版本",
+        "elapsed": "經過時間 {{time}}",
+        "steps": {
+          "prepare": "下載新版並檢查設定",
+          "build": "建置映像檔",
+          "backup": "備份資料庫",
+          "migrate": "資料庫遷移",
+          "switch": "切換服務",
+          "verify": "健康檢查"
+        },
+        "status": {
+          "complete": "已完成",
+          "current": "進行中",
+          "incomplete": "尚未開始",
+          "failed": "發生錯誤",
+          "interrupted": "已中斷"
+        }
+      },
+      "log": {
+        "toggle": "詳細紀錄",
+        "copy": "複製紀錄",
+        "copied": "已複製"
+      }
+    }
+  },
   "user": {
     "management": {
-      "activateTeacher": "直接開通教師",
       "activationInvite": {
         "copied": "已複製",
         "copy": "複製連結",
         "failed": "產生教師開通連結失敗",
         "latest": "最近一次邀請",
-        "send": "產生開通連結",
+        "send": "邀請教師",
         "sending": "產生中...",
         "sent": "已產生教師開通連結",
-        "title": "教師邀請制開通"
+        "title": "教師邀請制開通",
+        "description": "產生一次性教師邀請連結，交給對方登入或註冊後取得教師身分。"
       },
       "adminPermissionNote": "設為管理員後，該使用者將獲得完整的系統管理權限。",
       "columns": {
@@ -76,13 +215,11 @@
         "completed": "已完成",
         "pending": "未完成"
       },
-      "revokeTeacher": "改回學生",
       "searchFailed": "搜尋失敗",
       "searchFailedRetry": "搜尋失敗，請稍後再試",
       "searchLabel": "搜尋使用者（選填）",
       "searchPlaceholder": "輸入使用者名稱或 Email 進行過濾...",
       "searchResults": "搜尋結果 ({{count}})",
-      "sendTeacherInvite": "產生開通連結",
       "summary": {
         "pendingOnboarding": "未完成 onboarding",
         "teachers": "已開通教師",
@@ -90,7 +227,14 @@
       },
       "title": "使用者管理",
       "updateFailed": "更新失敗",
-      "updateFailedRetry": "更新失敗，請稍後再試"
+      "updateFailedRetry": "更新失敗，請稍後再試",
+      "passwordReset": {
+        "generate": "產生密碼重設連結",
+        "title": "密碼重設連結",
+        "description": "請將連結交給 {{user}}，由本人設定新密碼。連結有效期限為 {{minutes}} 分鐘，使用後即失效。",
+        "failed": "產生密碼重設連結失敗"
+      },
+      "changeRole": "變更角色"
     },
     "role": {
       "admin": "管理員",

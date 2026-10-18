@@ -94,10 +94,11 @@ The argument can be a commit SHA, tag, or remote ref. The process will:
 1. Fetch and checkout the target version, then run configuration validation.
 2. Pull or build the sandboxed judge image.
 3. Build application container images on the host.
-4. Back up existing databases to `deploy/backups/`.
+4. Start PostgreSQL, PgBouncer and Redis if they are stopped (running ones are not recreated), then back up existing databases to `deploy/backups/`.
 5. Generate missing secrets and execute database migrations.
-6. Start all services and verify health checks until `/api/health/` responds with 200.
+6. Start all services and verify health checks until `/api/health/` responds with 200. Compose configuration changes to PostgreSQL, PgBouncer and Redis apply at this step.
 7. Record the active version in `deploy/.version`.
+8. Build and recreate the host agent (container `<project>-agent`) that runs upgrades from the web, see Section 8. If the agent cannot start, the upgrade still succeeds and prints `warning: agent not started: …`.
 
 Upon success, the output ends with `Upgraded to sha-...`.
 
@@ -134,6 +135,24 @@ To roll back to the previous version:
 ```bash
 deploy/qjudge rollback
 ```
+
+### Upgrading from the Web
+
+The System Version page under System Administration runs the same `deploy/qjudge upgrade` through a host agent. The agent is a container in the Compose project `<project>-agent`; every successful `upgrade` and `rollback` rebuilds and restarts it, and you can do so by hand:
+
+```bash
+deploy/qjudge agent up
+```
+
+- **First rollout**: an `upgrade` started from an older CLI that has no agent runs the old code to the end and never installs the agent, so the page shows that the host agent is unreachable. After that upgrade, run `deploy/qjudge agent up` once (or upgrade again). CD checks out the new release before upgrading and does not need this.
+- **One release at a time**: web, terminal and CD upgrades and rollbacks share the release lock `deploy/.release.lock`. While another release runs, the CLI prints `Another upgrade or rollback is running; retry after it completes` and stops, and CD fails; retry once it completes. Never run `deploy/qjudge` with `sudo`: the lock and the repository must belong to one account, and the agent runs with that account's UID.
+- **Log**: the full output of a web upgrade is in `deploy/.agent/job.log`. When switching services takes longer than 10 minutes, the page asks for this file.
+- **Preconditions**:
+  - `origin` uses HTTPS. The agent image has no ssh client and `HOME=/tmp`, so it cannot see the host's `~/.gitconfig` or SSH keys.
+  - The repository is owned by the account that runs `deploy/qjudge`.
+  - The Docker socket is at `/var/run/docker.sock`.
+  - The first agent image build needs Docker Hub.
+- **The agent's Docker version**: the agent upgrades with the docker CLI and Compose in its own image, not the host's. Keep its Compose major version at or above every host's; when the hosts upgrade Docker, change `docker:<x.y.z>-cli` in `deploy/agent/Dockerfile` to the new exact version.
 
 ## 9. Backups and Restoration
 

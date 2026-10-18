@@ -182,9 +182,7 @@ function App() {
 
                         {/* Admin Only Routes (using /system/ to avoid conflict with Django /admin/) */}
                         <Route element={<RequireAdmin />}>
-                          <Route element={<RequireCompletedOnboarding />}>
-                            <Route element={<MainLayout />}>{adminRoutes}</Route>
-                          </Route>
+                          <Route element={<RequireCompletedOnboarding />}>{adminRoutes}</Route>
                         </Route>
 
                         {/* Error Pages - accessible without auth */}

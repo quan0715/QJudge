@@ -9,6 +9,15 @@
       "database": "データベース",
       "integrity_resident": "Integrity Resident"
     },
+    "containers": {
+      "title": "コンテナ",
+      "health": "ヘルスチェック",
+      "empty": "ホスト agent からコンテナの報告がありません",
+      "agent": {
+        "unsupported": "この環境にはホスト agent がないため、コンテナの状態を表示できません"
+      }
+    },
+    "containersUnread": "プローブは正常、コンテナの状態は取得できません",
     "contest": "コンテスト",
     "detail": "詳細",
     "generatedAt": "プローブ時刻",
@@ -29,6 +38,136 @@
     "title": "サービス状態",
     "unhealthyRuns": "unhealthy",
     "worker": "Worker"
+  },
+  "system": {
+    "nav": {
+      "overview": "概要",
+      "users": "ユーザー",
+      "serviceStatus": "サービス状態",
+      "ingress": "Ingress",
+      "version": "システムバージョン"
+    },
+    "overview": {
+      "title": "システム概要",
+      "subtitle": "サービス・ユーザー・バージョンの概要です。カードを選択すると詳細を表示します。",
+      "loadFailed": "取得できません",
+      "agent": {
+        "unsupported": "この環境にはホスト agent がありません",
+        "unreachable": "ホスト agent に接続できません"
+      },
+      "services": {
+        "title": "サービス",
+        "up": "{{up}} / {{total}} 件正常"
+      },
+      "integrity": {
+        "title": "試験監視 Run",
+        "allHealthy": "すべて正常",
+        "problems": "{{count}} 件の異常",
+        "live": "{{count}} 件進行中"
+      },
+      "users": {
+        "title": "ユーザー",
+        "total": "{{count}} 人のユーザー",
+        "teachers": "{{count}} 人の教員",
+        "pending": "{{count}} 人がオンボーディング未完了"
+      },
+      "ingress": {
+        "title": "Ingress",
+        "summary": "{{ok}} / {{total}} 件の入口が正常"
+      },
+      "version": {
+        "title": "システムバージョン",
+        "unknown": "バージョン記録なし",
+        "updateAvailable": "新バージョンあり"
+      }
+    },
+    "ingress": {
+      "title": "Ingress",
+      "subtitle": "結果はホスト自身から測定したもので、外部ネットワークから必ず接続できることを保証するものではありません",
+      "retest": "再テスト",
+      "loadFailed": "Ingress の状態を取得できません",
+      "agent": {
+        "unsupported": "この環境にはホスト agent がないため、入口をテストできません"
+      },
+      "columns": {
+        "entry": "入口",
+        "public": "公開アドレス",
+        "target": "転送先",
+        "result": "結果",
+        "detail": "詳細"
+      },
+      "result": {
+        "ok": "正常",
+        "fail": "異常"
+      },
+      "entries": {
+        "site": "サイト",
+        "mcp": "MCP",
+        "storage": "オブジェクトストレージ",
+        "media": "ライブメディア (LiveKit)",
+        "turn": "TURN"
+      }
+    },
+    "version": {
+      "title": "システムバージョン",
+      "subtitle": "現在デプロイされているバージョンと、更新できる main の最新版です。",
+      "recheck": "再確認",
+      "reconnect": "再接続",
+      "current": "現在のバージョン",
+      "latest": "main の最新版",
+      "deployedAt": "{{time}} にデプロイ",
+      "committedAt": "{{time}} にコミット",
+      "contains": "この更新に含まれる内容",
+      "updateTo": "{{version}} に更新",
+      "upToDate": "最新バージョンです",
+      "update": "更新",
+      "checkFailed": "新しいバージョンを確認できません",
+      "loadFailed": "システムバージョンを取得できません",
+      "startFailed": "更新を開始できません",
+      "notLatest": "main にさらに新しいバージョンがあります。確認してから更新してください",
+      "unsupported": "この環境ではオンライン更新に対応していません",
+      "external": "別の更新が進行中です（ターミナルまたは CD から開始）",
+      "interrupted": "前回の更新は途中で中断されました。サイトの状態は現在のバージョンが基準です。",
+      "retry": "もう一度試す",
+      "succeeded": "{{version}} に更新しました",
+      "switching": "サービスを切り替えています。サイトに一時的に接続できませんが、正常な動作です。ページは自動的に再接続するため、再読み込みは不要です。",
+      "switchingTooLong": "切り替えに想定より時間がかかっています。サイトにまだ接続できない場合は、保守担当者に連絡し、ホスト上の deploy/.agent/job.log を提供してください。",
+      "failed": {
+        "healthy": "更新に失敗しました。サイトは {{version}} のまま正常に動作しています。",
+        "healthyUnknown": "更新に失敗しました。サイトは現在のバージョンのまま正常に動作しています。",
+        "unhealthy": "更新に失敗しました。サイトに異常がある可能性があります。ログを保守担当者に渡してください。",
+        "step": "失敗したステップ：{{step}}"
+      },
+      "confirm": {
+        "title": "{{version}} への更新を確認",
+        "start": "更新を開始",
+        "body": "更新の前にデータベースをバックアップします。サービスの切り替え中、サイトは約 30 秒から 1 分間つながらなくなり、解答中の学生に一時的にエラーページが表示される場合があります。更新に失敗した場合は、自動的に現在のバージョンのままになります。"
+      },
+      "progress": {
+        "target": "対象バージョン",
+        "elapsed": "経過時間 {{time}}",
+        "steps": {
+          "prepare": "新バージョンの取得と設定の確認",
+          "build": "イメージのビルド",
+          "backup": "データベースのバックアップ",
+          "migrate": "データベースのマイグレーション",
+          "switch": "サービスの切り替え",
+          "verify": "ヘルスチェック"
+        },
+        "status": {
+          "complete": "完了",
+          "current": "進行中",
+          "incomplete": "未開始",
+          "failed": "エラー",
+          "interrupted": "中断"
+        }
+      },
+      "log": {
+        "toggle": "詳細ログ",
+        "copy": "ログをコピー",
+        "copied": "コピーしました"
+      }
+    }
   },
   "user": {
     "management": {

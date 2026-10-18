@@ -1,6 +1,6 @@
 # 部署故障排除
 
-先找出最早失敗的一步，不要一開始就重啟所有服務、重建 `deploy/.env` 或刪除 volume。以下指令的 `qjudge` 是 Compose project 名稱；`deploy/.env` 設定了 `COMPOSE_PROJECT_NAME` 時改用該值。自帶的 addon 分別在 `qjudge-storage` 與 `qjudge-media` project 中。
+先找出最早失敗的一步，不要一開始就重啟所有服務、重建 `deploy/.env` 或刪除 volume。以下指令的 `qjudge` 是 Compose project 名稱；`deploy/.env` 設定了 `COMPOSE_PROJECT_NAME` 時改用該值。自帶的 addon 分別在 `qjudge-storage` 與 `qjudge-media` project 中，主機 agent 在 `qjudge-agent`。
 
 ## 先看這三個
 
@@ -48,10 +48,14 @@ docker compose -p qjudge logs --tail=200 <service>
 | `postgres is not healthy`、`database backup failed` | 查看 `postgres` 的 log 與磁碟空間 |
 | `secrets bootstrap failed; …`、`<service> migrations failed; …` | 金鑰產生或 `backend`、`ai-service` 的 migration 失敗，應用服務仍執行原本的版本；錯誤直接顯示在上方輸出 |
 | `sha-… is not healthy` | 新版服務在 5 分鐘內沒有通過健康檢查；有上一版時會以上一版的 image 重新啟動 |
+| `Another upgrade or rollback is running; retry after it completes` | 網頁、終端機或 CD 的另一個發布持有 `deploy/.release.lock`，等它結束再執行；網頁更新的進度在 `deploy/.agent/job.log` |
+| `warning: agent not started: …` | 升級本身已完成，只有主機 agent 沒有啟動；依原因修正（Docker socket、Docker Hub 連線）後執行 `deploy/qjudge agent up` |
 
 這些情況都會 checkout 回原本的版本，資料庫不會自動還原。印出 `Database not restored` 時，下一行是最新備份與還原指令；只有 migration 不能與舊版程式共存時才需要還原，步驟見[部署指南](deployment.md)第 9 節。
 
 健康檢查要求 `backend`、`ai-service`、`integrity-resident` 皆為 healthy，而且直接對 frontend 的 `/api/health/`（帶 origin 的 `Host` 與 `X-Forwarded-Proto`）回應 200，不經過反向代理。
+
+「系統版本」頁顯示「無法連線到主機 agent」時，先看 `docker compose -p qjudge-agent ps --all` 與 `docker compose -p qjudge-agent logs --tail=200 agent`。從舊版 CLI 第一次升級後還沒有 agent，執行一次 `deploy/qjudge agent up`。網頁更新失敗的完整輸出在 `deploy/.agent/job.log`。
 
 ## 網站打不開或一直重新導向
 

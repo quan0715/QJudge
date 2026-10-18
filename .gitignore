@@ -83,6 +83,10 @@ coverage.xml
 .env.next
 deploy/backups/
 deploy/.version
+# Host-wide upgrade/rollback lock; contains no data.
+deploy/.release.lock
+# Host agent upgrade job state and log.
+deploy/.agent/
 
 # Celery
 celerybeat-schedule

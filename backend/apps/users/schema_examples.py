@@ -14,6 +14,7 @@ SUCCESS_DATA = {
     'CurrentUserView': USER,
     'UserRoleUpdateView': {**USER, 'role': 'teacher'},
     'UserSearchView': [USER],
+    'UserSummaryView': {'total': 151, 'teachers': 25, 'pending_onboarding': 41},
     'UserPreferencesView': {
         'profile': USER['profile'], 'preferences': {'preferred_language': 'zh-TW',
             'preferred_theme': 'system', 'editor_font_size': 14, 'editor_tab_size': 4},

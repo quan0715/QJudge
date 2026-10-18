@@ -3,7 +3,7 @@
 from django.conf import settings
 from django.urls import path
 
-from .views.password_reset import PasswordResetRequestView, PasswordResetCompleteView
+from .views.password_reset import PasswordResetRequestView, PasswordResetCompleteView, AdminPasswordResetView
 
 from .views import (
     AuthSessionListView,
@@ -20,6 +20,7 @@ from .views import (
 app_name = "auth"
 
 urlpatterns = [
+    path("password/admin-reset-links", AdminPasswordResetView.as_view(), name="admin-password-reset-link"),
     path("password/reset-requests", PasswordResetRequestView.as_view(), name="password-reset-request"),
     path("password/resets", PasswordResetCompleteView.as_view(), name="password-reset-complete"),
     path("providers", AuthOptionsView.as_view(), name="auth-providers"),
