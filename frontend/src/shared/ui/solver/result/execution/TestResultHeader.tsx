@@ -1,16 +1,26 @@
-import React from "react";
-import { Stack, SkeletonText } from "@carbon/react";
+import React, { useState } from "react";
+import { Stack } from "@carbon/react";
+import { useInterval } from "@/shared/hooks/useInterval";
 import { getHeaderStatusIcon } from "./StatusHelpers";
 import type { HeaderInfo } from "./utils";
 
 interface TestResultHeaderProps {
   header: HeaderInfo;
   isPending: boolean;
+  /** Client time (ms) the run started; shown as the waiting seconds while pending. */
+  startedAt?: number;
 }
+
+const WaitingSeconds: React.FC<{ startedAt: number }> = ({ startedAt }) => {
+  const [now, setNow] = useState(() => Date.now());
+  useInterval(() => setNow(Date.now()), 1000);
+  return <>{`已等待 ${Math.max(0, Math.floor((now - startedAt) / 1000))} 秒`}</>;
+};
 
 export const TestResultHeader: React.FC<TestResultHeaderProps> = ({
   header,
   isPending,
+  startedAt,
 }) => {
   const getStatusIcon = () => getHeaderStatusIcon(header.type);
 
@@ -54,43 +64,36 @@ export const TestResultHeader: React.FC<TestResultHeaderProps> = ({
         transition: "background-color 200ms ease-in-out"
       }}
     >
-      {isPending ? (
-        <Stack gap={2} style={{ minHeight: "2.5rem", alignItems: "start", justifyContent: "start" }}>
-          <SkeletonText width="160px" heading />
-          <SkeletonText width="100px" />
-        </Stack>
-      ) : (
-        <Stack
-          orientation="horizontal"
-          gap={4}
-          style={{ 
-            width: "100%",
-            alignItems: "center", 
-            justifyContent: "flex-start",
-            textAlign: "start",
-          }}
-        >
-          {getStatusIcon()}
-          <Stack orientation="vertical" gap={3} style={{ alignItems: "center" }}>
-            <h3 style={{ 
-              margin: 0, 
-              fontSize: "1.25rem", 
-              fontWeight: 600,
-              lineHeight: 1.25,
-              color: theme.text
-            }}>
-              {header.title}
-            </h3>
-            <span style={{ 
-            fontSize: "0.875rem", 
-            color: "var(--cds-text-secondary)",
-            lineHeight: 1.25
+      <Stack
+        orientation="horizontal"
+        gap={4}
+        style={{ 
+          width: "100%",
+          alignItems: "center", 
+          justifyContent: "flex-start",
+          textAlign: "start",
+        }}
+      >
+        {getStatusIcon()}
+        <Stack orientation="vertical" gap={3} style={{ alignItems: "center" }}>
+          <h3 style={{ 
+            margin: 0, 
+            fontSize: "1.25rem", 
+            fontWeight: 600,
+            lineHeight: 1.25,
+            color: theme.text
           }}>
-            {header.subtitle}
-          </span>
-          </Stack>
+            {header.title}
+          </h3>
+          <span style={{ 
+          fontSize: "0.875rem", 
+          color: "var(--cds-text-secondary)",
+          lineHeight: 1.25
+        }}>
+          {isPending ? startedAt !== undefined && <WaitingSeconds startedAt={startedAt} /> : header.subtitle}
+        </span>
         </Stack>
-      )}
+      </Stack>
     </div>
   );
 };

@@ -69,3 +69,40 @@ export const CompletedWithFailure: Story = {
     testCases: [],
   },
 };
+
+export const Judging: Story = {
+  args: {
+    executionState: {
+      type: "submit",
+      status: "polling",
+      queued: false,
+      startedAt: Date.now() - 3000,
+      result: { type: "submit", status: "Pending", passed: 0, total: 0, cases: [] },
+    },
+    testCases: [],
+  },
+};
+
+export const AcceptedCollapsed: Story = {
+  args: {
+    executionState: {
+      type: "submit",
+      status: "complete",
+      result: {
+        type: "submit",
+        status: "AC",
+        passed: 3,
+        total: 3,
+        score: 100,
+        cases: ["1 2", "4 5", "7 8"].map((input, index) => ({
+          id: `case-${index + 1}`,
+          passed: true,
+          status: "AC",
+          input,
+          executionTime: 10 + index,
+        })),
+      },
+    },
+    testCases: [],
+  },
+};

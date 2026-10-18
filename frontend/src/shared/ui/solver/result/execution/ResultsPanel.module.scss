@@ -125,65 +125,39 @@
   color: var(--cds-text-secondary);
 }
 
-// Detail Skeleton Styles
-.detailSkeleton {
+// Waiting message while a run is queued or judging
+.waiting {
+  flex: 1;
   height: 100%;
-  padding: layout.$spacing-05;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: layout.$spacing-02;
+  padding: layout.$spacing-05;
+  text-align: center;
+  background-color: var(--cds-layer-01);
 }
 
-.detailSkeletonHeader {
+.waitingTitle {
+  margin: 0;
+  @include type.type-style("heading-compact-01");
+  color: var(--cds-text-primary);
+}
+
+.waitingHint {
+  margin: 0;
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+}
+
+// Accepted submission with its case list folded away
+.collapsed {
   display: flex;
   align-items: center;
-  gap: layout.$spacing-04;
-  margin-bottom: layout.$spacing-05;
-}
-
-.detailSkeletonStats {
-  display: flex;
-  gap: layout.$spacing-05;
-  margin-bottom: layout.$spacing-05;
-}
-
-.detailSkeletonSections {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-05;
-  flex: 1;
-}
-
-.detailSkeletonSection {
-  display: flex;
-  flex-direction: column;
   gap: layout.$spacing-03;
-}
-
-// Skeleton element sizes
-.skeletonIcon {
-  width: layout.rem(24px);
-  height: layout.rem(24px);
-  border-radius: 50%;
-}
-
-.skeletonTag {
-  width: layout.rem(60px);
-  height: layout.rem(24px);
-}
-
-.skeletonCodeBlock {
-  width: 100%;
-  height: layout.rem(80px);
-}
-
-// Sidebar skeleton elements
-.skeletonStatusIcon {
-  width: layout.rem(16px);
-  height: layout.rem(16px);
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.skeletonMeta {
-  margin-left: auto;
+  padding: layout.$spacing-03 layout.$spacing-05;
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  background-color: var(--cds-layer-01);
 }

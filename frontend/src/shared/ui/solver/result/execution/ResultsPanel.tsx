@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Button, Layer, SkeletonText, SkeletonPlaceholder } from "@carbon/react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { Button, Layer } from "@carbon/react";
 import { Information } from "@carbon/icons-react";
 import type { TestCaseItem } from "@/core/entities/testcase.entity";
 import type { ExecutionState } from "@/core/types/solver.types";
@@ -32,6 +32,8 @@ const toTestResult = (c: CaseResultDisplay, _idx: number): TestResult => ({
   errorMessage: c.error,
 });
 
+const formatTime = (ms: number) => ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
+
 interface ResultsPanelProps {
   executionState: ExecutionState;
   testCases: TestCaseItem[];
@@ -42,37 +44,33 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   testCases,
 }) => {
   const [selectedResult, setSelectedResult] = useState<TestResult | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const itemRefs = useRef(new Map<TestResult["id"], HTMLElement>());
 
-  const { status, type, result, error: globalError } = executionState;
+  const { status, type, result, queued, startedAt } = executionState;
   const isPending = status === "running" || status === "polling";
   const isIdle = status === "idle";
 
   // Build case results and convert to TestResult[]
-  const caseResults = useMemo(() => 
+  const caseResults = useMemo(() =>
     buildCaseResults(isPending, type, result, testCases),
     [isPending, type, result, testCases]
   );
-  
-  const testResults = useMemo(() => 
+
+  const testResults = useMemo(() =>
     caseResults.map((c, idx) => toTestResult(c, idx)),
     [caseResults]
   );
 
-  // Reset selection on new run
+  // Once results arrive, open the first failed case (or the first case).
   useEffect(() => {
-    if (isPending) {
-      setSelectedResult(null);
-    }
-  }, [isPending]);
+    if (testResults.length === 0 || selectedResult || isPending) return;
+    const target = testResults[Math.max(0, caseResults.findIndex((c) => c.status === "failed"))];
+    setSelectedResult(target);
+    itemRefs.current.get(target.id)?.scrollIntoView?.({ block: "nearest" });
+  }, [caseResults, testResults, selectedResult, isPending]);
 
-  // Auto-select first result when results are available
-  useEffect(() => {
-    if (testResults.length > 0 && !selectedResult && !isPending) {
-      setSelectedResult(testResults[0]);
-    }
-  }, [testResults, selectedResult, isPending]);
-
-  const header = getHeaderInfo(isPending, globalError, result);
+  const header = getHeaderInfo(executionState);
 
   // Show empty state when idle (no results yet)
   if (isIdle && !result) {
@@ -87,54 +85,83 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
     );
   }
 
-  const selectedIndex = selectedResult 
-    ? testResults.findIndex(r => r.id === selectedResult.id) + 1 
+  const selectedIndex = selectedResult
+    ? testResults.findIndex(r => r.id === selectedResult.id) + 1
     : 1;
 
-  // Skeleton for sidebar items
-  const renderSidebarSkeleton = () => (
-    <div className={styles.sidebarList}>
-      {Array.from({ length: 3 }).map((_, idx) => (
-        <div key={idx} className={styles.resultItem}>
-          <SkeletonPlaceholder className={styles.skeletonStatusIcon} />
-          <SkeletonText width="40px" />
-          <SkeletonText width="30px" className={styles.skeletonMeta} />
-        </div>
-      ))}
+  const waiting = (
+    <div className={styles.waiting}>
+      <p className={styles.waitingTitle}>
+        {type === "submit" ? (queued ? "這筆提交正在排隊" : "這筆提交正在判題") : "測試執行中"}
+      </p>
+      {type === "submit" && <p className={styles.waitingHint}>可以先切到其他題，判完會通知你。</p>}
     </div>
   );
+  const allAccepted = !isPending && result?.type === "submit" && result.status === "AC";
 
-  // Skeleton for detail panel
-  const renderDetailSkeleton = () => (
-    <div className={styles.detailSkeleton}>
-      {/* Header skeleton */}
-      <div className={styles.detailSkeletonHeader}>
-        <SkeletonPlaceholder className={styles.skeletonIcon} />
-        <SkeletonText heading width="150px" />
-        <SkeletonPlaceholder className={styles.skeletonTag} />
-      </div>
-      {/* Stats skeleton */}
-      <div className={styles.detailSkeletonStats}>
-        <SkeletonText width="80px" />
-        <SkeletonText width="80px" />
-      </div>
-      {/* Content sections skeleton */}
-      <div className={styles.detailSkeletonSections}>
-        <div className={styles.detailSkeletonSection}>
-          <SkeletonText width="60px" />
-          <SkeletonPlaceholder className={styles.skeletonCodeBlock} />
+  const renderContent = () => {
+    // Submissions report no per-case progress while judging.
+    if (isPending && type === "submit") return waiting;
+    if (allAccepted && !expanded) {
+      return (
+        <div className={styles.collapsed}>
+          <span>{`${result.total || testResults.length} 筆測資全部通過。`}</span>
+          <Button kind="ghost" size="sm" onClick={() => setExpanded(true)}>展開清單</Button>
         </div>
-        <div className={styles.detailSkeletonSection}>
-          <SkeletonText width="100px" />
-          <SkeletonPlaceholder className={styles.skeletonCodeBlock} />
+      );
+    }
+    return (
+      <div className={styles.content}>
+        {/* Test Result List - Vertical Sidebar (Left) - Fixed width */}
+        <div className={styles.sidebar}>
+          <div className={styles.sidebarList}>
+            {testResults.map((item, idx) => {
+              const isActive = selectedResult?.id === item.id;
+              const time = item.status !== "pending" && item.execTime > 0 ? formatTime(item.execTime) : "";
+              return (
+                <Button
+                  type="button"
+                  kind="ghost"
+                  size="sm"
+                  key={item.id ?? idx}
+                  ref={(element: HTMLButtonElement | null) => {
+                    if (element) itemRefs.current.set(item.id, element);
+                    else itemRefs.current.delete(item.id);
+                  }}
+                  onClick={() => setSelectedResult(item)}
+                  aria-pressed={isActive}
+                  aria-label={[`#${idx + 1}`, item.status, time].filter(Boolean).join(" ")}
+                  className={`${styles.resultItem} ${isActive ? styles["resultItem--active"] : ""}`}
+                >
+                  <SubmissionStatusIcon status={item.status} size={16} />
+                  <span className={styles.resultLabel}>#{idx + 1}</span>
+                  <span className={styles.resultMeta}>{time}</span>
+                </Button>
+              );
+            })}
+          </div>
         </div>
-        <div className={styles.detailSkeletonSection}>
-          <SkeletonText width="80px" />
-          <SkeletonPlaceholder className={styles.skeletonCodeBlock} />
+
+        {/* Test Result Detail (Right) - Fixed flex */}
+        <div className={styles.detail}>
+          {selectedResult ? (
+            <TestResultDetail
+              result={selectedResult}
+              index={selectedIndex}
+              variant="inline"
+              showDiff
+            />
+          ) : isPending ? (
+            waiting
+          ) : (
+            <div className={styles.detailEmpty}>
+              點擊左側測試案例查看詳情
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <Layer level={0} className={styles.container}>
@@ -143,60 +170,11 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         <TestResultHeader
           header={header}
           isPending={isPending}
+          startedAt={startedAt}
         />
       </div>
 
-      {/* Content - IDE Terminal Style: Sidebar (Left) + Detail (Right) */}
-      <div className={styles.content}>
-        {/* Test Result List - Vertical Sidebar (Left) - Fixed width */}
-        <div className={styles.sidebar}>
-          {isPending && testResults.length === 0 ? (
-            renderSidebarSkeleton()
-          ) : (
-            <div className={styles.sidebarList}>
-              {testResults.map((result, idx) => {
-                const isActive = selectedResult?.id === result.id;
-                const formatTime = (ms: number) => ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
-                
-                return (
-                  <Button
-                    type="button"
-                    kind="ghost"
-                    size="sm"
-                    key={result.id ?? idx}
-                    onClick={() => setSelectedResult(result)}
-                    className={`${styles.resultItem} ${isActive ? styles["resultItem--active"] : ""}`}
-                  >
-                    <SubmissionStatusIcon status={result.status} size={16} />
-                    <span className={styles.resultLabel}>#{idx + 1}</span>
-                    <span className={styles.resultMeta}>
-                      {result.status !== "pending" && result.execTime !== undefined && result.execTime > 0 && formatTime(result.execTime)}
-                    </span>
-                  </Button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Test Result Detail (Right) - Fixed flex */}
-        <div className={styles.detail}>
-          {isPending && !selectedResult ? (
-            renderDetailSkeleton()
-          ) : selectedResult ? (
-            <TestResultDetail
-              result={selectedResult}
-              index={selectedIndex}
-              variant="inline"
-              showDiff
-            />
-          ) : (
-            <div className={styles.detailEmpty}>
-              點擊左側測試案例查看詳情
-            </div>
-          )}
-        </div>
-      </div>
+      {renderContent()}
     </Layer>
   );
 };

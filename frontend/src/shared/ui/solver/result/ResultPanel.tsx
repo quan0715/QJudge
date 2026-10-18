@@ -102,7 +102,8 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
     }
 
     // Results mode - show ResultsPanel (handles its own skeleton/loading states)
-    return <ResultsPanel executionState={executionState} testCases={testCases} />;
+    // A different run remounts the panel, so its selection and expansion start fresh.
+    return <ResultsPanel key={executionState.startedAt} executionState={executionState} testCases={testCases} />;
   };
 
   return (
