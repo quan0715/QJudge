@@ -17,7 +17,9 @@ from . import state
 Popen = Callable[..., subprocess.Popen]
 
 # Bounds a git call that waits on the network, so a stalled fetch cannot hold the start lock forever.
-GIT_TIMEOUT = 60
+# Starting a job makes two Git calls; keep their combined budget below the
+# backend proxy's 30-second deadline so a timeout cannot start an unseen upgrade.
+GIT_TIMEOUT = 10
 
 # Makes the busy check and the job write one step, so two requests cannot both pass the check.
 _start_lock = threading.Lock()

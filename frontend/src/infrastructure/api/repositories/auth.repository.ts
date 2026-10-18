@@ -125,3 +125,9 @@ export const completePasswordReset = (uid: string, token: string, password: stri
   fetchEnvelope<null>(httpClient.post("/api/v1/auth/password/resets", {
     uid, token, password, password_confirm: passwordConfirm,
   }), "Unable to reset password");
+
+export const issueAdminPasswordReset = (userId: number) =>
+  fetchEnvelope<{ reset_url: string; expires_in: number }>(
+    httpClient.post("/api/v1/auth/password/admin-reset-links", { user_id: userId }),
+    "Unable to generate password reset link",
+  );

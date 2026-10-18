@@ -525,3 +525,87 @@ def test_blocked_password_login_does_not_deadlock_with_integrity_lock_order(user
     assert ExamEvent.objects.filter(contest=contest, user=user, event_type='concurrent_login_detected').count() == 1
     assert ContestActivity.objects.filter(contest=contest, user=user, action_type='concurrent_login_detected').count() == 1
     assert not OutstandingToken.objects.filter(user=user).exists()
+
+
+@pytest.mark.django_db
+def test_admin_link_works_without_mail_and_is_single_use(user, settings):
+    settings.EMAIL_MODE = 'disabled'
+    admin = User.objects.create_user(username='reset-admin', password='AdminPassword93!', role='admin', is_superuser=True)
+    client = APIClient()
+    client.force_authenticate(admin)
+    with patch('apps.users.password_reset.send_mail') as send:
+        response = client.post('/api/v1/auth/password/admin-reset-links', {'user_id': user.pk}, format='json')
+        assert response.status_code == 201
+        assert response['Cache-Control'] == 'no-store'
+        send.assert_not_called()
+    link = LINK_PATTERN.search(response.json()['data']['reset_url']).groups()
+    anonymous = APIClient()
+    assert finish(anonymous, link).status_code == 200
+    assert finish(anonymous, link).status_code == 400
+    user.refresh_from_db()
+    assert user.check_password(PASSWORD)
+    assert user.role == 'student'
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('role,superuser', [('student', False), ('teacher', False), ('admin', False)])
+def test_admin_link_rejects_non_super_admin(user, role, superuser):
+    user.role = role
+    user.is_superuser = superuser
+    user.save()
+    client = APIClient()
+    client.force_authenticate(user)
+    assert client.post('/api/v1/auth/password/admin-reset-links', {'user_id': user.pk}, format='json').status_code == 403
+
+
+@pytest.mark.django_db
+def test_admin_link_rejects_oauth_inactive_and_disabled_password_login(user, settings):
+    admin = User.objects.create_user(username='reset-admin', role='admin', is_superuser=True)
+    client = APIClient()
+    client.force_authenticate(admin)
+    oauth = User.objects.create_user(username='reset-oauth', auth_provider='google')
+    assert client.post('/api/v1/auth/password/admin-reset-links', {'user_id': oauth.pk}, format='json').status_code == 400
+    user.is_active = False
+    user.save()
+    assert client.post('/api/v1/auth/password/admin-reset-links', {'user_id': user.pk}, format='json').status_code == 400
+    user.is_active = True
+    user.save()
+    settings.AUTH_EMAIL_PASSWORD_ENABLED = False
+    assert client.post('/api/v1/auth/password/admin-reset-links', {'user_id': user.pk}, format='json').status_code == 400
+
+
+def test_shared_link_builder_does_not_require_mail(settings):
+    from apps.users.password_reset import build_password_reset_link
+    settings.EMAIL_MODE = 'disabled'
+    user = User(pk=42, username='local-password', email='local@example.test')
+    user.set_password('OriginalPassword98!')
+    link = build_password_reset_link(user)
+    uid, token = LINK_PATTERN.search(link).groups()
+    assert uid == 'NDI'
+    assert default_token_generator.check_token(user, token)
+    user.set_password(PASSWORD)
+    assert not default_token_generator.check_token(user, token)
+
+
+def test_admin_issue_endpoint_without_mail_or_database(settings):
+    settings.EMAIL_MODE = 'disabled'
+    admin = User(pk=1, role='admin', is_superuser=True)
+    target = User(pk=2, username='target', email='target@example.test')
+    target.set_password('OriginalPassword98!')
+    client = APIClient()
+    client.force_authenticate(admin)
+    with patch('apps.users.views.password_reset.get_object_or_404', return_value=target) as lookup:
+        response = client.post('/api/v1/auth/password/admin-reset-links', {'user_id': 2}, format='json')
+    assert response.status_code == 201
+    lookup.assert_called_once_with(User, pk=2)
+    assert response['Cache-Control'] == 'no-store'
+    assert LINK_PATTERN.search(response.json()['data']['reset_url'])
+
+
+@pytest.mark.parametrize('role,superuser', [('student', False), ('teacher', False), ('admin', False)])
+def test_admin_issue_permission_checked_before_account_lookup(role, superuser):
+    client = APIClient()
+    client.force_authenticate(User(pk=1, role=role, is_superuser=superuser))
+    with patch('apps.users.views.password_reset.get_object_or_404') as lookup:
+        assert client.post('/api/v1/auth/password/admin-reset-links', {'user_id': 2}, format='json').status_code == 403
+        lookup.assert_not_called()

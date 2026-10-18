@@ -171,16 +171,16 @@
   },
   "user": {
     "management": {
-      "activateTeacher": "直接開通教師",
       "activationInvite": {
         "copied": "已複製",
         "copy": "複製連結",
         "failed": "產生教師開通連結失敗",
         "latest": "最近一次邀請",
-        "send": "產生開通連結",
+        "send": "邀請教師",
         "sending": "產生中...",
         "sent": "已產生教師開通連結",
-        "title": "教師邀請制開通"
+        "title": "教師邀請制開通",
+        "description": "產生一次性教師邀請連結，交給對方登入或註冊後取得教師身分。"
       },
       "adminPermissionNote": "設為管理員後，該使用者將獲得完整的系統管理權限。",
       "columns": {
@@ -215,13 +215,11 @@
         "completed": "已完成",
         "pending": "未完成"
       },
-      "revokeTeacher": "改回學生",
       "searchFailed": "搜尋失敗",
       "searchFailedRetry": "搜尋失敗，請稍後再試",
       "searchLabel": "搜尋使用者（選填）",
       "searchPlaceholder": "輸入使用者名稱或 Email 進行過濾...",
       "searchResults": "搜尋結果 ({{count}})",
-      "sendTeacherInvite": "產生開通連結",
       "summary": {
         "pendingOnboarding": "未完成 onboarding",
         "teachers": "已開通教師",
@@ -229,7 +227,14 @@
       },
       "title": "使用者管理",
       "updateFailed": "更新失敗",
-      "updateFailedRetry": "更新失敗，請稍後再試"
+      "updateFailedRetry": "更新失敗，請稍後再試",
+      "passwordReset": {
+        "generate": "產生密碼重設連結",
+        "title": "密碼重設連結",
+        "description": "請將連結交給 {{user}}，由本人設定新密碼。連結有效期限為 {{minutes}} 分鐘，使用後即失效。",
+        "failed": "產生密碼重設連結失敗"
+      },
+      "changeRole": "變更角色"
     },
     "role": {
       "admin": "管理員",

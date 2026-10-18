@@ -116,6 +116,9 @@ class UserContractSchema(AutoSchema):
         name = type(self.view).__name__
         contracts = {
             'PasswordResetRequestView': {202: {'type': 'object', 'nullable': True, 'enum': [None]}},
+            'AdminPasswordResetView': {201: {'type': 'object', 'required': ['reset_url', 'expires_in'],
+                'properties': {'reset_url': {'type': 'string', 'format': 'uri'},
+                               'expires_in': {'type': 'integer'}}}},
             'PasswordResetCompleteView': {200: {'type': 'object', 'nullable': True, 'enum': [None]}},
             'CurrentUserView': UserSerializer,
             'UserPreferencesView': UserSettingsSerializer,

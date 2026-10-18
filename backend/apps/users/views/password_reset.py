@@ -1,11 +1,17 @@
-"""Anonymous password recovery endpoints using the users-domain contract."""
+"""Email and administrator-assisted password recovery endpoints."""
+import logging
+
+from django.conf import settings
+from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from apps.core.api.envelope import contract_error_response, contract_validation_error_response
 from ..authentication import clear_jwt_cookies
-from ..password_reset import complete_password_reset, InvalidResetToken, reset_enabled
+from ..models import User
+from ..permissions import IsSuperAdmin
+from ..password_reset import build_password_reset_link, complete_password_reset, InvalidResetToken, reset_enabled
 from ..tasks import deliver_password_reset
 from ..throttles import PasswordRecoveryThrottle
 from .common import SchemaAPIView
@@ -67,5 +73,30 @@ class PasswordResetCompleteView(SchemaAPIView):
             return contract_validation_error_response(request, '密碼不符合要求', {'password': exc.messages})
         response = Response(None)
         clear_jwt_cookies(response)
+        response['Cache-Control'] = 'no-store'
+        return response
+
+
+class AdminPasswordResetSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(min_value=1, max_value=2**63 - 1)
+
+
+class AdminPasswordResetView(SchemaAPIView):
+    permission_classes = [IsSuperAdmin]
+    serializer_class = AdminPasswordResetSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return contract_validation_error_response(request, '資料驗證失敗', serializer.errors)
+        user = get_object_or_404(User, pk=serializer.validated_data['user_id'])
+        try:
+            link = build_password_reset_link(user)
+        except InvalidResetToken:
+            return contract_error_response(request, 'password_reset_unavailable',
+                                           '此帳號無法使用密碼重設。', status=400)
+        logging.getLogger('qjudge.auth').info(
+            'admin_password_reset_issued actor_id=%s user_id=%s', request.user.pk, user.pk)
+        response = Response({'reset_url': link, 'expires_in': settings.PASSWORD_RESET_TIMEOUT}, status=201)
         response['Cache-Control'] = 'no-store'
         return response

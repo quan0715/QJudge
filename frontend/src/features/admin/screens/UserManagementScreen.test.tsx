@@ -3,13 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EnvelopeError } from "@/infrastructure/api/envelope";
 import { searchUsers, updateUserRole } from "@/infrastructure/api/repositories/user.repository";
-import { issueTeacherActivationActionLink } from "@/infrastructure/api/repositories/auth.repository";
+import { issueAdminPasswordReset, issueTeacherActivationActionLink } from "@/infrastructure/api/repositories/auth.repository";
 import UserManagementScreen from "./UserManagementScreen";
 
 const translate = (key: string, fallback?: unknown) => typeof fallback === "string" ? fallback : key;
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: translate }) }));
 vi.mock("@/infrastructure/api/repositories/user.repository", () => ({ searchUsers: vi.fn(), updateUserRole: vi.fn() }));
-vi.mock("@/infrastructure/api/repositories/auth.repository", () => ({ issueTeacherActivationActionLink: vi.fn() }));
+vi.mock("@/infrastructure/api/repositories/auth.repository", () => ({ issueTeacherActivationActionLink: vi.fn(), issueAdminPasswordReset: vi.fn() }));
 const student = { id: 1, username: "student-a", email: "student@example.test", role: "student" as const,
   auth_provider: "password", last_login_at: null, onboarding_completed_at: null,
   profile: { display_name: "Student", avatar_url: null } };
@@ -43,7 +43,7 @@ describe("UserManagementScreen canonical errors", () => {
     vi.mocked(updateUserRole).mockRejectedValueOnce(denied("You cannot change this account's role"));
     render(<UserManagementScreen />);
     await screen.findByText("student-a");
-    await userEvent.click(screen.getByRole("button", { name: "直接開通教師" }));
+    await userEvent.selectOptions(screen.getByRole("combobox"), "teacher");
     await userEvent.click(screen.getByRole("button", { name: "button.confirm" }));
     expect(await screen.findByText("You cannot change this account's role")).toBeTruthy();
     expect(updateUserRole).toHaveBeenCalledWith(1, "teacher");
@@ -75,4 +75,23 @@ describe("UserManagementScreen summary", () => {
     expect(valueOf("已開通教師")).toBe("1");
     expect(valueOf("未完成 onboarding")).toBe("1");
   });
+});
+
+it("issues a reset link for the selected account without changing its role", async () => {
+  vi.mocked(issueAdminPasswordReset).mockResolvedValue({ data: { reset_url: "https://example.test/reset-password#uid=MQ&token=test", expires_in: 3600 }, meta: {} });
+  render(<UserManagementScreen />);
+  await screen.findByText("student-a");
+  expect(screen.queryByRole("button", { name: "直接開通教師" })).toBeNull();
+  await userEvent.click(screen.getByRole("button", { name: "產生密碼重設連結" }));
+  expect(issueAdminPasswordReset).toHaveBeenCalledWith(1);
+  expect(await screen.findByDisplayValue("https://example.test/reset-password#uid=MQ&token=test")).toBeTruthy();
+  expect(updateUserRole).not.toHaveBeenCalled();
+});
+
+it("does not offer password recovery for a Google account", async () => {
+  vi.mocked(searchUsers).mockResolvedValueOnce({ data: [{ ...student, auth_provider: "google" }], meta: {} });
+  render(<UserManagementScreen />);
+  await screen.findByText("student-a");
+  expect(screen.queryByRole("button", { name: "產生密碼重設連結" })).toBeNull();
+  expect(screen.getByRole("combobox")).toBeTruthy();
 });

@@ -171,16 +171,16 @@
   },
   "user": {
     "management": {
-      "activateTeacher": "Activate Teacher Access",
       "activationInvite": {
         "copied": "Copied",
         "copy": "Copy Link",
         "failed": "Failed to generate teacher activation link",
         "latest": "Latest Invitation",
-        "send": "Generate Link",
+        "send": "Invite teacher",
         "sending": "Generating...",
         "sent": "Teacher activation link generated",
-        "title": "Teacher Invite Activation"
+        "title": "Teacher Invite Activation",
+        "description": "Generate a one-time teacher invitation link. The recipient signs in or registers to become a teacher."
       },
       "adminPermissionNote": "After setting as admin, this user will have full system management permissions.",
       "columns": {
@@ -215,13 +215,11 @@
         "completed": "Completed",
         "pending": "Pending"
       },
-      "revokeTeacher": "Revert to Student",
       "searchFailed": "Search failed",
       "searchFailedRetry": "Search failed. Please try again later.",
       "searchLabel": "Search users (optional)",
       "searchPlaceholder": "Enter username or email to filter...",
       "searchResults": "Search Results ({{count}})",
-      "sendTeacherInvite": "Generate Activation Link",
       "summary": {
         "pendingOnboarding": "Pending Onboarding",
         "teachers": "Activated Teachers",
@@ -229,7 +227,14 @@
       },
       "title": "User Management",
       "updateFailed": "Update failed",
-      "updateFailedRetry": "Update failed. Please try again later."
+      "updateFailedRetry": "Update failed. Please try again later.",
+      "passwordReset": {
+        "generate": "Generate password reset link",
+        "title": "Password reset link",
+        "description": "Share this link with {{user}} so they can set a new password. It expires in {{minutes}} minutes and can be used once.",
+        "failed": "Unable to generate password reset link"
+      },
+      "changeRole": "Change role"
     },
     "role": {
       "admin": "Admin",
