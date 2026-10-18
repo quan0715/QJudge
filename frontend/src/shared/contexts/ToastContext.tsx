@@ -72,10 +72,6 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
             }}
             onClose={() => removeToast(toast.id)}
             hasFocus={false}
-            style={{
-              minWidth: "20rem",
-              maxWidth: "25rem",
-            }}
           />
         ) : (
           <ToastNotification

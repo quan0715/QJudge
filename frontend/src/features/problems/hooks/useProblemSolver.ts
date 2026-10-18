@@ -77,8 +77,9 @@ export function useProblemSolver({
   contestId,
 }: UseProblemSolverProps): UseProblemSolverReturn {
   // Result panel state
-  const [resultOpen, setResultOpen] = useState(false);
-  const [resultMode, setResultMode] = useState<ResultMode>("testcases");
+  // null until the student opens, closes or switches the panel: a problem with a run opens on its result.
+  const [resultOpenChoice, setResultOpen] = useState<boolean | null>(null);
+  const [resultModeChoice, setResultMode] = useState<ResultMode | null>(null);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
 
   // Error state
@@ -112,6 +113,9 @@ export function useProblemSolver({
     [testCases],
   );
   const { executionState, execute, hasPendingSubmission, testRunning, submitting } = useSubmission({ problemId: problem?.id, contestId, code, language, customTestCases });
+  const hasRun = executionState.status !== "idle";
+  const resultOpen = resultOpenChoice ?? hasRun;
+  const resultMode = resultModeChoice ?? (hasRun ? "results" : "testcases");
 
   // Initialize when problem changes
   useEffect(() => {
@@ -189,8 +193,8 @@ export function useProblemSolver({
   );
 
   const toggleResult = useCallback(() => {
-    setResultOpen((prev) => !prev);
-  }, []);
+    setResultOpen(!resultOpen);
+  }, [resultOpen]);
 
   const selectCase = useCallback((id: string | null) => {
     setSelectedCaseId(id);

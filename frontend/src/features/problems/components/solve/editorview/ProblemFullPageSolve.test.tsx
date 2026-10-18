@@ -89,4 +89,14 @@ describe("ProblemFullPageSolve", () => {
     await waitFor(() => expect(toolbarButton("測試")).toBeDisabled());
     expect(toolbarButton("繳交")).toBeEnabled();
   });
+
+  it("opens the result panel on the problem's latest run when the student returns", async () => {
+    const { switchTo } = renderSolve();
+    await submitOnce(1);
+    switchTo("p2");
+    expect(screen.queryByText("排隊中")).not.toBeInTheDocument();
+    switchTo("p1");
+    expect(screen.getByText("排隊中")).toBeInTheDocument();
+    expect(screen.getByText("這筆提交正在排隊")).toBeInTheDocument();
+  });
 });
