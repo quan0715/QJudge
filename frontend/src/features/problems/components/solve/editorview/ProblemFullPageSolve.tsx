@@ -4,6 +4,7 @@ import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import { useProblemSolver } from "@/features/problems/hooks/useProblemSolver";
 import { useUserPreferences } from "@/features/auth/hooks/useUserPreferences";
 import { SolverLayout } from "@/shared/layout/SolverLayout";
+import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 
 // Import solver sub-components from shared UI
 import { StatementPanel, EditorContent, ResultPanel } from "@/shared/ui/solver";
@@ -65,6 +66,18 @@ export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
       onAccepted?.(problem.id);
     }
   }, [solver.executionState, problem.id, onAccepted]);
+
+  const { confirm, modalProps } = useConfirmModal();
+  const { hasPendingSubmission, submit } = solver;
+  const handleSubmit = useCallback(async () => {
+    if (hasPendingSubmission && !(await confirm({
+      title: "目前尚有提交在進行中",
+      body: `${problemLabel} 題的上一筆提交還在判題，確定要再繳交一次嗎？`,
+      confirmLabel: "繳交",
+      cancelLabel: "取消",
+    }))) return;
+    await submit();
+  }, [confirm, hasPendingSubmission, problemLabel, submit]);
 
   // Get editor settings from user preferences
   const { editorFontSize, editorTabSize, updateEditorSettings } =
@@ -152,13 +165,16 @@ export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
             collapsed={!solver.resultOpen}
             onToggle={solver.toggleResult}
             onRunTest={submissionDisabled ? undefined : solver.runTest}
-            onSubmit={submissionDisabled ? undefined : solver.submit}
+            onSubmit={submissionDisabled ? undefined : handleSubmit}
+            testDisabled={solver.testRunning}
+            submitDisabled={solver.submitting}
           />
         }
         statementCollapsed={statementCollapsed}
         onStatementCollapsedChange={setStatementCollapsed}
         resultCollapsed={!solver.resultOpen}
       />
+      {modalProps.open && <ConfirmModal {...modalProps} />}
     </div>
   );
 };

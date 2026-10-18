@@ -26,6 +26,8 @@ interface ResultPanelProps {
   // Actions
   onRunTest?: () => void;
   onSubmit?: () => void;
+  testDisabled?: boolean;
+  submitDisabled?: boolean;
 
   // Execution
   executionState: ExecutionState;
@@ -71,6 +73,8 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
   executionState,
   onRunTest,
   onSubmit,
+  testDisabled,
+  submitDisabled,
 }) => {
   // Check if we have results to show
   const { status, result } = executionState;
@@ -111,7 +115,8 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
         onToggle={onToggle}
         onRunTest={onRunTest}
         onSubmit={onSubmit}
-        isRunning={isRunning}
+        testDisabled={testDisabled}
+        submitDisabled={submitDisabled}
       />
 
       {/* Content - hidden when collapsed */}
