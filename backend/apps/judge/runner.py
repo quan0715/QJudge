@@ -63,6 +63,8 @@ def build(config, stdin, devnull):
     code = exit_code(status)
     failed = code != 0 or timed_out
     emit({"exit": code, "timeout": timed_out}, output if failed else None)
+    # Warnings would otherwise take the cases' memory for the whole run.
+    os.close(output)
     return not failed
 
 
