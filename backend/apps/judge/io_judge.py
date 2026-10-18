@@ -44,7 +44,7 @@ _LANG_SPECS: dict[str, LangSpec] = {
     "cpp": LangSpec(
         filename="main.cpp",
         # The judge image precompiles bits/stdc++.h with exactly these flags.
-        compile_cmd=("g++", "-O2", "-std=c++20", "-o", "main", "main.cpp"),
+        compile_cmd=("g++", "-O2", "-std=c++17", "-o", "main", "main.cpp"),
         run_cmd=("/tmp/build/main",),
     ),
     "c": LangSpec(

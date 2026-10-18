@@ -17,7 +17,7 @@ RUN --mount=type=cache,target=/var/cache/apt/archives,sharing=locked \
 # Precompiled bits/stdc++.h. g++ only uses it with the same flags, so these
 # must match the C++ compile command in backend/apps/judge/io_judge.py.
 RUN header="/usr/include/$(gcc -dumpmachine)/c++/$(gcc -dumpversion)/bits/stdc++.h" \
-    && g++ -O2 -std=c++20 -x c++-header "$header" -o "$header.gch"
+    && g++ -O2 -std=c++17 -x c++-header "$header" -o "$header.gch"
 
 WORKDIR /judge
 
