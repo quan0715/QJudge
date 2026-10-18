@@ -161,6 +161,17 @@ class CppIntegrationTests(TestCase):
         self.assertEqual(r["status"], "AC", r)
         self.assertLess(r["time"], 200)
 
+    def test_cpu_time_counts_children_the_program_never_waits_for(self):
+        # The parent only reads the worker's answer and exits without waiting.
+        code = r'''#include<cstdio>
+#include<unistd.h>
+int main(){int p[2];pipe(p);
+if(fork()==0){volatile unsigned long long x=0;for(unsigned long long i=0;i<1500000000ULL;i++)x+=i;
+long long r=42;write(p[1],&r,8);_exit(0);}
+long long r;read(p[0],&r,8);printf("%lld",r);}'''
+        r = judge_one(self.judge, code, "", "42", 300, 128)
+        self.assertEqual(r["status"], "TLE", r)
+
     def test_wall_clock_limit_catches_sleeping_programs(self):
         code = "#include<unistd.h>\nint main(){sleep(5);}"
         r = judge_one(self.judge, code, "", "", 500, 128)

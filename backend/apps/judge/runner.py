@@ -91,8 +91,9 @@ def run_case(config, stdin, devnull):
     os.close(case_input)
     time_limit = config["time_limit"]
     status, usage, exceeded = supervise(pid, config["wall_limit"] / 1000, time_limit)
-    clean_up()
-    cpu_ms = round((usage.ru_utime + usage.ru_stime) * 1000)
+    # Children the program never waited for were adopted by this subreaper.
+    left_behind = clean_up()
+    cpu_ms = round((usage.ru_utime + usage.ru_stime + left_behind) * 1000)
     memory = os.read(report, 4096).split()
     os.close(report)
     emit({
@@ -150,8 +151,9 @@ def spawn(argv, fds, cwd, uid=0, limits=None):
 def supervise(pid, wall_seconds, time_limit=None):
     """Wait for pid, killing what it runs once it passes a limit.
 
-    With a time limit, pid is GNU time and the limit is on the CPU time of its
-    child, the program; the wall-clock limit only catches sleeping programs.
+    With a time limit, pid is GNU time and the limit is on the CPU time of the
+    case: every process of the sandbox user, including children the program
+    never waits for. The wall-clock limit only catches sleeping programs.
     """
     deadline = time.monotonic() + wall_seconds
     exceeded = False
@@ -160,20 +162,32 @@ def supervise(pid, wall_seconds, time_limit=None):
         if done:
             return status, usage, exceeded
         if not exceeded:
-            target = pid if time_limit is None else program_of(pid)
-            if time.monotonic() > deadline or (target != pid and cpu_ms_of(target) > time_limit):
+            targets = [pid] if time_limit is None else sandbox_pids()
+            over_cpu = time_limit is not None and sum(map(cpu_ms_of, targets)) > time_limit
+            if time.monotonic() > deadline or over_cpu:
                 exceeded = True
-                try:
-                    os.kill(target, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
+                for target in targets:
+                    try:
+                        os.kill(target, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
         signal.sigtimedwait({signal.SIGCHLD}, POLL_SECONDS)
 
 
-def program_of(pid):
-    with open(f"/proc/{pid}/task/{pid}/children") as children:
-        child = children.read().split()
-    return int(child[0]) if child else pid
+def sandbox_pids():
+    """Live and unreaped processes running as the sandbox user."""
+    pids = []
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        try:
+            with open(f"/proc/{entry}/status") as status:
+                uid = next(line for line in status if line.startswith("Uid:")).split()[1]
+        except (FileNotFoundError, ProcessLookupError, StopIteration):
+            continue
+        if int(uid) == SANDBOX_UID:
+            pids.append(int(entry))
+    return pids
 
 
 def cpu_ms_of(pid):
@@ -187,16 +201,19 @@ def cpu_ms_of(pid):
 
 
 def clean_up():
-    """Kill and reap everything but this process and PID 1."""
+    """Kill and reap everything but this process and PID 1; return the CPU
+    seconds the reaped processes used."""
     try:
         os.kill(-1, signal.SIGKILL)
     except ProcessLookupError:
         pass
+    cpu = 0.0
     while True:
         try:
-            os.wait()
+            _, _, usage = os.wait4(-1, 0)
         except ChildProcessError:
-            return
+            return cpu
+        cpu += usage.ru_utime + usage.ru_stime
 
 
 def reset(devnull):
