@@ -5,10 +5,11 @@ from __future__ import annotations
 import argparse
 import asyncio
 import re
+import sys
 from uuid import UUID
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from psycopg import sql
+from psycopg import AsyncConnection, errors, sql
 from psycopg_pool import AsyncConnectionPool
 
 from config import get_settings
@@ -88,6 +89,25 @@ class LangGraphCheckpointStore:
         self._pool = pool
         self._checkpointer = checkpointer
 
+    async def setup_pending(self) -> bool:
+        """Whether ``setup`` would still apply LangGraph's own migrations."""
+
+        if not self._database_url:
+            raise RuntimeError("AI_DATABASE_URL is required for LangGraph checkpoints")
+        async with await AsyncConnection.connect(
+            _psycopg_url(self._database_url), autocommit=True, prepare_threshold=0
+        ) as connection:
+            try:
+                cursor = await connection.execute(
+                    sql.SQL("SELECT max(v) FROM {}.checkpoint_migrations").format(
+                        sql.Identifier(self._schema)
+                    )
+                )
+            except errors.UndefinedTable:
+                return True
+            (applied,) = await cursor.fetchone()
+        return applied is None or applied < len(AsyncPostgresSaver.MIGRATIONS) - 1
+
     async def close(self) -> None:
         pool = self._pool
         self._pool = None
@@ -133,8 +153,10 @@ async def _setup_from_environment() -> None:
 
 def _main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("setup",))
-    parser.parse_args()
+    parser.add_argument("command", choices=("setup", "check"))
+    if parser.parse_args().command == "check":
+        # Like `alembic current --check-heads`: non-zero while setup would migrate.
+        sys.exit(1 if asyncio.run(LangGraphCheckpointStore().setup_pending()) else 0)
     asyncio.run(_setup_from_environment())
 
 

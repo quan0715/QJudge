@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from langgraph.checkpoint.base import empty_checkpoint
 from langgraph.types import Interrupt
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 
 from config import get_settings
 from infrastructure.checkpoints.langgraph_store import LangGraphCheckpointStore
@@ -75,6 +75,25 @@ async def test_checkpoint_store_uses_ai_database_schema_and_session_identity(
     finally:
         await store.close()
         get_settings.cache_clear()
+
+
+async def test_setup_is_pending_until_langgraph_migrations_are_applied(
+    db_engine, monkeypatch
+) -> None:
+    monkeypatch.setenv("AI_DATABASE_URL", os.environ["AI_TEST_DATABASE_URL"])
+    get_settings.cache_clear()
+    schema = f"pending_{uuid4().hex[:12]}"
+    store = LangGraphCheckpointStore(schema=schema)
+
+    try:
+        assert await store.setup_pending()
+        await store.setup()
+        assert not await store.setup_pending()
+    finally:
+        await store.close()
+        get_settings.cache_clear()
+        async with db_engine.begin() as connection:
+            await connection.execute(text(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE'))
 
 
 async def test_cancel_repair_clears_only_pending_interrupt_and_preserves_history(

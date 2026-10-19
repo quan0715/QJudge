@@ -53,7 +53,7 @@ The `upgrade` script logs exactly where the process halted:
 | `Another upgrade or rollback is running; retry after it completes` | Another web, terminal or CD release holds `deploy/.release.lock`; retry once it completes. A web upgrade's progress is in `deploy/.agent/job.log` |
 | `warning: agent not started: …` | The upgrade itself succeeded; only the host agent did not start. Fix the cause (Docker socket, Docker Hub access), then run `deploy/qjudge agent up` |
 
-When rolled back, code is checked out to the previous commit, but the database is not automatically restored. If `Database not restored` is printed, the output provides the command to restore the latest pre-upgrade backup if needed (see Section 9 in the [Deployment Guide](deployment.md)).
+When rolled back, code is checked out to the previous commit, but the database is not automatically restored. If `Database not restored` is printed, the output provides the command to restore the backup this upgrade took before migrating (upgrades without migrations take none and print nothing) (see Section 9 in the [Deployment Guide](deployment.md)).
 
 Health checks require `backend`, `ai-service`, and `integrity-resident` to be healthy, and frontend's `/api/health/` must respond with HTTP 200 directly.
 

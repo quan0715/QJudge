@@ -99,7 +99,7 @@ deploy/qjudge upgrade origin/main
 1. `git fetch` 後 checkout 指定版本，並執行 `check`。
 2. 準備 judge image：從 GHCR 取得，失敗時使用本機已有的 `oj-judge:latest`，再不行就在本機 build。
 3. 在主機 build QJudge images，tag 為 `sha-<commit 前 12 碼>`。
-4. 啟動已停止的 PostgreSQL、PgBouncer 與 Redis（正在執行的不重新建立），把 `online_judge` 與 `qjudge_ai` 備份到 `deploy/backups/`。
+4. 啟動已停止的 PostgreSQL、PgBouncer 與 Redis（正在執行的不重新建立）。以新版 image 檢查 Django 與 AI 是否有待套用的 migration；有的話（或檢查本身失敗）才把 `online_judge` 與 `qjudge_ai` 備份到 `deploy/backups/`，沒有就跳過備份。
 5. 以新版 backend image 產生缺少的 AI OAuth 與 Integrity 金鑰（已有的保留；`deploy/qjudge secrets` 可單獨執行這一步），再執行 Django 與 AI migration。
 6. 啟動所有服務，最多等待 5 分鐘，直到 backend、AI service、Integrity 皆 healthy，且經由 frontend 的 `/api/health/` 回應 200。PostgreSQL、PgBouncer 與 Redis 的 Compose 設定變更在這一步才套用。
 7. 把目前與上一版的 commit 寫入 `deploy/.version`，QJudge images 只保留最近 3 版。
@@ -148,7 +148,7 @@ Addon 的 image 版本寫在 `deploy/addons/*/compose.yml`。升級後若 addon 
 
 - 在啟動新版服務之前失敗（設定錯誤、build、備份或 migration）：checkout 回原本的版本，應用服務仍執行原本的版本。
 - 新版服務啟動後健康檢查失敗：checkout `deploy/.version` 記錄的版本，以該版本的 image 重新啟動（第一次安裝沒有記錄，只會 checkout 回原本的版本）。
-- 兩種情況都不會自動還原資料庫；需要時會印出最新備份與還原指令。
+- 兩種情況都不會自動還原資料庫；這次升級有做備份時，會印出該備份與還原指令。
 
 回到上一版：
 
@@ -178,7 +178,7 @@ deploy/qjudge agent up
 
 ## 9. 備份與還原
 
-每次 `upgrade` 會以 `pg_dump -Fc` 建立 `deploy/backups/<UTC 時間>-<commit>/online_judge.dump` 與 `qjudge_ai.dump`，保留最近 10 份。這些備份不包含 object storage、`deploy/.env` 與 `deploy/secrets/`，請另外備份。
+`upgrade` 只在有待套用的 migration 時，於 migrate 之前以 `pg_dump -Fc` 建立 `deploy/backups/<UTC 時間>-<commit>/online_judge.dump` 與 `qjudge_ai.dump`，保留最近 10 份；沒有 migration 的升級不會動到資料庫，出問題時回到上一版 image 即可。這些備份不包含 object storage、`deploy/.env` 與 `deploy/secrets/`，請另外備份。
 
 還原單一資料庫（`<id>` 換成備份目錄名稱）：
 

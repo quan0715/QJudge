@@ -12,7 +12,7 @@ from pathlib import Path
 
 from ..agent.jobs import git
 from ..envfile import write_private
-from ..release import MIGRATIONS, MODEL_CONFIG_CHECK
+from ..release import MIGRATION_CHECKS, MIGRATIONS, MODEL_CONFIG_CHECK
 
 IMAGES = [('backend', 'backend', 'Dockerfile'), ('ai-service', 'ai-service', 'Dockerfile'),
           ('frontend', 'frontend', 'Dockerfile'), ('integrity-resident', 'integrity-service', 'Dockerfile.resident'),
@@ -134,15 +134,6 @@ class Deployment:
         backup = self.runtime / 'backups' / (time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()) + '-' + sha[:12])
         backup.mkdir(parents=True)
         write_private(backup / 'compose.json', current['composeFile'])
-        container = self.output(self.docker('ps', '-q', '--filter',
-            'label=com.docker.compose.project=' + self.config['project'],
-            '--filter', 'label=com.docker.compose.service=postgres'))
-        if not container or '\n' in container:
-            raise RuntimeError('Expected exactly one PostgreSQL container')
-        for db in ('online_judge', 'qjudge_ai'):
-            with (backup / (db + '.dump')).open('wb') as target:
-                subprocess.run(self.docker('exec', container, 'sh', '-c',
-                    'exec pg_dump -U "$POSTGRES_USER" -Fc --no-owner --no-acl ' + db), stdout=target, check=True)
         rendered = self.render_app(app, version)
         write_private(backup / 'next-compose.json', rendered)
         # Keep this host's existing ARM seccomp adjustments.
@@ -155,6 +146,10 @@ class Deployment:
         profile_path = self.runtime / 'backend/judge/seccomp_profiles/cpp.json'
         profile_path.parent.mkdir(parents=True, exist_ok=True)
         profile_path.write_text(json.dumps(profile))
+        if self.migrations_pending(backup / 'next-compose.json'):
+            self.dump_databases(backup)
+        else:
+            log('No pending migrations; database backup skipped\n')
         step('migrate')
         self.migrate(backup / 'next-compose.json', log)
         step('switch')
@@ -181,10 +176,7 @@ class Deployment:
         link.unlink(missing_ok=True)
         link.symlink_to(release / 'deploy')
         os.replace(link, self.runtime / 'agent-current')
-        backups = sorted(p for p in (self.runtime / 'backups').iterdir()
-            if p.is_dir() and re.fullmatch(r'[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12}', p.name))
-        for old in backups[:-5]:
-            shutil.rmtree(old)
+        self.prune_backups()
         log(f'Staging deployed: {sha}\n')
 
     def parse_app(self, source):
@@ -200,6 +192,34 @@ class Deployment:
             if result.returncode:
                 raise RuntimeError('Cannot parse Dokploy Compose configuration')
             return json.loads(result.stdout)
+
+    def prune_backups(self):
+        backups = sorted(p for p in (self.runtime / 'backups').iterdir()
+            if p.is_dir() and re.fullmatch(r'[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12}', p.name))
+        # Deployments without migrations keep only compose files; they never push out database dumps.
+        dumps = [p for p in backups if (p / 'online_judge.dump').exists()]
+        for old in set(backups[:-5]) - set(dumps[-5:]):
+            shutil.rmtree(old)
+
+    def migrations_pending(self, compose_file):
+        return any(subprocess.run(self.docker('compose', '-p', self.config['project'],
+            '-f', str(compose_file), 'run', '--rm', '--no-deps', '--pull', 'never', service, *command),
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+            for service, command in MIGRATION_CHECKS)
+
+    def dump_databases(self, backup):
+        container = self.output(self.docker('ps', '-q', '--filter',
+            'label=com.docker.compose.project=' + self.config['project'],
+            '--filter', 'label=com.docker.compose.service=postgres'))
+        if not container or '\n' in container:
+            raise RuntimeError('Expected exactly one PostgreSQL container')
+        for db in ('online_judge', 'qjudge_ai'):
+            with (backup / (db + '.dump.partial')).open('wb') as target:
+                subprocess.run(self.docker('exec', container, 'sh', '-c',
+                    'exec pg_dump -U "$POSTGRES_USER" -Fc --no-owner --no-acl ' + db), stdout=target, check=True)
+        # Retention counts online_judge.dump as a complete backup, so it appears last.
+        for db in ('qjudge_ai', 'online_judge'):
+            (backup / (db + '.dump.partial')).rename(backup / (db + '.dump'))
 
     def migrate(self, compose_file, log):
         # One-off new-image commands use the existing network and databases. They do
