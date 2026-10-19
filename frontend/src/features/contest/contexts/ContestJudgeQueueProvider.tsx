@@ -33,7 +33,8 @@ export function ContestJudgeQueueProvider({ children }: { children: ReactNode })
     const openProblem = () => {
       show();
       const current = navigatorRef.current;
-      const index = current?.items.findIndex((item) => item.kind === "coding" && item.data.problemId === run.problemId) ?? -1;
+      // Match the exam's question, not the problem: another exam may use the same problem.
+      const index = current?.items.findIndex((item) => item.kind === "coding" && item.data.id === summary?.id) ?? -1;
       if (current && index >= 0) current.onSelect(index);
       else {
         const classroom = classroomId || contest?.boundClassroomId;

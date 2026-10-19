@@ -150,6 +150,21 @@ describe("ContestJudgeQueueProvider", () => {
     expect(navigate).toHaveBeenCalledWith("/classrooms/cls1/contest/c1/solve/cp1");
   });
 
+  it("查看 stays in its own exam after the student moves to another exam with the same problem", async () => {
+    judge("AC");
+    const { result, rerender } = renderSolver();
+    await act(async () => { await result.current.execute("submit"); });
+    rerender({ problemId: "p0" });
+    await tick();
+    const otherExamSelect = vi.fn();
+    mocks.params = { classroomId: "cls1", contestId: "c2" };
+    mocks.navigator = { coding: true, items: [{ kind: "coding", data: { id: "cq9", problemId: "p1", label: "A" } }], onSelect: otherExamSelect };
+    rerender({ problemId: "p0" });
+    fireEvent.click(screen.getByRole("button", { name: "查看" }));
+    expect(otherExamSelect).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith("/classrooms/cls1/contest/c1/solve/cp1");
+  });
+
   it("does not toast while the student is looking at that submission", async () => {
     judge("AC");
     const { result } = renderSolver();
