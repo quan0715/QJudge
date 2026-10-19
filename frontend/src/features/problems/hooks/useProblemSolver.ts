@@ -78,8 +78,9 @@ export function useProblemSolver({
   contestId,
 }: UseProblemSolverProps): UseProblemSolverReturn {
   // Result panel state
-  // The student's panel choices, kept for the run they were made on: a newly shown run opens on its result.
-  const [panelChoice, setPanelChoice] = useState<{ run?: number; open?: boolean; mode?: ResultMode }>({});
+  // The student's panel choices, kept for the showing they were made on: every showing of a run
+  // (a new run, or 查看 on its notification) opens on its result.
+  const [panelChoice, setPanelChoice] = useState<{ showing?: number; open?: boolean; mode?: ResultMode }>({});
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
 
   // Error state
@@ -112,15 +113,14 @@ export function useProblemSolver({
       .map((testCase) => ({ input: testCase.input, expected_output: testCase.output ?? "" })),
     [testCases],
   );
-  const { executionState, execute, hasPendingSubmission, testRunning, submitting } = useSubmission({ problemId: problem?.id, contestId, code, language, customTestCases });
+  const { executionState, showing, execute, hasPendingSubmission, testRunning, submitting } = useSubmission({ problemId: problem?.id, contestId, code, language, customTestCases });
   const hasRun = executionState.status !== "idle";
-  const shownRun = executionState.startedAt;
-  const choice = panelChoice.run === shownRun ? panelChoice : {};
+  const choice = panelChoice.showing === showing ? panelChoice : {};
   const resultOpen = choice.open ?? hasRun;
   const resultMode = choice.mode ?? (hasRun ? "results" : "testcases");
   const choose = useCallback((next: { open?: boolean; mode?: ResultMode }) => {
-    setPanelChoice((previous) => ({ ...(previous.run === shownRun ? previous : {}), run: shownRun, ...next }));
-  }, [shownRun]);
+    setPanelChoice((previous) => ({ ...(previous.showing === showing ? previous : {}), showing, ...next }));
+  }, [showing]);
   const setResultOpen = useCallback((open: boolean) => choose({ open }), [choose]);
   const setResultMode = useCallback((mode: ResultMode) => choose({ mode }), [choose]);
   useWatchProblem(problem?.id, resultOpen && resultMode === "results");

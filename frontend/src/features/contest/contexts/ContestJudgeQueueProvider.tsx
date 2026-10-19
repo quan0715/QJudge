@@ -1,4 +1,4 @@
-import { useCallback, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { isContestEnded } from "@/core/entities/contest.entity";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -14,6 +14,9 @@ export function ContestJudgeQueueProvider({ children }: { children: ReactNode })
   const { user } = useAuth();
   const contestValue = useOptionalContest();
   const navigator = useContestRuntimeNavigator();
+  // A toast outlives the screen that was open at the verdict; 查看 goes through the one open when clicked.
+  const navigatorRef = useRef(navigator);
+  useEffect(() => { navigatorRef.current = navigator; }, [navigator]);
   const navigate = useNavigate();
   const { classroomId, contestId } = useParams<{ classroomId?: string; contestId?: string }>();
   const { showToast } = useToast();
@@ -29,8 +32,10 @@ export function ContestJudgeQueueProvider({ children }: { children: ReactNode })
     const answering = !!contest && !isContestEnded(contest) && contest.examStatus !== "submitted";
     const openProblem = () => {
       show();
-      const index = navigator?.items.findIndex((item) => item.kind === "coding" && item.data.problemId === run.problemId) ?? -1;
-      if (navigator && index >= 0) navigator.onSelect(index);
+      const current = navigatorRef.current;
+      // Match the exam's question, not the problem: another exam may use the same problem.
+      const index = current?.items.findIndex((item) => item.kind === "coding" && item.data.id === summary?.id) ?? -1;
+      if (current && index >= 0) current.onSelect(index);
       else {
         const classroom = classroomId || contest?.boundClassroomId;
         if (classroom && contest && summary) navigate(getClassroomContestSolvePath(classroom, contest.id, summary.id));
@@ -42,7 +47,7 @@ export function ContestJudgeQueueProvider({ children }: { children: ReactNode })
       timeout: 8000,
       action: answering ? { label: "查看", onClick: openProblem } : undefined,
     });
-  }, [classroomId, contest, navigate, navigator, refreshStandings, showToast]);
+  }, [classroomId, contest, navigate, refreshStandings, showToast]);
 
   return (
     // A new exam starts an empty queue; the layout survives moving between exams.

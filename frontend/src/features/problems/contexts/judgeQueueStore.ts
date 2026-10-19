@@ -36,10 +36,16 @@ export interface JudgedEvent {
   show: () => void;
 }
 
+/** The run a problem's result panel shows; `showing` changes every time a run is shown, even the same one again. */
+export interface DisplayedRun {
+  key: string;
+  showing: number;
+}
+
 export interface JudgeQueueValue {
   runs: JudgeRun[];
-  /** problemId -> key of the run its result panel shows */
-  displayed: Record<string, string>;
+  /** problemId -> the run its result panel shows */
+  displayed: Record<string, DisplayedRun>;
   start: (type: ExecutionType, payload: JudgeStartPayload) => Promise<void>;
   show: (problemId: string, key: string) => void;
   /** The problem whose result panel is showing its run, or null. */

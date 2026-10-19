@@ -11,8 +11,8 @@ export function useSubmission({ problemId, contestId, code, language, customTest
   const { runs, displayed, start } = useJudgeQueue();
 
   const problemRuns = useMemo(() => runs.filter((run) => run.problemId === problemId), [runs, problemId]);
-  const shownKey = problemId ? displayed[problemId] : undefined;
-  const executionState: ExecutionState = problemRuns.find((run) => run.key === shownKey) ?? INITIAL_EXECUTION_STATE;
+  const shown = problemId ? displayed[problemId] : undefined;
+  const executionState: ExecutionState = problemRuns.find((run) => run.key === shown?.key) ?? INITIAL_EXECUTION_STATE;
 
   const execute = useCallback(async (type: ExecutionType) => {
     if (!problemId) return;
@@ -21,6 +21,8 @@ export function useSubmission({ problemId, contestId, code, language, customTest
 
   return {
     executionState,
+    /** Changes whenever a run is put on this problem's panel, including the same run again. */
+    showing: shown?.showing,
     execute,
     hasPendingSubmission: problemRuns.some((run) => run.type === "submit" && isRunActive(run)),
     testRunning: problemRuns.some((run) => run.type === "test" && isRunActive(run)),
