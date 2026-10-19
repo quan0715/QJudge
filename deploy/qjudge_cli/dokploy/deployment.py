@@ -214,9 +214,12 @@ class Deployment:
         if not container or '\n' in container:
             raise RuntimeError('Expected exactly one PostgreSQL container')
         for db in ('online_judge', 'qjudge_ai'):
-            with (backup / (db + '.dump')).open('wb') as target:
+            with (backup / (db + '.dump.partial')).open('wb') as target:
                 subprocess.run(self.docker('exec', container, 'sh', '-c',
                     'exec pg_dump -U "$POSTGRES_USER" -Fc --no-owner --no-acl ' + db), stdout=target, check=True)
+        # Retention counts online_judge.dump as a complete backup, so it appears last.
+        for db in ('qjudge_ai', 'online_judge'):
+            (backup / (db + '.dump.partial')).rename(backup / (db + '.dump'))
 
     def migrate(self, compose_file, log):
         # One-off new-image commands use the existing network and databases. They do

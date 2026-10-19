@@ -353,8 +353,9 @@ class ReleaseTests(unittest.TestCase):
                 self.assertTrue(any("pg_dump" in c for c in host.commands()))
 
     def test_failed_upgrade_points_only_to_its_own_backup(self):
+        # A retry of the same release finds an older backup with its sha; restoring it would drop later writes.
         (self.deploy / ".version").write_text(f"current={OLD}\n")
-        older = self.deploy / "backups" / f"20260101T000000Z-{OLD[:12]}"
+        older = self.deploy / "backups" / f"20260101T000000Z-{NEW[:12]}"
         older.mkdir(parents=True)
         for pending, expected in ((False, None), (True, "-" + NEW[:12])):
             with self.subTest(pending=pending):

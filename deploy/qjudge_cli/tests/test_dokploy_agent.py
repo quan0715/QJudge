@@ -133,7 +133,7 @@ class DokployAgentTests(unittest.TestCase):
         source.write_text(json.dumps({'architectures': [], 'syscalls': []}))
         process = type('Process', (), {'stdout': io.BytesIO(), 'wait': lambda self: 0})()
         def command(args, **kwargs):
-            if 'pg_dump' in args[-1]:
+            if 'pg_dump' in args[-1] and args[-1].endswith('qjudge_ai'):
                 raise subprocess.CalledProcessError(1, args)
             # Pending migrations make the deployment back up first.
             return subprocess.CompletedProcess(args, 1 if 'migrate' in args and '--check' in args else 0)
@@ -146,6 +146,8 @@ class DokployAgentTests(unittest.TestCase):
                 deployment.execute(SHA, lambda name: None, lambda line: None)
         self.assertEqual([call.args[0] for call in api.call_args_list], ['compose.one'])
         self.assertFalse((self.root / 'deployed.json').exists())
+        # Retention treats online_judge.dump as a finished backup; a failed run never publishes it.
+        self.assertEqual(list(self.root.glob('backups/*/*.dump')), [])
 
     def _deploy_until_migrate(self, pending):
         config = {'repo': str(self.root), 'runtime': str(self.root), 'branch': 'dev',
