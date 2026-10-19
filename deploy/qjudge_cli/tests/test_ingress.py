@@ -180,6 +180,7 @@ class IngressTests(unittest.TestCase):
         self.assertEqual(entries["site"].probe, "https://judge.example.edu/api/health/")
         self.assertEqual(entries["site"].expect, "200")
         self.assertEqual(entries["site"].target, "http://127.0.0.1:8080")
+        self.assertEqual((entries["mcp"].probe, entries["mcp"].expect), ("https://judge.example.edu/mcp", "401"))
 
     def test_same_origin_storage_is_probed_through_the_bucket_path(self):
         entries = {e.id: e for e in ingress_entries({**VALID, "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": ""})}
