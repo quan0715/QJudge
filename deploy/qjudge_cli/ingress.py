@@ -69,7 +69,7 @@ class IngressEntry:
     public: str   # address users connect to
     target: str   # where the reverse proxy or tunnel route forwards; a description for external services
     probe: str    # http(s) URL, or "host:port" for tcp
-    expect: str   # "200" (must be 200) | "reachable" (HTTP 1-499) | "tcp"
+    expect: str   # an HTTP status that must match exactly | "reachable" (HTTP 1-499) | "tcp"
 
 
 def ingress_entries(env: Env) -> list[IngressEntry]:
@@ -78,7 +78,8 @@ def ingress_entries(env: Env) -> list[IngressEntry]:
     frontend = TUNNEL_FRONTEND if tunnel else _frontend(env)
     entries = [
         IngressEntry("site", origin, frontend, f"{origin}/api/health/", "200"),
-        IngressEntry("mcp", f"{origin}/mcp", frontend, f"{origin}/mcp", "reachable"),
+        # MCP's own invalid_token answer; an edge block or proxy error page is not the app.
+        IngressEntry("mcp", f"{origin}/mcp", frontend, f"{origin}/mcp", "401"),
     ]
     storage = _bundled_storage(env)
     if storage:

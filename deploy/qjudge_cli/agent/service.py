@@ -240,7 +240,7 @@ class AgentService:
         if parts.scheme not in ("http", "https") or not parts.netloc:
             return False, f"not an absolute URL (is QJUDGE_PUBLIC_ORIGIN set?): {entry.probe!r}"
         status = self.http_get(entry.probe)
-        ok = status == 200 if entry.expect == "200" else 0 < status < 500
+        ok = 0 < status < 500 if entry.expect == "reachable" else str(status) == entry.expect
         return ok, f"HTTP {status}"
 
     @staticmethod

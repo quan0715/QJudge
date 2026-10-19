@@ -401,10 +401,18 @@ class IngressTests(ServiceTestCase):
             with self.subTest(status=status):
                 self.assertEqual(self.entries(http_get=lambda url, s=status: s)["site"]["ok"], ok)
 
-    def test_reachable_accepts_anything_below_500(self):
-        for status, ok in ((200, True), (301, True), (401, True), (404, True), (499, True), (500, False), (0, False)):
+    def test_mcp_expects_its_own_401(self):
+        # A Cloudflare block (403) or a proxy error page must not pass as MCP answering.
+        for status, ok in ((401, True), (200, False), (403, False), (404, False), (502, False), (0, False)):
             with self.subTest(status=status):
                 entry = self.entries(http_get=lambda url, s=status: s)["mcp"]
+                self.assertEqual((entry["ok"], entry["detail"]), (ok, f"HTTP {status}"))
+
+    def test_reachable_accepts_anything_below_500(self):
+        env = {**VALID, "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": ""}
+        for status, ok in ((200, True), (301, True), (401, True), (404, True), (499, True), (500, False), (0, False)):
+            with self.subTest(status=status):
+                entry = self.entries(env, http_get=lambda url, s=status: s)["storage"]
                 self.assertEqual((entry["ok"], entry["detail"]), (ok, f"HTTP {status}"))
 
     def test_a_failing_probe_shows_the_error_cut_to_200_characters(self):
@@ -418,7 +426,7 @@ class IngressTests(ServiceTestCase):
 
         def http_get(url):
             barrier.wait()
-            return 200
+            return 401 if url.endswith("/mcp") else 200
 
         entries = self.entries(http_get=http_get)
         self.assertEqual(sorted(entries), ["mcp", "site", "storage"])
@@ -431,7 +439,7 @@ class IngressTests(ServiceTestCase):
         def http_get(url):
             if "health" in url:
                 release.wait(10)
-            return 200
+            return 401 if url.endswith("/mcp") else 200
 
         with patch.object(service_module, "PROBE_DEADLINE", 0.2):
             entries = self.entries(http_get=http_get)
@@ -486,6 +494,9 @@ class IngressTests(ServiceTestCase):
 
 class StatusHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.headers.get("User-Agent") != "qjudge-cli":
+            self.send_error(403)
+            return
         code = int(self.path.strip("/"))
         self.send_response(code)
         self.send_header("Location", "/elsewhere")
@@ -498,6 +509,7 @@ class StatusHandler(BaseHTTPRequestHandler):
 
 class DefaultProbeTests(unittest.TestCase):
     def test_http_get_reports_the_status_and_does_not_follow_redirects(self):
+        # StatusHandler answers 403 unless the probe names itself, as Cloudflare does for Python-urllib.
         httpd = HTTPServer(("127.0.0.1", 0), StatusHandler)
         thread = threading.Thread(target=lambda: httpd.serve_forever(poll_interval=0.01), daemon=True)
         thread.start()

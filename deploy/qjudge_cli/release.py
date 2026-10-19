@@ -43,6 +43,8 @@ KEEP_IMAGES = 3
 POSTGRES_TIMEOUT = 120
 APP_TIMEOUT = 300
 POLL_SECONDS = 5
+# Cloudflare's browser integrity check answers urllib's default Python-urllib agent with 403 (error 1010).
+USER_AGENT = "qjudge-cli"
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -52,7 +54,9 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 def http_status(url: str, host_header: str, proto: str) -> int:
     """Status of url as the reverse proxy would send it; redirects are not followed."""
-    request = urllib.request.Request(url, headers={"Host": host_header, "X-Forwarded-Proto": proto})
+    request = urllib.request.Request(url, headers={
+        "Host": host_header, "X-Forwarded-Proto": proto, "User-Agent": USER_AGENT,
+    })
     try:
         with urllib.request.build_opener(_NoRedirect).open(request, timeout=5) as response:
             return response.status
