@@ -9,6 +9,15 @@
       "database": "Database",
       "integrity_resident": "Integrity resident"
     },
+    "containers": {
+      "title": "Containers",
+      "health": "Health check",
+      "empty": "The host agent reported no containers",
+      "agent": {
+        "unsupported": "No host agent in this environment, so container status is unavailable"
+      }
+    },
+    "containersUnread": "Probes up; container status unavailable",
     "contest": "Contest",
     "detail": "Detail",
     "generatedAt": "Probed at",
@@ -30,18 +39,148 @@
     "unhealthyRuns": "Unhealthy",
     "worker": "Worker"
   },
+  "system": {
+    "nav": {
+      "overview": "Overview",
+      "users": "Users",
+      "serviceStatus": "Service status",
+      "ingress": "Ingress",
+      "version": "System version"
+    },
+    "overview": {
+      "title": "System overview",
+      "subtitle": "A summary of services, users and version. Select a card for details.",
+      "loadFailed": "Could not load",
+      "agent": {
+        "unsupported": "No host agent in this environment",
+        "unreachable": "Cannot reach the host agent"
+      },
+      "services": {
+        "title": "Services",
+        "up": "{{up}} / {{total}} up"
+      },
+      "integrity": {
+        "title": "Integrity runs",
+        "allHealthy": "All healthy",
+        "problems": "{{count}} problem(s)",
+        "live": "{{count}} live"
+      },
+      "users": {
+        "title": "Users",
+        "total": "{{count}} user(s)",
+        "teachers": "{{count}} teacher(s)",
+        "pending": "{{count}} pending onboarding"
+      },
+      "ingress": {
+        "title": "Ingress",
+        "summary": "{{ok}} / {{total}} entries OK"
+      },
+      "version": {
+        "title": "System version",
+        "unknown": "No version recorded",
+        "updateAvailable": "Update available"
+      }
+    },
+    "ingress": {
+      "title": "Ingress",
+      "subtitle": "Results are tested from the host itself and do not guarantee the outside network can reach it",
+      "retest": "Test again",
+      "loadFailed": "Could not load ingress status",
+      "agent": {
+        "unsupported": "No host agent in this environment, so entries cannot be tested"
+      },
+      "columns": {
+        "entry": "Entry",
+        "public": "Public address",
+        "target": "Forwards to",
+        "result": "Result",
+        "detail": "Detail"
+      },
+      "result": {
+        "ok": "OK",
+        "fail": "Failed"
+      },
+      "entries": {
+        "site": "Site",
+        "mcp": "MCP",
+        "storage": "Object storage",
+        "media": "Live media (LiveKit)",
+        "turn": "TURN"
+      }
+    },
+    "version": {
+      "title": "System version",
+      "subtitle": "The version deployed now, and the latest {{branch}} you can update to.",
+      "recheck": "Check again",
+      "reconnect": "Reconnect",
+      "current": "Current version",
+      "latest": "Latest on {{branch}}",
+      "deployedAt": "Deployed {{time}}",
+      "committedAt": "Committed {{time}}",
+      "contains": "This update includes",
+      "updateTo": "Update to {{version}}",
+      "upToDate": "Already up to date",
+      "update": "Update",
+      "checkFailed": "Could not check for updates",
+      "loadFailed": "Could not load the system version",
+      "startFailed": "Could not start the update",
+      "notLatest": "{{branch}} has a newer version. Review it before updating.",
+      "unsupported": "This environment does not support online updates",
+      "external": "Another update is in progress (started from a terminal or CD)",
+      "interrupted": "The last update was interrupted. The site is on the current version.",
+      "retry": "Try again",
+      "succeeded": "Updated to {{version}}",
+      "switching": "Switching services. The site is briefly unreachable, which is expected. This page reconnects on its own, so there is no need to refresh.",
+      "switchingTooLong": "Switching is taking longer than expected. If the site is still unreachable, contact the maintainer and provide deploy/.agent/job.log on the host.",
+      "failed": {
+        "healthy": "Update failed. The site is still running {{version}} normally.",
+        "healthyUnknown": "Update failed. The site is still running the current version normally.",
+        "unhealthy": "Update failed. The site may be unhealthy. Hand the log to the maintainer.",
+        "step": "Failed step: {{step}}"
+      },
+      "confirm": {
+        "title": "Confirm update to {{version}}",
+        "start": "Start update",
+        "body": "The database is backed up first. While services are switched over, the site is unavailable for about 30 seconds to 1 minute, and students taking an exam may briefly see an error page. If the update fails, check the logs and service status; a maintainer may need to recover the deployment."
+      },
+      "progress": {
+        "target": "Target version",
+        "elapsed": "Elapsed {{time}}",
+        "steps": {
+          "prepare": "Fetch the release and check settings",
+          "build": "Build images",
+          "backup": "Back up the database",
+          "migrate": "Migrate the database",
+          "switch": "Switch services",
+          "verify": "Health check"
+        },
+        "status": {
+          "complete": "Complete",
+          "current": "In progress",
+          "incomplete": "Not started",
+          "failed": "Failed",
+          "interrupted": "Interrupted"
+        }
+      },
+      "log": {
+        "toggle": "Detailed log",
+        "copy": "Copy log",
+        "copied": "Copied"
+      }
+    }
+  },
   "user": {
     "management": {
-      "activateTeacher": "Activate Teacher Access",
       "activationInvite": {
         "copied": "Copied",
         "copy": "Copy Link",
         "failed": "Failed to generate teacher activation link",
         "latest": "Latest Invitation",
-        "send": "Generate Link",
+        "send": "Invite teacher",
         "sending": "Generating...",
         "sent": "Teacher activation link generated",
-        "title": "Teacher Invite Activation"
+        "title": "Teacher Invite Activation",
+        "description": "Generate a one-time teacher invitation link. The recipient signs in or registers to become a teacher."
       },
       "adminPermissionNote": "After setting as admin, this user will have full system management permissions.",
       "columns": {
@@ -76,13 +215,11 @@
         "completed": "Completed",
         "pending": "Pending"
       },
-      "revokeTeacher": "Revert to Student",
       "searchFailed": "Search failed",
       "searchFailedRetry": "Search failed. Please try again later.",
       "searchLabel": "Search users (optional)",
       "searchPlaceholder": "Enter username or email to filter...",
       "searchResults": "Search Results ({{count}})",
-      "sendTeacherInvite": "Generate Activation Link",
       "summary": {
         "pendingOnboarding": "Pending Onboarding",
         "teachers": "Activated Teachers",
@@ -90,7 +227,14 @@
       },
       "title": "User Management",
       "updateFailed": "Update failed",
-      "updateFailedRetry": "Update failed. Please try again later."
+      "updateFailedRetry": "Update failed. Please try again later.",
+      "passwordReset": {
+        "generate": "Generate password reset link",
+        "title": "Password reset link",
+        "description": "Share this link with {{user}} so they can set a new password. It expires in {{minutes}} minutes and can be used once.",
+        "failed": "Unable to generate password reset link"
+      },
+      "changeRole": "Change role"
     },
     "role": {
       "admin": "Admin",

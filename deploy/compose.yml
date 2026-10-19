@@ -45,6 +45,7 @@ x-django-environment: &django_environment
   AI_OAUTH_SIGNING_PRIVATE_KEY_FILE: /run-secrets/ai-oauth-ed25519-private.pem
   INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE: /run-secrets/integrity/resident-service-token
   INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE: /run-secrets/integrity/integrity-worker-signing-key
+  QJUDGE_AGENT_URL: http://${COMPOSE_PROJECT_NAME:-qjudge}-agent:8090
 
 x-ai-environment: &ai_environment
   AI_DATABASE_URL: postgresql+psycopg://qjudge_ai:${AI_DB_PASSWORD}@pgbouncer:5432/qjudge_ai

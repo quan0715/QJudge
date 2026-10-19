@@ -43,3 +43,155 @@
   color: var(--cds-text-secondary);
   overflow-wrap: anywhere;
 }
+
+// Wide lists scroll inside their own box so the page itself never scrolls sideways.
+.tableScroll {
+  overflow-x: auto;
+}
+
+.ingressTable {
+  min-width: layout.rem(720px);
+}
+
+.containerGroup {
+  &:not(:first-child) {
+    margin-top: layout.$spacing-06;
+  }
+}
+
+// Equal fixed columns keep state and health lined up from one project to the next.
+.containerList {
+  table-layout: fixed;
+}
+
+.containerGroupTitle {
+  @include type.type-style("heading-compact-01");
+  margin-bottom: layout.$spacing-03;
+}
+
+.overviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, #{layout.rem(280px)}), 1fr));
+  gap: layout.$spacing-05;
+}
+
+.overviewTile {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  min-height: layout.rem(144px);
+}
+
+.tileTitle {
+  @include type.type-style("productive-heading-02");
+  margin-bottom: layout.$spacing-03;
+}
+
+.tileValue {
+  @include type.type-style("productive-heading-03");
+}
+
+.tileMeta {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+}
+
+.tileError {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-error);
+}
+
+.tileRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+}
+
+.versionNotices {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  margin-bottom: layout.$spacing-05;
+
+  &:empty {
+    display: none;
+  }
+
+  // Carbon caps a notification's width; on this page they carry the explanation.
+  > * {
+    max-inline-size: none;
+  }
+}
+
+.versionStack {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-06;
+}
+
+// Side by side where there is room, stacked on a phone.
+.versionCompare {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, #{layout.rem(260px)}), 1fr));
+  gap: layout.$spacing-05;
+}
+
+.versionPanel {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+}
+
+.versionSha {
+  @include type.type-style("productive-heading-03");
+  overflow-wrap: anywhere;
+}
+
+.versionUnknown {
+  @include type.type-style("body-compact-02");
+  color: var(--cds-text-secondary);
+}
+
+.releasesTitle {
+  @include type.type-style("heading-compact-01");
+  margin-bottom: layout.$spacing-03;
+}
+
+.releaseList {
+  @include type.type-style("body-compact-01");
+  padding-inline-start: layout.$spacing-05;
+  list-style: disc;
+}
+
+.versionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+}
+
+// Keep short values intact; TableContainer owns horizontal scrolling on narrow screens.
+.userTable {
+  th,
+  td {
+    white-space: nowrap;
+  }
+}
+
+.userIdentity {
+  display: block;
+  min-inline-size: 8rem;
+  max-inline-size: 16rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.userActions {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+
+  > * {
+    flex-shrink: 0;
+  }
+}

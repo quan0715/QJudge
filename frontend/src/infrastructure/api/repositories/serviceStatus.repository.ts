@@ -1,8 +1,10 @@
-import { httpClient, requestJson } from "@/infrastructure/api/http.client";
+import { fetchEnvelope } from "@/infrastructure/api/envelope";
+import { httpClient } from "@/infrastructure/api/http.client";
 import type {
   ServiceComponent,
   ServiceStatusReport,
 } from "@/core/entities/serviceStatus.entity";
+import type { AgentState } from "@/core/entities/systemVersion.entity";
 
 interface ServiceComponentDto {
   id: string;
@@ -31,6 +33,10 @@ interface ServiceStatusReportDto {
       updated_at: string;
     }>;
   };
+  containers: {
+    agent: AgentState;
+    items: Array<{ project: string; service: string; state: string; health: string }>;
+  };
 }
 
 const toComponent = (dto: ServiceComponentDto): ServiceComponent => ({
@@ -41,8 +47,9 @@ const toComponent = (dto: ServiceComponentDto): ServiceComponent => ({
 });
 
 export const getServiceStatus = async (): Promise<ServiceStatusReport> => {
-  const dto = await requestJson<ServiceStatusReportDto>(
-    httpClient.get("/api/v1/system/service-status"),
+  // The page shows its own error notification, so keep the global toast out of it.
+  const { data: dto } = await fetchEnvelope<ServiceStatusReportDto>(
+    httpClient.get("/api/v1/system/service-status", { suppressGlobalError: true }),
     "Failed to load service status",
   );
   return {
@@ -63,6 +70,15 @@ export const getServiceStatus = async (): Promise<ServiceStatusReport> => {
         workerVersion: run.worker_version,
         lastWorkerHeartbeatAt: run.last_worker_heartbeat_at,
         updatedAt: run.updated_at,
+      })),
+    },
+    containers: {
+      agent: dto.containers.agent,
+      items: dto.containers.items.map((item) => ({
+        project: item.project,
+        service: item.service,
+        state: item.state,
+        health: item.health,
       })),
     },
   };

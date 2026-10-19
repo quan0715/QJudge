@@ -3,9 +3,10 @@ import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@carbon/react";
 import { useNavigate } from "react-router-dom";
-import { DocumentBlank, RecentlyViewed, Checkmark, CircleDash, IncompleteCancel } from "@carbon/icons-react";
+import { DocumentBlank, RecentlyViewed, Checkmark, CircleDash, IncompleteCancel, InProgress } from "@carbon/icons-react";
 import type { ContestProblemSummary } from "@/core/entities/contest.entity";
 import type { SubmissionStatus } from "@/core/entities/submission.entity";
+import type { JudgeProblemStatus } from "@/features/problems/contexts/judgeQueueStore";
 import { ExamNavigator } from "@/features/contest/components/exam/ExamNavigator";
 import { useContestRuntimeNavigator } from "@/features/contest/contexts";
 
@@ -18,7 +19,7 @@ interface Props {
   problems: ContestProblemSummary[];
 }
 
-type ProblemStatusKind = "done" | "partial" | "untouched";
+type ProblemStatusKind = "judging" | "done" | "partial" | "untouched";
 
 const mapStatusKind = (status: SubmissionStatus | undefined): ProblemStatusKind => {
   if (status === "AC" || status === "passed") return "done";
@@ -26,9 +27,21 @@ const mapStatusKind = (status: SubmissionStatus | undefined): ProblemStatusKind 
   return "partial";
 };
 
+const resolveStatusKind = (
+  problem: ContestProblemSummary,
+  answered: boolean,
+  judged: JudgeProblemStatus | undefined,
+): ProblemStatusKind => {
+  if (judged === "judging") return "judging";
+  if (answered || judged === "accepted" || problem.userStatus === "AC") return "done";
+  if (judged === "rejected") return "partial";
+  return mapStatusKind(problem.userStatus);
+};
+
 const renderStatusIcon = (kind: ProblemStatusKind) => {
-  if (kind === "done") return <Checkmark size={16} aria-label="已完成" />;
-  if (kind === "partial") return <IncompleteCancel size={16} aria-label="進行中" />;
+  if (kind === "judging") return <InProgress size={16} aria-label="判題中" />;
+  if (kind === "done") return <Checkmark size={16} aria-label="通過" />;
+  if (kind === "partial") return <IncompleteCancel size={16} aria-label="未通過" />;
   return <CircleDash size={16} aria-label="未作答" />;
 };
 
@@ -70,7 +83,7 @@ export const SideMenuContestRuntimeSection = ({
           ) : (
             displayedProblems.map((p, index) => {
               const isActive = codingNavigator ? codingNavigator.activeIndex === index : p.id === activeProblemId || p.problemId === activeProblemId;
-              const kind = codingNavigator?.answeredIds.has(p.id) ? "done" : mapStatusKind(p.userStatus);
+              const kind = resolveStatusKind(p, !!codingNavigator?.answeredIds.has(p.id), codingNavigator?.judgeStatuses?.[p.problemId]);
               const target = `${solvePath}/${p.id}`;
               return (
                 <Fragment key={p.id}>

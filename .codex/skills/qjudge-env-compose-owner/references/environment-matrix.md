@@ -81,10 +81,17 @@ deploy/qjudge addon media init|up
 deploy/qjudge ingress [--nginx]
 deploy/qjudge upgrade <ref>
 deploy/qjudge rollback
+deploy/qjudge agent up    # (re)build and start the host agent; refuses while a release holds the lock
 deploy/qjudge secrets [--image IMAGE]   # create missing AI OAuth and Integrity keys; existing keys are kept
 ```
 
-The project name is `COMPOSE_PROJECT_NAME` (default `qjudge`); addons run as `<project>-storage` and `<project>-media`. Inspect with `docker compose -p <project> ps|logs|exec`. `upgrade` backs up both databases to `deploy/backups/`, records versions in `deploy/.version`, and never restores the database automatically. The public guide is `frontend/public/docs/zh-TW/deployment*.md`.
+The project name is `COMPOSE_PROJECT_NAME` (default `qjudge`); addons run as `<project>-storage` and `<project>-media`. Inspect with `docker compose -p <project> ps|logs|exec`. `upgrade` backs up both databases to `deploy/backups/`, records versions in `deploy/.version`, and never restores the database automatically. Before the switch step it starts `postgres`, `pgbouncer` and `redis` with `--no-recreate`, so Compose changes to them apply at the switch. The public guide is `frontend/public/docs/zh-TW/deployment*.md`.
+
+- Host agent: container `<project>-agent` (its own project, `deploy/agent/compose.yml`) runs web-triggered upgrades from `/system/version`. Every successful `upgrade` and `rollback` rebuilds it; the first upgrade from a CLI that predates the agent does not, so run `deploy/qjudge agent up` once after it (CD checks out first and is fine).
+- Release lock: `deploy/.release.lock` serializes web, terminal and CD releases (`Another upgrade or rollback is running`). Never run `deploy/qjudge` with `sudo`; the lock and repository must belong to the account whose UID the agent runs as.
+- Agent job log: `deploy/.agent/job.log` (job state in `deploy/.agent/job.json`).
+- Agent preconditions: `origin` over HTTPS (no ssh client in the image, `HOME=/tmp`, host `~/.gitconfig` not visible), repository owned by the deploying user, Docker socket at `/var/run/docker.sock`, Docker Hub reachable for the first agent build.
+- Agent Docker CLI: pinned in `deploy/agent/Dockerfile` (`docker:<x.y.z>-cli`); keep its Compose major at or above the hosts' and bump the exact tag when the hosts upgrade Docker.
 
 ## Operational notes
 

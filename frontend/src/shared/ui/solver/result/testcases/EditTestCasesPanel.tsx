@@ -50,6 +50,9 @@ export const EditTestCasesPanel = ({
   onUpdateTestCase,
 }: EditTestCasesPanelProps) => {
   const previousCount = useRef(testCases.length);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  // Case ids that existed when 新增測資 was clicked; cleared once the new case has focus.
+  const idsBeforeAdd = useRef<Set<string> | null>(null);
   const [selection, setSelection] = useState(() => ({
     externalId: selectedCaseId,
     activeId: selectedCaseId,
@@ -113,8 +116,17 @@ export const EditTestCasesPanel = ({
   );
 
   const handleAddNew = useCallback(() => {
+    idsBeforeAdd.current = new Set(testCases.map((testCase) => testCase.id));
     onAddTestCase("", "");
-  }, [onAddTestCase]);
+  }, [onAddTestCase, testCases]);
+
+  // Focus only after the new case is rendered and selected, so typing never lands in the previous one.
+  useEffect(() => {
+    const known = idsBeforeAdd.current;
+    if (!known || !selectedCase || known.has(selectedCase.id)) return;
+    idsBeforeAdd.current = null;
+    inputRef.current?.focus();
+  }, [selectedCase]);
 
   const handleDuplicate = useCallback(() => {
     if (selectedCase) {
@@ -179,6 +191,7 @@ export const EditTestCasesPanel = ({
                   ? "writable"
                   : "readonly"
             }
+            inputRef={inputRef}
             onInputChange={(value) => handleUpdate("input", value)}
             onOutputChange={(value) => handleUpdate("expectedOutput", value)}
             onDelete={handleDelete}

@@ -22,6 +22,9 @@ import type { ContestDetail } from "@/core/entities/contest.entity";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import styles from "./StudentExamDemoScreen.module.scss";
 
+// The preview keeps its own answered marks; judging states are not shown here.
+const PREVIEW_JUDGE_STATUSES = {};
+
 const StudentExamDemoScreen: FC = () => {
   const navigate = useNavigate();
   const { contestId } = useParams<{ contestId: string }>();
@@ -127,7 +130,7 @@ const StudentExamDemoScreen: FC = () => {
     : undefined;
 
   const solvedIds = useMemo(() => new Set(codingProblems.filter((p) => acceptedProblemIds.has(p.problemId) || problemDetails[p.problemId]?.isSolved).map((p) => p.id)), [codingProblems, acceptedProblemIds, problemDetails]);
-  const statementNavigation = useCodingRuntimeNavigator(contest?.contestType === "coding" ? codingProblems : [], activeCodingProblem?.id, solvedIds, setSelectedCodingProblemId);
+  const statementNavigation = useCodingRuntimeNavigator(contest?.contestType === "coding" ? codingProblems : [], activeCodingProblem?.id, solvedIds, setSelectedCodingProblemId, PREVIEW_JUDGE_STATUSES);
 
   const renderItem = useCallback(
     (item: ExamItem, index: number, mode: "single" | "all") => {

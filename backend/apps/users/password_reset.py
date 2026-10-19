@@ -48,6 +48,18 @@ def _decode_user_id(uid):
     return user_id if 0 < user_id <= MAX_USER_ID else None
 
 
+def build_password_reset_link(user):
+    """Shared by email delivery and administrator-assisted recovery."""
+    if not is_password_auth_enabled() or not user.is_active or not _has_local_password(user):
+        raise InvalidResetToken()
+    # The token signs the current password hash and last login, so it stops
+    # working once used and expires after PASSWORD_RESET_TIMEOUT. Nothing is stored.
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    # A URL fragment keeps the secret out of SPA request/referrer URLs.
+    return f'{settings.FRONTEND_URL.rstrip("/")}/reset-password#uid={uid}&token={token}'
+
+
 def send_password_reset(identifier):
     """Executed in the mail worker for every identifier, including unknown ones."""
     if not reset_enabled():
@@ -58,13 +70,8 @@ def send_password_reset(identifier):
         return
     if not user.is_active or not _has_local_password(user):
         return
-    # The token signs the current password hash and last login, so it stops
-    # working once used and expires after PASSWORD_RESET_TIMEOUT. Nothing is stored.
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
-    token = default_token_generator.make_token(user)
+    link = build_password_reset_link(user)
     minutes = settings.PASSWORD_RESET_TIMEOUT // 60
-    # A URL fragment keeps the secret out of SPA request/referrer URLs.
-    link = f'{settings.FRONTEND_URL.rstrip("/")}/reset-password#uid={uid}&token={token}'
     send_mail('[QJudge] 重設密碼 / Reset your password',
               f'請在 {minutes} 分鐘內開啟以下連結重設密碼：\n{link}\n\n'
               '此連結只能使用一次。若你沒有提出申請，請忽略此郵件。\n'
@@ -74,7 +81,7 @@ def send_password_reset(identifier):
 
 def complete_password_reset(uid, token, password):
     user_id = _decode_user_id(uid)
-    if not reset_enabled() or user_id is None:
+    if not is_password_auth_enabled() or user_id is None:
         raise InvalidResetToken()
     with transaction.atomic():
         # Password login and redemption share the user lock. Checking the token

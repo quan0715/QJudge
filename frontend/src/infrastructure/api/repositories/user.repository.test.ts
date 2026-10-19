@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   getCurrentUser,
+  getUserSummary,
   searchUsers,
   updateUserRole,
   uploadAvatar,
@@ -21,6 +22,14 @@ describe("user repository endpoints", () => {
     vi.unstubAllGlobals();
     document.cookie = "csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
     window.localStorage.clear();
+  });
+
+  it("reads platform totals from the summary endpoint", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ meta: {}, data: {
+      total: 153, teachers: 21, pending_onboarding: 41,
+    } }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    expect(await getUserSummary()).toEqual({ total: 153, teachers: 21, pendingOnboarding: 41 });
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/users/summary");
   });
 
   it("searchUsers calls the users collection endpoint with q", async () => {

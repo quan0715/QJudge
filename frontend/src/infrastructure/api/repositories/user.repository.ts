@@ -1,6 +1,6 @@
 import { fetchEnvelope } from "@/infrastructure/api/envelope";
 import { httpClient } from "@/infrastructure/api/http.client";
-import type { UpdatePreferencesRequest } from "@/core/entities/auth.entity";
+import type { UpdatePreferencesRequest, UserSummary } from "@/core/entities/auth.entity";
 import type {
   CurrentUserResponseDto,
   PreferencesResponseDto,
@@ -78,4 +78,13 @@ export const updateUserRole = async (id: number | string, role: string): Promise
     httpClient.patch(`/api/v1/users/${id}/role`, { role }),
     "Failed to update user role",
   );
+};
+
+export const getUserSummary = async (): Promise<UserSummary> => {
+  const { data } = await fetchEnvelope<{
+    total: number;
+    teachers: number;
+    pending_onboarding: number;
+  }>(httpClient.get("/api/v1/users/summary"), "Failed to fetch user summary");
+  return { total: data.total, teachers: data.teachers, pendingOnboarding: data.pending_onboarding };
 };

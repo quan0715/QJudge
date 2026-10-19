@@ -3,10 +3,12 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.core.services.deploy_agent import AgentUnavailable
 from apps.core.services.service_status import (
     build_service_status_report,
     collect_component_statuses,
@@ -51,6 +53,15 @@ class ServiceStatusAccessTests(APITestCase):
         )
         self.assertIn("live_run_count", response.data["integrity"])
 
+    @override_settings(QJUDGE_AGENT_URL="")
+    def test_report_includes_containers_even_without_agent(self):
+        self.client.force_authenticate(user=self.admin)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["containers"], {"agent": "unsupported", "items": []})
+
 
 class ServiceStatusProbeTests(APITestCase):
     def test_a_dead_dependency_is_reported_not_raised(self):
@@ -64,6 +75,22 @@ class ServiceStatusProbeTests(APITestCase):
         self.assertIn("connection refused", components["ai_service"].detail)
         # An unrelated probe must still report its own result.
         self.assertEqual(components["database"].status, "up")
+
+    def test_containers_come_from_the_agent_when_it_answers(self):
+        items = [{"project": "qjudge", "service": "backend", "state": "running", "health": "healthy"}]
+        with patch("apps.core.services.service_status.agent_containers", return_value=items):
+            report = build_service_status_report()
+
+        self.assertEqual(report["containers"], {"agent": "ok", "items": items})
+
+    def test_an_unreachable_agent_is_reported_not_raised(self):
+        with patch(
+            "apps.core.services.service_status.agent_containers",
+            side_effect=AgentUnavailable("unreachable", "connection refused"),
+        ):
+            report = build_service_status_report()
+
+        self.assertEqual(report["containers"], {"agent": "unreachable", "items": []})
 
     def test_every_component_carries_a_latency_reading(self):
         for component in collect_component_statuses():

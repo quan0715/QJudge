@@ -24,8 +24,10 @@ interface ResultToolbarProps {
   onRunTest?: () => void;
   /** Submit callback */
   onSubmit?: () => void;
-  /** Whether test is running */
-  isRunning?: boolean;
+  /** Disable 測試 (a test run is in progress) */
+  testDisabled?: boolean;
+  /** Disable 繳交 (a submit request is in flight) */
+  submitDisabled?: boolean;
 }
 
 /**
@@ -45,7 +47,8 @@ export const ResultToolbar: React.FC<ResultToolbarProps> = ({
   onToggle,
   onRunTest,
   onSubmit,
-  isRunning = false,
+  testDisabled = false,
+  submitDisabled = false,
 }) => {
   // Helper to auto-expand if collapsed
   const expandIfCollapsed = () => {
@@ -107,7 +110,7 @@ export const ResultToolbar: React.FC<ResultToolbarProps> = ({
             kind="ghost"
             renderIcon={Chemistry}
             onClick={handleRunTest}
-            disabled={isRunning}
+            disabled={testDisabled}
           >
             測試
           </Button>
@@ -118,7 +121,7 @@ export const ResultToolbar: React.FC<ResultToolbarProps> = ({
             kind="primary"
             renderIcon={SendFilled}
             onClick={handleSubmit}
-            disabled={isRunning}
+            disabled={submitDisabled}
           >
             繳交
           </Button>

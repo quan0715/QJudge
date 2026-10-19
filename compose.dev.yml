@@ -8,6 +8,7 @@ x-dev-django-environment: &dev_django_environment
   DOCKER_JUDGE_PLATFORM: ${DOCKER_JUDGE_PLATFORM:-linux/amd64}
   LIVEKIT_INTERNAL_URL: http://livekit:7883
   LIVEKIT_ROOM_PREFIX: qjudge-dev-exam
+  QJUDGE_AGENT_URL: ""
 
 x-dev-backend: &dev_backend
   volumes:

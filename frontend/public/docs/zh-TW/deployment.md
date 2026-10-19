@@ -99,10 +99,11 @@ deploy/qjudge upgrade origin/main
 1. `git fetch` 後 checkout 指定版本，並執行 `check`。
 2. 準備 judge image：從 GHCR 取得，失敗時使用本機已有的 `oj-judge:latest`，再不行就在本機 build。
 3. 在主機 build QJudge images，tag 為 `sha-<commit 前 12 碼>`。
-4. 啟動 PostgreSQL、PgBouncer 與 Redis，把 `online_judge` 與 `qjudge_ai` 備份到 `deploy/backups/`。
+4. 啟動已停止的 PostgreSQL、PgBouncer 與 Redis（正在執行的不重新建立），把 `online_judge` 與 `qjudge_ai` 備份到 `deploy/backups/`。
 5. 以新版 backend image 產生缺少的 AI OAuth 與 Integrity 金鑰（已有的保留；`deploy/qjudge secrets` 可單獨執行這一步），再執行 Django 與 AI migration。
-6. 啟動所有服務，最多等待 5 分鐘，直到 backend、AI service、Integrity 皆 healthy，且經由 frontend 的 `/api/health/` 回應 200。
+6. 啟動所有服務，最多等待 5 分鐘，直到 backend、AI service、Integrity 皆 healthy，且經由 frontend 的 `/api/health/` 回應 200。PostgreSQL、PgBouncer 與 Redis 的 Compose 設定變更在這一步才套用。
 7. 把目前與上一版的 commit 寫入 `deploy/.version`，QJudge images 只保留最近 3 版。
+8. Build 並重新建立主機 agent（container `<project>-agent`），供網頁更新使用，見第 8 節。Agent 啟動失敗只會印出 `warning: agent not started: …`，不影響這次升級。
 
 成功時最後一行是 `Upgraded to sha-…`。第一次 build 需要一段時間。
 
@@ -156,6 +157,24 @@ deploy/qjudge rollback
 ```
 
 `rollback` checkout `deploy/.version` 記錄的上一版，直接以本機保留的 image 啟動，不重新 build 或 migrate，並交換 `.version` 中的目前與上一版。資料庫同樣不會自動還原。Migration 若無法與舊版程式共存，需要手動還原備份。
+
+### 從網頁更新
+
+系統管理的「系統版本」頁經由主機 agent 執行同一個 `deploy/qjudge upgrade`。Agent 是 Compose project `<project>-agent` 中的 container，每次成功的 `upgrade` 與 `rollback` 都會重新 build 並啟動它，也可以手動執行：
+
+```bash
+deploy/qjudge agent up
+```
+
+- **第一次部署 agent**：從還沒有 agent 的舊版 CLI 執行 `upgrade` 時，執行到底的是舊版程式，不會安裝 agent，頁面顯示「無法連線到主機 agent」。升級完成後執行一次 `deploy/qjudge agent up`（或再 `upgrade` 一次）。CD 會先 checkout 新版再升級，不需要這一步。
+- **同時只能有一個發布**：網頁、終端機與 CD 的升級和回退共用 release lock `deploy/.release.lock`。另一個發布進行中時，CLI 印出 `Another upgrade or rollback is running; retry after it completes` 並結束，CD 也會失敗，等它結束再重跑。不要用 `sudo` 執行 `deploy/qjudge`：lock 檔與 repository 必須屬於同一個帳號，agent 以這個帳號的 UID 執行。
+- **紀錄**：網頁更新的完整輸出寫在 `deploy/.agent/job.log`。切換服務超過 10 分鐘時，頁面會提示把這個檔案交給維護者。
+- **前提**：
+  - `origin` 使用 HTTPS。Agent image 沒有 ssh client，`HOME=/tmp`，看不到主機的 `~/.gitconfig` 與 SSH 金鑰。
+  - Repository 由執行 `deploy/qjudge` 的帳號擁有。
+  - Docker socket 在 `/var/run/docker.sock`。
+  - 第一次 build agent image 需要連上 Docker Hub。
+- **Agent 的 Docker 版本**：agent 以自己 image 內的 docker CLI 與 Compose 執行升級，不使用主機上的。它的 Compose major 版本要不低於各主機；主機升級 Docker 後，把 `deploy/agent/Dockerfile` 的 `docker:<x.y.z>-cli` 改成新的固定版本。
 
 ## 9. 備份與還原
 

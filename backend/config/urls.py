@@ -9,6 +9,12 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 from rest_framework.permissions import IsAdminUser
 from apps.core.views.health import health_check
 from apps.core.views.service_status import ServiceStatusView
+from apps.core.views.system_version import (
+    SystemIngressView,
+    SystemUpgradeView,
+    SystemVersionCheckView,
+    SystemVersionView,
+)
 from apps.core.views.landing_markdown import LandingMarkdownView
 from apps.users.views import ActionLinkInspectView, ActionLinkIssueView, ActionLinkRedeemView
 schema_view_kwargs = {}
@@ -28,6 +34,10 @@ urlpatterns = [
     path('api/v1/action-links/<str:token>/redeem', ActionLinkRedeemView.as_view(), name='action-link-redeem'),
     path('api/v1/markdown/', include('apps.core.urls')),
     path('api/v1/system/service-status', ServiceStatusView.as_view(), name='service-status'),
+    path('api/v1/system/version', SystemVersionView.as_view(), name='system-version'),
+    path('api/v1/system/version/check', SystemVersionCheckView.as_view(), name='system-version-check'),
+    path('api/v1/system/upgrade', SystemUpgradeView.as_view(), name='system-upgrade'),
+    path('api/v1/system/ingress', SystemIngressView.as_view(), name='system-ingress'),
     path(
         'api/v1/management/problems/',
         include(('apps.problems.urls', 'problems'), namespace='management-problems'),

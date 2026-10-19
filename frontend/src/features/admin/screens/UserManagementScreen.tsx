@@ -27,12 +27,14 @@ import ContainerCard from "@/shared/layout/ContainerCard";
 import styles from "./AdminScreens.module.scss";
 import {
   issueTeacherActivationActionLink,
+  issueAdminPasswordReset,
 } from "@/infrastructure/api/repositories/auth.repository";
 import {
   searchUsers,
+  getUserSummary,
   updateUserRole,
 } from "@/infrastructure/api/repositories/user.repository";
-import type { ManagedUser } from "@/core/entities/auth.entity";
+import type { ManagedUser, UserSummary } from "@/core/entities/auth.entity";
 import { EnvelopeError } from "@/infrastructure/api/envelope";
 import { useCopyText } from "@/shared/hooks";
 
@@ -52,14 +54,31 @@ const UserManagementScreen = () => {
   const [roleFilter, setRoleFilter] = useState<"all" | ManagedUser["role"]>("all");
   const [latestInviteUrl, setLatestInviteUrl] = useState("");
   const [latestInviteExpiresAt, setLatestInviteExpiresAt] = useState<string | null>(null);
+  const [resetLink, setResetLink] = useState<{ user: string; url: string; minutes: number } | null>(null);
+  const [issuingReset, setIssuingReset] = useState(false);
+  const { isCopied: resetCopied, copy: copyReset } = useCopyText();
   const { isCopied, copy } = useCopyText();
+
+  const [summary, setSummary] = useState<UserSummary | null>(null);
+  const [summaryFailed, setSummaryFailed] = useState(false);
+  const loadSummary = useCallback(async () => {
+    setSummary(null);
+    setSummaryFailed(false);
+    try {
+      setSummary(await getUserSummary());
+    } catch {
+      setSummaryFailed(true);
+    }
+  }, []);
+
+  useEffect(() => { void loadSummary(); }, [loadSummary]);
 
   const loadAllUsers = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const response = await searchUsers(""); // Empty query = all users
+      const response = await searchUsers(""); // The recent-user list is capped by the API.
       if (response.data) {
         setUsers(response.data);
       } else {
@@ -132,6 +151,7 @@ const UserManagementScreen = () => {
           )
         );
         setConfirmModalOpen(false);
+        void loadSummary();
       } else {
         setError(t("user.management.updateFailed"));
       }
@@ -159,6 +179,20 @@ const UserManagementScreen = () => {
         : t("user.management.activationInvite.failed", "產生教師開通連結失敗"));
     } finally {
       setIssuingInvite(false);
+    }
+  };
+
+  const handleIssueReset = async (user: ManagedUser) => {
+    setIssuingReset(true);
+    setError("");
+    setResetLink(null);
+    try {
+      const { data } = await issueAdminPasswordReset(user.id);
+      setResetLink({ user: user.username, url: data.reset_url, minutes: Math.ceil(data.expires_in / 60) });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("user.management.passwordReset.failed"));
+    } finally {
+      setIssuingReset(false);
     }
   };
 
@@ -199,10 +233,6 @@ const UserManagementScreen = () => {
     return user.role === roleFilter;
   });
 
-  const pendingOnboardingCount = users.filter(
-    (user) => !user.onboarding_completed_at
-  ).length;
-  const teacherCount = users.filter((user) => user.role === "teacher").length;
 
   return (
     <div className={styles.pageWrapper}>
@@ -212,33 +242,47 @@ const UserManagementScreen = () => {
           subtitle={t("user.management.description")}
         />
 
+        {summaryFailed && <p role="status">{t("system.overview.loadFailed", "無法讀取")}</p>}
         <div className={styles.statTileRow}>
           <Tile>
             <p className={styles.statLabel}>
               {t("user.management.summary.totalUsers", "總使用者")}
             </p>
-            <strong className={styles.statValue}>{users.length}</strong>
+            <strong className={styles.statValue}>{summary?.total ?? "—"}</strong>
           </Tile>
           <Tile>
             <p className={styles.statLabel}>
               {t("user.management.summary.teachers", "已開通教師")}
             </p>
-            <strong className={styles.statValue}>{teacherCount}</strong>
+            <strong className={styles.statValue}>{summary?.teachers ?? "—"}</strong>
           </Tile>
           <Tile>
             <p className={styles.statLabel}>
               {t("user.management.summary.pendingOnboarding", "未完成 onboarding")}
             </p>
-            <strong className={styles.statValue}>{pendingOnboardingCount}</strong>
+            <strong className={styles.statValue}>{summary?.pendingOnboarding ?? "—"}</strong>
           </Tile>
         </div>
+
+        <Modal open={resetLink !== null} passiveModal
+          modalHeading={t("user.management.passwordReset.title", "密碼重設連結")}
+          onRequestClose={() => setResetLink(null)}>
+          {resetLink && <>
+            <p>{t("user.management.passwordReset.description", { user: resetLink.user, minutes: resetLink.minutes })}</p>
+            <TextInput id="admin-password-reset-link" readOnly value={resetLink.url}
+              labelText={t("user.management.passwordReset.title", "密碼重設連結")} />
+            <Button kind="tertiary" renderIcon={Copy} onClick={() => copyReset(resetLink.url)}>
+              {resetCopied ? t("user.management.activationInvite.copied", "已複製") : t("user.management.activationInvite.copy", "複製連結")}
+            </Button>
+          </>}
+        </Modal>
 
         {/* Activation Invite Section */}
         <ContainerCard
           title={t("user.management.activationInvite.title", "教師邀請制開通")}
           subtitle={t(
             "user.management.activationInvite.description",
-            "直接產生一次性 activation link。對方透過此連結登入或註冊後，即可完成 teacher 開通。"
+            "產生一次性教師邀請連結，交給對方登入或註冊後取得教師身分。"
           )}
           style={{ marginBottom: "2rem" }}
         >
@@ -250,7 +294,7 @@ const UserManagementScreen = () => {
             >
               {issuingInvite
                 ? t("user.management.activationInvite.sending", "產生中...")
-                : t("user.management.activationInvite.send", "產生開通連結")}
+                : t("user.management.activationInvite.send", "邀請教師")}
             </Button>
             {latestInviteUrl ? (
               <Button
@@ -384,7 +428,7 @@ const UserManagementScreen = () => {
             padding="none"
           >
             <TableContainer>
-                  <Table>
+                  <Table className={styles.userTable}>
                     <TableHead>
                       <TableRow>
                         <TableHeader>
@@ -416,9 +460,9 @@ const UserManagementScreen = () => {
                     <TableBody>
                       {filteredUsers.map((user) => (
                         <TableRow key={user.id}>
-                          <TableCell>{user.username}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>{user.profile?.display_name || "—"}</TableCell>
+                          <TableCell><span className={styles.userIdentity}>{user.username}</span></TableCell>
+                          <TableCell><span className={styles.userIdentity}>{user.email}</span></TableCell>
+                          <TableCell><span className={styles.userIdentity}>{user.profile?.display_name || "—"}</span></TableCell>
                           <TableCell>
                             <Tag
                               type={
@@ -444,38 +488,17 @@ const UserManagementScreen = () => {
                           </TableCell>
                           <TableCell>{formatDateTime(user.last_login_at)}</TableCell>
                           <TableCell>
-                            <div style={{ display: "flex", gap: "0.5rem" }}>
-                              {user.role === "student" && (
-                                <>
-                                  <Button
-                                    kind="primary"
-                                    size="sm"
-                                    onClick={() => handleIssueInvite()}
-                                    disabled={issuingInvite}
-                                  >
-                                    {t("user.management.sendTeacherInvite", "產生開通連結")}
-                                  </Button>
-                                  <Button
-                                    kind="secondary"
-                                    size="sm"
-                                    onClick={() => handleRoleChangeClick(user, "teacher")}
-                                  >
-                                    {t("user.management.activateTeacher", "直接開通教師")}
-                                  </Button>
-                                </>
-                              )}
-                              {user.role === "teacher" && (
-                                <Button
-                                  kind="secondary"
-                                  size="sm"
-                                  onClick={() => handleRoleChangeClick(user, "student")}
-                                >
-                                  {t("user.management.revokeTeacher", "改回學生")}
+                            <div className={styles.userActions}>
+                              {["email", "password"].includes(user.auth_provider || "") && (
+                                <Button kind="tertiary" size="sm" disabled={issuingReset}
+                                  onClick={() => handleIssueReset(user)}>
+                                  {t("user.management.passwordReset.generate", "產生密碼重設連結")}
                                 </Button>
                               )}
                               <Select
                                 id={`role-select-${user.id}`}
-                                labelText=""
+                                labelText={`${user.username} ${t("user.management.changeRole", "變更角色")}`}
+                                hideLabel
                                 value={user.role}
                                 onChange={(e) =>
                                   handleRoleChangeClick(

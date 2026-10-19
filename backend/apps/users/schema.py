@@ -7,6 +7,12 @@ from .serializers import UserSerializer, UserSettingsSerializer, UserLoginRecord
 from .schema_examples import error_example, success_example
 
 
+class UserSummaryObject(serializers.Serializer):
+    total = serializers.IntegerField()
+    teachers = serializers.IntegerField()
+    pending_onboarding = serializers.IntegerField()
+
+
 class AuthSessionObject(serializers.Serializer):
     access_token = serializers.CharField()
     refresh_token = serializers.CharField()
@@ -116,10 +122,14 @@ class UserContractSchema(AutoSchema):
         name = type(self.view).__name__
         contracts = {
             'PasswordResetRequestView': {202: {'type': 'object', 'nullable': True, 'enum': [None]}},
+            'AdminPasswordResetView': {201: {'type': 'object', 'required': ['reset_url', 'expires_in'],
+                'properties': {'reset_url': {'type': 'string', 'format': 'uri'},
+                               'expires_in': {'type': 'integer'}}}},
             'PasswordResetCompleteView': {200: {'type': 'object', 'nullable': True, 'enum': [None]}},
             'CurrentUserView': UserSerializer,
             'UserPreferencesView': UserSettingsSerializer,
             'UserSearchView': UserSerializer(many=True),
+            'UserSummaryView': UserSummaryObject,
             'UserRoleUpdateView': UserSerializer,
             'RegisterView': {201: AuthSessionObject},
             'AuthOptionsView': AuthProviderOptionsObject,

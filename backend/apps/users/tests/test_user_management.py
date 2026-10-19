@@ -70,3 +70,58 @@ class UserManagementTests(APITestCase):
         data = {'role': 'admin'}
         response = self.client.patch(url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class UserSummaryTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='summary-admin', email='summary-admin@example.test',
+            role='admin', is_superuser=True,
+        )
+        self.url = reverse('users:user-summary')
+
+    def test_summary_counts_all_users_beyond_search_limit(self):
+        from django.utils import timezone
+        users = User.objects.bulk_create([
+            User(username=f'summary-{i}', email=f'summary-{i}@example.test',
+                 role='teacher' if i < 25 else 'student')
+            for i in range(150)
+        ])
+        # Missing profiles and profiles without a completion timestamp are pending.
+        UserProfile.objects.bulk_create([
+            UserProfile(user=user, onboarding_completed_at=None if i < 40 else timezone.now())
+            for i, user in enumerate(users) if i >= 20
+        ])
+        self.client.force_authenticate(self.admin)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['data'], {
+            'total': 151, 'teachers': 25, 'pending_onboarding': 41,
+        })
+        self.assertEqual(len(self.client.get(reverse('users:user-search')).json()['data']), 100)
+
+    def test_summary_requires_superadmin_role_and_flag(self):
+        for role, superuser in [('student', False), ('teacher', False), ('admin', False), ('student', True)]:
+            with self.subTest(role=role, superuser=superuser):
+                self.admin.role = role
+                self.admin.is_superuser = superuser
+                self.client.force_authenticate(self.admin)
+                self.assertEqual(self.client.get(self.url).status_code, 403)
+
+    def test_summary_requires_authentication(self):
+        self.assertIn(self.client.get(self.url).status_code, (401, 403))
+
+
+def test_user_summary_query_compiles_without_database():
+    from unittest.mock import patch
+    from django.db.models.query import QuerySet
+    from apps.users.views.admin import UserSummaryView
+
+    def compile_aggregate(queryset, **expressions):
+        # Resolve every relation/field used by the actual view without executing SQL.
+        str(queryset.annotate(**expressions).query)
+        return dict.fromkeys(expressions, 0)
+
+    with patch.object(QuerySet, 'aggregate', compile_aggregate):
+        response = UserSummaryView().get(None)
+    assert response.data == {'total': 0, 'teachers': 0, 'pending_onboarding': 0}

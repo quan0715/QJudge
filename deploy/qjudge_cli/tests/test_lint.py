@@ -30,6 +30,10 @@ class LintTests(unittest.TestCase):
     def test_internal_variables_are_allowed(self):
         self.assertEqual(lint_compose_text("image: qjudge/backend:${QJUDGE_VERSION}\n"), [])
 
+    def test_agent_variables_are_internal(self):
+        text = 'user: "${QJUDGE_AGENT_UID}:${QJUDGE_AGENT_GID}"\ngroup_add: ["${QJUDGE_DOCKER_GID}"]\nworking_dir: ${QJUDGE_REPO_DIR}\nenv_file: ${QJUDGE_AGENT_ENV_FILE}\n'
+        self.assertEqual(lint_compose_text(text), [])
+
     def test_escaped_dollar_is_ignored(self):
         self.assertEqual(lint_compose_text("cmd: echo $${HOME}\n"), [])
 

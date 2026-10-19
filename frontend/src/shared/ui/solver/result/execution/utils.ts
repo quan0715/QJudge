@@ -170,13 +170,10 @@ export const buildCaseResults = (
   return [];
 };
 
-export const getHeaderInfo = (
-    isPending: boolean,
-    globalError: string | null | undefined,
-    result: ExecutionState["result"]
-): HeaderInfo => {
-     if (isPending) {
-         return { title: "Executing...", type: "blue", subtitle: "Running tests..." };
+export const getHeaderInfo = ({ status, type, queued, error: globalError, result }: ExecutionState): HeaderInfo => {
+     if (status === "running" || status === "polling") {
+         const title = queued ? "排隊中" : type === "submit" ? "判題中" : "執行中";
+         return { title, type: "blue", subtitle: "" };
      }
      if (globalError) {
          return { title: "Error", type: "red", subtitle: globalError };
@@ -190,7 +187,7 @@ export const getHeaderInfo = (
          return {
              title: statusText,
              type: isAC ? "green" : "red",
-             subtitle: `Score: ${result.score || 0}`
+             subtitle: `通過 ${result.passed} / ${result.total} · 分數 ${result.score || 0}`
          };
      }
 
@@ -199,7 +196,7 @@ export const getHeaderInfo = (
          return {
              title: allPassed ? "Accepted" : "Wrong Answer",
              type: allPassed ? "green" : "red",
-             subtitle: `${result.passed} / ${result.total} Passed`
+             subtitle: `通過 ${result.passed} / ${result.total}`
          };
      }
 

@@ -1,0 +1,35 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.headerLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-05;
+  min-width: 0;
+  padding-inline: layout.$spacing-05;
+}
+
+.brand {
+  @include type.type-style("heading-compact-01");
+  color: var(--cds-text-primary);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+}
+
+// The shell clips its content, so each /system page scrolls inside this box.
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--cds-background);
+}

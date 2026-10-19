@@ -121,7 +121,7 @@
       "completed": "Password updated",
       "loginAgain": "Please log in with your new password.",
       "failed": "Unable to process this request. Please try again.",
-      "disabled": "Password recovery is not enabled. Please contact the administrator.",
+      "disabled": "Email recovery is unavailable. Contact an administrator for a password reset link.",
       "retry": "Retry"
     }
   },
@@ -231,6 +231,7 @@
     "problemManagement": "Problem Management",
     "serviceStatus": "Service Status",
     "sideNav": "Side Navigation",
+    "systemAdmin": "System administration",
     "userManagement": "User Management",
     "userMenu": "User Menu"
   },

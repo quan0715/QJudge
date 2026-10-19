@@ -96,7 +96,7 @@ test("coding exam: sample run, custom input run, and formal submission use the r
       expect(sampleResult.status).toBe("AC");
       expect(sampleResult.results).toHaveLength(1);
       expect(sampleResult.results[0]).toMatchObject({ input: "1 2\n", output: "3", is_hidden: false });
-      await expect(page.getByText("1 / 1 Passed", { exact: true })).toBeVisible({ timeout: 90_000 });
+      await expect(page.getByText("通過 1 / 1", { exact: true })).toBeVisible({ timeout: 90_000 });
       expect((await submissions()).count).toBe(0);
     });
 
@@ -121,7 +121,7 @@ test("coding exam: sample run, custom input run, and formal submission use the r
       expect(customResult.status).toBe("AC");
       expect(customResult.results).toHaveLength(2);
       expect(customResult.results[1]).toMatchObject({ input: "12345 6789\n", output: "19134", status: "AC" });
-      await expect(page.getByText("2 / 2 Passed", { exact: true })).toBeVisible({ timeout: 90_000 });
+      await expect(page.getByText("通過 2 / 2", { exact: true })).toBeVisible({ timeout: 90_000 });
       expect((await submissions()).count).toBe(0);
     });
 
@@ -130,7 +130,7 @@ test("coding exam: sample run, custom input run, and formal submission use the r
       await page.getByRole("button", { name: "繳交", exact: true }).click();
       const submitted = await json(await response);
       expect(submitted.id).toBeTruthy();
-      await expect(page.getByText("Score: 100", { exact: true })).toBeVisible({ timeout: 90_000 });
+      await expect(page.getByText("通過 2 / 2 · 分數 100", { exact: true })).toBeVisible({ timeout: 90_000 });
       const detail = await json(await page.request.get(`/api/v1/submissions/${submitted.id}/`));
       expect(detail.total_test_cases).toBe(2);
       expect(detail.results).toHaveLength(2);

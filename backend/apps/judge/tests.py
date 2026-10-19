@@ -155,6 +155,13 @@ class CppIntegrationTests(TestCase):
         self.assertIn(bomb["status"], ["RE", "TLE"])
         self.assertEqual(after["status"], "AC", after)
 
+    def test_programs_are_the_first_out_of_memory_victims(self):
+        # The runner shares the container's memory limit; the kernel must kill
+        # the program, not the runner, or the verdict becomes SE.
+        code = "#include<fstream>\n#include<iostream>\nint main(){std::ifstream f(\"/proc/self/oom_score_adj\");int v;f>>v;std::cout<<v;}"
+        r = judge_one(self.judge, code, "", "1000", 1000, 128)
+        self.assertEqual(r["status"], "AC", r)
+
     def test_time_is_cpu_time(self):
         code = "#include<unistd.h>\nint main(){sleep(1);}"
         r = judge_one(self.judge, code, "", "", 500, 128)
