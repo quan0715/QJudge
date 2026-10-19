@@ -44,9 +44,10 @@ def app_containers(healthy=True, legacy=False):
 class FakeHost:
     """Answers docker/git commands; fail_on marks a command substring to fail."""
 
-    def __init__(self, head=OLD, fail_on=(), healthy=True, images="", containers_by_ref=None):
+    def __init__(self, head=OLD, fail_on=(), healthy=True, images="", containers_by_ref=None, pending=True):
         self.head = head
         self.fail_on = fail_on
+        self.pending = pending
         self.healthy = healthy
         self.images = images
         self.calls = []
@@ -61,6 +62,8 @@ class FakeHost:
         code, out = 0, ""
         if any(part in joined for part in self.fail_on):
             code = 1
+        elif "migrate --check" in joined or "--check-heads" in joined:
+            code = 1 if self.pending else 0
         elif args[:2] == ["git", "-C"] and "checkout" in args:
             self.head = NEW if args[-1] == "v2" else args[-1]
         elif args[:2] == ["git", "-C"] and "rev-parse" in args:
@@ -328,6 +331,45 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(dump.read_bytes(), b"dump")
             self.assertEqual(dump.stat().st_mode & 0o777, 0o600)
 
+    def test_upgrade_without_pending_migrations_skips_the_backup(self):
+        host = FakeHost(pending=False)
+        self.assertEqual(self._upgrade(host), 0)
+        order = host.commands()
+        version = "sha-" + NEW[:12]
+        checks = [i for i, c in enumerate(order) if "migrate --check" in c or "--check-heads" in c]
+        self.assertEqual(len(checks), 2)
+        self.assertTrue(all(v == version for c, v in host.calls if "--check" in " ".join(c)))
+        migrate = next(i for i, c in enumerate(order) if "manage.py migrate --noinput" in c)
+        self.assertLess(max(checks), migrate)
+        self.assertFalse(any("pg_dump" in c for c in order))
+        self.assertFalse((self.deploy / "backups").exists())
+
+    def test_a_check_that_fails_counts_as_pending(self):
+        for failing in ("migrate --check", "--check-heads"):
+            with self.subTest(failing=failing):
+                shutil.rmtree(self.deploy / "backups", ignore_errors=True)
+                host = FakeHost(pending=False, fail_on=(failing,))
+                self.assertEqual(self._upgrade(host), 0)
+                self.assertTrue(any("pg_dump" in c for c in host.commands()))
+
+    def test_failed_upgrade_points_only_to_its_own_backup(self):
+        # A retry of the same release finds an older backup with its sha; restoring it would drop later writes.
+        (self.deploy / ".version").write_text(f"current={OLD}\n")
+        older = self.deploy / "backups" / f"20260101T000000Z-{NEW[:12]}"
+        older.mkdir(parents=True)
+        for pending, expected in ((False, None), (True, "-" + NEW[:12])):
+            with self.subTest(pending=pending):
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    upgrade(self.deploy, self.env_file, "v2", run=FakeHost(pending=pending), sleep=lambda s: None,
+                            http_status=lambda url, host_header, proto: 502, start_agent=no_agent)
+                if expected is None:
+                    self.assertNotIn("Database not restored", output.getvalue())
+                else:
+                    self.assertIn("Database not restored", output.getvalue())
+                    self.assertIn(expected + "/<db>.dump", output.getvalue())
+                    self.assertNotIn(older.name, output.getvalue())
+
     def test_secrets_are_bootstrapped_before_starting_the_stack(self):
         # integrity-resident bind-mounts files that only the secrets bootstrap creates, and
         # `up` creates every container before starting any, so a fresh install needs them first.
@@ -398,6 +440,21 @@ class ReleaseTests(unittest.TestCase):
         last_up = [v for c, v in host.calls if "--remove-orphans" in c][-1]
         self.assertEqual(last_up, "sha-" + OLD[:12])
         self.assertEqual(read_version(self.deploy), {"current": OLD, "previous": NEW})
+
+    def test_rollback_points_to_the_backup_taken_before_the_release_it_leaves(self):
+        older = self.deploy / "backups" / f"20260101T000000Z-{OLD[:12]}"
+        older.mkdir(parents=True)
+        for migrated, hinted in ((False, False), (True, True)):
+            with self.subTest(migrated=migrated):
+                (self.deploy / ".version").write_text(f"current={NEW}\nprevious={OLD}\n")
+                if migrated:
+                    (self.deploy / "backups" / f"20260102T000000Z-{NEW[:12]}").mkdir()
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    rollback(self.deploy, self.env_file, run=FakeHost(head=NEW), sleep=lambda s: None,
+                             http_status=lambda url, host_header, proto: 200, start_agent=no_agent)
+                self.assertEqual("Database not restored" in output.getvalue(), hinted)
+                self.assertNotIn(older.name, output.getvalue())
 
     def test_rollback_to_legacy_main_accepts_running_workers_without_healthchecks(self):
         # Main 23b3442 disabled ai-worker's image check; celery/reconciler had none.

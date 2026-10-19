@@ -32,6 +32,12 @@ MIGRATIONS = (
     ("backend", ("python", "manage.py", "migrate", "--noinput")),
     ("ai-service", ("sh", "-c", "python -m alembic upgrade head && python -m infrastructure.checkpoints.langgraph_store setup")),
 )
+# Each exits non-zero when its MIGRATIONS entry would change the database. The upgrade backs up
+# only then; a check that cannot run counts as a change.
+MIGRATION_CHECKS = (
+    ("backend", ("python", "manage.py", "migrate", "--check")),
+    ("ai-service", ("sh", "-c", "python -m alembic current --check-heads && python -m infrastructure.checkpoints.langgraph_store check")),
+)
 # Validate with the new image before stopping the running application.
 MODEL_CONFIG_CHECK = ("ai-service", ("python", "-m", "infrastructure.agent.model_config"))
 JUDGE_REMOTE = "ghcr.io/quan0715/qjudge/judge"
@@ -43,6 +49,8 @@ KEEP_IMAGES = 3
 POSTGRES_TIMEOUT = 120
 APP_TIMEOUT = 300
 POLL_SECONDS = 5
+# Cloudflare's browser integrity check answers urllib's default Python-urllib agent with 403 (error 1010).
+USER_AGENT = "qjudge-cli"
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -52,7 +60,9 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 def http_status(url: str, host_header: str, proto: str) -> int:
     """Status of url as the reverse proxy would send it; redirects are not followed."""
-    request = urllib.request.Request(url, headers={"Host": host_header, "X-Forwarded-Proto": proto})
+    request = urllib.request.Request(url, headers={
+        "Host": host_header, "X-Forwarded-Proto": proto, "User-Agent": USER_AGENT,
+    })
     try:
         with urllib.request.build_opener(_NoRedirect).open(request, timeout=5) as response:
             return response.status
@@ -200,7 +210,11 @@ class _Stack:
         print(f"Restored {version}; services are healthy")
         return True
 
-    def backup(self, version: str, sha: str) -> bool:
+    def migrations_pending(self, version: str) -> bool:
+        return any(self.compose(version, "run", "--rm", "--no-deps", service, *command).returncode != 0
+                   for service, command in MIGRATION_CHECKS)
+
+    def backup(self, version: str, sha: str) -> Path | None:
         backups = self.deploy_dir / "backups"
         backups.mkdir(mode=0o700, exist_ok=True)
         target = backups / f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{sha[:12]}"
@@ -212,19 +226,19 @@ class _Stack:
                                       "-d", database, "-Fc", stdout=output)
             if result.returncode != 0:
                 shutil.rmtree(target)
-                return False
+                return None
         for old in _backup_dirs(self.deploy_dir)[:-KEEP_BACKUPS]:
             shutil.rmtree(old)
-        return True
+        return target
 
-    def restore_hint(self) -> None:
-        backups = _backup_dirs(self.deploy_dir)
-        if not backups:
+    def restore_hint(self, backup: Path | None) -> None:
+        """How to restore backup; nothing without one, since then the database was not migrated."""
+        if backup is None:
             return
         restore = shlex.join([*app_compose(self.deploy_dir, self.env_file, self.env), "exec", "-T", "postgres",
                               "pg_restore", "-U", "qjudge_admin", "--clean", "--dbname"])
-        print(f"Database not restored. Latest backup: {backups[-1]}")
-        print(f"To restore: {restore} <db> < {backups[-1]}/<db>.dump  (db: {', '.join(DATABASES)})")
+        print(f"Database not restored. Backup taken before migrating: {backup}")
+        print(f"To restore: {restore} <db> < {backup}/<db>.dump  (db: {', '.join(DATABASES)})")
 
     def prune_images(self, keep: set[str]) -> None:
         listing = self.run(["docker", "image", "ls", "--format", "{{.Repository}}\t{{.Tag}}\t{{.CreatedAt}}"],
@@ -289,11 +303,14 @@ def upgrade(
     sha = stack.head()
     version = _version(sha)
 
+    # Only a backup this run took matches its database; an older one for the same sha predates later writes.
+    taken: Path | None = None
+
     def abort(message: str, hint: bool = False) -> int:
         print(message)
         stack.checkout(restore)
         if hint:
-            stack.restore_hint()
+            stack.restore_hint(taken)
         return 1
 
     errors = check_env(stack.env)
@@ -317,8 +334,12 @@ def upgrade(
     if (stack.compose(version, "up", "-d", "--no-recreate", "postgres", "pgbouncer", "redis").returncode != 0
             or not stack.wait(lambda: stack.healthy(version, ("postgres",)), POSTGRES_TIMEOUT)):
         return abort("postgres is not healthy")
-    if not stack.backup(version, sha):
-        return abort("database backup failed")
+    if not stack.migrations_pending(version):
+        print("No pending migrations; database backup skipped")
+    else:
+        taken = stack.backup(version, sha)
+        if taken is None:
+            return abort("database backup failed")
     _step("migrate")
     # `up` creates every container before starting any, and integrity-resident bind-mounts
     # files that only the secrets bootstrap writes, so the secrets must exist beforehand.
@@ -340,7 +361,7 @@ def upgrade(
             stack.restore(current)
         else:
             stack.checkout(restore)
-        stack.restore_hint()
+        stack.restore_hint(taken)
         return 1
     previous = current if current != sha else recorded.get("previous")
     _write_version(deploy_dir, sha, previous)
@@ -378,7 +399,9 @@ def rollback(
         return 1
     _write_version(deploy_dir, previous, recorded.get("current"))
     print(f"Rolled back to {version}")
-    stack.restore_hint()
+    # The release left behind migrated only if its upgrade backed up first.
+    left = [path for path in _backup_dirs(deploy_dir) if path.name.endswith("-" + recorded["current"][:12])]
+    stack.restore_hint(left[-1] if left else None)
     _refresh_agent(start_agent, deploy_dir, env_file, run)
     return 0
 
