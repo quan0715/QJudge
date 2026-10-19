@@ -137,6 +137,19 @@ describe("ContestJudgeQueueProvider", () => {
     expect(navigate).toHaveBeenCalledWith("/classrooms/cls1/contest/c1/solve/cp1");
   });
 
+  it("查看 navigates once the solver that was open at the verdict has gone", async () => {
+    judge("AC");
+    const { result, rerender } = renderSolver();
+    await act(async () => { await result.current.execute("submit"); });
+    rerender({ problemId: "p0" });
+    await tick();
+    mocks.navigator = null;
+    rerender({ problemId: "p0" });
+    fireEvent.click(screen.getByRole("button", { name: "查看" }));
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith("/classrooms/cls1/contest/c1/solve/cp1");
+  });
+
   it("does not toast while the student is looking at that submission", async () => {
     judge("AC");
     const { result } = renderSolver();
