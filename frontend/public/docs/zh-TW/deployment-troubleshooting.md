@@ -51,7 +51,7 @@ docker compose -p qjudge logs --tail=200 <service>
 | `Another upgrade or rollback is running; retry after it completes` | 網頁、終端機或 CD 的另一個發布持有 `deploy/.release.lock`，等它結束再執行；網頁更新的進度在 `deploy/.agent/job.log` |
 | `warning: agent not started: …` | 升級本身已完成，只有主機 agent 沒有啟動；依原因修正（Docker socket、Docker Hub 連線）後執行 `deploy/qjudge agent up` |
 
-這些情況都會 checkout 回原本的版本，資料庫不會自動還原。印出 `Database not restored` 時，下一行是最新備份與還原指令；只有 migration 不能與舊版程式共存時才需要還原，步驟見[部署指南](deployment.md)第 9 節。
+這些情況都會 checkout 回原本的版本，資料庫不會自動還原。印出 `Database not restored` 時，下一行是這次升級在 migrate 前做的備份與還原指令（沒有 migration 的升級不備份，也不會印出）；只有 migration 不能與舊版程式共存時才需要還原，步驟見[部署指南](deployment.md)第 9 節。
 
 健康檢查要求 `backend`、`ai-service`、`integrity-resident` 皆為 healthy，而且直接對 frontend 的 `/api/health/`（帶 origin 的 `Host` 與 `X-Forwarded-Proto`）回應 200，不經過反向代理。
 

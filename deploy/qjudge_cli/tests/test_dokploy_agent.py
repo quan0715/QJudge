@@ -123,15 +123,20 @@ class DokployAgentTests(unittest.TestCase):
 
     def test_backup_failure_never_updates_dokploy(self):
         config = {'repo': str(self.root), 'runtime': str(self.root), 'branch': 'dev',
-                  'compose_id': 'app', 'project': 'staging', 'network': 'isolated'}
+                  'compose_id': 'app', 'project': 'staging', 'network': 'isolated',
+                  'agent_url': 'http://172.19.0.1:8090', 'token_file': '/private/token'}
         deployment = Deployment(config)
         app = {'services': {'backend': {'image': 'qjudge/backend:old'}},
                'networks': {'default': {'name': 'isolated'}}}
+        source = self.root / 'releases' / SHA / 'backend/judge/seccomp_profiles/cpp.json'
+        source.parent.mkdir(parents=True)
+        source.write_text(json.dumps({'architectures': [], 'syscalls': []}))
         process = type('Process', (), {'stdout': io.BytesIO(), 'wait': lambda self: 0})()
         def command(args, **kwargs):
             if 'pg_dump' in args[-1]:
                 raise subprocess.CalledProcessError(1, args)
-            return subprocess.CompletedProcess(args, 0)
+            # Pending migrations make the deployment back up first.
+            return subprocess.CompletedProcess(args, 1 if 'migrate' in args and '--check' in args else 0)
         with patch.object(deployment, '_stream'), patch.object(deployment, 'output', return_value='postgres'), \
              patch.object(deployment, 'api', return_value={'appName': 'staging', 'sourceType': 'raw',
                  'composeFile': json.dumps(app)}) as api, \
@@ -141,6 +146,62 @@ class DokployAgentTests(unittest.TestCase):
                 deployment.execute(SHA, lambda name: None, lambda line: None)
         self.assertEqual([call.args[0] for call in api.call_args_list], ['compose.one'])
         self.assertFalse((self.root / 'deployed.json').exists())
+
+    def _deploy_until_migrate(self, pending):
+        config = {'repo': str(self.root), 'runtime': str(self.root), 'branch': 'dev',
+                  'compose_id': 'app', 'project': 'staging', 'network': 'isolated',
+                  'agent_url': 'http://172.19.0.1:8090', 'token_file': '/private/token'}
+        deployment = Deployment(config)
+        app = {'services': {'backend': {'image': 'qjudge/backend:old'}},
+               'networks': {'default': {'name': 'isolated'}}}
+        source = self.root / 'releases' / SHA / 'backend/judge/seccomp_profiles/cpp.json'
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text(json.dumps({'architectures': [], 'syscalls': []}))
+        process = type('Process', (), {'stdout': io.BytesIO(), 'wait': lambda self: 0})()
+        commands, lines = [], []
+        def command(args, **kwargs):
+            commands.append(args)
+            checking = ('migrate' in args and '--check' in args) or '--check-heads' in args[-1]
+            return subprocess.CompletedProcess(args, 1 if checking and pending else 0)
+        with patch.object(deployment, '_stream'), patch.object(deployment, 'output', return_value='postgres'), \
+             patch.object(deployment, 'api', return_value={'appName': 'staging', 'sourceType': 'raw',
+                 'composeFile': json.dumps(app)}), \
+             patch.object(deployment, 'migrate', side_effect=RuntimeError('stop before switch')), \
+             patch('qjudge_cli.dokploy.deployment.subprocess.Popen', return_value=process), \
+             patch('qjudge_cli.dokploy.deployment.subprocess.run', side_effect=command):
+            with self.assertRaisesRegex(RuntimeError, 'stop before switch'):
+                deployment.execute(SHA, lambda name: None, lines.append)
+        [backup] = list((self.root / 'backups').iterdir())
+        return commands, lines, backup
+
+    def test_deployment_without_pending_migrations_keeps_compose_but_skips_dumps(self):
+        commands, lines, backup = self._deploy_until_migrate(pending=False)
+        self.assertEqual(sum('--check' in c or '--check-heads' in c[-1] for c in commands), 2)
+        for check in (c for c in commands if 'run' in c):
+            self.assertIn(str(backup / 'next-compose.json'), check)
+            self.assertIn('--no-deps', check)
+        self.assertFalse(any('pg_dump' in c[-1] for c in commands))
+        self.assertTrue((backup / 'compose.json').exists())
+        self.assertFalse((backup / 'online_judge.dump').exists())
+        self.assertIn('No pending migrations; database backup skipped\n', lines)
+
+    def test_pending_migrations_dump_both_databases(self):
+        commands, _, backup = self._deploy_until_migrate(pending=True)
+        dumps = [c[-1] for c in commands if 'pg_dump' in c[-1]]
+        self.assertEqual([d.split()[-1] for d in dumps], ['online_judge', 'qjudge_ai'])
+        self.assertTrue((backup / 'qjudge_ai.dump').exists())
+
+    def test_backups_keep_the_last_five_database_dumps(self):
+        deployment = Deployment({'repo': str(self.root), 'runtime': str(self.root), 'branch': 'dev'})
+        backups = self.root / 'backups'
+        names = [f'202610{day:02d}T000000Z-{day:012x}' for day in range(1, 13)]
+        for index, name in enumerate(names):
+            (backups / name).mkdir(parents=True)
+            if index < 7:
+                (backups / name / 'online_judge.dump').write_bytes(b'dump')
+        deployment.prune_backups()
+        kept = sorted(p.name for p in backups.iterdir())
+        self.assertEqual(kept, names[2:7] + names[-5:])
 
     def test_yaml_uses_compose_parser_without_resolving_private_values(self):
         deployment = Deployment({'repo': str(self.root), 'runtime': str(self.root), 'branch': 'dev'})

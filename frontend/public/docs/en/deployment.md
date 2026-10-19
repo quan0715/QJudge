@@ -94,7 +94,7 @@ The argument can be a commit SHA, tag, or remote ref. The process will:
 1. Fetch and checkout the target version, then run configuration validation.
 2. Pull or build the sandboxed judge image.
 3. Build application container images on the host.
-4. Start PostgreSQL, PgBouncer and Redis if they are stopped (running ones are not recreated), then back up existing databases to `deploy/backups/`.
+4. Start PostgreSQL, PgBouncer and Redis if they are stopped (running ones are not recreated). If the new images report pending Django or AI migrations (or the check fails), back up the databases to `deploy/backups/`; otherwise skip the backup.
 5. Generate missing secrets and execute database migrations.
 6. Start all services and verify health checks until `/api/health/` responds with 200. Compose configuration changes to PostgreSQL, PgBouncer and Redis apply at this step.
 7. Record the active version in `deploy/.version`.
@@ -156,7 +156,7 @@ deploy/qjudge agent up
 
 ## 9. Backups and Restoration
 
-Each `upgrade` automatically dumps databases to `deploy/backups/<timestamp>-<commit>/online_judge.dump`. To restore:
+An `upgrade` with pending migrations dumps the databases to `deploy/backups/<timestamp>-<commit>/online_judge.dump` before migrating and keeps the latest 10. An upgrade without migrations leaves the database untouched, so going back to the previous images is enough. To restore:
 
 ```bash
 docker compose -p qjudge exec -T postgres \
