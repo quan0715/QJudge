@@ -9,6 +9,7 @@ import {
   JUDGE_POLL_DELAYS_MS,
   JudgeQueueContext,
   isRunActive,
+  type DisplayedRun,
   type JudgedEvent,
   type JudgeRun,
   type JudgeStartPayload,
@@ -50,13 +51,14 @@ export function JudgeQueueProvider({ userId, onJudged, children }: {
   children: ReactNode;
 }) {
   const [runs, setRuns] = useState<JudgeRun[]>([]);
-  const [displayed, setDisplayed] = useState<Record<string, string>>({});
+  const [displayed, setDisplayed] = useState<Record<string, DisplayedRun>>({});
   const [poll, setPoll] = useState({ step: 0, generation: 0 });
   const runsRef = useRef<JudgeRun[]>([]);
-  const displayedRef = useRef<Record<string, string>>({});
+  const displayedRef = useRef<Record<string, DisplayedRun>>({});
   const viewingRef = useRef<string | null>(null);
   const fetchingRef = useRef(new Set<string>());
   const counterRef = useRef(0);
+  const showingRef = useRef(0);
   const aliveRef = useRef(true);
   const onJudgedRef = useRef(onJudged);
 
@@ -67,7 +69,7 @@ export function JudgeQueueProvider({ userId, onJudged, children }: {
   }, []);
 
   const show = useCallback((problemId: string, key: string) => {
-    displayedRef.current = { ...displayedRef.current, [problemId]: key };
+    displayedRef.current = { ...displayedRef.current, [problemId]: { key, showing: ++showingRef.current } };
     setDisplayed(displayedRef.current);
   }, []);
   const setViewing = useCallback((problemId: string | null) => { viewingRef.current = problemId; }, []);
@@ -81,7 +83,7 @@ export function JudgeQueueProvider({ userId, onJudged, children }: {
     if (next.type === "submit" && next.status === "complete") {
       onJudgedRef.current?.({
         run: next,
-        onScreen: viewingRef.current === next.problemId && displayedRef.current[next.problemId] === next.key,
+        onScreen: viewingRef.current === next.problemId && displayedRef.current[next.problemId]?.key === next.key,
         show: () => show(next.problemId, next.key),
       });
     }
