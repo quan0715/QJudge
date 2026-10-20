@@ -39,10 +39,10 @@ def classroom_owner() -> User:
 
 
 @pytest.fixture
-def classroom_admin() -> User:
+def classroom_ta() -> User:
     return User.objects.create_user(
-        username="join_link_admin",
-        email="join_link_admin@example.com",
+        username="join_link_ta",
+        email="join_link_ta@example.com",
         password="pass",
         role="teacher",
     )
@@ -69,14 +69,14 @@ def another_student() -> User:
 
 
 @pytest.fixture
-def classroom(classroom_owner: User, classroom_admin: User) -> Classroom:
+def classroom(classroom_owner: User, classroom_ta: User) -> Classroom:
     room = Classroom.objects.create(
         name="Join Link Classroom",
         description="",
         owner=classroom_owner,
         invite_code=uuid4().hex[:8].upper(),
     )
-    room.admins.add(classroom_admin)
+    ClassroomMember.objects.create(classroom=room, user=classroom_ta, role="ta")
     return room
 
 
@@ -208,21 +208,36 @@ def test_owner_join_returns_200_without_membership(
 
 
 @pytest.mark.django_db
-def test_admin_join_returns_200_without_membership(
+def test_ta_join_returns_200_and_keeps_ta_role(
     api_client: APIClient,
-    classroom_admin: User,
+    classroom_ta: User,
     classroom: Classroom,
 ) -> None:
-    api_client.force_authenticate(user=classroom_admin)
+    api_client.force_authenticate(user=classroom_ta)
     response = api_client.post(
         redeem_url(action_token(classroom)),
         {},
         format="json",
     )
     assert response.status_code == status.HTTP_200_OK
-    assert not ClassroomMember.objects.filter(
-        classroom=classroom, user=classroom_admin
-    ).exists()
+    assert ClassroomMember.objects.get(classroom=classroom, user=classroom_ta).role == "ta"
+
+
+@pytest.mark.django_db
+def test_classroom_ta_can_issue_invite_action_link(
+    api_client: APIClient,
+    classroom_ta: User,
+    classroom: Classroom,
+) -> None:
+    api_client.force_authenticate(user=classroom_ta)
+    response = api_client.post(
+        "/api/v1/action-links",
+        {"purpose": "classroom_join", "classroom_id": str(classroom.uuid)},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["data"]["token"] == action_token(classroom)
 
 
 @pytest.mark.django_db

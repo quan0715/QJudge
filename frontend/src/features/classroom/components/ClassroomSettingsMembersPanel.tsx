@@ -79,12 +79,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
   // Delete confirm state (triggered from edit modal)
   const [pendingMemberRemoval, setPendingMemberRemoval] = useState<ClassroomMember | null>(null);
 
-  type RowRole = "student" | "ta" | "admin";
-
-  const adminIds = useMemo(
-    () => new Set(classroom.admins.map((a) => a.id)),
-    [classroom.admins],
-  );
+  type RowRole = "student" | "ta";
 
   const memberMap = useMemo(() => {
     const map = new Map<number, ClassroomMember>();
@@ -92,24 +87,15 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
     return map;
   }, [classroom.members]);
 
-  // Combine admins + members into a unified list
   const allRows = useMemo(() => {
-    const adminRows = classroom.admins.map((a) => ({
-      id: `admin-${a.id}`,
-      numericId: a.id,
-      username: a.username,
-      email: "",
-      role: "admin" as RowRole,
-    }));
-    const memberRows = classroom.members.map((m) => ({
+    return classroom.members.map((m) => ({
       id: `member-${m.userId}`,
       numericId: m.userId,
       username: m.username,
       email: m.email,
       role: m.role as RowRole,
-    })).filter((row) => row.numericId !== undefined && !adminIds.has(row.numericId) && row.username !== classroom.ownerUsername);
-    return [...adminRows, ...memberRows];
-  }, [adminIds, classroom.admins, classroom.members, classroom.ownerUsername]);
+    })).filter((row) => row.numericId !== undefined && row.username !== classroom.ownerUsername);
+  }, [classroom.members, classroom.ownerUsername]);
 
   const filteredRows = useMemo(() => {
     if (roleFilter === "all") return allRows;
@@ -273,13 +259,10 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                   ) : (
                     tableRows.map((row) => {
                       const numericId = rowIdMap.get(row.id);
-                      const isAdmin = numericId != null && adminIds.has(numericId);
                       const member = numericId != null ? memberMap.get(numericId) : undefined;
-                      const roleValue = isAdmin ? "admin" : ((member?.role ?? "student") as RowRole);
-                      const roleTagType = roleValue === "admin" ? "red" : roleValue === "ta" ? "purple" : "teal";
-                      const roleLabel = roleValue === "admin"
-                        ? t("roleAdmin")
-                        : tc(`role.${roleValue}`);
+                      const roleValue = (member?.role ?? "student") as RowRole;
+                      const roleTagType = roleValue === "ta" ? "purple" : "teal";
+                      const roleLabel = tc(`role.${roleValue}`);
                       return (
                         <TableRow {...getRowProps({ row })} key={row.id}>
                           {row.cells.map((cell) => {
@@ -293,9 +276,6 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                               );
                             }
                             if (cell.info.header === "actions") {
-                              if (isAdmin) {
-                                return <TableCell key={cell.id} />;
-                              }
                               return (
                                 <TableCell key={cell.id}>
                                   <div style={{ display: "flex", justifyContent: "center" }}>

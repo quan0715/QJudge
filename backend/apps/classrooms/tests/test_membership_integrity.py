@@ -24,10 +24,10 @@ def classroom_owner() -> User:
 
 
 @pytest.fixture
-def classroom_admin() -> User:
+def classroom_ta() -> User:
     return User.objects.create_user(
-        username="integrity_admin",
-        email="integrity_admin@example.com",
+        username="integrity_ta",
+        email="integrity_ta@example.com",
         password="pass",
         role="teacher",
     )
@@ -44,22 +44,22 @@ def student_user() -> User:
 
 
 @pytest.fixture
-def classroom(classroom_owner: User, classroom_admin: User) -> Classroom:
+def classroom(classroom_owner: User, classroom_ta: User) -> Classroom:
     classroom = Classroom.objects.create(
         name="Integrity Classroom",
         description="",
         owner=classroom_owner,
         invite_code=uuid4().hex[:8].upper(),
     )
-    classroom.admins.add(classroom_admin)
+    ClassroomMember.objects.create(classroom=classroom, user=classroom_ta, role="ta")
     return classroom
 
 
 @pytest.mark.django_db
-def test_add_members_skips_owner_and_admin_membership_rows(
+def test_add_members_skips_owner_and_keeps_ta_role(
     api_client: APIClient,
     classroom_owner: User,
-    classroom_admin: User,
+    classroom_ta: User,
     student_user: User,
     classroom: Classroom,
 ) -> None:
@@ -70,7 +70,7 @@ def test_add_members_skips_owner_and_admin_membership_rows(
         {
             "usernames": [
                 classroom_owner.username,
-                classroom_admin.username,
+                classroom_ta.username,
                 student_user.username,
             ],
             "role": "student",
@@ -81,10 +81,10 @@ def test_add_members_skips_owner_and_admin_membership_rows(
     assert response.status_code == status.HTTP_200_OK
     assert response.data["added"] == [student_user.username]
     assert sorted(response.data["already_exists"]) == sorted(
-        [classroom_owner.username, classroom_admin.username]
+        [classroom_owner.username, classroom_ta.username]
     )
     assert not ClassroomMember.objects.filter(classroom=classroom, user=classroom_owner).exists()
-    assert not ClassroomMember.objects.filter(classroom=classroom, user=classroom_admin).exists()
+    assert ClassroomMember.objects.get(classroom=classroom, user=classroom_ta).role == "ta"
     assert ClassroomMember.objects.filter(classroom=classroom, user=student_user).exists()
 
 
@@ -143,21 +143,3 @@ def test_join_skips_owner_membership_row(
 
     assert response.status_code == status.HTTP_200_OK
     assert not ClassroomMember.objects.filter(classroom=classroom, user=classroom_owner).exists()
-
-
-@pytest.mark.django_db
-def test_join_skips_admin_membership_row(
-    api_client: APIClient,
-    classroom_admin: User,
-    classroom: Classroom,
-) -> None:
-    api_client.force_authenticate(user=classroom_admin)
-
-    response = api_client.post(
-        f"/api/v1/action-links/qj_cj_{classroom.invite_code}/redeem",
-        {},
-        format="json",
-    )
-
-    assert response.status_code == status.HTTP_200_OK
-    assert not ClassroomMember.objects.filter(classroom=classroom, user=classroom_admin).exists()

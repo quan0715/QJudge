@@ -1,7 +1,7 @@
 """Who may take a contest, and when their attempt record comes into existence.
 
 Eligibility is classroom membership, nothing else: anyone with a role in the
-contest's bound classroom may take it -- students, and staff (owner, co-admins,
+contest's bound classroom may take it -- students, and staff (owner,
 TAs, platform admins) through exactly the same entry flow. There is no
 registration step and no roster sync. The ``ContestParticipant`` row is an
 *attempt record* (status, start time, integrity attempt, score) and is created
@@ -68,11 +68,9 @@ def ensure_candidate_participant(contest: Contest, user) -> ContestParticipant:
 
 
 def _classroom_staff_ids(classroom) -> set[int]:
-    staff = set(classroom.admins.values_list("id", flat=True)) | {classroom.owner_id}
-    staff |= set(
+    return {classroom.owner_id} | set(
         classroom.memberships.filter(role="ta").values_list("user_id", flat=True)
     )
-    return staff
 
 
 def student_member_ids(contest: Contest) -> list[int]:

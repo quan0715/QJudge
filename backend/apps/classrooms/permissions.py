@@ -3,6 +3,9 @@ Permissions and role detection for classrooms.
 """
 from rest_framework import permissions
 
+#: Classroom roles that may manage the classroom and its contests.
+CLASSROOM_MANAGER_ROLES = frozenset(('platform_admin', 'owner', 'manager'))
+
 
 def get_user_role_in_classroom(user, classroom):
     """
@@ -19,9 +22,6 @@ def get_user_role_in_classroom(user, classroom):
     if classroom.owner_id == user.id:
         return 'owner'
 
-    if classroom.admins.filter(pk=user.pk).exists():
-        return 'manager'
-
     membership = classroom.memberships.filter(user=user).first()
     if membership:
         return 'manager' if membership.role == 'ta' else 'member'
@@ -29,51 +29,21 @@ def get_user_role_in_classroom(user, classroom):
     return None
 
 
+def _classroom_of(obj):
+    return obj if hasattr(obj, 'invite_code') else getattr(obj, 'classroom', None)
+
+
 class IsClassroomOwnerOrAdmin(permissions.BasePermission):
-    """Only classroom owner, admins, or system admin can access."""
+    """Only classroom owner, TAs, or platform admin can access."""
 
     def has_object_permission(self, request, view, obj):
-        if not request.user or not request.user.is_authenticated:
-            return False
-
-        if request.user.is_staff or request.user.is_superuser:
-            return True
-
-        classroom = obj if hasattr(obj, 'invite_code') else getattr(obj, 'classroom', None)
-        if not classroom:
-            return False
-
-        if classroom.owner_id == request.user.id:
-            return True
-
-        if classroom.admins.filter(pk=request.user.pk).exists():
-            return True
-
-        membership = classroom.memberships.filter(user=request.user).first()
-        if membership and membership.role == 'ta':
-            return True
-
-        return False
+        classroom = _classroom_of(obj)
+        return classroom is not None and get_user_role_in_classroom(request.user, classroom) in CLASSROOM_MANAGER_ROLES
 
 
 class IsClassroomMember(permissions.BasePermission):
-    """Any classroom member (including owner/admins) can access."""
+    """Any classroom member (including owner and TAs) can access."""
 
     def has_object_permission(self, request, view, obj):
-        if not request.user or not request.user.is_authenticated:
-            return False
-
-        if request.user.is_staff or request.user.is_superuser:
-            return True
-
-        classroom = obj if hasattr(obj, 'invite_code') else getattr(obj, 'classroom', None)
-        if not classroom:
-            return False
-
-        if classroom.owner_id == request.user.id:
-            return True
-
-        if classroom.admins.filter(pk=request.user.pk).exists():
-            return True
-
-        return classroom.memberships.filter(user=request.user).exists()
+        classroom = _classroom_of(obj)
+        return classroom is not None and get_user_role_in_classroom(request.user, classroom) is not None

@@ -76,7 +76,6 @@ export function mapClassroomDetailDto(dto: ClassroomDetailDto): ClassroomDetail 
     inviteCodeEnabled: !!dto.invite_code_enabled,
     members: Array.isArray(dto.members) ? dto.members.map(mapClassroomMemberDto) : [],
     contests: Array.isArray(dto.contests) ? dto.contests.map(mapBoundContestDto) : [],
-    admins: Array.isArray(dto.admins) ? dto.admins : [],
     announcements: Array.isArray(dto.announcements) ? dto.announcements.map(mapClassroomAnnouncementDto) : [],
     updatedAt: dto.updated_at,
   };

@@ -21,7 +21,6 @@ class ContestQuerySet(models.QuerySet):
                 return self
             classroom_manager_filter = (
                 Q(classroom_bindings__classroom__owner=user)
-                | Q(classroom_bindings__classroom__admins=user)
                 | Q(
                     classroom_bindings__classroom__memberships__user=user,
                     classroom_bindings__classroom__memberships__role="ta",
@@ -39,7 +38,6 @@ class ContestQuerySet(models.QuerySet):
                 return self.none()
             classroom_relation_filter = (
                 Q(classroom_bindings__classroom__owner=user)
-                | Q(classroom_bindings__classroom__admins=user)
                 | Q(classroom_bindings__classroom__memberships__user=user)
             )
             queryset = self.filter(registrations__user=user).filter(
@@ -56,7 +54,6 @@ class ContestQuerySet(models.QuerySet):
 
         classroom_relation_filter = (
             Q(classroom_bindings__classroom__owner=user)
-            | Q(classroom_bindings__classroom__admins=user)
             | Q(classroom_bindings__classroom__memberships__user=user)
         )
         unbound_relation_filter = Q(classroom_bindings__isnull=True) & (

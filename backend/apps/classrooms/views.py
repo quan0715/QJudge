@@ -64,9 +64,9 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         if user.is_staff or user.is_superuser:
             qs = Classroom.objects.all()
         elif scope == 'manage':
-            # Classrooms the user owns or is admin of
+            # Classrooms the user owns or is a TA of
             qs = Classroom.objects.filter(
-                models.Q(owner=user) | models.Q(admins=user)
+                models.Q(owner=user) | models.Q(memberships__user=user, memberships__role='ta')
             ).distinct()
         elif scope == 'enrolled':
             # Classrooms the user is a member of
@@ -74,7 +74,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         else:
             # All classrooms the user is involved in
             qs = Classroom.objects.filter(
-                models.Q(owner=user) | models.Q(admins=user) | models.Q(members=user)
+                models.Q(owner=user) | models.Q(members=user)
             ).distinct()
 
         if not self.request.query_params.get('include_archived'):

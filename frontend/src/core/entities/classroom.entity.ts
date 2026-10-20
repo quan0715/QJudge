@@ -68,7 +68,6 @@ export interface ClassroomDetail extends Classroom {
   inviteCodeEnabled: boolean;
   members: ClassroomMember[];
   contests: BoundContest[];
-  admins: { id: number; username: string }[];
   announcements: ClassroomAnnouncement[];
   updatedAt: string;
 }
