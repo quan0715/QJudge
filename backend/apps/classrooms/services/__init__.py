@@ -8,6 +8,11 @@ from .course_contests import (
     BoundClassroomContestResult,
     create_classroom_contest,
 )
+from .gradebook import (
+    build_classroom_gradebook,
+    gradebook_to_payload,
+    write_gradebook_csv,
+)
 from .invite_codes import generate_invite_code
 from .memberships import (
     AddMembersResult,
@@ -20,8 +25,11 @@ __all__ = [
     "AddMembersResult",
     "BoundClassroomContestResult",
     "add_classroom_members",
+    "build_classroom_gradebook",
     "create_classroom_contest",
     "generate_invite_code",
+    "gradebook_to_payload",
     "remove_classroom_member",
     "update_classroom_member_role",
+    "write_gradebook_csv",
 ]

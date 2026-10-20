@@ -127,7 +127,7 @@ def _get_admin_user_ids(contest):
     return admin_ids
 
 
-def _csv_response(filename: str) -> HttpResponse:
+def csv_download_response(filename: str) -> HttpResponse:
     """CSV download that Excel opens as UTF-8.
 
     The BOM is written once, up front. A ``utf-8-sig`` charset would instead
@@ -144,7 +144,7 @@ def build_paper_exam_results_csv_response(contest):
     from ..models import ExamAnswer, ExamQuestion, ExamQuestionType
 
     safe_name = sanitize_filename(contest.name)
-    response = _csv_response(f'exam_{contest.id}_{safe_name}_results.csv')
+    response = csv_download_response(f'exam_{contest.id}_{safe_name}_results.csv')
 
     questions = list(
         ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
@@ -228,7 +228,7 @@ def build_paper_exam_results_csv_response(contest):
 
 def build_contest_results_csv_response(contest, scoreboard_result):
     """Generate CSV response for contest scoreboard results."""
-    response = _csv_response(f'contest_{contest.id}_results.csv')
+    response = csv_download_response(f'contest_{contest.id}_results.csv')
 
     admin_user_ids = _get_admin_user_ids(contest)
     writer = csv.writer(response)

@@ -11,6 +11,8 @@ from django.conf import settings
 from django.db import models
 from django.urls import reverse
 
+from apps.contests.exporters.utils import sanitize_filename
+from apps.contests.services.export_service import csv_download_response
 from apps.users.permissions import IsTeacherOrAdmin
 from apps.core.services import (
     build_markdown_image_object_key,
@@ -36,10 +38,13 @@ from .serializers import (
 from .permissions import IsClassroomOwnerOrAdmin, IsClassroomMember, get_user_role_in_classroom
 from .services import (
     add_classroom_members,
+    build_classroom_gradebook,
     create_classroom_contest,
     generate_invite_code,
+    gradebook_to_payload,
     remove_classroom_member,
     update_classroom_member_role,
+    write_gradebook_csv,
 )
 
 
@@ -107,6 +112,8 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             'invite_code',
             'announcement_detail',
             'cover',
+            'gradebook',
+            'gradebook_export',
         }
         member_actions = {
             'retrieve',
@@ -227,6 +234,24 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             context={'request': request},
         )
         return Response(serializer.data)
+
+    # ── Gradebook ────────────────────────────────────────
+
+    @action(detail=True, methods=['get'], url_path='gradebook')
+    def gradebook(self, request, id=None):
+        classroom = self.get_object()
+        gradebook = build_classroom_gradebook(classroom, viewer=request.user)
+        return Response(gradebook_to_payload(gradebook))
+
+    @action(detail=True, methods=['get'], url_path='gradebook/export')
+    def gradebook_export(self, request, id=None):
+        classroom = self.get_object()
+        gradebook = build_classroom_gradebook(classroom, viewer=request.user)
+        response = csv_download_response(
+            f'classroom_{sanitize_filename(classroom.name)}_gradebook.csv'
+        )
+        write_gradebook_csv(gradebook, response)
+        return response
 
     # ── Announcements ────────────────────────────────────
 
