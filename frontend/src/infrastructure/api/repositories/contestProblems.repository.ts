@@ -2,11 +2,13 @@ import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.cli
 import type {
   CodingProblem,
   CodingProblemDetail,
+  ProblemUpsertPayload,
 } from "@/core/entities/problem.entity";
 import {
   mapProblemDto,
   mapProblemDetailDto,
 } from "@/infrastructure/mappers/problem.mapper";
+import type { ProblemDetailDto } from "@/infrastructure/api/dto/problem.dto";
 
 export const getContestProblem = async (
   contestId: string,
@@ -18,6 +20,18 @@ export const getContestProblem = async (
   if (!res.ok) return undefined;
   const data = await res.json();
   return mapProblemDetailDto(data);
+};
+
+export const patchContestProblem = async (
+  contestId: string,
+  contestProblemId: string,
+  data: Partial<ProblemUpsertPayload>
+): Promise<CodingProblemDetail> => {
+  const responseData = await requestJson<ProblemDetailDto>(
+    httpClient.patch(`/api/v1/contests/${contestId}/problems/${contestProblemId}/`, data),
+    "Failed to patch problem"
+  );
+  return mapProblemDetailDto(responseData);
 };
 
 export const updateContestProblemScore = async (
