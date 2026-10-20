@@ -331,22 +331,7 @@ class ExamScoringService:
         Args:
             participant_scores: list of total scores (floats)
         """
-        max_total = self.get_max_total_score()
-        avg = (
-            float(self._round_score(sum(participant_scores) / len(participant_scores)))
-            if participant_scores
-            else 0
-        )
-        med = float(self._round_score(median(participant_scores))) if participant_scores else 0
-        buckets = self._build_buckets(participant_scores, max_total)
-
-        return ScoreDistribution(
-            average_score=avg,
-            median_score=med,
-            max_total_score=max_total,
-            participant_scores=participant_scores,
-            buckets=buckets,
-        )
+        return build_score_distribution(participant_scores, self.get_max_total_score())
 
     def get_question_stats(self, answers: list) -> dict[str, QuestionStats]:
         """
@@ -385,26 +370,40 @@ class ExamScoringService:
 
         return stats
 
-    # ──────────────────────────────────────────────────────────────────
-    # Helpers
-    # ──────────────────────────────────────────────────────────────────
 
-    @staticmethod
-    def _build_buckets(scores: list[float], max_score: float) -> list[dict]:
-        """Build 10 histogram buckets (0-9%, 10-19%, ..., 90-100%)."""
-        buckets = [
-            {'range_label': f'{i * 10}-{i * 10 + 9}%', 'count': 0}
-            for i in range(9)
-        ]
-        buckets.append({'range_label': '90-100%', 'count': 0})
+def build_score_distribution(scores: list[float], max_total: float) -> ScoreDistribution:
+    """
+    Ratio-based score distribution shared by paper exams and coding contests.
 
-        if max_score <= 0:
-            buckets[0]['count'] = len(scores)
-            return buckets
+    Scores are bucketed by their share of ``max_total`` into 10 buckets
+    (0-9%, 10-19%, ..., 80-89%, 90-100%); when ``max_total`` is 0 everyone
+    lands in the first bucket.
+    """
+    avg = (
+        float(ExamScoringService._round_score(sum(scores) / len(scores)))
+        if scores
+        else 0
+    )
+    med = float(ExamScoringService._round_score(median(scores))) if scores else 0
 
+    buckets = [
+        {'range_label': f'{i * 10}-{i * 10 + 9}%', 'count': 0}
+        for i in range(9)
+    ]
+    buckets.append({'range_label': '90-100%', 'count': 0})
+
+    if max_total <= 0:
+        buckets[0]['count'] = len(scores)
+    else:
         for score in scores:
-            normalized = max(0.0, min((float(score or 0) / float(max_score)) * 100, 100.0))
+            normalized = max(0.0, min((float(score or 0) / float(max_total)) * 100, 100.0))
             bucket_index = 9 if normalized >= 90 else int(normalized // 10)
             buckets[bucket_index]['count'] += 1
 
-        return buckets
+    return ScoreDistribution(
+        average_score=avg,
+        median_score=med,
+        max_total_score=max_total,
+        participant_scores=scores,
+        buckets=buckets,
+    )
