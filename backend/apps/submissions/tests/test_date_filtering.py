@@ -9,6 +9,7 @@ from rest_framework.test import APIClient
 from apps.contests.models import Contest
 from apps.problems.models import CodingProblem
 from apps.submissions.models import Submission
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom
 
 User = get_user_model()
 
@@ -31,7 +32,7 @@ class DateRangeFilteringTestCase(TestCase):
             memory_limit=256,
             created_by=cls.admin_user
         )
-        cls.contest = Contest.objects.create(name='Date Filter Contest', owner=cls.admin_user)
+        cls.contest = create_contest_in_classroom(name='Date Filter Contest', owner=cls.admin_user)
         
         # Create submissions at different time points
         now = timezone.now()

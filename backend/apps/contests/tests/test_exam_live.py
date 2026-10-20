@@ -19,6 +19,7 @@ from apps.contests.services.livekit_service import (
 )
 from apps.users.models import User
 from livekit import api
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 LIVEKIT_SETTINGS = {
@@ -85,7 +86,7 @@ class ExamLiveApiTests(APITestCase):
             password="pass",
             role="student",
         )
-        self.contest = Contest.objects.create(
+        self.contest = create_contest_in_classroom(
             name="LiveKit Contest",
             owner=self.teacher,
             status="published",
@@ -94,6 +95,7 @@ class ExamLiveApiTests(APITestCase):
             end_time=now + timedelta(hours=1),
             cheat_detection_enabled=True,
         )
+        enrol_candidates(self.contest, self.student)
         self.participant = ContestParticipant.objects.create(
             contest=self.contest,
             user=self.student,

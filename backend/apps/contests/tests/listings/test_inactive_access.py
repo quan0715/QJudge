@@ -17,8 +17,9 @@ from rest_framework.test import APITestCase
 
 from apps.contests.models import Contest, ContestParticipant
 from apps.contests.tests import bind_problem_to_contest
-from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
+from apps.classrooms.models import Classroom, ClassroomContest
 from apps.problems.models import CodingProblem
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 User = get_user_model()
 
@@ -56,7 +57,7 @@ class DraftContestAccessTests(APITestCase):
         )
 
         # Create a draft contest owned by teacher
-        self.draft_contest = Contest.objects.create(
+        self.draft_contest = create_contest_in_classroom(
             name='Draft Contest',
             start_time=timezone.now() - timedelta(hours=2),
             end_time=timezone.now() + timedelta(hours=2),
@@ -65,7 +66,7 @@ class DraftContestAccessTests(APITestCase):
         )
 
         # Create a published contest for comparison
-        self.active_contest = Contest.objects.create(
+        self.active_contest = create_contest_in_classroom(
             name='Active Contest',
             start_time=timezone.now() - timedelta(hours=1),
             end_time=timezone.now() + timedelta(hours=2),
@@ -82,11 +83,13 @@ class DraftContestAccessTests(APITestCase):
         bind_problem_to_contest(self.active_contest, self.problem, order=0)
 
         # Register student as participant in draft contest
+        enrol_candidates(self.draft_contest, self.student)
         ContestParticipant.objects.create(
             contest=self.draft_contest,
             user=self.student
         )
         # Register student as participant in active contest too
+        enrol_candidates(self.active_contest, self.student)
         ContestParticipant.objects.create(
             contest=self.active_contest,
             user=self.student
@@ -234,13 +237,7 @@ class DraftContestAccessTests(APITestCase):
             password="password123",
             role="student",
         )
-        classroom = Classroom.objects.create(
-            name="OS",
-            owner=self.teacher,
-            invite_code="OS1234",
-        )
-        ClassroomMember.objects.create(classroom=classroom, user=ta_user, role="ta")
-        ClassroomContest.objects.create(classroom=classroom, contest=self.draft_contest)
+        enrol_candidates(self.draft_contest, ta_user, role="ta")
 
         self.client.force_authenticate(user=ta_user)
         url = f"{reverse('contests:contest-list')}?scope=manage"
@@ -250,8 +247,8 @@ class DraftContestAccessTests(APITestCase):
         contest_ids = [c["id"] for c in response.data["results"]]
         self.assertIn(str(self.draft_contest.id), contest_ids)
 
-    def test_bound_contest_legacy_owner_is_hidden_from_manage_list(self):
-        """A classroom binding replaces legacy contest-level management access."""
+    def test_contest_creator_outside_classroom_is_hidden_from_manage_list(self):
+        """The classroom, not the contest creator field, grants management access."""
         classroom_owner = User.objects.create_user(
             username="classroom_owner",
             email="classroom_owner@example.com",
@@ -263,10 +260,8 @@ class DraftContestAccessTests(APITestCase):
             owner=classroom_owner,
             invite_code="PRIVATE1",
         )
-        ClassroomContest.objects.create(
-            classroom=classroom,
-            contest=self.draft_contest,
-        )
+        contest = Contest.objects.create(name="Created by teacher", owner=self.teacher, status="draft")
+        ClassroomContest.objects.create(classroom=classroom, contest=contest)
 
         self.client.force_authenticate(user=self.teacher)
         response = self.client.get(
@@ -275,7 +270,7 @@ class DraftContestAccessTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         contest_ids = [c["id"] for c in response.data["results"]]
-        self.assertNotIn(str(self.draft_contest.id), contest_ids)
+        self.assertNotIn(str(contest.id), contest_ids)
 
     def test_bound_contest_participant_outside_classroom_is_hidden_from_list(self):
         """Contest registration alone cannot expose a classroom-private contest."""
@@ -290,17 +285,16 @@ class DraftContestAccessTests(APITestCase):
             owner=classroom_owner,
             invite_code="PRIVATE2",
         )
-        ClassroomContest.objects.create(
-            classroom=classroom,
-            contest=self.active_contest,
-        )
+        contest = Contest.objects.create(name="Members only", owner=classroom_owner, status="published")
+        ClassroomContest.objects.create(classroom=classroom, contest=contest)
+        ContestParticipant.objects.create(contest=contest, user=self.student)
 
         self.client.force_authenticate(user=self.student)
         response = self.client.get(reverse('contests:contest-list'))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         contest_ids = [c["id"] for c in response.data["results"]]
-        self.assertNotIn(str(self.active_contest.id), contest_ids)
+        self.assertNotIn(str(contest.id), contest_ids)
 
     def test_classroom_ta_gets_edit_permissions_in_contest_detail(self):
         ta_user = User.objects.create_user(
@@ -309,13 +303,7 @@ class DraftContestAccessTests(APITestCase):
             password="password123",
             role="student",
         )
-        classroom = Classroom.objects.create(
-            name="OS Detail",
-            owner=self.teacher,
-            invite_code="OS5678",
-        )
-        ClassroomMember.objects.create(classroom=classroom, user=ta_user, role="ta")
-        ClassroomContest.objects.create(classroom=classroom, contest=self.draft_contest)
+        enrol_candidates(self.draft_contest, ta_user, role="ta")
 
         self.client.force_authenticate(user=ta_user)
         url = reverse("contests:contest-detail", args=[self.draft_contest.id])
@@ -345,7 +333,7 @@ class ContestNotStartedAccessTests(APITestCase):
         )
 
         # Create an active contest that hasn't started yet
-        self.future_contest = Contest.objects.create(
+        self.future_contest = create_contest_in_classroom(
             name='Future Contest',
             start_time=timezone.now() + timedelta(hours=2),  # Starts in 2 hours
             end_time=timezone.now() + timedelta(hours=4),
@@ -361,6 +349,7 @@ class ContestNotStartedAccessTests(APITestCase):
         bind_problem_to_contest(self.future_contest, self.problem, order=0)
 
         # Register student
+        enrol_candidates(self.future_contest, self.student)
         ContestParticipant.objects.create(
             contest=self.future_contest,
             user=self.student
@@ -412,7 +401,7 @@ class ContestEndedAccessTests(APITestCase):
         )
 
         # Create an active contest that has already ended
-        self.ended_contest = Contest.objects.create(
+        self.ended_contest = create_contest_in_classroom(
             name='Ended Contest',
             start_time=timezone.now() - timedelta(hours=4),  # Started 4 hours ago
             end_time=timezone.now() - timedelta(hours=2),    # Ended 2 hours ago
@@ -428,6 +417,7 @@ class ContestEndedAccessTests(APITestCase):
         bind_problem_to_contest(self.ended_contest, self.problem, order=0)
 
         # Register student
+        enrol_candidates(self.ended_contest, self.student)
         ContestParticipant.objects.create(
             contest=self.ended_contest,
             user=self.student

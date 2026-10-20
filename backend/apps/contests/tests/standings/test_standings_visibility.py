@@ -10,6 +10,7 @@ from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
+from apps.contests.tests.classroom_candidates import enrol_candidates
 from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
@@ -121,6 +122,7 @@ def api_client() -> APIClient:
 
 def create_contest_with_problem(owner: User, **contest_kwargs: object) -> Tuple[Contest, CodingProblem]:
     contest = ContestFactory(owner=owner, **contest_kwargs)
+    enrol_candidates(contest)
     problem = ProblemFactory(created_by=owner)
     ProblemTestCaseFactory(problem=problem)
     bind_problem_to_contest(contest, problem, order=0)
@@ -137,6 +139,7 @@ def test_standings_hidden_when_scoreboard_disabled(
         owner=teacher,
         scoreboard_visible_during_contest=False,
     )
+    enrol_candidates(contest, student)
     ContestParticipantFactory(contest=contest, user=student)
 
     api_client.force_authenticate(user=student)
@@ -156,6 +159,7 @@ def test_standings_visible_when_scoreboard_enabled(
         owner=teacher,
         scoreboard_visible_during_contest=True,
     )
+    enrol_candidates(contest, student)
     ContestParticipantFactory(contest=contest, user=student)
 
     api_client.force_authenticate(user=student)
@@ -175,6 +179,7 @@ def test_standings_visible_after_contest_end(
         scoreboard_visible_during_contest=False,
         end_time=timezone.now() - timedelta(minutes=1),
     )
+    enrol_candidates(contest, student)
     ContestParticipantFactory(contest=contest, user=student)
 
     api_client.force_authenticate(user=student)
@@ -190,6 +195,7 @@ def test_standings_hides_problem_titles_for_students(
     teacher = UserFactory(role="teacher")
     student = UserFactory()
     contest, _ = create_contest_with_problem(owner=teacher, scoreboard_visible_during_contest=True)
+    enrol_candidates(contest, student)
     ContestParticipantFactory(contest=contest, user=student)
 
     api_client.force_authenticate(user=student)
@@ -207,6 +213,7 @@ def test_standings_shows_problem_titles_for_admins(
     teacher = UserFactory(role="teacher")
     admin = UserFactory(role="admin", is_staff=True)
     contest, _ = create_contest_with_problem(owner=teacher, scoreboard_visible_during_contest=False)
+    enrol_candidates(contest, admin)
     ContestParticipantFactory(contest=contest, user=admin)
 
     api_client.force_authenticate(user=admin)

@@ -27,6 +27,7 @@ from apps.contests import views as contest_views
 from apps.contests.views import exam_question as exam_question_view_module
 from apps.contests.services.question_edit_lock import lock_contest_for_question_edit
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 @pytest.fixture
@@ -64,7 +65,7 @@ def another_teacher():
 @pytest.fixture
 def contest(teacher):
     now = timezone.now()
-    return Contest.objects.create(
+    return create_contest_in_classroom(
         name="EQ Test Contest",
         owner=teacher,
         contest_type="paper_exam",
@@ -77,7 +78,7 @@ def contest(teacher):
 @pytest.fixture
 def other_contest(another_teacher):
     now = timezone.now()
-    return Contest.objects.create(
+    return create_contest_in_classroom(
         name="Other Contest",
         owner=another_teacher,
         status="published",
@@ -692,6 +693,7 @@ class TestPermissions:
         assert res.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
 
     def test_student_cannot_list(self, api_client, student, contest):
+        enrol_candidates(contest, student)
         ContestParticipant.objects.create(contest=contest, user=student)
         api_client.force_authenticate(user=student)
         res = api_client.get(url(contest.id))
@@ -701,6 +703,7 @@ class TestPermissions:
         ExamQuestion.objects.create(
             contest=contest, question_type="essay", prompt="Q", explanation="Teacher notes", score=1, order=0,
         )
+        enrol_candidates(contest, student)
         participant = ContestParticipant.objects.create(
             contest=contest, user=student, exam_status="in_progress"
         )
@@ -714,7 +717,7 @@ class TestPermissions:
         assert "explanation" not in res.data[0]
 
     def test_student_cannot_list_before_contest_start(self, api_client, student, teacher):
-        future_contest = Contest.objects.create(
+        future_contest = create_contest_in_classroom(
             name="Future Exam",
             owner=teacher,
             status="published",
@@ -724,6 +727,7 @@ class TestPermissions:
         ExamQuestion.objects.create(
             contest=future_contest, question_type="essay", prompt="Secret", score=1, order=0,
         )
+        enrol_candidates(future_contest, student)
         ContestParticipant.objects.create(
             contest=future_contest, user=student, exam_status="in_progress", started_at=timezone.now()
         )
@@ -732,6 +736,7 @@ class TestPermissions:
         assert res.status_code == status.HTTP_403_FORBIDDEN
 
     def test_student_cannot_create(self, api_client, student, contest):
+        enrol_candidates(contest, student)
         ContestParticipant.objects.create(contest=contest, user=student)
         api_client.force_authenticate(user=student)
         res = api_client.post(url(contest.id), {
@@ -743,12 +748,14 @@ class TestPermissions:
         q = ExamQuestion.objects.create(
             contest=contest, question_type="essay", prompt="Q", score=1, order=0,
         )
+        enrol_candidates(contest, student)
         ContestParticipant.objects.create(contest=contest, user=student)
         api_client.force_authenticate(user=student)
         res = api_client.delete(url(contest.id, q.id))
         assert res.status_code == status.HTTP_403_FORBIDDEN
 
     def test_student_cannot_reorder(self, api_client, student, contest):
+        enrol_candidates(contest, student)
         ContestParticipant.objects.create(contest=contest, user=student)
         api_client.force_authenticate(user=student)
         res = api_client.post(url(contest.id) + "reorder/", {"orders": []}, format="json")
@@ -923,6 +930,7 @@ class TestImportFromQuestionBank:
         assert res.status_code == status.HTTP_404_NOT_FOUND
 
     def test_student_cannot_import_from_bank(self, api_client, student, contest):
+        enrol_candidates(contest, student)
         ContestParticipant.objects.create(contest=contest, user=student)
         api_client.force_authenticate(user=student)
         res = api_client.post(
@@ -984,6 +992,7 @@ class TestQuestionEditLockGuard:
         student,
         contest,
     ):
+        enrol_candidates(contest, student)
         ContestParticipant.objects.create(
             contest=contest,
             user=student,
@@ -1008,6 +1017,7 @@ class TestQuestionEditLockGuard:
             password="pass123",
             role="student",
         )
+        enrol_candidates(contest, student)
         ContestParticipant.objects.create(
             contest=contest,
             user=student,
@@ -1093,6 +1103,7 @@ class TestExportPaper:
         assert res.status_code == status.HTTP_200_OK
 
     def test_student_cannot_export_paper(self, api_client, student, contest):
+        enrol_candidates(contest, student)
         ContestParticipant.objects.create(contest=contest, user=student)
         api_client.force_authenticate(user=student)
         contest.contest_type = "paper_exam"

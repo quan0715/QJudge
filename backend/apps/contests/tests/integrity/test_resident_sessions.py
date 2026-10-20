@@ -12,7 +12,7 @@ from apps.contests.models import Contest, ContestParticipant, ExamIntegrityRun
 from apps.contests.services.integrity_runs import create_run, LiveIntegrityRunExists
 from apps.contests.services.integrity_sessions import ensure_resident_session
 from apps.users.models import User
-from apps.contests.tests.classroom_candidates import enrol_candidates
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def owner(db):
 @pytest.fixture
 def contest(owner):
     now = timezone.now()
-    return Contest.objects.create(name="Resident exam", owner=owner, start_time=now - timedelta(seconds=1), end_time=now + timedelta(hours=1), status="published", contest_type="paper_exam", cheat_detection_enabled=True)
+    return create_contest_in_classroom(name="Resident exam", owner=owner, start_time=now - timedelta(seconds=1), end_time=now + timedelta(hours=1), status="published", contest_type="paper_exam", cheat_detection_enabled=True)
 
 
 @pytest.mark.django_db
@@ -89,6 +89,7 @@ def test_resident_terminal_history_does_not_reserve_live_slot(contest):
 def test_immediate_exam_start_is_independent_of_resident(contest, caplog, failure):
     from contextlib import nullcontext
     student = User.objects.create_user(username="resident-student", email="student@example.com", password="pass", role="student")
+    enrol_candidates(contest, student)
     enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(contest=contest, user=student)
     client = APIClient()

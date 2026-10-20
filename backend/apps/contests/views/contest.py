@@ -95,10 +95,6 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             return "upcoming"
         return "running"
 
-    @staticmethod
-    def _is_classroom_managed_contest(contest: Contest) -> bool:
-        return contest.classroom_bindings.exists()
-
     def _classroom_managed_response(self):
         return Response(
             {
@@ -125,12 +121,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         )
 
     def _classroom_roster_admin_gate(self, contest: Contest):
-        """
-        Manual roster endpoints are disabled for classroom-bound contests;
-        unbound contests are invalid in production — return a dedicated error.
-        """
-        if not self._is_classroom_managed_contest(contest):
-            return self._contest_requires_classroom_binding_response()
+        """Rosters come from the classroom, so manual roster endpoints are disabled."""
         return self._classroom_managed_response()
 
     def _build_time_progress(self, contest: Contest, now):

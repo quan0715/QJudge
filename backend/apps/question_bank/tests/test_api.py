@@ -9,7 +9,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from PIL import Image
 
-from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
+from apps.classrooms.models import ClassroomMember
 from apps.contests.models import Contest, ExamQuestion
 from apps.contests.tests import bind_problem_to_contest
 from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
@@ -21,6 +21,7 @@ from apps.question_bank.bank_workflows import (
 from apps.question_bank.models import QuestionAsset, QuestionBank, QuestionBankMembership
 from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 @pytest.fixture
@@ -438,7 +439,7 @@ class TestQuestionBankAPI:
             name="Exam Bank",
             category=QuestionBank.Category.EXAM,
         )
-        contest = Contest.objects.create(name="Exam A", owner=teacher)
+        contest = create_contest_in_classroom(name="Exam A", owner=teacher)
         exam_question = ExamQuestion.objects.create(
             contest=contest,
             question_type="single_choice",
@@ -466,7 +467,7 @@ class TestQuestionBankAPI:
             category=QuestionBank.Category.EXAM,
         )
 
-        contest = Contest.objects.create(name="Exam API Duplicate", owner=teacher, contest_type="paper_exam")
+        contest = create_contest_in_classroom(name="Exam API Duplicate", owner=teacher, contest_type="paper_exam")
 
         api_client.force_authenticate(user=teacher)
         resp = api_client.post(
@@ -493,7 +494,7 @@ class TestQuestionBankAPI:
             name="Exam Bank",
             category=QuestionBank.Category.EXAM,
         )
-        contest = Contest.objects.create(name="Exam Sync", owner=teacher, contest_type="paper_exam")
+        contest = create_contest_in_classroom(name="Exam Sync", owner=teacher, contest_type="paper_exam")
         exam_question = ExamQuestion.objects.create(
             contest=contest,
             question_type="single_choice",
@@ -525,7 +526,7 @@ class TestQuestionBankAPI:
             name="Exam Bank",
             category=QuestionBank.Category.EXAM,
         )
-        contest = Contest.objects.create(name="Broken Exam Sync", owner=teacher, contest_type="paper_exam")
+        contest = create_contest_in_classroom(name="Broken Exam Sync", owner=teacher, contest_type="paper_exam")
         exam_question = ExamQuestion.objects.create(
             contest=contest,
             question_type="single_choice",
@@ -560,7 +561,7 @@ class TestQuestionBankAPI:
         )
         ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", weight_percent=100)
 
-        contest = Contest.objects.create(name="Inbox Exam", owner=teacher, contest_type="paper_exam")
+        contest = create_contest_in_classroom(name="Inbox Exam", owner=teacher, contest_type="paper_exam")
         ExamQuestion.objects.create(
             contest=contest,
             question_type="single_choice",
@@ -654,7 +655,7 @@ class TestQuestionBankAPI:
         )
         ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", weight_percent=100)
 
-        contest = Contest.objects.create(
+        contest = create_contest_in_classroom(
             name="Coding Contest For Ingest",
             owner=teacher,
             contest_type="coding",
@@ -775,7 +776,7 @@ class TestQuestionBankAPI:
             category=QuestionBank.Category.EXAM,
             is_archived=True,
         )
-        contest = Contest.objects.create(name="Archived Exam Sync", owner=teacher, contest_type="paper_exam")
+        contest = create_contest_in_classroom(name="Archived Exam Sync", owner=teacher, contest_type="paper_exam")
         exam_question = ExamQuestion.objects.create(
             contest=contest,
             question_type="single_choice",
@@ -817,7 +818,7 @@ class TestQuestionBankAPI:
             name="Exam Bank A",
             category=QuestionBank.Category.EXAM,
         )
-        contest = Contest.objects.create(name="Inbox Exam Sync", owner=teacher, contest_type="paper_exam")
+        contest = create_contest_in_classroom(name="Inbox Exam Sync", owner=teacher, contest_type="paper_exam")
         exam_question = ExamQuestion.objects.create(
             contest=contest,
             question_type="single_choice",
@@ -889,7 +890,7 @@ class TestQuestionBankAPI:
             name="Exam Bank Reject Invalid",
             category=QuestionBank.Category.EXAM,
         )
-        contest = Contest.objects.create(name="Inbox Invalid Exam", owner=teacher, contest_type="paper_exam")
+        contest = create_contest_in_classroom(name="Inbox Invalid Exam", owner=teacher, contest_type="paper_exam")
         exam_question = ExamQuestion.objects.create(
             contest=contest,
             question_type="single_choice",
@@ -920,15 +921,9 @@ class TestQuestionBankAPI:
 @pytest.fixture
 def classroom_contests(teacher: User):
     """A coding and a paper-exam contest owned by ``teacher`` and bound to one classroom."""
-    classroom = Classroom.objects.create(
-        name="Ingest Classroom",
-        owner=teacher,
-        invite_code=uuid.uuid4().hex[:8].upper(),
-    )
-    coding_contest = Contest.objects.create(name="Ingest Coding", owner=teacher, contest_type="coding")
+    coding_contest = create_contest_in_classroom(name="Ingest Coding", owner=teacher, contest_type="coding")
     exam_contest = Contest.objects.create(name="Ingest Exam", owner=teacher, contest_type="paper_exam")
-    ClassroomContest.objects.create(classroom=classroom, contest=coding_contest)
-    ClassroomContest.objects.create(classroom=classroom, contest=exam_contest)
+    classroom = enrol_candidates(exam_contest, classroom=coding_contest.classroom_bindings.get().classroom)
 
     problem = CodingProblem.objects.create(slug="classroom-ingest", created_by=teacher)
     bind_problem_to_contest(coding_contest, problem, order=0)
@@ -1159,7 +1154,7 @@ class TestCategoryValidation:
             name="Coding Bank",
             category=QuestionBank.Category.CODING,
         )
-        contest = Contest.objects.create(
+        contest = create_contest_in_classroom(
             name="Contest",
             owner=teacher,
             contest_type="exam",
@@ -1360,7 +1355,7 @@ class TestUpsertIdempotency:
             name="Exam Bank",
             category=QuestionBank.Category.EXAM,
         )
-        contest = Contest.objects.create(name="C", owner=teacher, contest_type="paper_exam")
+        contest = create_contest_in_classroom(name="C", owner=teacher, contest_type="paper_exam")
         eq = ExamQuestion.objects.create(
             contest=contest,
             question_type="single_choice",

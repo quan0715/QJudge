@@ -16,6 +16,7 @@ from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 from apps.question_bank.models import QuestionAsset
 from apps.submissions.models import Submission
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 def decode_header_value(value: str) -> str:
@@ -88,7 +89,7 @@ class TestStudentReportEndpoints:
     def active_contest(self, teacher):
         """Create an active contest with start/end times."""
         now = timezone.now()
-        return Contest.objects.create(
+        return create_contest_in_classroom(
             name='期中考試',
             description='程式設計期中考試',
             rules='考試規則',
@@ -102,7 +103,7 @@ class TestStudentReportEndpoints:
     def ended_contest(self, teacher):
         """Create an ended contest."""
         now = timezone.now()
-        return Contest.objects.create(
+        return create_contest_in_classroom(
             name='已結束考試',
             description='已結束的考試',
             owner=teacher,
@@ -146,6 +147,7 @@ class TestStudentReportEndpoints:
     @pytest.fixture
     def submitted_participant(self, active_contest, student):
         """Create a participant who has submitted."""
+        enrol_candidates(active_contest, student)
         return ContestParticipant.objects.create(
             contest=active_contest,
             user=student,
@@ -157,6 +159,7 @@ class TestStudentReportEndpoints:
     @pytest.fixture
     def in_progress_participant(self, active_contest, other_student):
         """Create a participant still in progress."""
+        enrol_candidates(active_contest, other_student)
         return ContestParticipant.objects.create(
             contest=active_contest,
             user=other_student,
@@ -363,6 +366,7 @@ class TestStudentReportEndpoints:
             created_by=teacher,
         )
         bind_problem_to_contest(ended_contest, problem, order=0)
+        enrol_candidates(ended_contest, student)
         ContestParticipant.objects.create(
             contest=ended_contest,
             user=student,
@@ -479,7 +483,7 @@ class TestStudentReportPermissions:
     
     @pytest.fixture
     def contest(self, teacher):
-        return Contest.objects.create(
+        return create_contest_in_classroom(
             name='Test Contest',
             owner=teacher,
             status='published'
@@ -495,6 +499,7 @@ class TestStudentReportPermissions:
     
     @pytest.fixture
     def participant(self, contest, student):
+        enrol_candidates(contest, student)
         return ContestParticipant.objects.create(
             contest=contest,
             user=student,
@@ -555,7 +560,7 @@ class TestStudentReportScoreCalculation:
     @pytest.fixture
     def contest(self, teacher):
         now = timezone.now()
-        return Contest.objects.create(
+        return create_contest_in_classroom(
             name='Score Test Contest',
             owner=teacher,
             status='published',
@@ -598,6 +603,7 @@ class TestStudentReportScoreCalculation:
     
     @pytest.fixture
     def participant(self, contest, student):
+        enrol_candidates(contest, student)
         return ContestParticipant.objects.create(
             contest=contest,
             user=student,

@@ -9,12 +9,13 @@ from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
 from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 from apps.submissions.models import Submission
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 User = get_user_model()
 
 
 def create_contest(owner, problem, *participants):
-    contest = Contest.objects.create(
+    contest = create_contest_in_classroom(
         name='Submission API Contest', owner=owner, status='published',
         start_time=timezone.now() - timedelta(hours=1),
         end_time=timezone.now() + timedelta(hours=1),
@@ -22,6 +23,7 @@ def create_contest(owner, problem, *participants):
     )
     bind_problem_to_contest(contest, problem)
     for user in participants:
+        enrol_candidates(contest, user)
         ContestParticipant.objects.create(contest=contest, user=user, exam_status=ExamStatus.IN_PROGRESS)
     return contest
 

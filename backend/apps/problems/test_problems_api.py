@@ -11,6 +11,7 @@ from apps.submissions.models import Submission
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
 from apps.question_bank.models import ContestQuestionBinding
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 class ProblemPermissionTests(TestCase):
@@ -415,7 +416,7 @@ class ProblemContestLockGuardTests(TestCase):
             role="student",
         )
         # Only paper exams lock; coding contests stay editable mid-contest.
-        self.contest = Contest.objects.create(
+        self.contest = create_contest_in_classroom(
             name="Locked Contest",
             owner=self.owner,
             status="published",
@@ -426,6 +427,7 @@ class ProblemContestLockGuardTests(TestCase):
             created_by=self.owner,
         )
         bind_problem_to_contest(self.contest, self.problem, order=0, score=10)
+        enrol_candidates(self.contest, self.student)
         ContestParticipant.objects.create(
             contest=self.contest,
             user=self.student,
@@ -697,13 +699,14 @@ class ProblemTestRunContestAccessTests(TestCase):
         )
 
         now = timezone.now()
-        self.active_contest = Contest.objects.create(
+        self.active_contest = create_contest_in_classroom(
             name='Active', owner=self.teacher,
             start_time=now - timedelta(hours=1),
             end_time=now + timedelta(hours=2),
             status='published',
         )
         bind_problem_to_contest(self.active_contest, self.problem)
+        enrol_candidates(self.active_contest, self.student)
         ContestParticipant.objects.create(
             contest=self.active_contest, user=self.student,
             exam_status=ExamStatus.IN_PROGRESS, started_at=now,
@@ -752,13 +755,14 @@ class ProblemTestRunContestAccessTests(TestCase):
         User = get_user_model()
         future_owner = self.teacher
         now = timezone.now()
-        future_contest = Contest.objects.create(
+        future_contest = create_contest_in_classroom(
             name='Future', owner=future_owner,
             start_time=now + timedelta(hours=1),
             end_time=now + timedelta(hours=3),
             status='published',
         )
         bind_problem_to_contest(future_contest, self.problem)
+        enrol_candidates(future_contest, self.student)
         ContestParticipant.objects.create(
             contest=future_contest, user=self.student,
             exam_status=ExamStatus.NOT_STARTED,

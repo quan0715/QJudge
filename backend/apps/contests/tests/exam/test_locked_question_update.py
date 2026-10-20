@@ -17,6 +17,7 @@ from apps.contests.models import (
 from apps.contests.services.exam_scoring import ExamScoringService
 from apps.contests.services.locked_question_update import apply_locked_question_update
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 @pytest.fixture
@@ -33,7 +34,7 @@ def locked_exam():
         password="password",
         role="student",
     )
-    contest = Contest.objects.create(
+    contest = create_contest_in_classroom(
         name="Locked grading exam",
         owner=teacher,
         contest_type="paper_exam",
@@ -42,6 +43,7 @@ def locked_exam():
         end_time=timezone.now() + timedelta(hours=1),
         results_published=True,
     )
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,

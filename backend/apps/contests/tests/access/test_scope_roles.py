@@ -100,6 +100,8 @@ def contest(owner: User, co_owner: User) -> Contest:
 
 @pytest.fixture
 def registered_participant(contest: Contest, participant_user: User) -> ContestParticipant:
+    classroom = contest.classroom_bindings.get().classroom
+    ClassroomMember.objects.create(classroom=classroom, user=participant_user, role="student")
     return ContestParticipant.objects.create(
         contest=contest,
         user=participant_user,
@@ -206,7 +208,7 @@ def test_lifecycle_owner_roles_contents() -> None:
 
 
 @pytest.mark.django_db
-def test_classroom_bound_contest_uses_classroom_scope_by_default(owner: User) -> None:
+def test_classroom_bound_contest_uses_only_classroom_scope(owner: User) -> None:
     legacy_contest_owner = User.objects.create_user(
         username="legacy_contest_owner",
         email="legacy_contest_owner@example.com",
@@ -236,9 +238,9 @@ def test_classroom_bound_contest_uses_classroom_scope_by_default(owner: User) ->
 
     assert get_contest_scope_role(owner, contest) == "owner"
     assert get_contest_scope_role(classroom_ta, contest) == "co_owner"
-    # Contest creator keeps owner scope even when not a classroom member (merge w/ classroom ACL).
-    assert get_contest_scope_role(legacy_contest_owner, contest) == "owner"
-    assert can_manage_contest(legacy_contest_owner, contest) is True
+    # The contest creator has no role outside the classroom.
+    assert get_contest_scope_role(legacy_contest_owner, contest) == "outsider"
+    assert can_manage_contest(legacy_contest_owner, contest) is False
     assert can_manage_contest(classroom_ta, contest) is True
 
 

@@ -6,11 +6,11 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.contests.models import Contest, ContestParticipant, ExamIntegrityRun
 from apps.contests.serializers import ContestCreateUpdateSerializer
 from apps.contests.services.anticheat_config import build_integrity_policy_snapshot
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 class ContestAntiCheatConfigApiTests(APITestCase):
@@ -28,7 +28,7 @@ class ContestAntiCheatConfigApiTests(APITestCase):
             password="pass",
             role="student",
         )
-        self.contest = Contest.objects.create(
+        self.contest = create_contest_in_classroom(
             name="Config Contest",
             start_time=now - timedelta(hours=1),
             end_time=now + timedelta(hours=1),
@@ -38,6 +38,7 @@ class ContestAntiCheatConfigApiTests(APITestCase):
             allow_multiple_joins=True,
             contest_type="paper_exam",
         )
+        enrol_candidates(self.contest, self.student)
         ContestParticipant.objects.create(contest=self.contest, user=self.student)
 
     def test_participant_can_fetch_anticheat_config(self):
@@ -254,25 +255,6 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         )
         self.assertNotIn("effective", snapshot)
         json.dumps(snapshot)
-
-    def test_contest_participant_can_fetch_anticheat_config_when_classroom_bound(self):
-        classroom = Classroom.objects.create(
-            name="Config Room",
-            owner=self.owner,
-            invite_code="CFGROOM1",
-        )
-        ClassroomMember.objects.create(
-            classroom=classroom,
-            user=self.student,
-            role="student",
-        )
-        ClassroomContest.objects.create(classroom=classroom, contest=self.contest)
-
-        self.client.force_authenticate(user=self.student)
-        resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
-
-        self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertIn("webcam_required", resp.data)
 
     def test_anonymous_request_is_rejected(self):
         resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")

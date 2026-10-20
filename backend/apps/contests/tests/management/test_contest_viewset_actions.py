@@ -12,13 +12,12 @@ from rest_framework.test import APIClient
 from apps.contests.models import Contest, ContestParticipant, ContestActivity, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
 from apps.question_bank.models import ContestQuestionBinding
-from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.contests.views import contest as contest_view_module
 from apps.problems.models import CodingProblem
 from apps.question_bank.models import QuestionAsset, QuestionBank, QuestionBankMembership
 from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.users.models import User, UserProfile
-from apps.contests.tests.classroom_candidates import enrol_candidates
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 def _create_problem(title: str, owner: User, **kwargs) -> CodingProblem:
@@ -115,7 +114,7 @@ def other_teacher() -> User:
 @pytest.fixture
 def contest(owner: User) -> Contest:
     now = timezone.now()
-    return Contest.objects.create(
+    return create_contest_in_classroom(
         name="Contest View Actions",
         owner=owner,
         status="published",
@@ -174,6 +173,7 @@ def test_retrieve_does_not_submit_when_contest_ended(
     contest.end_time = timezone.now() - timedelta(minutes=1)
     contest.save(update_fields=["end_time"])
 
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -215,7 +215,7 @@ def test_toggle_status_rejects_publish_without_schedule(
     api_client: APIClient,
     owner: User,
 ) -> None:
-    contest = Contest.objects.create(
+    contest = create_contest_in_classroom(
         name="Draft Without Schedule",
         owner=owner,
         status="draft",
@@ -234,11 +234,7 @@ def test_destroy_requires_owner_even_for_classroom_ta(
     contest: Contest,
     other_teacher: User,
 ) -> None:
-    classroom = Classroom.objects.create(
-        name="Destroy Room", owner=contest.owner, invite_code=uuid4().hex[:8].upper()
-    )
-    ClassroomMember.objects.create(classroom=classroom, user=other_teacher, role="ta")
-    ClassroomContest.objects.create(classroom=classroom, contest=contest)
+    enrol_candidates(contest, other_teacher, role="ta")
     api_client.force_authenticate(user=other_teacher)
 
     response = api_client.delete(f"/api/v1/contests/{contest.id}/")
@@ -269,6 +265,7 @@ def test_owner_can_list_participants(
     student: User,
 ) -> None:
     enrol_candidates(contest, student)
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student)
     UserProfile.objects.update_or_create(
         user=student,
@@ -293,6 +290,7 @@ def test_unlock_and_update_and_reopen_participant(
     contest: Contest,
     student: User,
 ) -> None:
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -370,6 +368,7 @@ def test_reopen_exam_rejects_non_submitted_participant(
     contest: Contest,
     student: User,
 ) -> None:
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -385,59 +384,6 @@ def test_reopen_exam_rejects_non_submitted_participant(
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data["success"] is False
-
-
-@pytest.mark.django_db
-def test_participant_roster_mutation_returns_binding_gate_when_unbound(
-    api_client: APIClient,
-    owner: User,
-    contest: Contest,
-    student: User,
-) -> None:
-    api_client.force_authenticate(user=owner)
-
-    missing_username = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_participant/",
-        {},
-        format="json",
-    )
-    assert missing_username.status_code == status.HTTP_400_BAD_REQUEST
-    assert missing_username.data["error"]["code"] == "contest_requires_classroom_binding"
-
-    user_not_found = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_participant/",
-        {"username": "missing-user"},
-        format="json",
-    )
-    assert user_not_found.status_code == status.HTTP_400_BAD_REQUEST
-    assert user_not_found.data["error"]["code"] == "contest_requires_classroom_binding"
-
-    added = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_participant/",
-        {"username": student.username},
-        format="json",
-    )
-    assert added.status_code == status.HTTP_400_BAD_REQUEST
-    assert added.data["error"]["code"] == "contest_requires_classroom_binding"
-    assert not ContestParticipant.objects.filter(contest=contest, user=student).exists()
-
-    missing_user_id = api_client.post(
-        f"/api/v1/contests/{contest.id}/remove_participant/",
-        {},
-        format="json",
-    )
-    assert missing_user_id.status_code == status.HTTP_400_BAD_REQUEST
-    assert missing_user_id.data["error"]["code"] == "contest_requires_classroom_binding"
-
-    ContestParticipant.objects.create(contest=contest, user=student)
-    removed = api_client.post(
-        f"/api/v1/contests/{contest.id}/remove_participant/",
-        {"user_id": student.id},
-        format="json",
-    )
-    assert removed.status_code == status.HTTP_400_BAD_REQUEST
-    assert removed.data["error"]["code"] == "contest_requires_classroom_binding"
-    assert ContestParticipant.objects.filter(contest=contest, user=student).exists()
 
 
 @pytest.mark.django_db
@@ -829,6 +775,7 @@ def test_contest_question_mutations_blocked_when_question_edit_locked(
     contest.save(update_fields=["contest_type"])
     problem = _create_problem("Locked Contest Problem", owner)
     binding = bind_problem_to_contest(contest, problem, order=0, score=20)
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -920,6 +867,7 @@ def test_contest_detail_computes_question_edit_lock_from_attempt(
 ) -> None:
     contest.contest_type = "paper_exam"
     contest.save(update_fields=["contest_type"])
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -1052,6 +1000,7 @@ def test_participant_report_error_paths(
     )
     assert not_participant.status_code == status.HTTP_404_NOT_FOUND
 
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.SUBMITTED)
 
     def _raise_report(*args, **kwargs):
@@ -1072,6 +1021,7 @@ def test_my_report_returns_500_when_report_generation_fails(
     student: User,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.SUBMITTED)
 
     def _raise_report(*args, **kwargs):
@@ -1098,11 +1048,7 @@ def co_owner_user(contest: Contest) -> User:
         password="pass",
         role="teacher",
     )
-    classroom = Classroom.objects.create(
-        name="Lifecycle Room", owner=contest.owner, invite_code=uuid4().hex[:8].upper()
-    )
-    ClassroomMember.objects.create(classroom=classroom, user=u, role="ta")
-    ClassroomContest.objects.create(classroom=classroom, contest=contest)
+    enrol_candidates(contest, u, role="ta")
     return u
 
 
@@ -1161,13 +1107,6 @@ def test_classroom_bound_contest_blocks_participant_roster_mutation_endpoints(
     owner: User,
     other_teacher: User,
 ) -> None:
-    classroom = Classroom.objects.create(
-        name="Bound Classroom",
-        description="",
-        owner=owner,
-        invite_code=uuid4().hex[:8].upper(),
-    )
-    ClassroomContest.objects.create(classroom=classroom, contest=contest)
     api_client.force_authenticate(user=owner)
 
     add_response = api_client.post(
@@ -1178,6 +1117,7 @@ def test_classroom_bound_contest_blocks_participant_roster_mutation_endpoints(
     assert add_response.status_code == status.HTTP_403_FORBIDDEN
     assert add_response.data["error"]["code"] == "contest_managed_by_classroom"
 
+    enrol_candidates(contest, other_teacher)
     participant = ContestParticipant.objects.create(contest=contest, user=other_teacher)
     remove_response = api_client.post(
         f"/api/v1/contests/{contest.id}/remove_participant/",
@@ -1195,18 +1135,7 @@ def test_contest_detail_includes_classroom_binding_flags(
     owner: User,
 ) -> None:
     api_client.force_authenticate(user=owner)
-    standalone_response = api_client.get(f"/api/v1/contests/{contest.id}/")
-    assert standalone_response.status_code == status.HTTP_200_OK
-    assert standalone_response.data["is_classroom_bound"] is False
-    assert standalone_response.data["bound_classroom_id"] is None
-
-    classroom = Classroom.objects.create(
-        name="Bound Classroom Flags",
-        description="",
-        owner=owner,
-        invite_code=uuid4().hex[:8].upper(),
-    )
-    ClassroomContest.objects.create(classroom=classroom, contest=contest)
+    classroom = contest.classroom_bindings.get().classroom
 
     bound_response = api_client.get(f"/api/v1/contests/{contest.id}/")
     assert bound_response.status_code == status.HTTP_200_OK
@@ -1219,64 +1148,6 @@ def test_contest_detail_includes_classroom_binding_flags(
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-def test_remove_participant_blocked_for_unbound_contest(
-    api_client: APIClient,
-    owner: User,
-    contest: Contest,
-    student: User,
-) -> None:
-    """Roster removal is gated before legacy evidence cleanup concerns."""
-    api_client.force_authenticate(user=owner)
-
-    participant = ContestParticipant.objects.create(
-        contest=contest,
-        user=student,
-        exam_status=ExamStatus.SUBMITTED,
-        started_at=timezone.now() - timedelta(minutes=30),
-        left_at=timezone.now(),
-    )
-
-    resp = api_client.post(
-        f"/api/v1/contests/{contest.id}/remove_participant/",
-        {"user_id": student.id},
-        format="json",
-    )
-
-    assert resp.status_code == status.HTTP_400_BAD_REQUEST
-    assert resp.data["error"]["code"] == "contest_requires_classroom_binding"
-    assert ContestParticipant.objects.filter(pk=participant.pk).exists()
-
-
-@pytest.mark.django_db
-def test_remove_participant_allowed_without_evidence(
-    api_client: APIClient,
-    owner: User,
-    contest: Contest,
-    student: User,
-) -> None:
-    """Manual roster removal requires classroom binding or is classroom-managed."""
-    api_client.force_authenticate(user=owner)
-
-    ContestParticipant.objects.create(
-        contest=contest,
-        user=student,
-        exam_status=ExamStatus.SUBMITTED,
-        started_at=timezone.now() - timedelta(minutes=30),
-        left_at=timezone.now(),
-    )
-
-    resp = api_client.post(
-        f"/api/v1/contests/{contest.id}/remove_participant/",
-        {"user_id": student.id},
-        format="json",
-    )
-
-    assert resp.status_code == status.HTTP_400_BAD_REQUEST
-    assert resp.data["error"]["code"] == "contest_requires_classroom_binding"
-    assert ContestParticipant.objects.filter(contest=contest, user=student).exists()
-
-
-@pytest.mark.django_db
 def test_overview_metrics_uses_checkpoint_as_primary_online_count(
     api_client: APIClient,
     owner: User,
@@ -1284,6 +1155,7 @@ def test_overview_metrics_uses_checkpoint_as_primary_online_count(
     student: User,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -1320,6 +1192,7 @@ def test_overview_metrics_allows_active_session_without_recent_checkpoint(
     student: User,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(
         contest=contest,
         user=student,

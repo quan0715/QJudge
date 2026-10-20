@@ -10,6 +10,7 @@ from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamAnswer, ExamQuestion
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 def test_appeal_route_exists():
@@ -23,12 +24,14 @@ def case(db):
     student = User.objects.create_user(username='appeal_student', email='appeal_student@example.com')
     other = User.objects.create_user(username='appeal_other', email='appeal_other@example.com')
     outsider = User.objects.create_user(username='appeal_outsider', email='appeal_outsider@example.com', role='teacher')
-    contest = Contest.objects.create(
+    contest = create_contest_in_classroom(
         name='Appeal exam', owner=teacher, contest_type='paper_exam', status='published',
         results_published=True, start_time=timezone.now()-timedelta(hours=2),
         end_time=timezone.now()-timedelta(hours=1),
     )
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(contest=contest, user=student, exam_status='submitted')
+    enrol_candidates(contest, other)
     ContestParticipant.objects.create(contest=contest, user=other, exam_status='submitted')
     question = ExamQuestion.objects.create(contest=contest, question_type='essay', prompt='Explain', score=10, order=0)
     answer = ExamAnswer.objects.create(participant=participant, question=question, answer={'text':'My answer'}, score=6, feedback='Original feedback')
@@ -135,7 +138,7 @@ def test_wrong_contest_ungraded_and_coding_exam_rejected(case):
     case['answer'].score = 6
     case['answer'].save()
     original = case['answer'].participant
-    another = Contest.objects.create(name='Other',owner=case['teacher'],contest_type='paper_exam',status='published',results_published=True,start_time=timezone.now(),end_time=timezone.now()+timedelta(hours=1))
+    another = create_contest_in_classroom(name='Other',owner=case['teacher'],contest_type='paper_exam',status='published',results_published=True,start_time=timezone.now(),end_time=timezone.now()+timedelta(hours=1))
     original.contest = another
     original.save()
     assert api.post(url(case),{'exam_answer':case['answer'].id,'content':'review'},format='json').status_code in [403,404]

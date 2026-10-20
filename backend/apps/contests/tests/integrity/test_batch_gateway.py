@@ -31,6 +31,7 @@ from apps.contests.infrastructure.integrity_worker_client import (
 from apps.contests.services.anti_cheat_session import active_session_key
 from apps.contests.services.integrity_presence import get_last_checkpoint
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 @pytest.fixture
@@ -169,13 +170,14 @@ def participant(db):
         role="student",
     )
     now = timezone.now()
-    contest = Contest.objects.create(
+    contest = create_contest_in_classroom(
         name="Integrity gateway",
         owner=teacher,
         status="published",
         start_time=now - timedelta(hours=1),
         end_time=now + timedelta(hours=1),
     )
+    enrol_candidates(contest, student)
     resolved = ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -203,6 +205,7 @@ def another_participant(participant):
         password="password",
         role="student",
     )
+    enrol_candidates(participant.contest, user)
     return ContestParticipant.objects.create(
         contest=participant.contest,
         user=user,

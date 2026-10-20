@@ -29,35 +29,36 @@ def map_classroom_role_to_contest_scope(classroom_role: str | None) -> str:
     return CLASSROOM_SCOPE_TO_CONTEST_SCOPE.get(classroom_role, 'outsider')
 
 
-_SCOPE_PRECEDENCE = {
-    'platform_admin': 5,
-    'owner': 4,
-    'co_owner': 3,
-    'participant': 2,
-    'outsider': 1,
-    'anonymous': 0,
+#: Actions each scope role may perform. The UI flags below and
+#: ``ContestAccessPolicy`` both read this table.
+BASE_ROLE_PERMISSIONS = {
+    'platform_admin': {
+        'manage_contest_settings', 'manage_contest_lifecycle',
+        'manage_participants', 'manage_problems',
+        'view_scoreboard_full', 'view_report', 'export_report',
+        'submit', 'view_draft', 'view_participants',
+        'manage_clarifications', 'view_all_submissions',
+    },
+    'owner': {
+        'manage_contest_settings', 'manage_contest_lifecycle',
+        'manage_participants', 'manage_problems',
+        'view_scoreboard_full', 'view_report', 'export_report',
+        'submit', 'view_draft', 'view_participants',
+        'manage_clarifications', 'view_all_submissions',
+    },
+    'co_owner': {
+        'manage_contest_settings', 'manage_participants', 'manage_problems',
+        'view_scoreboard_full', 'view_report', 'export_report',
+        'submit', 'view_draft', 'view_participants',
+        'manage_clarifications', 'view_all_submissions',
+    },
+    'participant': {
+        'view_scoreboard_limited', 'submit', 'view_own_report',
+        'create_clarification',
+    },
+    'outsider': set(),
+    'anonymous': set(),
 }
-
-
-def _max_contest_scope(a: str, b: str) -> str:
-    """Return the more privileged of two contest scope roles."""
-    if _SCOPE_PRECEDENCE.get(a, 0) >= _SCOPE_PRECEDENCE.get(b, 0):
-        return a
-    return b
-
-
-def _native_contest_scope(user, contest) -> str:
-    """
-    Scope derived only from the contest record (owner, registration).
-    Used together with classroom-derived scope so binding never strips contest owners.
-    """
-    if contest.owner_id == user.id:
-        return 'owner'
-    from .models import ContestParticipant  # local import avoids cycles
-
-    if ContestParticipant.objects.filter(contest=contest, user=user).exists():
-        return 'participant'
-    return 'outsider'
 
 
 def _get_primary_classroom_binding(contest):
@@ -70,14 +71,16 @@ def _get_primary_classroom_binding(contest):
 
 def get_contest_scope_role(user, contest) -> str:
     """
-    Return the canonical scope role for *user* within *contest*.
+    Return the scope role for *user* within *contest*.
 
-    Roles (most → least privileged):
+    Every contest belongs to a classroom, and the user's role in its primary
+    (earliest) bound classroom is the only authority:
+
       platform_admin  – system staff / superuser
-      owner           – contest creator
-      co_owner        – classroom manager or TA
-      participant     – registered contest participant
-      outsider        – authenticated but not registered
+      owner           – classroom owner
+      co_owner        – classroom TA
+      participant     – classroom student
+      outsider        – authenticated, not in the classroom
       anonymous       – unauthenticated
     """
     if not user or not user.is_authenticated:
@@ -85,17 +88,13 @@ def get_contest_scope_role(user, contest) -> str:
     if user.is_staff or user.is_superuser:
         return 'platform_admin'
 
-    native = _native_contest_scope(user, contest)
-
     binding = _get_primary_classroom_binding(contest)
-    if binding is not None:
-        from apps.classrooms.permissions import get_user_role_in_classroom
+    if binding is None:
+        return 'outsider'
 
-        classroom_role = get_user_role_in_classroom(user, binding.classroom)
-        classroom_scope = map_classroom_role_to_contest_scope(classroom_role)
-        return _max_contest_scope(classroom_scope, native)
+    from apps.classrooms.permissions import get_user_role_in_classroom
 
-    return native
+    return map_classroom_role_to_contest_scope(get_user_role_in_classroom(user, binding.classroom))
 
 
 def can_manage_contest(user, contest) -> bool:
@@ -104,56 +103,22 @@ def can_manage_contest(user, contest) -> bool:
 
 
 def get_contest_permissions(user, contest):
-    """
-    Calculate all permissions for a user in a contest.
-    
-    Returns a dict with boolean flags for various permissions.
-    """
-    role = get_contest_scope_role(user, contest)
-    
-    # Platform admin and owner have full permissions.
-    if role in ('platform_admin', 'owner'):
-        return {
-            'can_switch_view': True,
-            'can_edit_contest': True,
-            'can_toggle_status': True,
-            'can_delete_contest': True,
-            'can_publish_problems': True,
-            'can_view_all_submissions': True,
-            'can_view_full_scoreboard': True,
-            'can_manage_clarifications': True,
-        }
-
-    # Co-owner can manage content but not lifecycle.
-    if role == 'co_owner':
-        return {
-            'can_switch_view': True,
-            'can_edit_contest': True,
-            'can_toggle_status': False,
-            'can_delete_contest': False,
-            'can_publish_problems': True,
-            'can_view_all_submissions': True,
-            'can_view_full_scoreboard': True,
-            'can_manage_clarifications': True,
-        }
-
-    # Participant, outsider, and anonymous permissions are more restricted.
-    # Scoreboard visibility depends on contest settings and status
+    """Return the contest UI permission flags for *user*."""
+    granted = BASE_ROLE_PERMISSIONS[get_contest_scope_role(user, contest)]
     has_ended = bool(contest.end_time and timezone.now() > contest.end_time)
-    can_view_scoreboard = (
-        contest.scoreboard_visible_during_contest or
-        has_ended
-    )
-
     return {
-        'can_switch_view': False,
-        'can_edit_contest': False,
-        'can_toggle_status': False,
-        'can_delete_contest': False,
-        'can_publish_problems': False,
-        'can_view_all_submissions': False,
-        'can_view_full_scoreboard': can_view_scoreboard,
-        'can_manage_clarifications': False,
+        'can_switch_view': 'manage_problems' in granted,
+        'can_edit_contest': 'manage_contest_settings' in granted,
+        'can_toggle_status': 'manage_contest_lifecycle' in granted,
+        'can_delete_contest': 'manage_contest_lifecycle' in granted,
+        'can_publish_problems': 'manage_problems' in granted,
+        'can_view_all_submissions': 'view_all_submissions' in granted,
+        'can_view_full_scoreboard': (
+            'view_scoreboard_full' in granted
+            or contest.scoreboard_visible_during_contest
+            or has_ended
+        ),
+        'can_manage_clarifications': 'manage_clarifications' in granted,
     }
 
 
