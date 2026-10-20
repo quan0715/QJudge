@@ -577,7 +577,6 @@ export default function AdminOverviewScreen({
               }}
               resultOverview={
                 <AdminExamResultOverview
-                  contest={contest}
                   dashboard={resultDashboard}
                   loading={resultDashboardLoading}
                   error={resultDashboardError}

@@ -4,7 +4,6 @@ import { ScaleTypes } from "@carbon/charts";
 import "@carbon/charts-react/styles.css";
 import { SkeletonPlaceholder, SkeletonText } from "@carbon/react";
 import { useTranslation } from "react-i18next";
-import type { ContestDetail } from "@/core/entities/contest.entity";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { formatScore } from "@/features/contest/utils/scoreFormat";
 import type { DashboardMockData } from "./contestResultDashboard.mock";
@@ -40,14 +39,12 @@ const isFailingScoreBucket = (label: string) => {
 };
 
 interface AdminExamResultOverviewProps {
-  contest: ContestDetail | null | undefined;
   dashboard: DashboardMockData | null;
   loading: boolean;
   error: string | null;
 }
 
 export default function AdminExamResultOverview({
-  contest,
   dashboard,
   loading,
   error,
@@ -107,10 +104,6 @@ export default function AdminExamResultOverview({
     }),
     [chartTheme, dashboard?.scoreDistribution],
   );
-
-  if (contest?.contestType === "coding") {
-    return null;
-  }
 
   if (loading) {
     return (
