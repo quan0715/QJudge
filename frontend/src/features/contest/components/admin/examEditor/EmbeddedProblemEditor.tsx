@@ -152,7 +152,7 @@ const EmbeddedProblemEditor: React.FC<EmbeddedProblemEditorProps> = ({
     <div ref={editorRef}>
       <MarkdownEditorProvider>
         <FormProvider {...methods}>
-          <ProblemEditProvider problemId={problem.id}>
+          <ProblemEditProvider contestId={contestId} contestProblemId={contestProblemId}>
             <CodingProblemTabbedEditor
               contestProblemId={contestProblemId}
               orderLabel={orderLabel}

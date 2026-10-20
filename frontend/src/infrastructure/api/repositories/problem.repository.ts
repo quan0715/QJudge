@@ -77,17 +77,6 @@ export const createProblem = async (
   return mapProblemDetailDto(responseData);
 };
 
-export const patchProblem = async (
-  id: string,
-  data: Partial<ProblemUpsertPayload>
-): Promise<CodingProblemDetail> => {
-  const responseData = await requestJson<ProblemDetailDto>(
-    httpClient.patch(`${MANAGEMENT_PROBLEMS_BASE}/${id}/?scope=manage`, data),
-    "Failed to patch problem"
-  );
-  return mapProblemDetailDto(responseData);
-};
-
 export const getTags = async (): Promise<Tag[]> => {
   try {
     const data = await requestJson<{ results?: TagDto[]; tags?: TagDto[] } | TagDto[]>(

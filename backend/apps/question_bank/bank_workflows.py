@@ -11,6 +11,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Max, Q
 
 from apps.contests.models import ExamQuestion, ExamQuestionType
+from apps.contests.permissions import can_manage_contest
 from apps.problems.models import CodingProblem
 
 from .models import QuestionBank, QuestionBankMembership
@@ -111,13 +112,12 @@ def _resolve_problem_source_context(problem: CodingProblem) -> tuple[str | None,
 
 
 def _user_may_ingest_coding_problem(*, user, problem: CodingProblem) -> bool:
-    """Allow creator or any contest owner/admin that links this problem in a contest."""
+    """Allow the creator or anyone who manages a contest that links this problem."""
     if getattr(problem, "created_by_id", None) == user.id:
         return True
     from apps.question_bank.models import ContestQuestionBinding
-    return ContestQuestionBinding.objects.filter(coding_problem=problem).filter(
-        Q(contest__owner=user)
-    ).exists()
+    bindings = ContestQuestionBinding.objects.filter(coding_problem=problem).select_related("contest")
+    return any(can_manage_contest(user, binding.contest) for binding in bindings)
 
 
 def upsert_problem_into_bank(problem: CodingProblem, bank: QuestionBank, created_by=None) -> QuestionBankMembership:
@@ -430,12 +430,8 @@ def ingest_question_bank_inbox_items(
                 ingested_question_ids.append(str(membership.id))
                 continue
 
-            source = (
-                ExamQuestion.objects.filter(id=source_id)
-                .filter(Q(contest__owner=user))
-                .first()
-            )
-            if not source:
+            source = ExamQuestion.objects.filter(id=source_id).select_related("contest").first()
+            if not source or not can_manage_contest(user, source.contest):
                 raise ValueError(f"Exam question {source_id} not found")
 
             question_asset = sync_exam_question_question_asset(exam_question=source)
