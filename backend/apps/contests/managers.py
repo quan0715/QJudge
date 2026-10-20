@@ -9,7 +9,8 @@ from django.db.models import Count, Q
 User = get_user_model()
 
 
-def _classroom_manager_filter(user) -> Q:
+def classroom_manager_filter(user) -> Q:
+    """Contests whose bound classroom *user* owns or assists as a TA."""
     return Q(classroom_bindings__classroom__owner=user) | Q(
         classroom_bindings__classroom__memberships__user=user,
         classroom_bindings__classroom__memberships__role="ta",
@@ -26,7 +27,7 @@ class ContestQuerySet(models.QuerySet):
                 return self.none()
             if user.is_staff or user.is_superuser:
                 return self
-            return self.filter(_classroom_manager_filter(user)).distinct()
+            return self.filter(classroom_manager_filter(user)).distinct()
 
         if scope == "participated":
             if not user or not user.is_authenticated:
@@ -37,7 +38,7 @@ class ContestQuerySet(models.QuerySet):
             )
             queryset = self.filter(registrations__user=user).filter(classroom_relation_filter)
             if not (user.is_staff or user.is_superuser):
-                queryset = queryset.filter(~Q(status="draft") | _classroom_manager_filter(user))
+                queryset = queryset.filter(~Q(status="draft") | classroom_manager_filter(user))
             return queryset.distinct()
 
         queryset = self.filter(status="published")

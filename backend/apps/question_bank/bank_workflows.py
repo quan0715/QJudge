@@ -10,7 +10,8 @@ from uuid import UUID
 from django.db import IntegrityError, transaction
 from django.db.models import Max, Q
 
-from apps.contests.models import ExamQuestion, ExamQuestionType
+from apps.contests.managers import classroom_manager_filter
+from apps.contests.models import Contest, ExamQuestion, ExamQuestionType
 from apps.contests.permissions import can_manage_contest
 from apps.problems.models import CodingProblem
 
@@ -278,6 +279,10 @@ def _resolve_effective_existing_membership(*, queryset, user) -> QuestionBankMem
     return queryset.filter(bank__owner=user, bank__is_archived=False).order_by("-updated_at", "-id").first()
 
 
+def _contests_managed_in_classroom(user):
+    return Contest.objects.filter(classroom_manager_filter(user)).values("id")
+
+
 def list_question_bank_inbox(user, category: str | None = None) -> dict[str, list[dict[str, Any]]]:
     result: dict[str, list[dict[str, Any]]] = {
         "coding": [],
@@ -298,8 +303,7 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
         )
         managed_problem_ids = ContestQuestionBinding.objects.filter(
             coding_problem__isnull=False,
-        ).filter(
-            Q(contest__owner=user)
+            contest__in=_contests_managed_in_classroom(user),
         ).values_list("coding_problem_id", flat=True)
         coding_rows = (
             CodingProblem.objects.filter(Q(created_by=user) | Q(id__in=managed_problem_ids))
@@ -330,7 +334,7 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
             source_type="exam_question",
         )
         exam_rows = (
-            ExamQuestion.objects.filter(Q(contest__owner=user))
+            ExamQuestion.objects.filter(contest__in=_contests_managed_in_classroom(user))
             .filter(source_bank_id__isnull=True)
             .exclude(id__in=synced)
             .select_related("contest")

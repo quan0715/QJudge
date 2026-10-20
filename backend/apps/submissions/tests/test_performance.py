@@ -26,7 +26,8 @@ class SubmissionAPIPerformanceTestCase(TestCase):
             username='admin',
             email='admin@test.com',
             password='password123',
-            role='admin'
+            role='admin',
+            is_staff=True,
         )
         cls.student_user = User.objects.create_user(
             username='student',

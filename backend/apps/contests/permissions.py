@@ -156,18 +156,3 @@ class IsContestLifecycleOwner(permissions.BasePermission):
         if contest is None:
             return False
         return get_contest_scope_role(request.user, contest) in LIFECYCLE_OWNER_ROLES
-
-
-class IsTeacherOrAdmin(permissions.BasePermission):
-    """
-    Permission class: only platform teachers or system admins can access.
-    Used for platform-level (non-contest-scoped) endpoints.
-    """
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        return (
-            request.user.is_staff
-            or request.user.is_superuser
-            or getattr(request.user, 'role', None) == 'teacher'
-        )

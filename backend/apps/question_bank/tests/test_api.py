@@ -996,6 +996,18 @@ class TestInboxIngestForClassroomManagers:
         exam_question.refresh_from_db()
         assert QuestionBankMembership.objects.filter(bank=bank, question_asset=exam_question.question_asset).exists()
 
+    def test_classroom_ta_inbox_lists_managed_contest_sources(
+        self, api_client: APIClient, classroom_contests, classroom_ta: User
+    ):
+        _, problem, exam_question = classroom_contests
+        api_client.force_authenticate(user=classroom_ta)
+
+        resp = api_client.get("/api/v1/question-banks/inbox/")
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert [item["source_id"] for item in resp.data["coding"]] == [str(problem.id)]
+        assert [item["source_id"] for item in resp.data["exam"]] == [str(exam_question.id)]
+
     def test_teacher_outside_classroom_cannot_ingest_contest_sources(
         self, api_client: APIClient, classroom_contests
     ):
