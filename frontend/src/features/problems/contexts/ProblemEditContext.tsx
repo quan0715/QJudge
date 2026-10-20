@@ -35,8 +35,6 @@ export interface SectionValidation {
  * ProblemEditContext value
  */
 export interface ProblemEditContextValue {
-  /** Problem ID being edited */
-  problemId: string;
   /** Auto-save functions and state */
   autoSave: UseAutoSaveReturn;
   /** Get validation state for a section */
@@ -56,7 +54,8 @@ const ProblemEditContext = createContext<ProblemEditContextValue | null>(null);
  */
 interface ProblemEditProviderProps {
   children: ReactNode;
-  problemId: string;
+  contestId: string;
+  contestProblemId: string;
 }
 
 /**
@@ -103,7 +102,8 @@ function countSectionErrors(
  */
 export const ProblemEditProvider: React.FC<ProblemEditProviderProps> = ({
   children,
-  problemId,
+  contestId,
+  contestProblemId,
 }) => {
   // Get form context
   const {
@@ -114,7 +114,8 @@ export const ProblemEditProvider: React.FC<ProblemEditProviderProps> = ({
 
   // Auto-save hook - pass getFormValues for translation merging
   const autoSave = useAutoSave({
-    problemId,
+    contestId,
+    contestProblemId,
     debounceMs: 1500,
     getFormValues: () => getValues() as unknown as Record<string, unknown>,
   });
@@ -208,7 +209,6 @@ export const ProblemEditProvider: React.FC<ProblemEditProviderProps> = ({
 
   const value = useMemo(
     (): ProblemEditContextValue => ({
-      problemId,
       autoSave,
       getSectionValidation,
       handleFieldChange,
@@ -216,7 +216,6 @@ export const ProblemEditProvider: React.FC<ProblemEditProviderProps> = ({
       getFieldSaveState,
     }),
     [
-      problemId,
       autoSave,
       getSectionValidation,
       handleFieldChange,

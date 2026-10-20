@@ -1,21 +1,23 @@
 import { useFieldAutoSave } from "@/shared/hooks/useFieldAutoSave";
 import type { FieldAutoSaveOptions } from "@/shared/hooks/useFieldAutoSave";
-import { patchProblem } from "@/infrastructure/api/repositories/problem.repository";
+import { patchContestProblem } from "@/infrastructure/api/repositories/contestProblems.repository";
 import type { ProblemUpsertPayload } from "@/core/entities/problem.entity";
 import { LANGUAGE_OPTIONS } from "@/features/problems/constants/codeTemplates";
 
 export type { FieldSaveStatus, FieldSaveState, GlobalSaveStatus,
   FieldAutoSaveReturn as UseAutoSaveReturn } from "@/shared/hooks/useFieldAutoSave";
 export interface UseAutoSaveOptions extends Omit<FieldAutoSaveOptions, "target" | "write"> {
-  problemId: string;
+  contestId: string;
+  contestProblemId: string;
   getFormValues?: () => Record<string, unknown>;
 }
 
-export function useAutoSave({ problemId, getFormValues, ...options }: UseAutoSaveOptions) {
+export function useAutoSave({ contestId, contestProblemId, getFormValues, ...options }: UseAutoSaveOptions) {
   return useFieldAutoSave({
     ...options,
-    target: problemId,
-    write: (field, value) => patchProblem(problemId, buildPatchPayload(field, value, getFormValues?.())),
+    target: `${contestId}/${contestProblemId}`,
+    write: (field, value) =>
+      patchContestProblem(contestId, contestProblemId, buildPatchPayload(field, value, getFormValues?.())),
   });
 }
 

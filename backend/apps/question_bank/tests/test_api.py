@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from PIL import Image
 
+from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.contests.models import Contest, ExamQuestion
 from apps.contests.tests import bind_problem_to_contest
 from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
@@ -914,6 +915,119 @@ class TestQuestionBankAPI:
         assert not QuestionBankMembership.objects.filter(
             bank=target_bank,
         ).exists()
+
+
+@pytest.fixture
+def classroom_contests(teacher: User):
+    """A coding and a paper-exam contest owned by ``teacher`` and bound to one classroom."""
+    classroom = Classroom.objects.create(
+        name="Ingest Classroom",
+        owner=teacher,
+        invite_code=uuid.uuid4().hex[:8].upper(),
+    )
+    coding_contest = Contest.objects.create(name="Ingest Coding", owner=teacher, contest_type="coding")
+    exam_contest = Contest.objects.create(name="Ingest Exam", owner=teacher, contest_type="paper_exam")
+    ClassroomContest.objects.create(classroom=classroom, contest=coding_contest)
+    ClassroomContest.objects.create(classroom=classroom, contest=exam_contest)
+
+    problem = CodingProblem.objects.create(slug="classroom-ingest", created_by=teacher)
+    bind_problem_to_contest(coding_contest, problem, order=0)
+    exam_question = ExamQuestion.objects.create(
+        contest=exam_contest,
+        question_type="single_choice",
+        prompt="Q?",
+        options=["A", "B"],
+        correct_answer=0,
+        score=1,
+        order=0,
+    )
+    return classroom, problem, exam_question
+
+
+def _ingest(api_client: APIClient, *, user: User, category: str, item: dict):
+    bank = QuestionBank.objects.create(owner=user, name=f"{user.username} {category}", category=category)
+    api_client.force_authenticate(user=user)
+    resp = api_client.post(
+        "/api/v1/question-banks/inbox/ingest/",
+        {"target_bank_id": str(bank.uuid), "items": [item]},
+        format="json",
+    )
+    return bank, resp
+
+
+@pytest.mark.django_db
+class TestInboxIngestForClassroomManagers:
+    @pytest.fixture
+    def classroom_ta(self, classroom_contests) -> User:
+        classroom, _, _ = classroom_contests
+        ta = User.objects.create_user(
+            username="ta_qb",
+            email="ta_qb@example.com",
+            password="pass123",
+            role="teacher",
+        )
+        ClassroomMember.objects.create(classroom=classroom, user=ta, role="ta")
+        return ta
+
+    def test_classroom_ta_can_ingest_contest_coding_problem(
+        self, api_client: APIClient, classroom_contests, classroom_ta: User
+    ):
+        _, problem, _ = classroom_contests
+
+        bank, resp = _ingest(
+            api_client,
+            user=classroom_ta,
+            category=QuestionBank.Category.CODING,
+            item={"source_type": "problem", "source_id": str(problem.id)},
+        )
+
+        assert resp.status_code == status.HTTP_200_OK
+        problem.refresh_from_db()
+        assert QuestionBankMembership.objects.filter(bank=bank, question_asset=problem.question_asset).exists()
+
+    def test_classroom_ta_can_ingest_contest_exam_question(
+        self, api_client: APIClient, classroom_contests, classroom_ta: User
+    ):
+        _, _, exam_question = classroom_contests
+
+        bank, resp = _ingest(
+            api_client,
+            user=classroom_ta,
+            category=QuestionBank.Category.EXAM,
+            item={"source_type": "exam_question", "source_id": str(exam_question.id)},
+        )
+
+        assert resp.status_code == status.HTTP_200_OK
+        exam_question.refresh_from_db()
+        assert QuestionBankMembership.objects.filter(bank=bank, question_asset=exam_question.question_asset).exists()
+
+    def test_teacher_outside_classroom_cannot_ingest_contest_sources(
+        self, api_client: APIClient, classroom_contests
+    ):
+        _, problem, exam_question = classroom_contests
+        outsider = User.objects.create_user(
+            username="outsider_qb",
+            email="outsider_qb@example.com",
+            password="pass123",
+            role="teacher",
+        )
+
+        coding_bank, coding_resp = _ingest(
+            api_client,
+            user=outsider,
+            category=QuestionBank.Category.CODING,
+            item={"source_type": "problem", "source_id": str(problem.id)},
+        )
+        exam_bank, exam_resp = _ingest(
+            api_client,
+            user=outsider,
+            category=QuestionBank.Category.EXAM,
+            item={"source_type": "exam_question", "source_id": str(exam_question.id)},
+        )
+
+        assert coding_resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert exam_resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert not QuestionBankMembership.objects.filter(bank__in=[coding_bank, exam_bank]).exists()
 
 
 # ---------------------------------------------------------------------------
