@@ -127,18 +127,16 @@
   "editCover": "カバー画像を編集",
   "editMember": "メンバーを編集",
   "gradebook": {
+    "average": "平均",
     "colDisplayName": "氏名",
     "colUsername": "アカウント",
     "empty": "学生または試験がまだありません",
     "export": "CSV をエクスポート",
     "exportFailed": "エクスポートに失敗しました",
     "loadFailed": "成績一覧を読み込めません",
-    "maxScore": "満点 {{score}}",
     "notAttempted": "未参加",
     "summary": "学生 {{students}} 名 · 試験 {{contests}} 件",
-    "title": "成績一覧",
-    "typeCoding": "プログラミング",
-    "typePaperExam": "ペーパー試験"
+    "title": "成績一覧"
   },
   "icon": "アイコン",
   "inviteLink": {

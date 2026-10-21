@@ -66,30 +66,14 @@ $sticky-min-width: 42rem;
   min-width: $contest-width;
 }
 
-.contestHeader {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: layout.$spacing-02;
-}
-
-.typeTag {
-  margin: 0;
-}
-
 .contestName {
-  @include type.type-style("heading-compact-01");
+  display: block;
   overflow-wrap: anywhere;
   text-align: end;
 }
 
-.contestMeta {
-  @include type.type-style("label-01");
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: layout.$spacing-02;
-  color: var(--cds-text-secondary);
+.averageRow {
+  @include type.type-style("heading-compact-01");
 }
 
 // Carbon aligns table cells to the start, so the cell content owns the alignment.

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ClassroomGradebook } from "@/core/entities/classroom.entity";
 import { GradebookTable } from "./GradebookTable";
@@ -62,7 +62,7 @@ const gradebook: ClassroomGradebook = {
 };
 
 describe("GradebookTable", () => {
-  it("renders contest headers with type tag and max score", () => {
+  it("renders only the contest name in contest headers", () => {
     render(
       <GradebookTable
         gradebook={gradebook}
@@ -71,16 +71,31 @@ describe("GradebookTable", () => {
       />,
     );
 
-    expect(screen.getByText("程式")).toBeInTheDocument();
-    expect(screen.getByText("考卷")).toBeInTheDocument();
-    expect(screen.getByText("Lab 1")).toBeInTheDocument();
-    expect(screen.getByText("滿分 300.00")).toBeInTheDocument();
-    expect(screen.getByText("滿分 120.00")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Lab 1" })).toHaveTextContent(/^Lab 1$/);
+    expect(screen.getByRole("columnheader", { name: "期中考" })).toHaveTextContent(/^期中考$/);
+    expect(screen.queryByText("程式")).not.toBeInTheDocument();
+    expect(screen.queryByText(/滿分/)).not.toBeInTheDocument();
+  });
 
-    const midtermHeader = screen.getByRole("columnheader", { name: /期中考/ });
-    expect(midtermHeader).toHaveTextContent("滿分 120.00");
-    expect(midtermHeader.textContent).not.toContain("Invalid");
-    expect(midtermHeader.textContent).not.toContain("·");
+  it("shows each contest's average over attempted students in the last row", () => {
+    render(
+      <GradebookTable
+        gradebook={{
+          ...gradebook,
+          contests: [
+            ...gradebook.contests,
+            { id: "contest-empty", name: "Lab 2", contestType: "coding", startTime: null, maxScore: 200 },
+          ],
+        }}
+        onExport={vi.fn()}
+        exporting={false}
+      />,
+    );
+
+    const averageRow = screen.getByText("平均").closest("tr") as HTMLElement;
+    const cells = within(averageRow).getAllByRole("cell");
+    // Lab 1: (300 + 210) / 2; 期中考: only 96 attempted; Lab 2: nobody attempted.
+    expect(cells.map((cell) => cell.textContent)).toEqual(["平均", "", "255.00", "96.00", "—"]);
   });
 
   it("renders the account and name columns with the student identity", () => {
@@ -157,10 +172,12 @@ describe("GradebookTable", () => {
       />,
     );
 
-    expect(screen.getByText("300.00")).toBeInTheDocument();
-    expect(screen.getByText("96.00")).toBeInTheDocument();
-    expect(screen.getByText("210.00")).toBeInTheDocument();
-    expect(screen.getByLabelText("未參加")).toHaveTextContent("—");
+    const firstRow = screen.getByText("110550001").closest("tr") as HTMLElement;
+    const secondRow = screen.getByText("110550002").closest("tr") as HTMLElement;
+    expect(within(firstRow).getByText("300.00")).toBeInTheDocument();
+    expect(within(firstRow).getByText("96.00")).toBeInTheDocument();
+    expect(within(secondRow).getByText("210.00")).toBeInTheDocument();
+    expect(within(secondRow).getByLabelText("未參加")).toHaveTextContent("—");
   });
 
   it("calls onExport when export clicked", () => {

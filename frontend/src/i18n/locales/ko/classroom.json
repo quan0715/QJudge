@@ -127,18 +127,16 @@
   "editCover": "커버 이미지 편집",
   "editMember": "멤버 편집",
   "gradebook": {
+    "average": "평균",
     "colDisplayName": "이름",
     "colUsername": "계정",
     "empty": "학생 또는 시험이 아직 없습니다",
     "export": "CSV 내보내기",
     "exportFailed": "내보내기에 실패했습니다",
     "loadFailed": "성적표를 불러올 수 없습니다",
-    "maxScore": "만점 {{score}}",
     "notAttempted": "미참여",
     "summary": "학생 {{students}}명 · 시험 {{contests}}개",
-    "title": "성적표",
-    "typeCoding": "코딩",
-    "typePaperExam": "지필 시험"
+    "title": "성적표"
   },
   "icon": "아이콘",
   "inviteLink": {

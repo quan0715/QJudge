@@ -127,18 +127,16 @@
   "editCover": "編輯封面圖片",
   "editMember": "編輯成員",
   "gradebook": {
+    "average": "平均",
     "colDisplayName": "姓名",
     "colUsername": "帳號",
     "empty": "目前沒有學生或考試",
     "export": "匯出 CSV",
     "exportFailed": "匯出失敗",
     "loadFailed": "無法載入成績總表",
-    "maxScore": "滿分 {{score}}",
     "notAttempted": "未參加",
     "summary": "學生 {{students}} 人 · 考試 {{contests}} 場",
-    "title": "成績總表",
-    "typeCoding": "程式",
-    "typePaperExam": "考卷"
+    "title": "成績總表"
   },
   "icon": "教室圖示",
   "inviteLink": {

@@ -11,14 +11,9 @@ import {
   TableRow,
   TableToolbar,
   TableToolbarContent,
-  Tag,
 } from "@carbon/react";
 import { Download, Report } from "@carbon/icons-react";
-import type {
-  ClassroomGradebook,
-  ClassroomGradebookContest,
-} from "@/core/entities/classroom.entity";
-import { formatDate } from "@/i18n/dateUtils";
+import type { ClassroomGradebook } from "@/core/entities/classroom.entity";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { formatScore } from "@/shared/utils/scoreFormat";
 import styles from "./GradebookTable.module.scss";
@@ -29,40 +24,15 @@ interface GradebookTableProps {
   exporting: boolean;
 }
 
-const ContestColumnHeader: React.FC<{ contest: ClassroomGradebookContest }> = ({
-  contest,
-}) => {
-  const { t } = useTranslation("classroom");
-  const isCoding = contest.contestType === "coding";
-  const dateLabel = formatDate(contest.startTime);
-
-  return (
-    <div className={styles.contestHeader}>
-      <Tag
-        type={isCoding ? "blue" : "green"}
-        size="sm"
-        className={styles.typeTag}
-      >
-        {isCoding
-          ? t("gradebook.typeCoding", "程式")
-          : t("gradebook.typePaperExam", "考卷")}
-      </Tag>
-      <span className={styles.contestName}>{contest.name}</span>
-      <span className={styles.contestMeta}>
-        {dateLabel && (
-          <>
-            <span>{dateLabel}</span>
-            <span aria-hidden="true">·</span>
-          </>
-        )}
-        <span>
-          {t("gradebook.maxScore", "滿分 {{score}}", {
-            score: formatScore(contest.maxScore),
-          })}
-        </span>
-      </span>
-    </div>
-  );
+const averageScore = (
+  gradebook: ClassroomGradebook,
+  contestId: string,
+): number | null => {
+  const scores = gradebook.students
+    .map((student) => student.scores[contestId] ?? null)
+    .filter((score): score is number => score !== null);
+  if (scores.length === 0) return null;
+  return scores.reduce((sum, score) => sum + score, 0) / scores.length;
 };
 
 export const GradebookTable: React.FC<GradebookTableProps> = ({
@@ -73,6 +43,11 @@ export const GradebookTable: React.FC<GradebookTableProps> = ({
   const { t } = useTranslation("classroom");
   const { contests, students } = gradebook;
   const isEmpty = contests.length === 0 || students.length === 0;
+  const notAttempted = (
+    <span role="img" aria-label={t("gradebook.notAttempted", "未參加")}>
+      —
+    </span>
+  );
 
   return (
     <TableContainer
@@ -116,7 +91,7 @@ export const GradebookTable: React.FC<GradebookTableProps> = ({
                 </TableHeader>
                 {contests.map((contest) => (
                   <TableHeader key={contest.id} className={styles.contestColumn}>
-                    <ContestColumnHeader contest={contest} />
+                    <span className={styles.contestName}>{contest.name}</span>
                   </TableHeader>
                 ))}
               </TableRow>
@@ -141,22 +116,29 @@ export const GradebookTable: React.FC<GradebookTableProps> = ({
                     return (
                       <TableCell key={contest.id}>
                         <span className={styles.score}>
-                          {score === null ? (
-                            <span
-                              role="img"
-                              aria-label={t("gradebook.notAttempted", "未參加")}
-                            >
-                              —
-                            </span>
-                          ) : (
-                            formatScore(score)
-                          )}
+                          {score === null ? notAttempted : formatScore(score)}
                         </span>
                       </TableCell>
                     );
                   })}
                 </TableRow>
               ))}
+              <TableRow className={`${styles.row} ${styles.averageRow}`}>
+                <TableCell className={`${styles.stickyCell} ${styles.accountColumn}`}>
+                  {t("gradebook.average", "平均")}
+                </TableCell>
+                <TableCell className={`${styles.stickyCell} ${styles.nameColumn}`} />
+                {contests.map((contest) => {
+                  const average = averageScore(gradebook, contest.id);
+                  return (
+                    <TableCell key={contest.id}>
+                      <span className={styles.score}>
+                        {average === null ? notAttempted : formatScore(average)}
+                      </span>
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
             </TableBody>
           </Table>
         </div>
