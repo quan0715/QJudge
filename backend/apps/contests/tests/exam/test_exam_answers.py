@@ -461,6 +461,60 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         resp = self.client.post(url, {'score': 15}, format='json')
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 
+    def _batch_grade_url(self):
+        return reverse(
+            'contests:contest-exam-answers-batch-grade',
+            kwargs={'contest_pk': self.contest.id},
+        )
+
+    def test_only_if_ungraded_skips_graded_answer(self):
+        graded = ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_single,
+            answer={'selected': 'B'},
+            score=5,
+        )
+        ungraded = ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_essay,
+            answer={'text': 'My essay'},
+        )
+        self.client.force_authenticate(user=self.teacher)
+        resp = self.client.post(self._batch_grade_url(), {
+            'grades': [
+                {'exam_answer_id': graded.id, 'score': 9, 'feedback': 'AI'},
+                {'exam_answer_id': ungraded.id, 'score': 12, 'feedback': 'AI'},
+            ],
+            'only_if_ungraded': True,
+        }, format='json')
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [r['status'] for r in resp.data['results']], ['skipped', 'ok'],
+        )
+        self.assertEqual(resp.data['graded_count'], 1)
+        graded.refresh_from_db()
+        ungraded.refresh_from_db()
+        self.assertEqual(graded.score, 5)
+        self.assertEqual(ungraded.score, 12)
+        self.assertEqual(ungraded.graded_by, self.teacher)
+
+    def test_batch_grade_without_flag_still_overwrites(self):
+        graded = ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_essay,
+            answer={'text': 'My essay'},
+            score=5,
+        )
+        self.client.force_authenticate(user=self.teacher)
+        resp = self.client.post(self._batch_grade_url(), {
+            'grades': [{'exam_answer_id': graded.id, 'score': 9, 'feedback': 'x'}],
+        }, format='json')
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        graded.refresh_from_db()
+        self.assertEqual(graded.score, 9)
+
     def test_teacher_view_all_answers(self):
         ExamAnswer.objects.create(
             participant=self.participant,
