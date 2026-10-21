@@ -93,7 +93,7 @@ def build_paper_exam_sheet_response(
     mode: str = "question",
     language: str = "zh-TW",
     scale: float = 1.0,
-    include_answer_area: bool = True,
+    include_answer_area: bool = False,
 ):
     """Generate downloadable formal paper-exam sheet PDF."""
     normalized_mode = (mode or "question").lower()

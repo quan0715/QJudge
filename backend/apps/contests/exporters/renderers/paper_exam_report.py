@@ -116,7 +116,7 @@ class PaperExamReportRenderer(BaseRenderer):
         if self._questions_cache is None:
             from apps.contests.models import ExamQuestion
             self._questions_cache = list(
-                ExamQuestion.objects.filter(contest=self.contest).order_by('order', 'id')
+                ExamQuestion.objects.filter(contest=self.contest).select_related("group").order_by('order', 'id')
             )
         return self._questions_cache
 
@@ -376,7 +376,9 @@ class PaperExamReportRenderer(BaseRenderer):
         lines.append('</div>')
 
         # Prompt
-        prompt_html = render_markdown(question.prompt)
+        from apps.contests.services.question_context import question_prompt_with_context
+
+        prompt_html = render_markdown(question_prompt_with_context(question))
         lines.append(f'<div class="question-prompt">{prompt_html}</div>')
 
         if q_type in ('true_false', 'single_choice', 'multiple_choice'):

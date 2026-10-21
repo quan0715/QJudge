@@ -44,7 +44,7 @@ export function buildGradingRows(
       studentDisplayName,
       questionId: a.questionId,
       questionIndex: qIdx + 1,
-      questionPrompt: q?.prompt ?? "",
+      questionPrompt: q?.gradingPrompt ?? q?.prompt ?? "",
       questionExplanation: q?.explanation ?? "",
       questionExplanationDocument: q?.explanationDocument ?? null,
       questionType: qType,

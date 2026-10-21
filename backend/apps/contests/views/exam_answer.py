@@ -285,7 +285,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         answers = list(
             ExamAnswer.objects.filter(participant=participant)
-            .select_related('question', 'graded_by')
+            .select_related('question__group', 'graded_by')
         )
         scoring = ExamScoringService(contest)
         breakdown = scoring.get_participant_breakdown(
@@ -329,7 +329,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         answers = ExamAnswer.objects.filter(
             participant__contest=contest
-        ).select_related('participant__user', 'question', 'graded_by')
+        ).select_related('participant__user', 'question__group', 'graded_by')
 
         # Optional filters
         participant_id = request.query_params.get('participant_id')

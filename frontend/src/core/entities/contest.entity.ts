@@ -460,6 +460,8 @@ export interface ExamQuestionGroup {
 }
 
 export interface ExamQuestion {
+  /** Read-only question text including shared group instructions for grading. */
+  gradingPrompt?: string;
   id: string;
   contestId: string;
   questionType: ExamQuestionType;

@@ -239,3 +239,34 @@ class TestExamQuestionGroupsApi:
             "short_answer",
             "essay",
         ]
+
+
+@pytest.mark.django_db
+def test_group_context_survives_grading_and_exports(api_client, teacher, student, contest):
+    from apps.contests.models import ExamQuestionGroup, ExamAnswer, ContestParticipant
+    from apps.contests.exporters.renderers.paper_exam_sheet import PaperExamSheetRenderer
+    from apps.contests.exporters.renderers.paper_exam_report import PaperExamReportRenderer
+
+    group = ExamQuestionGroup.objects.create(
+        contest=contest, title='Shared task',
+        shared_stem_markdown='Do not use external libraries.\n\n```cpp\nint x = 7;\n```',
+    )
+    question = ExamQuestion.objects.create(
+        contest=contest, group=group, prompt='Check the prime number.',
+        question_type='essay', score=5, order_in_group=1,
+    )
+    participant = ContestParticipant.objects.create(
+        contest=contest, user=student, started_at=timezone.now(), exam_status='submitted',
+    )
+    ExamAnswer.objects.create(participant=participant, question=question, answer={'text': 'student code'})
+    api_client.force_authenticate(teacher)
+    questions = api_client.get(questions_url(contest.id)).data
+    assert questions[0]['prompt'] == 'Check the prime number.'
+    assert 'Do not use external libraries.' in questions[0]['grading_prompt']
+    answers = api_client.get(f'/api/v1/contests/{contest.id}/exam-answers/all-answers/').data
+    assert 'Do not use external libraries.' in answers[0]['question_prompt']
+    for html in (PaperExamSheetRenderer(contest).render_html(),
+                 PaperExamReportRenderer(contest, student).render_html()):
+        assert 'Do not use external libraries.' in html
+        assert 'Shared task' in html
+        assert 'Check the prime number.' in html

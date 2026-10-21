@@ -179,7 +179,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             ):
                 raise PermissionDenied('You must start the exam before viewing questions')
 
-        qs = ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
+        qs = ExamQuestion.objects.filter(contest=contest).select_related("group").order_by('order', 'id')
 
         kind_filter = self._parse_kind_filter(self.request.query_params.get('kind'))
         if kind_filter is not None:
@@ -313,7 +313,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
 
     @staticmethod
     def _normalize_orders(contest):
-        questions = list(ExamQuestion.objects.filter(contest=contest).order_by("order", "id"))
+        questions = list(ExamQuestion.objects.filter(contest=contest).select_related("group").order_by("order", "id"))
         dirty = []
         for index, question in enumerate(questions):
             if question.order != index:
@@ -321,11 +321,11 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 dirty.append(question)
         if dirty:
             ExamQuestion.objects.bulk_update(dirty, ["order"])
-        return list(ExamQuestion.objects.filter(contest=contest).order_by("order", "id"))
+        return list(ExamQuestion.objects.filter(contest=contest).select_related("group").order_by("order", "id"))
 
     @staticmethod
     def _sync_exam_bindings(contest, actor):
-        questions = ExamQuestion.objects.filter(contest=contest).order_by("order", "id")
+        questions = ExamQuestion.objects.filter(contest=contest).select_related("group").order_by("order", "id")
         for question in questions:
             ensure_contest_binding_for_exam_question(exam_question=question, actor=actor)
 
@@ -416,7 +416,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         )
 
         serialized = self.get_serializer(
-            ExamQuestion.objects.filter(contest=contest).order_by('order', 'id'),
+            ExamQuestion.objects.filter(contest=contest).select_related("group").order_by('order', 'id'),
             many=True,
         )
         return Response(serialized.data, status=status.HTTP_201_CREATED)
@@ -448,7 +448,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             ).update(order=new_order)
 
         # Compact gaps so the final state is contiguous 0..N-1.
-        questions = ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
+        questions = ExamQuestion.objects.filter(contest=contest).select_related("group").order_by('order', 'id')
         for idx, question in enumerate(questions):
             if question.order != idx:
                 question.order = idx
@@ -462,7 +462,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         )
 
         serialized = self.get_serializer(
-            ExamQuestion.objects.filter(contest=contest).order_by('order', 'id'),
+            ExamQuestion.objects.filter(contest=contest).select_related("group").order_by('order', 'id'),
             many=True
         )
         return Response(serialized.data)
@@ -479,7 +479,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         mode = request.query_params.get("mode", "question")
         language = request.query_params.get("language", "zh-TW")
         scale = parse_scale(request.query_params.get("scale", "1.0"))
-        include_answer_area = request.query_params.get("include_answer_area", "true").lower() == "true"
+        include_answer_area = request.query_params.get("include_answer_area", "false").lower() == "true"
 
         try:
             return build_paper_exam_sheet_response(
