@@ -34,10 +34,12 @@ describe("ClassroomSettingsMembersPanel", { timeout: 20_000 }, () => {
     const editButtons = screen.getAllByRole("button", { name: "edit" });
     expect(editButtons).toHaveLength(1);
 
+    const removeLabelsBefore = screen.queryAllByText("removeMember").length;
     fireEvent.click(editButtons[0]);
 
     expect(document.getElementById("edit-member-role")).toBeNull();
-    expect(screen.getAllByRole("button", { name: "removeMember" }).length).toBeGreaterThan(0);
+    // The student's edit modal adds its own remove button.
+    expect(screen.queryAllByText("removeMember").length).toBeGreaterThan(removeLabelsBefore);
   });
 
   it("lets the classroom owner change roles of every member", () => {

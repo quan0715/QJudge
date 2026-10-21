@@ -8,7 +8,9 @@ class Migration(migrations.Migration):
 
     Deploys migrate before switching containers and rollbacks restart old code
     without reversing migrations, so the previous release must still find
-    ``classrooms_classroom_admins``. Drop the table in a later release.
+    ``classrooms_classroom_admins``. Its foreign keys are dropped so the
+    now-unmanaged table cannot block deletes or truncates of users and
+    classrooms. Drop the table in a later release.
     """
 
     dependencies = [
@@ -17,6 +19,25 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql="""
+                    DO $$
+                    DECLARE fk record;
+                    BEGIN
+                        IF to_regclass('classrooms_classroom_admins') IS NOT NULL THEN
+                            FOR fk IN
+                                SELECT conname FROM pg_constraint
+                                WHERE conrelid = 'classrooms_classroom_admins'::regclass AND contype = 'f'
+                            LOOP
+                                EXECUTE format('ALTER TABLE classrooms_classroom_admins DROP CONSTRAINT %I', fk.conname);
+                            END LOOP;
+                        END IF;
+                    END $$;
+                    """,
+                    reverse_sql=migrations.RunSQL.noop,
+                ),
+            ],
             state_operations=[
                 migrations.RemoveField(
                     model_name="classroom",
