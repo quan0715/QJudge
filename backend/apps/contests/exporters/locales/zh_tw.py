@@ -3,6 +3,7 @@ Traditional Chinese (zh-TW) labels for contest exporters.
 """
 
 LABELS = {
+    'question_group': '題組',
     # Score related
     'score': '分數',
     'total_score': '總分',

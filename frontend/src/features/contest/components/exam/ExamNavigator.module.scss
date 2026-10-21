@@ -204,3 +204,11 @@
   @include type.type-style("label-01");
   color: var(--cds-support-warning);
 }
+
+.promptSummary {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}

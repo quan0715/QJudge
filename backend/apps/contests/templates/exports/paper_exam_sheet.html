@@ -13,7 +13,7 @@
   <body>
     <header class="paper-header">
       <h1 class="paper-title">{{ contest_name|safe }}</h1>
-      <h2 class="paper-subtitle">{{ sheet_title }}</h2>
+      {% if include_answers %}<h2 class="paper-subtitle">{{ sheet_title }}</h2>{% endif %}
       {% if contest_description %}
       <p class="paper-description">{{ contest_description }}</p>
       {% endif %}
@@ -35,10 +35,24 @@
     {% else %}
     <section class="question-list">
       {% for q in questions %}
-      <article class="question-item">
+      {% if q.group_heading %}<section class="question-group-block">{% endif %}
+      <article class="question-item{% if q.grouped %} grouped-question{% endif %}">
+        {% if q.group_heading %}
+        <section class="question-group-heading question-body">
+          <div class="question-headline">
+            <span class="question-number">{{ q.group_heading.number }}.</span>
+            <span class="question-meta-inline">（{{ q.group_heading.score }} {{ labels.points_unit }}）</span>
+          </div>
+          <div class="question-prompt markdown-content">
+            {% if q.group_heading.title %}<p>{{ q.group_heading.title }}</p>{% endif %}
+            {{ q.group_heading.stem_html|safe }}
+          </div>
+        </section>
+        {% endif %}
+        <div class="question-body">
         <div class="question-headline">
-          <span class="question-number">Q{{ q.number }}.</span>
-          <span class="question-meta-inline">{{ q.score }}{{ labels.points_unit }} · {{ q.type_label }}</span>
+          <span class="question-number">{{ q.number }}</span>
+          <span class="question-meta-inline">（{{ q.score }} {{ labels.points_unit }}）</span>
         </div>
         <div class="question-prompt markdown-content">
           {{ q.prompt_html|safe }}
@@ -79,7 +93,9 @@
           {% endfor %}
         </div>
         {% endif %}
+        </div>
       </article>
+      {% if q.group_end %}</section>{% endif %}
       {% endfor %}
     </section>
 
@@ -98,7 +114,7 @@
         <tbody>
           {% for row in answer_key %}
           <tr>
-            <td>Q{{ row.number }}</td>
+            <td>{{ row.number }}</td>
             <td>{{ row.answer_text }}</td>
             <td>{{ row.score }}</td>
           </tr>

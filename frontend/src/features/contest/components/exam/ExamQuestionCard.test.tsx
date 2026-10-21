@@ -2,9 +2,18 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ExamQuestion } from "@/core/entities/contest.entity";
+import type { ExamQuestion, ExamQuestionGroup } from "@/core/entities/contest.entity";
 
 import { ExamQuestionCard } from "./ExamQuestionCard";
+
+vi.mock("react-i18next", () => ({
+  initReactI18next: { type: "3rdParty", init: () => {} },
+  useTranslation: () => ({
+    t: (key: string, options?: string | { index?: string | number }) =>
+      typeof options === "string" ? options : key === "answering.submit.questionPreview" ? `Question ${options?.index}` : key,
+    i18n: { language: "zh-TW" },
+  }),
+}));
 
 vi.mock("@/shared/ui/markdown/MarkdownRenderer", () => ({
   default: ({
@@ -41,6 +50,21 @@ const createQuestion = (
 });
 
 describe("ExamQuestionCard", () => {
+  it("shows the parent and subquestion labels while saving to the original question ID", () => {
+    const onAnswerChange = vi.fn();
+    render(<ExamQuestionCard
+      question={createQuestion("plain_text", { groupId: "g" })}
+      group={{ id: "g", title: "", sharedStemMarkdown: "Shared instructions", totalScore: 8 } as ExamQuestionGroup}
+      showGroupStem groupNumber={7} displayLabel="7(b)" index={7}
+      onAnswerChange={onAnswerChange}
+    />);
+    expect(screen.getByText("Question 7")).toBeInTheDocument();
+    expect(screen.getByText("Question 7(b)")).toBeInTheDocument();
+    expect(screen.getByText("Shared instructions")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "My answer" } });
+    expect(onAnswerChange).toHaveBeenCalledWith("q1", "My answer", "essay", "plain_text");
+  });
+
   it("renders markdown answers with preview but without math toolbar", () => {
     render(
       <ExamQuestionCard

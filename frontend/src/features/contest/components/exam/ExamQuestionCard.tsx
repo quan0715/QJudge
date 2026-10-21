@@ -91,6 +91,8 @@ interface ExamQuestionCardProps {
   group?: ExamQuestionGroup;
   showGroupStem?: boolean;
   index: number;
+  displayLabel?: string;
+  groupNumber?: number;
   answer?: unknown;
   onAnswerChange?: (
     questionId: string,
@@ -109,6 +111,8 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
   group,
   showGroupStem = false,
   index,
+  displayLabel,
+  groupNumber,
   answer,
   onAnswerChange,
   onBlur,
@@ -316,7 +320,8 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
         <section className={styles.groupStem} aria-label={t("answering.group.sharedStem")}>
           <div className={styles.groupStemHeader}>
             <span className={styles.groupStemTitle}>
-              {group.title || t("answering.group.sharedStem")}
+              {groupNumber ? t("answering.submit.questionPreview", { index: groupNumber }) : group.title || t("answering.group.sharedStem")}
+              {groupNumber && group.title ? ` · ${group.title}` : ""}
             </span>
             <span className={styles.groupStemScore}>
               {t("answering.group.totalScore", {
@@ -333,7 +338,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
 
       <div className={styles.header}>
         <span className={styles.label}>
-          {t("answering.submit.questionPreview", { index: index + 1 })}
+          {t("answering.submit.questionPreview", { index: displayLabel ?? index + 1 })}
           <Tag size="sm" type={TYPE_COLORS[question.questionType] as never}>
             {t(`answering.questionTypes.${question.questionType}`)}
           </Tag>

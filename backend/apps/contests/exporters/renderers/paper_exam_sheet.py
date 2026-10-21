@@ -43,9 +43,8 @@ class PaperExamSheetRenderer(BaseRenderer):
         return render_pdf(self.render_html())
 
     def render_html(self) -> str:
-        from apps.contests.services.question_context import question_prompt_with_context
-
         from apps.contests.services.exam_scoring import ExamScoringService
+        from apps.question_bank.problem_labels import label_for_contest_problem_order
         questions = list(
             ExamQuestion.objects.filter(contest=self.contest).select_related("group").order_by("order", "id")
         )
@@ -55,17 +54,39 @@ class PaperExamSheetRenderer(BaseRenderer):
 
         question_rows: list[dict] = []
         answer_key_rows: list[dict] = []
+        main_number = 0
+        child_index = 0
         for idx, q in enumerate(questions, start=1):
+            starts_group = q.group_id and (idx == 1 or questions[idx - 2].group_id != q.group_id)
+            if not q.group_id or starts_group:
+                main_number += 1
+                child_index = 0
+            child_label = label_for_contest_problem_order(child_index).lower() if q.group_id else ""
+            child_index += 1
+            group_heading = None
+            if starts_group:
+                last = idx
+                while last < len(questions) and questions[last].group_id == q.group_id:
+                    last += 1
+                group_heading = {
+                    "title": q.group.title,
+                    "number": main_number,
+                    "score": self._fmt_score(sum(child.score for child in questions[idx - 1:last])),
+                    "stem_html": render_markdown(q.group.shared_stem_markdown, soft_breaks=False),
+                }
             answer_text_raw = self._format_answer(q)
             answer_text = self._clean_answer_markdown(answer_text_raw)
             answer_ui = self._build_answer_ui(q)
             question_rows.append(
                 {
-                    "number": idx,
+                    "number": f"({child_label})" if q.group_id else f"{main_number}.",
                     "question_type": q.question_type,
                     "type_label": self._get_question_type_label(q.question_type),
                     "score": self._fmt_score(q.score),
-                    "prompt_html": render_markdown(question_prompt_with_context(q), soft_breaks=False),
+                    "prompt_html": render_markdown(q.prompt or "", soft_breaks=False),
+                    "grouped": bool(q.group_id),
+                    "group_heading": group_heading,
+                    "group_end": bool(q.group_id) and (idx == len(questions) or questions[idx].group_id != q.group_id),
                     "options": self._get_options(q),
                     "answer_text": answer_text,
                     "answer_html": render_markdown(answer_text, soft_breaks=False) if answer_text else "",
@@ -74,7 +95,7 @@ class PaperExamSheetRenderer(BaseRenderer):
             )
             answer_key_rows.append(
                 {
-                    "number": idx,
+                    "number": f"{main_number}({child_label})" if q.group_id else str(main_number),
                     "answer_text": self._format_answer_key_text(q, answer_text),
                     "score": self._fmt_score(q.score),
                 }
@@ -92,6 +113,7 @@ class PaperExamSheetRenderer(BaseRenderer):
             "contest_description": self.contest.description or "",
             "sheet_title": sheet_title,
             "labels": {
+                "question_group": self.get_label("question_group"),
                 "candidate_name": self.get_label("candidate_name"),
                 "candidate_id": self.get_label("candidate_id"),
                 "total_questions": self.get_label("total_questions"),
@@ -107,7 +129,7 @@ class PaperExamSheetRenderer(BaseRenderer):
                 "choice_marking_hint": self.get_label("choice_marking_hint"),
                 "answer_key_note": self.get_label("answer_key_note"),
             },
-            "question_count": len(questions),
+            "question_count": main_number,
             "total_score": total_score,
             "questions": question_rows,
             "answer_key": answer_key_rows,
@@ -118,7 +140,7 @@ class PaperExamSheetRenderer(BaseRenderer):
 
     @staticmethod
     def _fmt_score(value) -> str:
-        return f"{float(value):.2f}"
+        return f"{float(value):g}"
 
     def _get_base_css(self) -> str:
         css = self._read_static_css("exports/report-base.css")
