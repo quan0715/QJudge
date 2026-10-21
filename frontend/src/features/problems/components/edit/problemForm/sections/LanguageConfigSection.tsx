@@ -109,9 +109,8 @@ const LanguageConfigSection: React.FC = () => {
       >
         <Accordion align="start" className={styles.languageAccordion}>
           {languages.map((lang) => {
-            const existingIndex = languageConfigs.findIndex(config => config.language === lang.id);
-            const langIndex = existingIndex < 0 ? languageConfigs.length : existingIndex;
-            const config = languageConfigs[existingIndex];
+            const langIndex = languageConfigs.findIndex(config => config.language === lang.id);
+            const config = languageConfigs[langIndex];
             const isEnabled = !!config && config.isEnabled !== false;
 
             return (
@@ -130,27 +129,41 @@ const LanguageConfigSection: React.FC = () => {
                 }
               >
                 <Layer className={styles.languageContent}>
-                  <Controller
-                    name={`languageConfigs.${langIndex}.isEnabled`}
-                    control={control}
-                    render={({ field }) => (
-                      <Toggle
-                        id={`lang-toggle-${lang.id}`}
-                        labelText="啟用此語言"
-                        labelA="停用"
-                        labelB="啟用"
-                        toggled={isEnabled}
-                        onToggle={(checked) => {
-                          if (!config) {
-                            setValue(`languageConfigs.${langIndex}`, { language: lang.id, isEnabled: checked, templateCode: DEFAULT_TEMPLATES[lang.id] ?? "" });
-                          } else {
+                  {config ? (
+                    <Controller
+                      name={`languageConfigs.${langIndex}.isEnabled`}
+                      control={control}
+                      render={({ field }) => (
+                        <Toggle
+                          id={`lang-toggle-${lang.id}`}
+                          labelText="啟用此語言"
+                          labelA="停用"
+                          labelB="啟用"
+                          toggled={isEnabled}
+                          onToggle={(checked) => {
                             field.onChange(checked);
-                          }
-                          triggerLanguageConfigSave();
-                        }}
-                      />
-                    )}
-                  />
+                            triggerLanguageConfigSave();
+                          }}
+                        />
+                      )}
+                    />
+                  ) : (
+                    // Not registered: a missing language only joins the list once it is turned on.
+                    <Toggle
+                      id={`lang-toggle-${lang.id}`}
+                      labelText="啟用此語言"
+                      labelA="停用"
+                      labelB="啟用"
+                      toggled={false}
+                      onToggle={(checked) => {
+                        setValue("languageConfigs", [
+                          ...getValues("languageConfigs"),
+                          { language: lang.id, isEnabled: checked, templateCode: DEFAULT_TEMPLATES[lang.id] ?? "" },
+                        ]);
+                        triggerLanguageConfigSave();
+                      }}
+                    />
+                  )}
 
                   {isEnabled && (
                     <div className={styles.templateEditor}>

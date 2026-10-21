@@ -157,16 +157,25 @@ def _format_score(value: float | None) -> str:
     return "" if value is None else f"{value:.2f}"
 
 
+# Full-width variants too: some spreadsheet locales treat them as formula starts.
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "＝", "＋", "－", "＠")
+
+
+def _csv_text(value: str) -> str:
+    """Keep spreadsheets from running user-controlled text as a formula."""
+    return f"'{value}" if value.startswith(_FORMULA_PREFIXES) else value
+
+
 def write_gradebook_csv(gradebook: Gradebook, out) -> None:
     """Write the gradebook as CSV rows to ``out`` (anything ``csv.writer`` takes)."""
     writer = csv.writer(out)
     writer.writerow(
         ["帳號", "姓名"]
-        + [f"{c.name}（滿分 {_format_score(c.max_score)}）" for c in gradebook.contests]
+        + [_csv_text(f"{c.name}（滿分 {_format_score(c.max_score)}）") for c in gradebook.contests]
     )
     for student in gradebook.students:
         writer.writerow(
-            [student.username, student.display_name]
+            [_csv_text(student.username), _csv_text(student.display_name)]
             + [_format_score(student.scores.get(c.id)) for c in gradebook.contests]
         )
     writer.writerow(
