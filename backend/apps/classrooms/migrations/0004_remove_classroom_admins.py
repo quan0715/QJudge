@@ -4,13 +4,24 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
+    """Forget Classroom.admins without dropping its table yet.
+
+    Deploys migrate before switching containers and rollbacks restart old code
+    without reversing migrations, so the previous release must still find
+    ``classrooms_classroom_admins``. Drop the table in a later release.
+    """
+
     dependencies = [
         ("classrooms", "0003_align_legacy_schema"),
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name="classroom",
-            name="admins",
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RemoveField(
+                    model_name="classroom",
+                    name="admins",
+                ),
+            ],
         ),
     ]

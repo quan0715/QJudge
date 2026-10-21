@@ -57,6 +57,11 @@ class ProblemTestRunTests(TestCase):
             )
         return response, mock_judge
 
+    def test_test_run_options_describes_the_endpoint(self):
+        response = self.client.options(f'/api/v1/management/problems/{self.problem.id}/test_run/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
     def test_test_run_runs_sample_cases_and_returns_results(self):
         """Test-run executes the public samples and creates no submission."""
         response, _ = self._run([{'status': 'AC', 'output': '3'}])

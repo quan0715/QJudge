@@ -47,6 +47,7 @@ class ProblemViewSet(viewsets.GenericViewSet):
     (``/contests/{id}/problems/``); only code test runs live here.
     """
     queryset = CodingProblem.objects.all()
+    serializer_class = TestRunSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'id'
 
