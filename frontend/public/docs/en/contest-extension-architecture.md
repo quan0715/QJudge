@@ -41,7 +41,7 @@ This layer is strictly **forbidden** from containing contest-type specific logic
 
 ### A. Share Common Logic
 - **Anti-Cheat / Precheck**: Activation depends only on the `contest.cheatDetectionEnabled` flag, **not** on the `contestType`.
-- **Dashboard Skeleton**: `StudentDashboardLayout` and `AdminDashboardLayout`.
+- **Dashboard composition**: `ContestWorkspaceLayout` / `AdminOverviewScreen`.
 
 ### B. Module-Driven Decisions
 - Tabs and Panels to display.

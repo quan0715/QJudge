@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { ContestDetail } from "@/core/entities/contest.entity";
@@ -115,6 +115,53 @@ describe("AdminQuestionStatsGallery", () => {
         screen.queryByRole("dialog", { name: "Q3 作答數據" }),
       ).not.toBeInTheDocument(),
     );
+  });
+
+  it("shows objective distributions and closes the drawer with Escape", async () => {
+    const contest = buildContest();
+    const loadQuestionDetail = vi.fn().mockResolvedValue(undefined);
+    render(
+      <AdminQuestionStatsGallery
+        contest={contest}
+        dashboard={createContestResultDashboardMock(contest)}
+        loading={false}
+        error={null}
+        loadQuestionDetail={loadQuestionDetail}
+        detailLoadingIds={{}}
+        detailErrors={{}}
+      />,
+    );
+
+    await userEvent.click(screen.getByText("基礎語法與觀念檢核").closest("button")!);
+    const drawer = screen.getByRole("dialog", { name: "Q2 作答數據" });
+    expect(within(drawer).getByText("選項分布")).toBeInTheDocument();
+    expect(within(drawer).getByText("分數分布")).toBeInTheDocument();
+    expect(loadQuestionDetail).toHaveBeenCalledWith("q1");
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("orders question cards by score rate", () => {
+    const contest = buildContest();
+    const dashboard = createContestResultDashboardMock(contest);
+    dashboard.questions = dashboard.questions.slice(0, 2);
+    render(
+      <AdminQuestionStatsGallery
+        contest={contest}
+        dashboard={dashboard}
+        loading={false}
+        error={null}
+        loadQuestionDetail={vi.fn()}
+        detailLoadingIds={{}}
+        detailErrors={{}}
+      />,
+    );
+    const cards = screen.getAllByRole("button").filter((button) =>
+      dashboard.questions.some((question) => button.textContent?.includes(question.title)),
+    );
+    expect(cards).toHaveLength(2);
+    expect(cards[0]).toHaveTextContent("申論：程序與執行緒差異");
+    expect(cards[1]).toHaveTextContent("基礎語法與觀念檢核");
   });
 
   it("does not render for coding contests", () => {

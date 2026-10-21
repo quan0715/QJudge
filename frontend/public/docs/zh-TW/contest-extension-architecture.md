@@ -57,7 +57,7 @@
 
 ### A. 應共用，不應按競賽類型重複實作
 - **防作弊機制 (Anti-Cheat / Precheck)**: 其啟動與否應僅依賴 `contest.cheatDetectionEnabled` 這個 Feature Flag，**絕對不可**綁定於特定的 `contestType`。
-- **Dashboard 容器骨架**: `StudentDashboardLayout` 與 `AdminDashboardLayout`。
+- **Dashboard 組裝**: `ContestWorkspaceLayout` / `AdminOverviewScreen`.
 - **作答路由計算**: 使用 `enterExamUseCase` 並傳入模組解析出的 `answeringEntryPath`，統一開始考試的流程。
 
 ### B. 應由競賽模組決定（可因類型不同）
