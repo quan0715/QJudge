@@ -9,6 +9,7 @@ from contextvars import ContextVar
 from typing import Any
 from uuid import UUID
 
+import httpx
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -24,6 +25,7 @@ from infrastructure.artifacts.s3_artifact_store import (
     S3ArtifactStore,
     SqlAlchemyArtifactRepository,
 )
+from infrastructure.batch_grading_finalizer import BatchGradingFinalizer
 from infrastructure.checkpoints.langgraph_store import LangGraphCheckpointStore
 from infrastructure.database.base import async_session_factory
 from infrastructure.mcp.credential_lease import RedisCredentialLeaseStore
@@ -33,10 +35,13 @@ from infrastructure.queue.celery_dispatcher import CeleryRunDispatcher
 from .celery_app import celery_app
 from .runtime import (
     SqlAlchemyWorkerRunStore,
+    TerminalHookRunStore,
     WorkerCredentialResolver,
     WorkerRuntime,
 )
 from .scheduler import WorkerScheduler
+
+_BACKEND_TIMEOUT_SECONDS = 30.0
 
 
 class _WorkerArtifactRepository:
@@ -155,6 +160,28 @@ def _credentials(
     )
 
 
+def _batch_grading_store(
+    runs: SqlAlchemyWorkerRunStore,
+    session_factory: async_sessionmaker[AsyncSession],
+    credentials: WorkerCredentialResolver,
+    http: httpx.AsyncClient,
+) -> TerminalHookRunStore:
+    settings = get_settings()
+    artifacts = ArtifactService(
+        _WorkerArtifactRepository(session_factory),
+        _artifact_store(),
+        max_bytes=settings.artifact_max_bytes,
+    )
+    finalizer = BatchGradingFinalizer(
+        runs=runs,
+        artifacts=artifacts,
+        credentials=credentials,
+        http=http,
+        backend_url=settings.qjudge_backend_url,
+    )
+    return TerminalHookRunStore(runs, finalizer)
+
+
 def _artifact_store() -> S3ArtifactStore:
     settings = get_settings()
     return S3ArtifactStore(
@@ -180,6 +207,7 @@ async def _execute_run(
     credentials = _credentials(lease_store)
     checkpoints = LangGraphCheckpointStore(database_url=settings.ai_database_url)
     agent: DeepAgentAdapter | None = None
+    http = httpx.AsyncClient(timeout=_BACKEND_TIMEOUT_SECONDS)
     try:
         artifacts = ArtifactService(
             _WorkerArtifactRepository(session_factory),
@@ -196,9 +224,11 @@ async def _execute_run(
             memory_paths=settings.deepagent_memory_paths,
         )
         await agent.setup()
-        runs = SqlAlchemyWorkerRunStore(
+        runs = _batch_grading_store(
+            SqlAlchemyWorkerRunStore(session_factory, CeleryRunDispatcher(celery_app)),
             session_factory,
-            CeleryRunDispatcher(celery_app),
+            credentials,
+            http,
         )
         runtime = WorkerRuntime(
             runs,
@@ -215,11 +245,14 @@ async def _execute_run(
     finally:
         if agent is not None:
             await agent.shutdown()
+        await http.aclose()
         await redis.aclose()
         await engine.dispose()
 
 
-async def _scheduler() -> tuple[
+async def _scheduler(
+    http: httpx.AsyncClient | None = None,
+) -> tuple[
     WorkerScheduler,
     LangGraphCheckpointStore,
     Redis,
@@ -230,17 +263,21 @@ async def _scheduler() -> tuple[
     engine = session_factory.kw["bind"]
     redis = Redis.from_url(settings.ai_redis_url, decode_responses=False)
     lease_store = _redis_lease_store(redis)
+    credentials = _credentials(lease_store)
     checkpoints = LangGraphCheckpointStore(database_url=settings.ai_database_url)
     await checkpoints.setup()
-    runs = SqlAlchemyWorkerRunStore(
+    runs: Any = SqlAlchemyWorkerRunStore(
         session_factory,
         CeleryRunDispatcher(celery_app),
     )
+    if http is not None:
+        # Stale recovery terminalizes runs, so batch grading must finalize them too.
+        runs = _batch_grading_store(runs, session_factory, credentials, http)
     return (
         WorkerScheduler(
             runs,
             checkpoints,
-            _credentials(lease_store),
+            credentials,
             stale_after_seconds=settings.stale_run_seconds,
         ),
         checkpoints,
@@ -250,10 +287,12 @@ async def _scheduler() -> tuple[
 
 
 async def _recover_stale_runs() -> int:
-    scheduler, checkpoints, redis, engine = await _scheduler()
+    http = httpx.AsyncClient(timeout=_BACKEND_TIMEOUT_SECONDS)
+    scheduler, checkpoints, redis, engine = await _scheduler(http)
     try:
         return await scheduler.recover_stale_runs()
     finally:
+        await http.aclose()
         await checkpoints.close()
         await redis.aclose()
         await engine.dispose()

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Callable
+import logging
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -34,6 +35,8 @@ from infrastructure.agent.deepagent_adapter import (
 )
 from infrastructure.database.models import MessageRow, RunRow, SessionRow
 from infrastructure.database.repositories import SqlAlchemyRunRepository
+
+logger = logging.getLogger(__name__)
 
 _ACTIVE = (
     RunStatus.RUNNING.value,
@@ -72,6 +75,51 @@ class RecoveryRun:
     owner: Principal
     execution_epoch: int = 0
     cancel_requested: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class TerminalRunInfo:
+    """What a terminal hook needs to know about a finished run."""
+
+    session_id: UUID
+    status: str
+    error_code: str | None
+    error_message: str | None
+    user_message: str
+    session_context: dict[str, Any]
+
+
+TerminalHook = Callable[[UUID, str], Awaitable[None]]
+
+
+class TerminalHookRunStore:
+    """Run a hook after a run ends, before its session's next run is dispatched.
+
+    Every terminal path (normal end, cancel repair, stale recovery) hands off
+    through ``dispatch_next_after_terminal``. A failing hook is logged and
+    never blocks the session queue.
+    """
+
+    def __init__(self, runs: Any, hook: TerminalHook) -> None:
+        self._runs = runs
+        self._hook = hook
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._runs, name)
+
+    async def dispatch_next_after_terminal(
+        self,
+        run_id: UUID,
+        credential_lease_key: str,
+        trace_context: TraceContext,
+    ) -> None:
+        try:
+            await self._hook(run_id, credential_lease_key)
+        except Exception:
+            logger.exception("Terminal hook failed for run %s", run_id)
+        await self._runs.dispatch_next_after_terminal(
+            run_id, credential_lease_key, trace_context
+        )
 
 
 class WorkerRunOperations(Protocol):
@@ -486,6 +534,44 @@ class SqlAlchemyWorkerRunStore:
                 credential_lease_key,
                 trace_context,
             )
+
+    async def load_terminal_run(self, run_id: UUID) -> TerminalRunInfo | None:
+        async with self._session_factory() as session:
+            row = await session.get(RunRow, run_id)
+            if row is None:
+                return None
+            session_row = await session.get(SessionRow, row.session_id)
+            user_message = await session.scalar(
+                select(MessageRow.content)
+                .where(MessageRow.run_id == run_id, MessageRow.role == "user")
+                .order_by(MessageRow.ordinal)
+                .limit(1)
+            )
+            return TerminalRunInfo(
+                session_id=row.session_id,
+                status=row.status,
+                error_code=row.error_code,
+                error_message=row.error_message,
+                user_message=user_message or "",
+                session_context=dict(session_row.context) if session_row else {},
+            )
+
+    async def cancel_queued_in_session(self, session_id: UUID) -> int:
+        async with self._session_factory.begin() as session:
+            queued_ids = (
+                await session.scalars(
+                    select(RunRow.run_id)
+                    .where(
+                        RunRow.session_id == session_id,
+                        RunRow.status == RunStatus.QUEUED.value,
+                    )
+                    .with_for_update()
+                )
+            ).all()
+            repository = SqlAlchemyRunRepository(session)
+            for run_id in queued_ids:
+                await repository.append_event(run_id, {"type": "run_cancelled"})
+        return len(queued_ids)
 
     async def fail_stale_runs(self, cutoff: datetime) -> list[RecoveryRun]:
         recovered: list[RecoveryRun] = []

@@ -23,6 +23,7 @@ from infrastructure.agent.deepagent_adapter import AgentOperation
 from worker.runtime import (
     ClaimMode,
     RunClaim,
+    TerminalHookRunStore,
     WorkerCredentialResolver,
     WorkerRuntime,
 )
@@ -460,3 +461,39 @@ async def test_chat_command_without_page_context_keeps_prompt() -> None:
     await runtime.execute(run.id, "lease:subject", TRACE)
 
     assert agent.commands[0].prompt == "hello"
+
+
+class _DispatchRecorder:
+    def __init__(self, calls: list[str]) -> None:
+        self.calls = calls
+        self.other_attribute = "delegated"
+
+    async def dispatch_next_after_terminal(self, run_id, lease_key, trace):
+        self.calls.append("dispatch")
+
+
+@pytest.mark.asyncio
+async def test_hook_runs_before_dispatch() -> None:
+    calls: list[str] = []
+
+    async def hook(run_id, lease_key):
+        calls.append(f"hook:{lease_key}")
+
+    store = TerminalHookRunStore(_DispatchRecorder(calls), hook)
+    await store.dispatch_next_after_terminal(uuid4(), "lease:subject", TRACE)
+
+    assert calls == ["hook:lease:subject", "dispatch"]
+    assert store.other_attribute == "delegated"
+
+
+@pytest.mark.asyncio
+async def test_finalizer_error_does_not_block_dispatch() -> None:
+    calls: list[str] = []
+
+    async def hook(run_id, lease_key):
+        raise RuntimeError("backend down")
+
+    store = TerminalHookRunStore(_DispatchRecorder(calls), hook)
+    await store.dispatch_next_after_terminal(uuid4(), "lease:subject", TRACE)
+
+    assert calls == ["dispatch"]
