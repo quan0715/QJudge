@@ -155,7 +155,7 @@ export default function GradingByQuestionTabScreen({
         studentDisplayName: s.displayName || s.username,
         questionId: activeQuestionId,
         questionIndex: qInfo?.questionIndex ?? 0,
-        questionPrompt: qInfo?.prompt ?? "",
+        questionPrompt: qInfo?.gradingPrompt ?? qInfo?.prompt ?? "",
         questionType: qInfo?.questionType ?? "short_answer",
         questionOptions: [],
         maxScore: qInfo?.maxScore ?? 0,

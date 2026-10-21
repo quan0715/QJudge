@@ -292,6 +292,7 @@ export function mapExamQuestionDto(dto: ExamQuestionDto): ExamQuestion {
     contestId: dto.contest?.toString() || "",
     questionType: (dto.question_type || "essay") as ExamQuestionType,
     prompt: dto.prompt || "",
+    gradingPrompt: dto.grading_prompt,
     options: Array.isArray(dto.options)
       ? dto.options.map((item: unknown) => String(item))
       : [],

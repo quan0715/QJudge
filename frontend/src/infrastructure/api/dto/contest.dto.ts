@@ -30,6 +30,7 @@ export interface ContestProblemSummaryDto {
 }
 
 export interface ExamQuestionDto {
+  grading_prompt?: string;
   id?: number | string;
   contest?: number | string;
   question_type?: string;

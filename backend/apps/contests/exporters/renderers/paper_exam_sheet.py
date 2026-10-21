@@ -32,7 +32,7 @@ class PaperExamSheetRenderer(BaseRenderer):
         language: str = "zh-TW",
         scale: float = 1.0,
         include_answers: bool = False,
-        include_answer_area: bool = True,
+        include_answer_area: bool = False,
     ):
         super().__init__(contest, language)
         self.scale = max(0.5, min(2.0, scale))
@@ -43,9 +43,11 @@ class PaperExamSheetRenderer(BaseRenderer):
         return render_pdf(self.render_html())
 
     def render_html(self) -> str:
+        from apps.contests.services.question_context import question_prompt_with_context
+
         from apps.contests.services.exam_scoring import ExamScoringService
         questions = list(
-            ExamQuestion.objects.filter(contest=self.contest).order_by("order", "id")
+            ExamQuestion.objects.filter(contest=self.contest).select_related("group").order_by("order", "id")
         )
         is_zh = self.is_chinese
         scoring = ExamScoringService(self.contest)
@@ -63,7 +65,7 @@ class PaperExamSheetRenderer(BaseRenderer):
                     "question_type": q.question_type,
                     "type_label": self._get_question_type_label(q.question_type),
                     "score": self._fmt_score(q.score),
-                    "prompt_html": render_markdown(q.prompt or "", soft_breaks=False),
+                    "prompt_html": render_markdown(question_prompt_with_context(q), soft_breaks=False),
                     "options": self._get_options(q),
                     "answer_text": answer_text,
                     "answer_html": render_markdown(answer_text, soft_breaks=False) if answer_text else "",

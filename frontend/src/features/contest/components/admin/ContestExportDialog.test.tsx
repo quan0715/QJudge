@@ -170,12 +170,12 @@ describe("ContestExportDialog", () => {
         "answer",
         "zh-TW",
         1,
-        true
+        false
       );
     });
   });
 
-  it("exports a question PDF without an answer area when the option is cleared", async () => {
+  it("exports a question PDF without an answer area by default", async () => {
     render(
       <ContestExportDialog
         open
@@ -186,7 +186,7 @@ describe("ContestExportDialog", () => {
     );
 
     fireEvent.click(screen.getByLabelText("題目卷 — 僅包含題目與選項"));
-    fireEvent.click(screen.getByLabelText("download.includeAnswerArea"));
+    expect(screen.getByLabelText("download.includeAnswerArea")).not.toBeChecked();
     fireEvent.click(screen.getByRole("button", { name: "匯出" }));
 
     await waitFor(() => {
@@ -220,7 +220,7 @@ describe("ContestExportDialog", () => {
         "answer",
         "zh-TW",
         1,
-        true
+        false
       );
     });
   });

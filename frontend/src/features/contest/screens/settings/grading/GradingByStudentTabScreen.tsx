@@ -166,7 +166,7 @@ export default function GradingByStudentTabScreen({
         studentDisplayName: activeStudent?.displayName ?? "",
         questionId: question.questionId,
         questionIndex: question.questionIndex,
-        questionPrompt: question.prompt,
+        questionPrompt: question.gradingPrompt ?? question.prompt,
         questionType: question.questionType,
         questionOptions: [],
         maxScore: question.maxScore,

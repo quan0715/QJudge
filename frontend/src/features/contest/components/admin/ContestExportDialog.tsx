@@ -106,7 +106,7 @@ export default function ContestExportDialog({
   // --- Shared state ---
   const [target, setTarget] = useState<ExportTarget | null>(null);
   const [busy, setBusy] = useState(false);
-  const [includeAnswerArea, setIncludeAnswerArea] = useState(true);
+  const [includeAnswerArea, setIncludeAnswerArea] = useState(false);
 
   // --- Coding-specific ---
   const [language, setLanguage] = useState("zh-TW");
@@ -139,7 +139,7 @@ export default function ContestExportDialog({
     if (!open) return;
     setTarget(null);
     setBusy(false);
-    setIncludeAnswerArea(true);
+    setIncludeAnswerArea(false);
     setLanguage("zh-TW");
     setScale(1.0);
     setLayout("normal");

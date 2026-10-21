@@ -118,6 +118,7 @@ def test_renderer_uses_choice_specific_answer_bar_for_single_choice(paper_exam_c
         contest=paper_exam_contest,
         language="zh-TW",
         include_answers=False,
+        include_answer_area=True,
     ).render_html()
 
     assert "choice-answer-bar" in html
@@ -142,6 +143,7 @@ def test_renderer_short_answer_line_count_is_compact_for_fact_question(paper_exa
         contest=paper_exam_contest,
         language="zh-TW",
         include_answers=False,
+        include_answer_area=True,
     ).render_html()
 
     assert html.count('class="answer-line"') == 1
@@ -161,6 +163,7 @@ def test_renderer_short_answer_line_count_expands_for_explain_prompt(paper_exam_
         contest=paper_exam_contest,
         language="zh-TW",
         include_answers=False,
+        include_answer_area=True,
     ).render_html()
 
     assert html.count('class="answer-line"') == 4
@@ -301,6 +304,7 @@ def test_renderer_applies_codehilite_to_prompt_markdown(paper_exam_contest):
         contest=paper_exam_contest,
         language="zh-TW",
         include_answers=False,
+
     ).render_html()
 
     assert "codehilite" in html
@@ -327,6 +331,7 @@ def test_renderer_does_not_render_instructions_section_even_when_rules_exist(tea
         contest=contest,
         language="zh-TW",
         include_answers=False,
+
     ).render_html()
 
     assert "先寫姓名" not in html
@@ -350,6 +355,7 @@ def test_renderer_does_not_show_generated_time(paper_exam_contest):
         contest=paper_exam_contest,
         language="zh-TW",
         include_answers=False,
+
     ).render_html()
 
     assert "產生時間" not in html
@@ -379,8 +385,22 @@ def test_renderer_hides_class_exam_window_and_time_limit_fields(teacher):
         contest=contest,
         language="en",
         include_answers=False,
+
     ).render_html()
 
     assert "Class" not in html
     assert "Exam Window" not in html
     assert "Time Limit" not in html
+
+
+@pytest.mark.django_db
+def test_question_paper_omits_writing_space_by_default(paper_exam_contest):
+    ExamQuestion.objects.create(
+        contest=paper_exam_contest, question_type="essay",
+        prompt="Explain the algorithm.", correct_answer="Reference solution", score=5, order=0,
+    )
+    html = PaperExamSheetRenderer(paper_exam_contest).render_html()
+    assert "Explain the algorithm." in html
+    assert "Reference solution" not in html
+    assert 'class="answer-lines"' not in html
+    assert 'class="choice-answer-bar"' not in html

@@ -122,6 +122,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         questionIndex: number;
         questionType: ExamQuestionType;
         prompt: string;
+        gradingPrompt?: string;
         maxScore: number;
         effectiveMaxScore?: number;
         scorePolicy?: ExamQuestionScorePolicy;
@@ -137,6 +138,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
           questionIndex: (q.order ?? idx) + 1,
           questionType: q.questionType,
           prompt: q.prompt ?? "",
+          gradingPrompt: q.gradingPrompt,
           maxScore: q.score ?? 0,
           effectiveMaxScore: q.effectiveMaxScore,
           scorePolicy: q.scorePolicy ?? "normal",
@@ -194,6 +196,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
           questionIndex: q.questionIndex,
           questionType: q.questionType,
           prompt: q.prompt,
+          gradingPrompt: q.gradingPrompt,
           maxScore: q.maxScore,
           effectiveMaxScore: q.effectiveMaxScore,
           totalAnswers,

@@ -62,6 +62,7 @@ export interface GradingAnswerRow {
 
 /** Per-question progress stats. */
 export interface QuestionProgress {
+  gradingPrompt?: string;
   questionId: string;
   questionIndex: number;
   questionType: ExamQuestionType;
