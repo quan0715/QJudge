@@ -429,7 +429,7 @@ export default function GradingSplitPanelScreen({
       >
         <div className={styles.panelHeaderLeading}>
           <span className={styles.panelHeaderLabel}>
-            Q{answer.questionIndex}
+            Q{answer.questionLabel ?? answer.questionIndex}
           </span>
         </div>
         <div className={styles.panelHeaderActions}>

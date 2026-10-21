@@ -13,11 +13,14 @@ import type {
 import type { ExamAnswerGrading } from "@/infrastructure/api/repositories/examAnswers.repository";
 import type { GradingAnswerRow } from "./gradingTypes";
 
+import { buildPaperQuestionLabels } from "@/features/contest/domain/paperQuestionLabels";
+
 export function buildGradingRows(
   allAnswers: ExamAnswerGrading[],
   questions: ExamQuestion[],
   participantMap?: Map<string, { username: string; displayName: string }>,
 ): GradingAnswerRow[] {
+  const labels = buildPaperQuestionLabels(questions);
   const questionsMap = new Map<string, ExamQuestion>();
   questions.forEach((q, i) =>
     questionsMap.set(q.id, { ...q, order: q.order ?? i }),
@@ -44,6 +47,7 @@ export function buildGradingRows(
       studentDisplayName,
       questionId: a.questionId,
       questionIndex: qIdx + 1,
+      questionLabel: labels.get(a.questionId)?.label,
       questionPrompt: q?.gradingPrompt ?? q?.prompt ?? "",
       questionExplanation: q?.explanation ?? "",
       questionExplanationDocument: q?.explanationDocument ?? null,

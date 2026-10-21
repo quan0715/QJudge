@@ -155,6 +155,7 @@ export default function GradingByQuestionTabScreen({
         studentDisplayName: s.displayName || s.username,
         questionId: activeQuestionId,
         questionIndex: qInfo?.questionIndex ?? 0,
+        questionLabel: qInfo?.questionLabel,
         questionPrompt: qInfo?.gradingPrompt ?? qInfo?.prompt ?? "",
         questionType: qInfo?.questionType ?? "short_answer",
         questionOptions: [],
@@ -330,10 +331,12 @@ export default function GradingByQuestionTabScreen({
               <ScorePolicyMenu
                 questionId={selectedQuestion.questionId}
                 questionIndex={selectedQuestion.questionIndex}
+                questionLabel={selectedQuestion.questionLabel}
                 currentPolicy={selectedQuestion.scorePolicy ?? "normal"}
                 allQuestions={questionProgress.map((q) => ({
                   id: q.questionId,
                   order: q.questionIndex - 1,
+                  questionLabel: q.questionLabel,
                   prompt: q.prompt,
                   score: q.maxScore,
                   questionType: q.questionType,
@@ -440,7 +443,7 @@ export default function GradingByQuestionTabScreen({
     >
       <GradingMobileNav
         questionLabel={
-          selectedQuestion ? `Q${selectedQuestion.questionIndex}` : "—"
+          selectedQuestion ? `Q${selectedQuestion.questionLabel ?? selectedQuestion.questionIndex}` : "—"
         }
         studentLabel={
           selectedAnswer?.studentUsername ?? t("grading.noSelection", "未選擇")
@@ -462,7 +465,7 @@ export default function GradingByQuestionTabScreen({
         hasNextStudent={hasNext}
         contextPath={{
           primary: selectedQuestion
-            ? `Q${selectedQuestion.questionIndex}`
+            ? `Q${selectedQuestion.questionLabel ?? selectedQuestion.questionIndex}`
             : t("grading.question", "題目"),
           secondary: selectedAnswer?.studentUsername,
         }}

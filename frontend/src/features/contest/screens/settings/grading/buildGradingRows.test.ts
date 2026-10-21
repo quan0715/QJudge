@@ -25,3 +25,18 @@ describe("grading question context", () => {
     expect(buildGradingRows([answer], [question])[0].questionPrompt).toBe("Standalone");
   });
 });
+
+it("labels grouped answers from the full paper even when answers are missing or reordered", () => {
+  const questions = [
+    { id: "q1", group_id: "g", order: 0 },
+    { id: "q2", group_id: "g", order: 1 },
+    { id: "q3", order: 2 },
+  ].map(mapExamQuestionDto);
+  const rows = buildGradingRows([
+    { ...answer, id: "a3", questionId: "q3" },
+    { ...answer, id: "a2", questionId: "q2" },
+  ], questions);
+  expect(rows.map(row => [row.questionId, row.questionLabel, row.questionIndex])).toEqual([
+    ["q3", "2", 3], ["q2", "1(b)", 2],
+  ]);
+});

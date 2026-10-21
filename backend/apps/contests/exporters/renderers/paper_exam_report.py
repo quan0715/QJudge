@@ -9,6 +9,8 @@ from django.contrib.staticfiles import finders
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from apps.contests.services.paper_question_labels import build_paper_question_labels
+
 from .base import BaseRenderer
 from ..utils import render_pdf, scale_css_pixels, inline_markdown, render_markdown
 
@@ -171,7 +173,9 @@ class PaperExamReportRenderer(BaseRenderer):
         items_by_qid = scoring_ctx.get('items_by_qid', {})
 
         rows = []
-        for idx, q in enumerate(questions, 1):
+        labels = build_paper_question_labels(questions)
+        for q in questions:
+            idx = labels[q.id]
             ans = answers_map.get(q.id)
             has_answer = ans and self._has_answer(ans)
             is_graded = ans and ans.score is not None
@@ -266,7 +270,9 @@ class PaperExamReportRenderer(BaseRenderer):
         section_label = self.get_label('problem_details')
         parts = [f'<div class="section-title">{section_label}</div>']
 
-        for idx, q in enumerate(questions, 1):
+        labels = build_paper_question_labels(questions)
+        for q in questions:
+            idx = labels[q.id]
             ans = answers_map.get(q.id)
             parts.append(self._render_single_question(idx, q, ans, scoring_ctx))
 
