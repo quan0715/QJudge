@@ -76,12 +76,8 @@ class TestBaseRolePermissions:
         assert 'view_draft' in owner_perms
 
     def test_co_owner_permissions(self):
-        """Co-owner should have settings but not lifecycle permissions."""
-        role_perms = BASE_ROLE_PERMISSIONS['co_owner']
-
-        assert 'manage_contest_settings' in role_perms
-        assert 'manage_contest_lifecycle' not in role_perms
-        assert 'view_draft' in role_perms
+        """Classroom TAs manage a contest exactly like the classroom owner."""
+        assert BASE_ROLE_PERMISSIONS['co_owner'] == BASE_ROLE_PERMISSIONS['owner']
 
     def test_participant_permissions(self):
         """Participant should have limited permissions."""
@@ -504,8 +500,7 @@ class TestClassroomPriorityACL:
 
         role = get_contest_scope_role(ta_user, contest)
         assert role == 'co_owner'
-        assert 'manage_contest_settings' in BASE_ROLE_PERMISSIONS[role]
-        assert 'manage_contest_lifecycle' not in BASE_ROLE_PERMISSIONS[role]
+        assert 'manage_contest_lifecycle' in BASE_ROLE_PERMISSIONS[role]
 
     def test_unbound_contest_grants_no_role(self):
         contest_owner = User.objects.create_user('legacy_owner_4', 'legacy_owner_4@test.com', 'pass')

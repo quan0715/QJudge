@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, TextInput, TextArea } from "@carbon/react";
-import type { ClassroomDetail } from "@/core/entities/classroom.entity";
+import { isClassroomOwnerRole, type ClassroomDetail } from "@/core/entities/classroom.entity";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { Section, FieldRow, ActionRow } from "@/shared/layout/SettingsPanel";
 import { ImageEditDialog } from "@/shared/ui/image";
@@ -28,10 +28,7 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
   const { t } = useTranslation("classroom");
   const { t: tc } = useTranslation("common");
   const { showToast } = useToast();
-  const canDeleteClassroom =
-    classroom.currentUserRole === "platform_admin" ||
-    classroom.currentUserRole === "owner" ||
-    classroom.currentUserRole === "manager";
+  const canDeleteClassroom = isClassroomOwnerRole(classroom.currentUserRole);
 
   const [settingName, setSettingName] = useState(classroom.name);
   const [settingDescription, setSettingDescription] = useState(classroom.description ?? "");

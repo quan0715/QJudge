@@ -20,9 +20,10 @@ import {
   TableToolbarSearch,
 } from "@carbon/react";
 import { Add, Edit, TrashCan } from "@carbon/icons-react";
-import type {
-  ClassroomDetail,
-  ClassroomMember,
+import {
+  isClassroomOwnerRole,
+  type ClassroomDetail,
+  type ClassroomMember,
 } from "@/core/entities/classroom.entity";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { Section } from "@/shared/layout/SettingsPanel";
@@ -68,6 +69,8 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
   );
 
   const { showToast } = useToast();
+  // TAs manage students; only the owner changes roles or removes TAs.
+  const canManageRoles = isClassroomOwnerRole(classroom.currentUserRole);
 
   const [regenerateConfirmOpen, setRegenerateConfirmOpen] = useState(false);
   const [roleFilter, setRoleFilter] = useState<"all" | "student" | "ta">("all");
@@ -276,6 +279,9 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                               );
                             }
                             if (cell.info.header === "actions") {
+                              if (!canManageRoles && roleValue === "ta") {
+                                return <TableCell key={cell.id} />;
+                              }
                               return (
                                 <TableCell key={cell.id}>
                                   <div style={{ display: "flex", justifyContent: "center" }}>
@@ -326,6 +332,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                   {editingMember.email}
                 </span>
               </div>
+              {canManageRoles && (
               <Dropdown
                 id="edit-member-role"
                 label=""
@@ -337,6 +344,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                   if (selectedItem) setEditRole(selectedItem.id as "student" | "ta");
                 }}
               />
+              )}
               <div style={{ borderTop: "1px solid var(--cds-border-subtle-01)", paddingTop: "1rem" }}>
                 <Button
                   kind="danger--ghost"

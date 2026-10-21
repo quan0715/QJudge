@@ -229,7 +229,7 @@ def test_toggle_status_rejects_publish_without_schedule(
 
 
 @pytest.mark.django_db
-def test_destroy_requires_owner_even_for_classroom_ta(
+def test_classroom_ta_can_destroy_contest(
     api_client: APIClient,
     contest: Contest,
     other_teacher: User,
@@ -239,8 +239,8 @@ def test_destroy_requires_owner_even_for_classroom_ta(
 
     response = api_client.delete(f"/api/v1/contests/{contest.id}/")
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert Contest.objects.filter(id=contest.id).exists()
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not Contest.objects.filter(id=contest.id).exists()
 
 
 @pytest.mark.django_db
@@ -1037,7 +1037,7 @@ def test_my_report_returns_500_when_report_generation_fails(
 
 
 # ---------------------------------------------------------------------------
-# Lifecycle permission tests (IsContestLifecycleOwner)
+# Lifecycle permission tests: classroom owners and TAs alike
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
@@ -1062,24 +1062,24 @@ def platform_admin_user() -> User:
 
 
 @pytest.mark.django_db
-def test_co_owner_cannot_toggle_status(
+def test_co_owner_can_toggle_status(
     api_client: APIClient, contest: Contest, co_owner_user: User
 ) -> None:
-    """co_owner must be blocked from toggle_status (lifecycle-only)."""
+    """Classroom TAs publish and unpublish contests like the classroom owner."""
     api_client.force_authenticate(user=co_owner_user)
     response = api_client.post(f"/api/v1/contests/{contest.id}/toggle_status/", {}, format="json")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_200_OK
 
 
 @pytest.mark.django_db
-def test_co_owner_cannot_delete_contest(
+def test_co_owner_can_delete_contest(
     api_client: APIClient, contest: Contest, co_owner_user: User
 ) -> None:
-    """co_owner must be blocked from deleting a contest."""
+    """Classroom TAs delete contests like the classroom owner."""
     api_client.force_authenticate(user=co_owner_user)
     response = api_client.delete(f"/api/v1/contests/{contest.id}/")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert Contest.objects.filter(id=contest.id).exists()
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not Contest.objects.filter(id=contest.id).exists()
 
 
 @pytest.mark.django_db

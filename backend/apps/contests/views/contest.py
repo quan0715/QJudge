@@ -25,10 +25,7 @@ from ..serializers import (
     ContestCreateUpdateSerializer,
     ContestParticipantSerializer,
 )
-from ..permissions import (
-    IsContestOwnerOrAdmin,
-    IsContestLifecycleOwner,
-)
+from ..permissions import IsContestOwnerOrAdmin
 from ..services.export_service import (
     ExportValidationError,
     build_contest_download_response,
@@ -264,7 +261,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             }
         return Response(payload)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsContestLifecycleOwner])
+    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
     def toggle_status(self, request, pk=None):
         """
         Toggle contest status between published and draft.
@@ -300,13 +297,12 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         """
-        Delete a contest. Only owner or platform_admin can delete.
+        Delete a contest. Any contest manager can delete it.
         """
         contest = self.get_object()
-        lifecycle_perm = IsContestLifecycleOwner()
-        if not lifecycle_perm.has_object_permission(request, self, contest):
+        if not IsContestOwnerOrAdmin().has_object_permission(request, self, contest):
             return Response(
-                {'error': 'Only the contest owner can delete this contest.'},
+                {'error': 'Only contest managers can delete this contest.'},
                 status=status.HTTP_403_FORBIDDEN
             )
         return super().destroy(request, *args, **kwargs)

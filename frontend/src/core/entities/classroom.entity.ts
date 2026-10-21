@@ -4,6 +4,11 @@ export type ClassroomScopeRole =
   | "manager"
   | "member";
 
+/** Only the classroom owner (or a platform admin) deletes the classroom or changes member roles. */
+export function isClassroomOwnerRole(role: ClassroomScopeRole | null | undefined): boolean {
+  return role === "platform_admin" || role === "owner";
+}
+
 export interface Classroom {
   id: string;
   name: string;

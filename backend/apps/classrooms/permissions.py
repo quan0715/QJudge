@@ -6,6 +6,9 @@ from rest_framework import permissions
 #: Classroom roles that may manage the classroom and its contests.
 CLASSROOM_MANAGER_ROLES = frozenset(('platform_admin', 'owner', 'manager'))
 
+#: Roles that may also delete the classroom and change anyone's role in it.
+CLASSROOM_OWNER_ROLES = frozenset(('platform_admin', 'owner'))
+
 
 def get_user_role_in_classroom(user, classroom):
     """
@@ -39,6 +42,14 @@ class IsClassroomOwnerOrAdmin(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         classroom = _classroom_of(obj)
         return classroom is not None and get_user_role_in_classroom(request.user, classroom) in CLASSROOM_MANAGER_ROLES
+
+
+class IsClassroomOwner(permissions.BasePermission):
+    """Only the classroom owner or a platform admin can access."""
+
+    def has_object_permission(self, request, view, obj):
+        classroom = _classroom_of(obj)
+        return classroom is not None and get_user_role_in_classroom(request.user, classroom) in CLASSROOM_OWNER_ROLES
 
 
 class IsClassroomMember(permissions.BasePermission):
