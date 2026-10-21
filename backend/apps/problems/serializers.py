@@ -178,24 +178,6 @@ class ProblemListSerializer(serializers.ModelSerializer):
         return getattr(obj, 'difficulty', 'medium')
 
 
-class ProblemStatsListSerializer(ProblemListSerializer):
-    """Management list row with the read-time submission stats.
-
-    Expects a queryset annotated by ``ProblemQuerySet.with_submission_stats``.
-    """
-    submission_count = serializers.IntegerField(read_only=True)
-    accepted_count = serializers.IntegerField(read_only=True)
-    acceptance_rate = serializers.FloatField(read_only=True)
-
-    class Meta(ProblemListSerializer.Meta):
-        fields = [
-            *ProblemListSerializer.Meta.fields,
-            'submission_count',
-            'accepted_count',
-            'acceptance_rate',
-        ]
-
-
 class ProblemDetailSerializer(serializers.ModelSerializer):
     """Serializer for problem detail (full info)."""
     title = serializers.SerializerMethodField()

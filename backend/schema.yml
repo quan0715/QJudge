@@ -2467,6 +2467,50 @@ paths:
               schema:
                 $ref: '#/components/schemas/ClassroomDetail'
           description: ''
+  /api/v1/classrooms/{id}/gradebook/:
+    get:
+      operationId: v1_classrooms_gradebook_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/gradebook/export/:
+    get:
+      operationId: v1_classrooms_gradebook_export_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
   /api/v1/classrooms/{id}/invite-code/:
     post:
       operationId: v1_classrooms_invite_code_create
@@ -4611,7 +4655,7 @@ paths:
       operationId: v1_contests_submissions_retrieve
       description: |-
         Get submission details.
-        Strict permission check: Only owner, admin, problem owner, or contest owner can view.
+        Only the submitter, platform admins, and managers of the submission's contest can view.
       parameters:
       - in: path
         name: contest_pk
@@ -4733,7 +4777,7 @@ paths:
           description: ''
     delete:
       operationId: v1_contests_destroy
-      description: Delete a contest. Only owner or platform_admin can delete.
+      description: Delete a contest. Any contest manager can delete it.
       parameters:
       - in: path
         name: id
@@ -4750,41 +4794,6 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/v1/contests/{id}/add_participant/:
-    post:
-      operationId: v1_contests_add_participant_create
-      description: Manually add a participant to the contest.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
   /api/v1/contests/{id}/anticheat-config/:
     get:
       operationId: v1_contests_anticheat_config_retrieve
@@ -5129,43 +5138,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContestDetail'
           description: ''
-  /api/v1/contests/{id}/remove_participant/:
-    post:
-      operationId: v1_contests_remove_participant_create
-      description: |-
-        Remove a participant from the contest.
-        Only contest owners/admins can perform this action.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
   /api/v1/contests/{id}/reopen_exam/:
     post:
       operationId: v1_contests_reopen_exam_create
@@ -5375,227 +5347,6 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/v1/management/problems/:
-    get:
-      operationId: v1_management_problems_list
-      description: ViewSet for viewing and editing problems.
-      parameters:
-      - in: query
-        name: difficulty
-        schema:
-          type: array
-          items:
-            type: string
-            enum:
-            - easy
-            - hard
-            - medium
-        description: |-
-          * `easy` - easy
-          * `medium` - medium
-          * `hard` - hard
-        explode: true
-        style: form
-      - name: ordering
-        required: false
-        in: query
-        description: Which field to use when ordering the results.
-        schema:
-          type: string
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
-      - name: search
-        required: false
-        in: query
-        description: A search term.
-        schema:
-          type: string
-      - in: query
-        name: tags
-        schema:
-          type: string
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedProblemStatsListList'
-          description: ''
-    post:
-      operationId: v1_management_problems_create
-      description: ViewSet for viewing and editing problems.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-          description: ''
-  /api/v1/management/problems/{id}/:
-    get:
-      operationId: v1_management_problems_retrieve
-      description: ViewSet for viewing and editing problems.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 題目.
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-          description: ''
-    put:
-      operationId: v1_management_problems_update
-      description: ViewSet for viewing and editing problems.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 題目.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-          description: ''
-    patch:
-      operationId: v1_management_problems_partial_update
-      description: ViewSet for viewing and editing problems.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 題目.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedProblemDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedProblemDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedProblemDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-          description: ''
-    delete:
-      operationId: v1_management_problems_destroy
-      description: ViewSet for viewing and editing problems.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 題目.
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '204':
-          description: No response body
-  /api/v1/management/problems/{id}/statistics/:
-    get:
-      operationId: v1_management_problems_statistics_retrieve
-      description: |-
-        Get problem statistics including status distribution and submission trend.
-
-        Query params:
-        - contest: Contest ID to filter submissions (optional)
-        - limit: Number of recent submissions for trend data (default: 100)
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 題目.
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-          description: ''
   /api/v1/management/problems/{id}/test_run/:
     post:
       operationId: v1_management_problems_test_run_create
@@ -5619,13 +5370,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
+              $ref: '#/components/schemas/TestRunRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
+              $ref: '#/components/schemas/TestRunRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
+              $ref: '#/components/schemas/TestRunRequest'
+        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -5634,12 +5386,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProblemDetail'
+                $ref: '#/components/schemas/TestRun'
           description: ''
   /api/v1/management/problems/{id}/test_run_status/:
     get:
       operationId: v1_management_problems_test_run_status_retrieve
-      description: ViewSet for viewing and editing problems.
+      description: |-
+        Problem-level actions outside a contest route.
+
+        Problems are created and edited through their contest
+        (``/contests/{id}/problems/``); only code test runs live here.
       parameters:
       - in: path
         name: id
@@ -5658,7 +5414,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProblemDetail'
+                $ref: '#/components/schemas/TestRun'
           description: ''
   /api/v1/management/problems/tags/:
     get:
@@ -6368,7 +6124,7 @@ paths:
       operationId: v1_submissions_retrieve
       description: |-
         Get submission details.
-        Strict permission check: Only owner, admin, problem owner, or contest owner can view.
+        Only the submitter, platform admins, and managers of the submission's contest can view.
       parameters:
       - in: path
         name: id
@@ -8096,9 +7852,6 @@ components:
         contests:
           type: string
           readOnly: true
-        admins:
-          type: string
-          readOnly: true
         announcements:
           type: string
           readOnly: true
@@ -8113,7 +7866,6 @@ components:
           readOnly: true
           title: 更新時間
       required:
-      - admins
       - announcements
       - contests
       - created_at
@@ -8584,9 +8336,6 @@ components:
         participant_count:
           type: string
           readOnly: true
-        is_classroom_bound:
-          type: string
-          readOnly: true
         bound_classroom_id:
           type: string
           readOnly: true
@@ -8624,7 +8373,6 @@ components:
       - has_joined
       - has_started
       - id
-      - is_classroom_bound
       - is_exam_monitored
       - left_at
       - lock_reason
@@ -8967,6 +8715,32 @@ components:
       - contest
       - language
       - problem
+    CustomTestCase:
+      type: object
+      properties:
+        input:
+          type: string
+          maxLength: 65536
+        expected_output:
+          type: string
+          default: ''
+          description: Leave blank to only see the program output
+          maxLength: 65536
+      required:
+      - input
+    CustomTestCaseRequest:
+      type: object
+      properties:
+        input:
+          type: string
+          maxLength: 65536
+        expected_output:
+          type: string
+          default: ''
+          description: Leave blank to only see the program output
+          maxLength: 65536
+      required:
+      - input
     EditorTabSize929Enum:
       enum:
       - 2
@@ -9262,27 +9036,6 @@ components:
         * `c` - C
         * `python` - Python
         * `java` - Java
-    LanguageConfigRequest:
-      type: object
-      description: Serializer for language configuration.
-      properties:
-        language:
-          allOf:
-          - $ref: '#/components/schemas/LanguageConfigLanguageEnum'
-          title: 程式語言
-        template_code:
-          type: string
-          title: 範本程式碼
-        is_enabled:
-          type: boolean
-          title: 啟用
-        order:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 排序
-      required:
-      - language
     LoginRecordObject:
       type: object
       description: Read-only serializer for login history entries.
@@ -9507,29 +9260,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ContestProblem'
-    PaginatedProblemStatsListList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProblemStatsList'
     PaginatedSubmissionListList:
       type: object
       required:
@@ -9880,33 +9610,6 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           title: 排序
-    PatchedProblemDetailRequest:
-      type: object
-      description: Serializer for problem detail (full info).
-      properties:
-        slug:
-          oneOf:
-          - type: string
-            maxLength: 255
-            pattern: ^[-a-zA-Z0-9_]+$
-          - type: string
-            maxLength: 0
-        time_limit:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 時間限制 (ms)
-        memory_limit:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 記憶體限制 (MB)
-        forbidden_keywords:
-          title: 禁用關鍵字
-          description: 提交代碼中不可出現的關鍵字列表 (substring match)
-        required_keywords:
-          title: 必須關鍵字
-          description: 提交代碼中必須包含的關鍵字列表 (substring match)
     PatchedQuestionBankRequest:
       type: object
       properties:
@@ -9991,115 +9694,6 @@ components:
         * `light` - Light
         * `dark` - Dark
         * `system` - System
-    ProblemDetail:
-      type: object
-      description: Serializer for problem detail (full info).
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        title:
-          type: string
-          readOnly: true
-        slug:
-          oneOf:
-          - type: string
-            maxLength: 255
-            pattern: ^[-a-zA-Z0-9_]+$
-          - type: string
-            maxLength: 0
-        difficulty:
-          type: string
-          readOnly: true
-        time_limit:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 時間限制 (ms)
-        memory_limit:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 記憶體限制 (MB)
-        question_asset_id:
-          type: string
-          format: uuid
-          readOnly: true
-        description:
-          type: string
-          readOnly: true
-        input_description:
-          type: string
-          readOnly: true
-        output_description:
-          type: string
-          readOnly: true
-        hint:
-          type: string
-          readOnly: true
-        samples:
-          type: string
-          readOnly: true
-        test_cases:
-          type: string
-          readOnly: true
-        language_configs:
-          type: array
-          items:
-            $ref: '#/components/schemas/LanguageConfig'
-          readOnly: true
-        tags:
-          type: array
-          items:
-            $ref: '#/components/schemas/Tag'
-          readOnly: true
-        forbidden_keywords:
-          title: 禁用關鍵字
-          description: 提交代碼中不可出現的關鍵字列表 (substring match)
-        required_keywords:
-          title: 必須關鍵字
-          description: 提交代碼中必須包含的關鍵字列表 (substring match)
-      required:
-      - description
-      - difficulty
-      - hint
-      - id
-      - input_description
-      - language_configs
-      - output_description
-      - question_asset_id
-      - samples
-      - tags
-      - test_cases
-      - title
-    ProblemDetailRequest:
-      type: object
-      description: Serializer for problem detail (full info).
-      properties:
-        slug:
-          oneOf:
-          - type: string
-            maxLength: 255
-            pattern: ^[-a-zA-Z0-9_]+$
-          - type: string
-            maxLength: 0
-        time_limit:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 時間限制 (ms)
-        memory_limit:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 記憶體限制 (MB)
-        forbidden_keywords:
-          title: 禁用關鍵字
-          description: 提交代碼中不可出現的關鍵字列表 (substring match)
-        required_keywords:
-          title: 必須關鍵字
-          description: 提交代碼中必須包含的關鍵字列表 (substring match)
     ProblemList:
       type: object
       description: Serializer for problem list (minimal info).
@@ -10157,81 +9751,6 @@ components:
       - is_solved
       - language_configs
       - question_asset_id
-      - tags
-      - title
-    ProblemStatsList:
-      type: object
-      description: |-
-        Management list row with the read-time submission stats.
-
-        Expects a queryset annotated by ``ProblemQuerySet.with_submission_stats``.
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        title:
-          type: string
-          readOnly: true
-        slug:
-          oneOf:
-          - type: string
-            maxLength: 255
-            pattern: ^[-a-zA-Z0-9_]+$
-          - type: string
-            maxLength: 0
-        difficulty:
-          type: string
-          readOnly: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 建立時間
-        created_by:
-          type: string
-          title: 使用者名稱
-          description: 必要的。150 個字或更少，只包含字母、數字和 @/./+/-/_。
-          readOnly: true
-        question_asset_id:
-          type: string
-          format: uuid
-          readOnly: true
-        language_configs:
-          type: array
-          items:
-            $ref: '#/components/schemas/LanguageConfig'
-          readOnly: true
-        is_solved:
-          type: boolean
-          readOnly: true
-          default: false
-        tags:
-          type: array
-          items:
-            $ref: '#/components/schemas/Tag'
-          readOnly: true
-        submission_count:
-          type: integer
-          readOnly: true
-        accepted_count:
-          type: integer
-          readOnly: true
-        acceptance_rate:
-          type: number
-          format: double
-          readOnly: true
-      required:
-      - acceptance_rate
-      - accepted_count
-      - created_at
-      - created_by
-      - difficulty
-      - id
-      - is_solved
-      - language_configs
-      - question_asset_id
-      - submission_count
       - tags
       - title
     PurposeEnum:
@@ -10678,6 +10197,85 @@ components:
           maxLength: 7
       required:
       - name
+    TestRun:
+      type: object
+      description: 'Test run request: the public sample cases plus the solver''s own
+        cases.'
+      properties:
+        asynchronous:
+          type: boolean
+          default: false
+        language:
+          allOf:
+          - $ref: '#/components/schemas/TestRunLanguageEnum'
+          description: |-
+            Programming language
+
+            * `cpp` - cpp
+            * `c` - c
+            * `python` - python
+            * `java` - java
+        code:
+          type: string
+          description: Source code to execute
+        contest_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Optional contest context for participant access enforcement
+        custom_test_cases:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomTestCase'
+      required:
+      - code
+      - language
+    TestRunLanguageEnum:
+      enum:
+      - cpp
+      - c
+      - python
+      - java
+      type: string
+      description: |-
+        * `cpp` - cpp
+        * `c` - c
+        * `python` - python
+        * `java` - java
+    TestRunRequest:
+      type: object
+      description: 'Test run request: the public sample cases plus the solver''s own
+        cases.'
+      properties:
+        asynchronous:
+          type: boolean
+          default: false
+        language:
+          allOf:
+          - $ref: '#/components/schemas/TestRunLanguageEnum'
+          description: |-
+            Programming language
+
+            * `cpp` - cpp
+            * `c` - c
+            * `python` - python
+            * `java` - java
+        code:
+          type: string
+          minLength: 1
+          description: Source code to execute
+        contest_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Optional contest context for participant access enforcement
+        custom_test_cases:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomTestCaseRequest'
+      required:
+      - code
+      - language
     TokenRefreshRequest:
       type: object
       description: Serializer for token refresh.

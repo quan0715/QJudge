@@ -12,6 +12,7 @@ from rest_framework.test import APIClient
 from apps.contests.models import Contest, ContestParticipant, ExamIntegrityRun
 from apps.contests.services.integrity_sessions import ensure_resident_session
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 @pytest.fixture(autouse=True)
@@ -33,12 +34,13 @@ def owner(db):
 @pytest.fixture
 def contest(owner):
     now = timezone.now()
-    return Contest.objects.create(name="Schedule", owner=owner, status="published", contest_type="paper_exam", cheat_detection_enabled=True, start_time=now - timedelta(hours=1), end_time=now + timedelta(minutes=10))
+    return create_contest_in_classroom(name="Schedule", owner=owner, status="published", contest_type="paper_exam", cheat_detection_enabled=True, start_time=now - timedelta(hours=1), end_time=now + timedelta(minutes=10))
 
 
 @pytest.fixture
 def participant(contest):
     student = User.objects.create_user(username="schedule-student", email="schedule-student@example.com", role="student")
+    enrol_candidates(contest, student)
     return ContestParticipant.objects.create(contest=contest, user=student, exam_status="in_progress", started_at=contest.start_time)
 
 
@@ -453,7 +455,7 @@ def test_recurring_command_finalizes_between_multiple_stalled_resident_requests(
     Contest.objects.filter(pk=contest.pk).update(end_time=now + timedelta(seconds=1))
     ensure_resident_session(contest.pk)
     for index in range(2):
-        other = Contest.objects.create(name=f"stalled-{index}", owner=contest.owner,
+        other = create_contest_in_classroom(name=f"stalled-{index}", owner=contest.owner,
             status="published", contest_type="paper_exam", cheat_detection_enabled=True,
             start_time=now - timedelta(minutes=1), end_time=now + timedelta(hours=1))
         ensure_resident_session(other.pk)

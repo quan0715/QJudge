@@ -68,12 +68,12 @@ def api_client() -> APIClient:
 
 @pytest.fixture
 def teacher():
-    return SimpleNamespace(pk=17, id=17, is_authenticated=True, role="teacher")
+    return SimpleNamespace(pk=17, id=17, is_authenticated=True, is_staff=False, is_superuser=False, role="teacher")
 
 
 @pytest.fixture
 def student():
-    return SimpleNamespace(pk=18, id=18, is_authenticated=True, role="student")
+    return SimpleNamespace(pk=18, id=18, is_authenticated=True, is_staff=False, is_superuser=False, role="student")
 
 
 @pytest.fixture

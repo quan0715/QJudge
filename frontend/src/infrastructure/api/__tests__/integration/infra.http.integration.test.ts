@@ -1,8 +1,7 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
 import { loginAndSetToken, setAuthToken, setupApiTestEnv } from "./helpers/apiTestEnv";
-import { TEST_PROBLEMS, TEST_USERS } from "@/tests/helpers/data.helper";
-import { ensureProblemExists } from "./helpers/problemSeed";
+import { TEST_USERS } from "@/tests/helpers/data.helper";
 
 describe("infrastructure http client integration", () => {
   let restoreFetch: (() => void) | undefined;
@@ -15,7 +14,6 @@ describe("infrastructure http client integration", () => {
       email: TEST_USERS.teacher.email,
       password: TEST_USERS.teacher.password,
     });
-    await ensureProblemExists(TEST_PROBLEMS.aPlusB.title);
   });
 
   afterAll(() => {
@@ -25,8 +23,8 @@ describe("infrastructure http client integration", () => {
 
   it("requests json from api", async () => {
     const data = await requestJson<any>(
-      httpClient.get("/api/v1/management/problems/"),
-      "Failed to fetch problems"
+      httpClient.get("/api/v1/contests/?scope=manage"),
+      "Failed to fetch contests"
     );
     const results = Array.isArray(data?.results) ? data.results : data;
 
@@ -36,7 +34,7 @@ describe("infrastructure http client integration", () => {
 
   it("ensureOk resolves for successful responses", async () => {
     await expect(
-      ensureOk(httpClient.get("/api/v1/management/problems/"), "Failed to fetch problems")
+      ensureOk(httpClient.get("/api/v1/contests/?scope=manage"), "Failed to fetch contests")
     ).resolves.toBeUndefined();
   });
 });

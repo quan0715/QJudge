@@ -9,6 +9,14 @@ from django.db.models import Count, Q
 User = get_user_model()
 
 
+def classroom_manager_filter(user) -> Q:
+    """Contests whose bound classroom *user* owns or assists as a TA."""
+    return Q(classroom_bindings__classroom__owner=user) | Q(
+        classroom_bindings__classroom__memberships__user=user,
+        classroom_bindings__classroom__memberships__role="ta",
+    )
+
+
 class ContestQuerySet(models.QuerySet):
     def optimized_for_list(self) -> "ContestQuerySet":
         return self.select_related("owner").annotate(participant_count=Count("participants"))
@@ -17,37 +25,21 @@ class ContestQuerySet(models.QuerySet):
         if scope == "manage":
             if not user or not user.is_authenticated:
                 return self.none()
-            if user.is_staff or getattr(user, "role", "") == "admin":
+            if user.is_staff or user.is_superuser:
                 return self
-            classroom_manager_filter = (
-                Q(classroom_bindings__classroom__owner=user)
-                | Q(classroom_bindings__classroom__admins=user)
-                | Q(
-                    classroom_bindings__classroom__memberships__user=user,
-                    classroom_bindings__classroom__memberships__role="ta",
-                )
-            )
-            unbound_manager_filter = Q(classroom_bindings__isnull=True) & (
-                Q(owner=user)
-            )
-            return self.filter(
-                classroom_manager_filter | unbound_manager_filter
-            ).distinct()
+            return self.filter(classroom_manager_filter(user)).distinct()
 
         if scope == "participated":
             if not user or not user.is_authenticated:
                 return self.none()
             classroom_relation_filter = (
                 Q(classroom_bindings__classroom__owner=user)
-                | Q(classroom_bindings__classroom__admins=user)
                 | Q(classroom_bindings__classroom__memberships__user=user)
             )
-            queryset = self.filter(registrations__user=user).filter(
-                classroom_relation_filter | Q(classroom_bindings__isnull=True)
-            ).distinct()
-            if not (user.is_staff or getattr(user, "role", "") in ["admin", "teacher"]):
-                queryset = queryset.exclude(status="draft")
-            return queryset
+            queryset = self.filter(registrations__user=user).filter(classroom_relation_filter)
+            if not (user.is_staff or user.is_superuser):
+                queryset = queryset.filter(~Q(status="draft") | classroom_manager_filter(user))
+            return queryset.distinct()
 
         queryset = self.filter(status="published")
 
@@ -56,12 +48,6 @@ class ContestQuerySet(models.QuerySet):
 
         classroom_relation_filter = (
             Q(classroom_bindings__classroom__owner=user)
-            | Q(classroom_bindings__classroom__admins=user)
             | Q(classroom_bindings__classroom__memberships__user=user)
         )
-        unbound_relation_filter = Q(classroom_bindings__isnull=True) & (
-            Q(registrations__user=user) | Q(owner=user)
-        )
-        return queryset.filter(
-            classroom_relation_filter | unbound_relation_filter
-        ).distinct()
+        return queryset.filter(classroom_relation_filter).distinct()

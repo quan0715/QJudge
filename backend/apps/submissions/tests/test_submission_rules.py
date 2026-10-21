@@ -501,3 +501,69 @@ def test_unrelated_teacher_cannot_view_submission_detail(
     response = api_client.get(reverse("submissions:submission-detail", args=[submission.id]))
 
     assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_contest_and_problem_creators_outside_classroom_cannot_view_submission_detail(
+    api_client: APIClient,
+) -> None:
+    """Only the classroom grants access to a contest submission, not creator fields."""
+    contest_creator = UserFactory(role="teacher")
+    problem_creator = UserFactory(role="teacher")
+    classroom_owner = UserFactory(role="teacher")
+    student = UserFactory(role="student")
+
+    contest = ContestFactory(owner=contest_creator, status="published")
+    classroom = Classroom.objects.create(name="Creator ACL", owner=classroom_owner, invite_code="CRTACL01")
+    ClassroomContest.objects.create(classroom=classroom, contest=contest)
+    ClassroomMember.objects.create(classroom=classroom, user=student, role="student")
+    submission = Submission.objects.create(
+        user=student,
+        problem=ProblemFactory(created_by=problem_creator),
+        contest=contest,
+        language="python",
+        code="print('secret')",
+        status="AC",
+        score=100,
+    )
+
+    for creator in (contest_creator, problem_creator):
+        api_client.force_authenticate(user=creator)
+        response = api_client.get(reverse("submissions:submission-detail", args=[submission.id]))
+        assert response.status_code == 403, creator.username
+
+
+@pytest.mark.django_db
+def test_teacher_taking_a_contest_cannot_see_hidden_case_data(
+    api_client: APIClient,
+) -> None:
+    """Hidden test data is for contest managers, not for every account with the teacher role."""
+    classroom_owner = UserFactory(role="teacher")
+    teacher_as_student = UserFactory(role="teacher")
+    contest = ContestFactory(owner=classroom_owner, status="published")
+    classroom = Classroom.objects.create(name="Hidden ACL", owner=classroom_owner, invite_code="HIDACL01")
+    ClassroomContest.objects.create(classroom=classroom, contest=contest)
+    ClassroomMember.objects.create(classroom=classroom, user=teacher_as_student, role="student")
+    problem = ProblemFactory(created_by=classroom_owner)
+    hidden_case = problem.test_cases.create(
+        input_data="secret in", output_data="secret out", is_hidden=True, weight_percent=100,
+    )
+    submission = Submission.objects.create(
+        user=teacher_as_student,
+        problem=problem,
+        contest=contest,
+        language="python",
+        code="print('x')",
+        status="WA",
+        score=0,
+    )
+    submission.results.create(test_case=hidden_case, status="WA", is_hidden=True)
+
+    api_client.force_authenticate(user=teacher_as_student)
+    response = api_client.get(reverse("submissions:submission-detail", args=[submission.id]))
+
+    assert response.status_code == 200
+    result = response.data["results"][0]
+    assert result["is_hidden"] is True
+    assert result["input"] is None
+    assert result["expected_output"] is None

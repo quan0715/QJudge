@@ -7,7 +7,7 @@ import type { ContestParticipant, ExamStatusType, ParticipantDashboardDetail } f
 import type { AdminPanelId } from "@/features/contest/modules/types";
 import { useContest, useContestAdmin } from "@/features/contest/contexts";
 import useParticipantDashboard from "@/features/contest/screens/settings/participants/useParticipantDashboard";
-import { downloadParticipantReport, removeParticipant, resetParticipantExamRecord, reopenExam, unlockParticipant, updateParticipant } from "@/infrastructure/api/repositories";
+import { downloadParticipantReport, resetParticipantExamRecord, reopenExam, unlockParticipant, updateParticipant } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import ParticipantDashboardPane from "./ParticipantDashboardPane";
@@ -33,7 +33,6 @@ export default function ParticipantDrawer({
   const { confirm, modalProps: confirmModalProps } = useConfirmModal();
   const { contest } = useContest();
   const { participants, refreshAllAdminData } = useContestAdmin();
-  const classroomBound = !!contest?.isClassroomBound;
   const antiCheatEnabled = !!contest?.cheatDetectionEnabled;
   const [activeParticipantDetail, setActiveParticipantDetail] =
     useState<ParticipantDashboardDetail>(initialDetail);
@@ -199,48 +198,6 @@ export default function ParticipantDrawer({
     }
   }, [confirm, contestId, refreshAfterAction, selectedUserId, showToast, t]);
 
-  const handleRemoveParticipant = useCallback(async () => {
-    if (!contestId || !selectedUserId || !participantDashboard.data) return;
-    const confirmed = await confirm({
-      title: t("participants.confirmRemove", {
-        name: participantDashboard.data.participant.username,
-      }),
-      confirmLabel: t("participants.remove", "移除"),
-      cancelLabel: t("button.cancel", "取消"),
-      danger: true,
-    });
-    if (!confirmed) return;
-    try {
-      await removeParticipant(contestId, Number(selectedUserId));
-      await refreshAllAdminData();
-      onClose();
-      showToast({
-        kind: "success",
-        title: t("common.success", "成功"),
-        subtitle: t("participants.removed", "參賽者已移除"),
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t("participants.removeFailed", "移除參賽者失敗");
-      showToast({
-        kind: "error",
-        title: t("common.error", "錯誤"),
-        subtitle: message,
-      });
-    }
-  }, [
-    confirm,
-    contestId,
-    onClose,
-    participantDashboard.data,
-    refreshAllAdminData,
-    selectedUserId,
-    showToast,
-    t,
-  ]);
-
   const handleResetExamRecord = useCallback(async () => {
     if (!contestId || !selectedUserId || !participantDashboard.data) return;
     const confirmed = await confirm({
@@ -324,9 +281,6 @@ export default function ParticipantDrawer({
       onReopenExam={() => void handleReopenExam()}
       onAssistedAttendance={contest?.attendanceCheckEnabled ? handleAssistedAttendance : undefined}
       onResetExamRecord={() => void handleResetExamRecord()}
-      onRemoveParticipant={
-        classroomBound ? undefined : () => void handleRemoveParticipant()
-      }
       onOpenDetail={setActiveParticipantDetail}
       onOpenGrading={() => onOpenPanel(contest?.contestType === "coding" ? "standings" : "grading")}
       onOpenProctoring={() => onOpenPanel("proctoring")}
@@ -399,11 +353,6 @@ export default function ParticipantDrawer({
                   onEditStatus={openEditModal}
                   onUnlock={() => void handleUnlock()}
                   onReopenExam={() => void handleReopenExam()}
-                  onRemoveParticipant={
-                    classroomBound
-                      ? undefined
-                      : () => void handleRemoveParticipant()
-                  }
                   onOpenGrading={() => onOpenPanel(contest?.contestType === "coding" ? "standings" : "grading")}
                   onRefreshEvents={participantDashboard.refresh}
                 />

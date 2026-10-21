@@ -85,7 +85,6 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
     ...contest,
     rules: dto.rules || dto.rule, // Handle alias
     ownerUsername: dto.owner_username || "",
-    isClassroomBound: !!dto.is_classroom_bound,
     boundClassroomId: dto.bound_classroom_id?.toString?.() ?? null,
 
     contestType: dto.contest_type ?? "coding",

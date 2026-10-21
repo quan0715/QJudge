@@ -49,18 +49,6 @@ export const updateParticipant = async (
   );
 };
 
-export const addContestParticipant = async (
-  contestId: string,
-  username: string
-): Promise<void> => {
-  await ensureOk(
-    httpClient.post(`/api/v1/contests/${contestId}/add_participant/`, {
-      username,
-    }),
-    "Failed to add participant"
-  );
-};
-
 export const reopenExam = async (
   contestId: string,
   userId: number
@@ -70,18 +58,6 @@ export const reopenExam = async (
       user_id: userId,
     }),
     "Failed to reopen exam"
-  );
-};
-
-export const removeParticipant = async (
-  contestId: string,
-  userId: number
-): Promise<void> => {
-  await ensureOk(
-    httpClient.post(`/api/v1/contests/${contestId}/remove_participant/`, {
-      user_id: userId,
-    }),
-    "Failed to remove participant"
   );
 };
 

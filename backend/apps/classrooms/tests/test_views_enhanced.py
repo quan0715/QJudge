@@ -101,3 +101,73 @@ class ClassroomViewsEnhancedTests(APITestCase):
         response = self.client.delete(member_url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(ClassroomMember.objects.filter(classroom=self.classroom, user=self.student).exists())
+
+
+class ClassroomTaPermissionTests(APITestCase):
+    """TAs manage the classroom like its owner, except deleting it and changing anyone's role."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(username='perm_owner', email='perm_owner@test.com', password='pw', role='teacher')
+        self.ta = User.objects.create_user(username='perm_ta', email='perm_ta@test.com', password='pw', role='teacher')
+        self.other_ta = User.objects.create_user(username='perm_ta2', email='perm_ta2@test.com', password='pw', role='teacher')
+        self.student = User.objects.create_user(username='perm_student', email='perm_student@test.com', password='pw', role='student')
+        self.newcomer = User.objects.create_user(username='perm_new', email='perm_new@test.com', password='pw', role='student')
+        self.classroom = Classroom.objects.create(name='TA Room', owner=self.owner, invite_code='TAROOM01')
+        ClassroomMember.objects.create(classroom=self.classroom, user=self.ta, role='ta')
+        ClassroomMember.objects.create(classroom=self.classroom, user=self.other_ta, role='ta')
+        ClassroomMember.objects.create(classroom=self.classroom, user=self.student, role='student')
+        self.detail_url = reverse('classrooms:classroom-detail', kwargs={'id': self.classroom.uuid})
+        self.members_url = reverse('classrooms:classroom-members', kwargs={'id': self.classroom.uuid})
+        self.client.force_authenticate(user=self.ta)
+
+    def member_url(self, user):
+        return f"{self.members_url}{user.id}/"
+
+    def test_ta_cannot_archive_classroom(self):
+        response = self.client.delete(self.detail_url)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.classroom.refresh_from_db()
+        self.assertFalse(self.classroom.is_archived)
+
+    def test_ta_cannot_change_member_role(self):
+        response = self.client.patch(self.member_url(self.student), {'role': 'ta'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(ClassroomMember.objects.get(classroom=self.classroom, user=self.student).role, 'student')
+
+    def test_ta_cannot_add_members_as_ta(self):
+        response = self.client.post(self.members_url, {'usernames': [self.newcomer.username], 'role': 'ta'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(ClassroomMember.objects.filter(classroom=self.classroom, user=self.newcomer).exists())
+
+    def test_ta_cannot_remove_another_ta(self):
+        response = self.client.delete(self.member_url(self.other_ta))
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(ClassroomMember.objects.filter(classroom=self.classroom, user=self.other_ta).exists())
+
+    def test_ta_can_add_and_remove_students(self):
+        added = self.client.post(self.members_url, {'usernames': [self.newcomer.username], 'role': 'student'}, format='json')
+        removed = self.client.delete(self.member_url(self.student))
+
+        self.assertEqual(added.status_code, status.HTTP_200_OK)
+        self.assertEqual(added.data['added'], [self.newcomer.username])
+        self.assertEqual(removed.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_ta_can_update_classroom_settings(self):
+        response = self.client.patch(self.detail_url, {'name': 'Renamed by TA'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.classroom.refresh_from_db()
+        self.assertEqual(self.classroom.name, 'Renamed by TA')
+
+    def test_owner_can_archive_and_change_roles(self):
+        self.client.force_authenticate(user=self.owner)
+
+        promoted = self.client.patch(self.member_url(self.student), {'role': 'ta'}, format='json')
+        archived = self.client.delete(self.detail_url)
+
+        self.assertEqual(promoted.status_code, status.HTTP_200_OK)
+        self.assertEqual(archived.status_code, status.HTTP_204_NO_CONTENT)

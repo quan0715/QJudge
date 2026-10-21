@@ -1,6 +1,4 @@
 // Modal Components
-export { AddParticipantModal } from "./modals/AddParticipantModal";
-export { AddUserModal } from "./modals/AddUserModal";
 export { ExamModeMonitorModal } from "./modals/ExamModeMonitorModal";
 
 // Exam Components

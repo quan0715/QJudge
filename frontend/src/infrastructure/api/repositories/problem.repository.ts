@@ -1,81 +1,17 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
-import { buildQuery } from "@/infrastructure/api/utils/buildQuery.client";
+import type { Tag } from "@/core/entities/problem.entity";
 import type {
-  CodingProblem,
-  CodingProblemDetail,
-  ProblemUpsertPayload,
-  Tag,
-} from "@/core/entities/problem.entity";
-import type {
-  GetProblemsParams,
   TestRunPayload,
   TestRunResult,
 } from "@/core/ports/problem.repository";
-import {
-  mapProblemDto,
-  mapProblemDetailDto,
-  mapTagDto,
-} from "@/infrastructure/mappers/problem.mapper";
-import type { ProblemDto, ProblemDetailDto, TagDto } from "@/infrastructure/api/dto/problem.dto";
+import { mapTagDto } from "@/infrastructure/mappers/problem.mapper";
+import type { TagDto } from "@/infrastructure/api/dto/problem.dto";
 
 const MANAGEMENT_PROBLEMS_BASE = "/api/v1/management/problems";
 
 // ============================================================================
 // Problem Repository Implementation
 // ============================================================================
-
-export const getProblems = async (
-  params?: GetProblemsParams | string
-): Promise<CodingProblem[]> => {
-  let query = "";
-  const defaultScope = "manage";
-
-  if (typeof params === "string") {
-    const scope = params || defaultScope;
-    query = `?scope=${scope}`;
-  } else if (params) {
-    query = buildQuery({
-      scope: params.scope || defaultScope,
-      search: params.search,
-      difficulty: params.difficulty,
-      tags: params.tags?.length ? params.tags.join(",") : undefined,
-    });
-  } else {
-    query = `?scope=${defaultScope}`;
-  }
-
-  const data = await requestJson<{ results?: ProblemDto[] } | ProblemDto[]>(
-    httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/${query}`),
-    "Failed to fetch problems"
-  );
-  const results = Array.isArray(data) ? data : data.results || [];
-  return results.map(mapProblemDto);
-};
-
-export const getProblem = async (
-  id: string,
-  scope?: string
-): Promise<CodingProblemDetail | undefined> => {
-  const query = `?scope=${scope || "manage"}`;
-  const res = await httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/${id}/${query}`);
-
-  if (!res.ok) {
-    return undefined;
-  }
-
-  const data = await res.json() as ProblemDetailDto;
-  return mapProblemDetailDto(data);
-};
-
-export const createProblem = async (
-  data: ProblemUpsertPayload
-): Promise<CodingProblemDetail> => {
-  const responseData = await requestJson<ProblemDetailDto>(
-    httpClient.post(`${MANAGEMENT_PROBLEMS_BASE}/`, data),
-    "Failed to create problem"
-  );
-  return mapProblemDetailDto(responseData);
-};
 
 export const getTags = async (): Promise<Tag[]> => {
   try {

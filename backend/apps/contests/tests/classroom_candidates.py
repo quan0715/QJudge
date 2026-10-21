@@ -14,11 +14,12 @@ from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.classrooms.services import generate_invite_code
 
 
-def enrol_candidates(contest, *students, classroom=None) -> Classroom:
+def enrol_candidates(contest, *students, classroom=None, role="student") -> Classroom:
     """Bind ``contest`` to a classroom and enrol ``students`` as its members.
 
     Reuses the contest's existing binding when there is one, so it is safe to
-    call repeatedly and from fixtures that already bound a classroom.
+    call repeatedly and from fixtures that already bound a classroom. Existing
+    memberships keep their role, and the classroom owner is never a member row.
     """
     binding = contest.classroom_bindings.select_related("classroom").order_by("bound_at").first()
     if binding is not None:
@@ -37,9 +38,25 @@ def enrol_candidates(contest, *students, classroom=None) -> Classroom:
             )
         ClassroomContest.objects.get_or_create(classroom=classroom, contest=contest)
     for student in students:
+        if student.pk == classroom.owner_id:
+            continue
         ClassroomMember.objects.get_or_create(
             classroom=classroom,
             user=student,
-            defaults={"role": "student"},
+            defaults={"role": role},
         )
     return classroom
+
+
+def create_contest_in_classroom(*, owner, tas=(), students=(), **fields):
+    """Create a contest in a new classroom owned by ``owner``.
+
+    Every contest scope role comes from the classroom: ``owner`` is the
+    classroom owner, ``tas`` become co-owners and ``students`` participants.
+    """
+    from apps.contests.models import Contest
+
+    contest = Contest.objects.create(owner=owner, **fields)
+    enrol_candidates(contest, *students)
+    enrol_candidates(contest, *tas, role="ta")
+    return contest

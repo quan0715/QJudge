@@ -27,12 +27,6 @@ class Classroom(models.Model):
         related_name='owned_classrooms',
         verbose_name='擁有者',
     )
-    admins = models.ManyToManyField(
-        User,
-        blank=True,
-        related_name='admin_classrooms',
-        verbose_name='管理員',
-    )
     invite_code = models.CharField(
         max_length=8,
         unique=True,

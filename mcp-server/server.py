@@ -647,13 +647,13 @@ _TOOL_HELP = {
         },
         "qjudge_code_runner": {
             "use_when": "You need to **execute source code** against the problem's **stored** test cases (teacher/test-run).",
-            "requires": "problem_id = **CodingProblem / Problem UUID** = the `problem_id` field of a list_problems item (same id as GET /api/v1/management/problems/{id}/). language + code strings.",
+            "requires": "problem_id = **CodingProblem / Problem UUID** = the `problem_id` field of a list_problems item. language + code strings.",
             "behavior": "Runs only the problem's public sample test cases; hidden and non-sample cases never run, and custom cases cannot be passed.",
             "never": "Do NOT use contest_id here. Do NOT create/update problems here.",
         },
         "id_confusion": (
             "contest_id identifies a contest. binding_id in qjudge_coding_problems identifies a **problem row bound to that contest**. "
-            "qjudge_code_runner.problem_id is the **global problem UUID** (management problem id). "
+            "qjudge_code_runner.problem_id is the **global problem UUID** (the list_problems `problem_id`). "
             "A qjudge_contest_manager list_problems item has two ids: `id` (contest binding UUID) goes to "
             "qjudge_coding_problems binding_id (get/update/delete); `problem_id` (CodingProblem UUID) goes to qjudge_code_runner. "
             "Passing one where the other is expected returns 404."
@@ -1684,7 +1684,7 @@ async def qjudge_code_runner(
       • `problem_id` is the **CodingProblem / Problem UUID** — the same string as:
         - the `problem_id` field (not `id`) of an item from **qjudge_contest_manager** ``list_problems``, and
         - the `{id}` in POST `/api/v1/management/problems/{id}/test_run/`.
-      • Do **not** pass `contest_id` here. Do **not** pass bank `question_id` unless that item is the same underlying problem id (usually use contest or management problem id from API responses).
+      • Do **not** pass `contest_id` here. Do **not** pass bank `question_id` unless that item is the same underlying problem id (usually use the list_problems `problem_id`).
 
     ## Execution model
       • Sends only `{language, code}` to the server. The backend runs the problem's **public sample** test cases only; hidden and non-sample cases never run here.

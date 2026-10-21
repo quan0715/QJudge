@@ -6,7 +6,6 @@ from typing import List, Optional, Dict
 
 
 from ..models import Contest
-from ..services.participation import attempted_participants
 from apps.problems.models import CodingProblem
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.question_bank.problem_labels import label_for_contest_problem_order
@@ -99,6 +98,9 @@ class ContestDataService:
         """Get everyone who sat the contest."""
         if self._participants_cache is not None:
             return self._participants_cache
+
+        # The contest services package imports exporters, so import lazily to avoid a cycle.
+        from ..services.participation import attempted_participants
 
         participants = attempted_participants(self.contest).select_related('user')
 

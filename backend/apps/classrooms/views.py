@@ -35,7 +35,14 @@ from .serializers import (
     BoundContestSerializer,
     CreateClassroomContestSerializer,
 )
-from .permissions import IsClassroomOwnerOrAdmin, IsClassroomMember, get_user_role_in_classroom
+from .permissions import (
+    CLASSROOM_MANAGER_ROLES,
+    CLASSROOM_OWNER_ROLES,
+    IsClassroomMember,
+    IsClassroomOwner,
+    IsClassroomOwnerOrAdmin,
+    get_user_role_in_classroom,
+)
 from .services import (
     add_classroom_members,
     build_classroom_gradebook,
@@ -69,9 +76,9 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         if user.is_staff or user.is_superuser:
             qs = Classroom.objects.all()
         elif scope == 'manage':
-            # Classrooms the user owns or is admin of
+            # Classrooms the user owns or is a TA of
             qs = Classroom.objects.filter(
-                models.Q(owner=user) | models.Q(admins=user)
+                models.Q(owner=user) | models.Q(memberships__user=user, memberships__role='ta')
             ).distinct()
         elif scope == 'enrolled':
             # Classrooms the user is a member of
@@ -79,7 +86,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         else:
             # All classrooms the user is involved in
             qs = Classroom.objects.filter(
-                models.Q(owner=user) | models.Q(admins=user) | models.Q(members=user)
+                models.Q(owner=user) | models.Q(members=user)
             ).distinct()
 
         if not self.request.query_params.get('include_archived'):
@@ -107,7 +114,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         owner_admin_actions = {
-            'update', 'partial_update', 'destroy',
+            'update', 'partial_update',
             'member_detail',
             'invite_code',
             'announcement_detail',
@@ -122,6 +129,8 @@ class ClassroomViewSet(viewsets.ModelViewSet):
 
         if self.action == 'create':
             return [permissions.IsAuthenticated(), IsTeacherOrAdmin()]
+        if self.action == 'destroy':
+            return [permissions.IsAuthenticated(), IsClassroomOwner()]
         if self.action in {'members', 'announcements'}:
             permission_class = (
                 IsClassroomMember
@@ -148,6 +157,8 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         if request.method.lower() == 'post':
             serializer = AddMembersSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
+            if serializer.validated_data['role'] == 'ta':
+                self._ensure_classroom_owner(classroom, request.user)
 
             result = add_classroom_members(
                 classroom,
@@ -170,6 +181,8 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         user_id = int(member_user_id)
 
         if request.method.lower() == 'delete':
+            if classroom.memberships.filter(user_id=user_id, role='ta').exists():
+                self._ensure_classroom_owner(classroom, request.user)
             deleted = remove_classroom_member(
                 classroom=classroom,
                 user_id=user_id,
@@ -178,6 +191,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
                 raise NotFound('Member not found.')
             return Response(status=status.HTTP_204_NO_CONTENT)
 
+        self._ensure_classroom_owner(classroom, request.user)
         serializer = UpdateMemberRoleSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         updated = update_classroom_member_role(
@@ -198,8 +212,13 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         return Response({'invite_code': classroom.invite_code})
 
     def _is_classroom_manager(self, classroom, user) -> bool:
-        role = get_user_role_in_classroom(user, classroom)
-        return role in {'platform_admin', 'owner', 'manager'}
+        return get_user_role_in_classroom(user, classroom) in CLASSROOM_MANAGER_ROLES
+
+    @staticmethod
+    def _ensure_classroom_owner(classroom, user) -> None:
+        """Changing who is a TA is reserved for the classroom owner."""
+        if get_user_role_in_classroom(user, classroom) not in CLASSROOM_OWNER_ROLES:
+            raise PermissionDenied('Only the classroom owner can change member roles.')
 
     # ── Classroom contests ───────────────────────────────
 

@@ -28,7 +28,6 @@ const classroom = {
   id: "classroom-1",
   name: "測試教室",
   ownerUsername: "teacher",
-  admins: [],
 } as unknown as ClassroomDetail;
 
 describe("ClassroomSettingsModal", () => {

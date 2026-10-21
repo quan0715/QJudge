@@ -6,7 +6,8 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestParticipant, ExamQuestion
+from apps.contests.models import ContestParticipant, ExamQuestion
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 @pytest.fixture
@@ -41,7 +42,7 @@ def student():
 @pytest.fixture
 def contest(teacher):
     now = timezone.now()
-    return Contest.objects.create(
+    return create_contest_in_classroom(
         name="Grouped Paper Contest",
         owner=teacher,
         status="published",
@@ -202,6 +203,7 @@ class TestExamQuestionGroupsApi:
             score=2,
             order=2,
         )
+        enrol_candidates(contest, student)
         participant = ContestParticipant.objects.create(
             contest=contest,
             user=student,

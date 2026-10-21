@@ -17,7 +17,7 @@ from django.db import IntegrityError, close_old_connections
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ExamIntegrityRun
+from apps.contests.models import ExamIntegrityRun
 from apps.contests.services import integrity_runs as integrity_run_service
 from apps.contests.services.integrity_runs import (
     IntegrityLifecycleError,
@@ -27,6 +27,7 @@ from apps.contests.services.integrity_runs import (
     purge_run,
 )
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom
 
 
 @pytest.fixture
@@ -52,7 +53,7 @@ def student(db):
 @pytest.fixture
 def contest(owner):
     now = timezone.now()
-    return Contest.objects.create(
+    return create_contest_in_classroom(
         name="Integrity lifecycle contest",
         owner=owner,
         start_time=now - timedelta(hours=1),

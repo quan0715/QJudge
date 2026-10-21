@@ -80,10 +80,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
       <AddMembersModal
         open={addMembersOpen}
         classroomId={classroom.id}
-        reservedUsernames={[
-          classroom.ownerUsername,
-          ...classroom.admins.map((admin) => admin.username),
-        ]}
+        reservedUsernames={[classroom.ownerUsername]}
         onClose={() => setAddMembersOpen(false)}
         onAdded={() => void onRefresh()}
       />

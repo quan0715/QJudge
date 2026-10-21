@@ -7,11 +7,10 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from uuid import uuid4
 
-from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.contests.models import Contest, ContestAnnouncement
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 @pytest.fixture
@@ -52,7 +51,7 @@ def other_teacher() -> User:
 @pytest.fixture
 def contest(owner: User) -> Contest:
     now = timezone.now()
-    return Contest.objects.create(
+    return create_contest_in_classroom(
         name="Announcement Contest",
         owner=owner,
         status="published",
@@ -192,11 +191,7 @@ def test_classroom_ta_can_delete_announcement(
     api_client: APIClient, contest: Contest, other_teacher: User, announcement: ContestAnnouncement
 ) -> None:
     """A classroom TA of the bound classroom can delete announcements."""
-    classroom = Classroom.objects.create(
-        name="Announcement Room", owner=contest.owner, invite_code=uuid4().hex[:8].upper()
-    )
-    ClassroomMember.objects.create(classroom=classroom, user=other_teacher, role="ta")
-    ClassroomContest.objects.create(classroom=classroom, contest=contest)
+    enrol_candidates(contest, other_teacher, role="ta")
     api_client.force_authenticate(user=other_teacher)
     response = api_client.delete(
         f"/api/v1/contests/{contest.id}/announcements/{announcement.id}/"

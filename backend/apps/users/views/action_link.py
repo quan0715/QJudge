@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from apps.core.api.envelope import contract_error_response
 
 from apps.classrooms.models import Classroom, ClassroomMember
+from apps.classrooms.permissions import CLASSROOM_MANAGER_ROLES, get_user_role_in_classroom
 from apps.classrooms.serializers import ClassroomDetailSerializer
 
 from ..permissions import IsSuperAdmin
@@ -74,7 +75,6 @@ def _find_classroom_by_token(token: str):
         return None
     return (
         Classroom.objects.select_related("owner")
-        .prefetch_related("admins")
         .filter(invite_code=code, is_archived=False)
         .first()
     )
@@ -145,7 +145,6 @@ class ActionLinkIssueView(SchemaAPIView):
     def _issue_classroom_join(self, request, classroom_id):
         classroom = (
             Classroom.objects.select_related("owner")
-            .prefetch_related("admins")
             .filter(uuid=classroom_id, is_archived=False)
             .first()
         )
@@ -156,7 +155,7 @@ class ActionLinkIssueView(SchemaAPIView):
                 "Classroom not found.",
                 status.HTTP_404_NOT_FOUND,
             )
-        if classroom.owner_id != request.user.id and not classroom.admins.filter(pk=request.user.pk).exists():
+        if get_user_role_in_classroom(request.user, classroom) not in CLASSROOM_MANAGER_ROLES:
             return _error_response(
                 request,
                 "PERMISSION_DENIED",
@@ -304,7 +303,7 @@ class ActionLinkRedeemView(SchemaAPIView):
                 status.HTTP_403_FORBIDDEN,
             )
 
-        if classroom.owner_id == request.user.id or classroom.admins.filter(pk=request.user.pk).exists():
+        if classroom.owner_id == request.user.id:
             return Response(
                 ClassroomDetailSerializer(classroom, context={"request": request}).data,
                 status=status.HTTP_200_OK,

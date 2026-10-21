@@ -20,11 +20,6 @@ class AddMembersResult:
     not_found: list[str]
 
 
-def _reserved_user_ids(classroom: Classroom) -> set[int]:
-    admin_user_ids = set(classroom.admins.values_list("id", flat=True))
-    return admin_user_ids | {classroom.owner_id}
-
-
 def _resolve_users(identifiers: list[str]) -> tuple[list[User], list[str]]:
     users_by_key: dict[str, User] = {}
     email_identifiers = [value.lower() for value in identifiers if "@" in value]
@@ -60,9 +55,8 @@ def add_classroom_members(
 
     added: list[str] = []
     already_exists: list[str] = []
-    reserved_user_ids = _reserved_user_ids(classroom)
     for user in resolved_users:
-        if user.id in reserved_user_ids:
+        if user.id == classroom.owner_id:
             already_exists.append(user.username)
             continue
         _, created = ClassroomMember.objects.get_or_create(

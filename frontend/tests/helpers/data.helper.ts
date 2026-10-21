@@ -161,8 +161,6 @@ export const API_ENDPOINTS = {
     me: "/api/v1/users/me",
   },
   problems: {
-    list: "/api/v1/management/problems/",
-    detail: (id: string | number) => `/api/v1/management/problems/${id}/`,
     tags: "/api/v1/management/problems/tags/",
     tagDetail: (slug: string) => `/api/v1/management/problems/tags/${slug}/`,
   },

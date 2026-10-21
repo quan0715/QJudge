@@ -12,10 +12,6 @@ from django.utils import timezone
 #: All roles that can manage contest resources (create/update/delete).
 MANAGER_SCOPE_ROLES = frozenset(('platform_admin', 'owner', 'co_owner'))
 
-#: Roles allowed to change publication status or delete a contest.
-#: co_owner is intentionally excluded.
-LIFECYCLE_OWNER_ROLES = frozenset(('platform_admin', 'owner'))
-
 CLASSROOM_SCOPE_TO_CONTEST_SCOPE = {
     'platform_admin': 'platform_admin',
     'owner': 'owner',
@@ -29,35 +25,29 @@ def map_classroom_role_to_contest_scope(classroom_role: str | None) -> str:
     return CLASSROOM_SCOPE_TO_CONTEST_SCOPE.get(classroom_role, 'outsider')
 
 
-_SCOPE_PRECEDENCE = {
-    'platform_admin': 5,
-    'owner': 4,
-    'co_owner': 3,
-    'participant': 2,
-    'outsider': 1,
-    'anonymous': 0,
+#: Everything a contest manager may do. Classroom owners and TAs manage a
+#: contest identically; only classroom-level actions tell them apart.
+_MANAGER_PERMISSIONS = frozenset({
+    'manage_contest_settings', 'manage_contest_lifecycle',
+    'manage_participants', 'manage_problems',
+    'view_scoreboard_full', 'view_report', 'export_report',
+    'submit', 'view_draft', 'view_participants',
+    'manage_clarifications', 'view_all_submissions',
+})
+
+#: Actions each scope role may perform. The UI flags below and
+#: ``ContestAccessPolicy`` both read this table.
+BASE_ROLE_PERMISSIONS = {
+    'platform_admin': _MANAGER_PERMISSIONS,
+    'owner': _MANAGER_PERMISSIONS,
+    'co_owner': _MANAGER_PERMISSIONS,
+    'participant': {
+        'view_scoreboard_limited', 'submit', 'view_own_report',
+        'create_clarification',
+    },
+    'outsider': set(),
+    'anonymous': set(),
 }
-
-
-def _max_contest_scope(a: str, b: str) -> str:
-    """Return the more privileged of two contest scope roles."""
-    if _SCOPE_PRECEDENCE.get(a, 0) >= _SCOPE_PRECEDENCE.get(b, 0):
-        return a
-    return b
-
-
-def _native_contest_scope(user, contest) -> str:
-    """
-    Scope derived only from the contest record (owner, registration).
-    Used together with classroom-derived scope so binding never strips contest owners.
-    """
-    if contest.owner_id == user.id:
-        return 'owner'
-    from .models import ContestParticipant  # local import avoids cycles
-
-    if ContestParticipant.objects.filter(contest=contest, user=user).exists():
-        return 'participant'
-    return 'outsider'
 
 
 def _get_primary_classroom_binding(contest):
@@ -70,14 +60,16 @@ def _get_primary_classroom_binding(contest):
 
 def get_contest_scope_role(user, contest) -> str:
     """
-    Return the canonical scope role for *user* within *contest*.
+    Return the scope role for *user* within *contest*.
 
-    Roles (most → least privileged):
+    Every contest belongs to a classroom, and the user's role in its primary
+    (earliest) bound classroom is the only authority:
+
       platform_admin  – system staff / superuser
-      owner           – contest creator
-      co_owner        – classroom manager or TA
-      participant     – registered contest participant
-      outsider        – authenticated but not registered
+      owner           – classroom owner
+      co_owner        – classroom TA
+      participant     – classroom student
+      outsider        – authenticated, not in the classroom
       anonymous       – unauthenticated
     """
     if not user or not user.is_authenticated:
@@ -85,17 +77,13 @@ def get_contest_scope_role(user, contest) -> str:
     if user.is_staff or user.is_superuser:
         return 'platform_admin'
 
-    native = _native_contest_scope(user, contest)
-
     binding = _get_primary_classroom_binding(contest)
-    if binding is not None:
-        from apps.classrooms.permissions import get_user_role_in_classroom
+    if binding is None:
+        return 'outsider'
 
-        classroom_role = get_user_role_in_classroom(user, binding.classroom)
-        classroom_scope = map_classroom_role_to_contest_scope(classroom_role)
-        return _max_contest_scope(classroom_scope, native)
+    from apps.classrooms.permissions import get_user_role_in_classroom
 
-    return native
+    return map_classroom_role_to_contest_scope(get_user_role_in_classroom(user, binding.classroom))
 
 
 def can_manage_contest(user, contest) -> bool:
@@ -103,57 +91,35 @@ def can_manage_contest(user, contest) -> bool:
     return get_contest_scope_role(user, contest) in MANAGER_SCOPE_ROLES
 
 
+def can_manage_coding_problem(user, problem) -> bool:
+    """Platform admins, the problem's author, or managers of a contest that uses it."""
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_staff or user.is_superuser or problem.created_by_id == user.id:
+        return True
+    from apps.question_bank.models import ContestQuestionBinding
+
+    bindings = ContestQuestionBinding.objects.filter(coding_problem=problem).select_related('contest')
+    return any(can_manage_contest(user, binding.contest) for binding in bindings)
+
+
 def get_contest_permissions(user, contest):
-    """
-    Calculate all permissions for a user in a contest.
-    
-    Returns a dict with boolean flags for various permissions.
-    """
-    role = get_contest_scope_role(user, contest)
-    
-    # Platform admin and owner have full permissions.
-    if role in ('platform_admin', 'owner'):
-        return {
-            'can_switch_view': True,
-            'can_edit_contest': True,
-            'can_toggle_status': True,
-            'can_delete_contest': True,
-            'can_publish_problems': True,
-            'can_view_all_submissions': True,
-            'can_view_full_scoreboard': True,
-            'can_manage_clarifications': True,
-        }
-
-    # Co-owner can manage content but not lifecycle.
-    if role == 'co_owner':
-        return {
-            'can_switch_view': True,
-            'can_edit_contest': True,
-            'can_toggle_status': False,
-            'can_delete_contest': False,
-            'can_publish_problems': True,
-            'can_view_all_submissions': True,
-            'can_view_full_scoreboard': True,
-            'can_manage_clarifications': True,
-        }
-
-    # Participant, outsider, and anonymous permissions are more restricted.
-    # Scoreboard visibility depends on contest settings and status
+    """Return the contest UI permission flags for *user*."""
+    granted = BASE_ROLE_PERMISSIONS[get_contest_scope_role(user, contest)]
     has_ended = bool(contest.end_time and timezone.now() > contest.end_time)
-    can_view_scoreboard = (
-        contest.scoreboard_visible_during_contest or
-        has_ended
-    )
-
     return {
-        'can_switch_view': False,
-        'can_edit_contest': False,
-        'can_toggle_status': False,
-        'can_delete_contest': False,
-        'can_publish_problems': False,
-        'can_view_all_submissions': False,
-        'can_view_full_scoreboard': can_view_scoreboard,
-        'can_manage_clarifications': False,
+        'can_switch_view': 'manage_problems' in granted,
+        'can_edit_contest': 'manage_contest_settings' in granted,
+        'can_toggle_status': 'manage_contest_lifecycle' in granted,
+        'can_delete_contest': 'manage_contest_lifecycle' in granted,
+        'can_publish_problems': 'manage_problems' in granted,
+        'can_view_all_submissions': 'view_all_submissions' in granted,
+        'can_view_full_scoreboard': (
+            'view_scoreboard_full' in granted
+            or contest.scoreboard_visible_during_contest
+            or has_ended
+        ),
+        'can_manage_clarifications': 'manage_clarifications' in granted,
     }
 
 
@@ -165,7 +131,7 @@ def _contest_of(obj):
 
 class IsContestOwnerOrAdmin(permissions.BasePermission):
     """
-    Object-level permission: only platform_admin, owner, or co_owner can access.
+    Object-level permission for contest managers: platform_admin, owner, or co_owner.
     The contest must be reachable via ``obj`` directly or ``obj.contest``.
     """
     def has_object_permission(self, request, view, obj):
@@ -175,34 +141,3 @@ class IsContestOwnerOrAdmin(permissions.BasePermission):
         if contest is None:
             return False
         return can_manage_contest(request.user, contest)
-
-
-class IsContestLifecycleOwner(permissions.BasePermission):
-    """
-    Stricter object-level permission: only platform_admin and owner.
-    co_owner is intentionally excluded.
-
-    Use for publication status changes and contest deletion.
-    """
-    def has_object_permission(self, request, view, obj):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        contest = _contest_of(obj)
-        if contest is None:
-            return False
-        return get_contest_scope_role(request.user, contest) in LIFECYCLE_OWNER_ROLES
-
-
-class IsTeacherOrAdmin(permissions.BasePermission):
-    """
-    Permission class: only platform teachers or system admins can access.
-    Used for platform-level (non-contest-scoped) endpoints.
-    """
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        return (
-            request.user.is_staff
-            or request.user.is_superuser
-            or getattr(request.user, 'role', None) == 'teacher'
-        )

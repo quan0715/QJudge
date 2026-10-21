@@ -14,11 +14,10 @@ from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 
 from apps.users.models import User
-from apps.contests.models import (
-    Contest, ContestParticipant, ExamStatus
-)
+from apps.contests.models import ContestParticipant, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
 from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 class StandingsAPITests(APITestCase):
@@ -51,7 +50,7 @@ class StandingsAPITests(APITestCase):
 
         # Create active contest with scoreboard visible
         now = timezone.now()
-        self.contest = Contest.objects.create(
+        self.contest = create_contest_in_classroom(
             name='Test Contest',
             status='published',
             start_time=now - timedelta(hours=1),
@@ -89,12 +88,14 @@ class StandingsAPITests(APITestCase):
         self.contest_problem_b = bind_problem_to_contest(self.contest, self.problem_b, order=1, score=70)
 
         # Register participants
+        enrol_candidates(self.contest, self.student)
         ContestParticipant.objects.create(
             contest=self.contest,
             user=self.student,
             exam_status=ExamStatus.IN_PROGRESS,
             started_at=now
         )
+        enrol_candidates(self.contest, self.teacher)
         ContestParticipant.objects.create(
             contest=self.contest,
             user=self.teacher,
@@ -176,6 +177,7 @@ class StandingsAPITests(APITestCase):
     def test_admin_can_see_full_problem_details(self):
         """Admins should see both problem IDs and titles."""
         # Add admin to contest
+        enrol_candidates(self.contest, self.admin)
         ContestParticipant.objects.create(
             contest=self.contest,
             user=self.admin,
@@ -285,7 +287,7 @@ class StandingsDataIntegrityTests(APITestCase):
         )
 
         now = timezone.now()
-        self.contest = Contest.objects.create(
+        self.contest = create_contest_in_classroom(
             name='Test Contest',
             status='published',
             start_time=now - timedelta(hours=1),
@@ -308,6 +310,7 @@ class StandingsDataIntegrityTests(APITestCase):
 
         bind_problem_to_contest(self.contest, self.problem, order=0)
 
+        enrol_candidates(self.contest, self.student)
         ContestParticipant.objects.create(
             contest=self.contest,
             user=self.student,
@@ -401,7 +404,7 @@ class StandingsRankingOrderTests(APITestCase):
         )
 
         now = timezone.now()
-        self.contest = Contest.objects.create(
+        self.contest = create_contest_in_classroom(
             name='Ranking Test Contest',
             status='published',
             start_time=now - timedelta(hours=2),
@@ -437,12 +440,14 @@ class StandingsRankingOrderTests(APITestCase):
         bind_problem_to_contest(self.contest, self.problem2, order=1, score=50)
 
         # Register both students
+        enrol_candidates(self.contest, self.student_a)
         ContestParticipant.objects.create(
             contest=self.contest,
             user=self.student_a,
             exam_status=ExamStatus.IN_PROGRESS,
             started_at=now - timedelta(hours=1)
         )
+        enrol_candidates(self.contest, self.student_b)
         ContestParticipant.objects.create(
             contest=self.contest,
             user=self.student_b,

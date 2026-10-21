@@ -26,13 +26,6 @@ def owner() -> User:
 
 
 @pytest.fixture
-def admin_user() -> User:
-    return User.objects.create_user(
-        username="perm_admin", email="perm_admin@example.com", password="pass123"
-    )
-
-
-@pytest.fixture
 def ta_user() -> User:
     return User.objects.create_user(
         username="perm_ta", email="perm_ta@example.com", password="pass123"
@@ -61,9 +54,8 @@ def staff_user() -> User:
 
 
 @pytest.fixture
-def classroom(owner: User, admin_user: User, ta_user: User, student_user: User) -> Classroom:
+def classroom(owner: User, ta_user: User, student_user: User) -> Classroom:
     room = Classroom.objects.create(name="Permission Room", owner=owner, invite_code="PERMROOM")
-    room.admins.add(admin_user)
     ClassroomMember.objects.create(classroom=room, user=ta_user, role="ta")
     ClassroomMember.objects.create(classroom=room, user=student_user, role="student")
     return room
@@ -79,9 +71,6 @@ class TestGetUserRoleInClassroom:
 
     def test_returns_teacher_for_owner(self, owner: User, classroom: Classroom) -> None:
         assert get_user_role_in_classroom(owner, classroom) == "owner"
-
-    def test_returns_teacher_for_classroom_admin(self, admin_user: User, classroom: Classroom) -> None:
-        assert get_user_role_in_classroom(admin_user, classroom) == "manager"
 
     def test_returns_membership_role_for_ta(self, ta_user: User, classroom: Classroom) -> None:
         assert get_user_role_in_classroom(ta_user, classroom) == "manager"
@@ -110,9 +99,9 @@ class TestIsClassroomOwnerOrAdmin:
         request.user = owner
         assert IsClassroomOwnerOrAdmin().has_object_permission(request, None, classroom) is True
 
-    def test_allows_classroom_admin(self, request_factory: APIRequestFactory, admin_user: User, classroom: Classroom) -> None:
+    def test_allows_ta(self, request_factory: APIRequestFactory, ta_user: User, classroom: Classroom) -> None:
         request = request_factory.get("/")
-        request.user = admin_user
+        request.user = ta_user
         assert IsClassroomOwnerOrAdmin().has_object_permission(request, None, classroom) is True
 
     def test_denies_member_without_admin_role(
@@ -145,9 +134,9 @@ class TestIsClassroomMember:
         request.user = owner
         assert IsClassroomMember().has_object_permission(request, None, classroom) is True
 
-    def test_allows_admin(self, request_factory: APIRequestFactory, admin_user: User, classroom: Classroom) -> None:
+    def test_allows_ta(self, request_factory: APIRequestFactory, ta_user: User, classroom: Classroom) -> None:
         request = request_factory.get("/")
-        request.user = admin_user
+        request.user = ta_user
         assert IsClassroomMember().has_object_permission(request, None, classroom) is True
 
     def test_allows_student_member(

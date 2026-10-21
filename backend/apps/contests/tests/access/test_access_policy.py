@@ -16,11 +16,9 @@ from apps.contests.access_policy import (
     PermissionError,
     ErrorCodes,
     BASE_ROLE_PERMISSIONS,
-    check_contest_permission,
-    get_all_permissions,
-    get_effective_contest_scope_role,
 )
-from apps.contests.permissions import get_contest_scope_role
+from apps.contests.permissions import can_manage_contest, get_contest_scope_role
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 User = get_user_model()
 
@@ -78,12 +76,8 @@ class TestBaseRolePermissions:
         assert 'view_draft' in owner_perms
 
     def test_co_owner_permissions(self):
-        """Co-owner should have settings but not lifecycle permissions."""
-        role_perms = BASE_ROLE_PERMISSIONS['co_owner']
-
-        assert 'manage_contest_settings' in role_perms
-        assert 'manage_contest_lifecycle' not in role_perms
-        assert 'view_draft' in role_perms
+        """Classroom TAs manage a contest exactly like the classroom owner."""
+        assert BASE_ROLE_PERMISSIONS['co_owner'] == BASE_ROLE_PERMISSIONS['owner']
 
     def test_participant_permissions(self):
         """Participant should have limited permissions."""
@@ -144,7 +138,7 @@ class TestContestAccessPolicy:
     @pytest.fixture
     def contest(self, teacher_user, db):
         """Create test contest."""
-        return Contest.objects.create(
+        return create_contest_in_classroom(
             name='Test Contest',
             owner=teacher_user,
             status='published',
@@ -154,6 +148,7 @@ class TestContestAccessPolicy:
     @pytest.fixture
     def participant(self, contest, student_user, db):
         """Create contest participant."""
+        enrol_candidates(contest, student_user)
         return ContestParticipant.objects.create(
             contest=contest,
             user=student_user,
@@ -180,7 +175,7 @@ class TestContestAccessPolicy:
         assert role == 'platform_admin'
 
     def test_owner_role_detection(self, teacher_user, contest):
-        """Contest owner should be detected as owner scope."""
+        """Classroom owner should be detected as owner scope."""
         role = get_contest_scope_role(teacher_user, contest)
         assert role == 'owner'
 
@@ -345,9 +340,10 @@ class TestPermissionMatrix:
         teacher = User.objects.create_user('teacher', 'teacher@test.com', 'pass')
         student = User.objects.create_user('student', 'student@test.com', 'pass')
 
-        contest = Contest.objects.create(
+        contest = create_contest_in_classroom(
             name='Test Contest',
             owner=teacher,
+            students=[student],
             status='published',
             scoreboard_visible_during_contest=False,
         )
@@ -438,53 +434,6 @@ class TestPermissionMatrix:
 # Utility Function Tests
 # ============================================================================
 
-@pytest.mark.django_db
-class TestUtilityFunctions:
-    """Test utility functions."""
-
-    @pytest.fixture
-    def setup(self, db):
-        """Setup test data."""
-        user = User.objects.create_user('test', 'test@test.com', 'pass')
-        contest = Contest.objects.create(
-            name='Test',
-            owner=user,
-            status='published',
-        )
-        return {'user': user, 'contest': contest}
-
-    def test_check_contest_permission(self, setup):
-        """Test check_contest_permission function."""
-        user = setup['user']
-        contest = setup['contest']
-
-        # Owner should have manage_contest_settings and manage_contest_lifecycle
-        assert check_contest_permission(user, contest, 'manage_contest_settings') is True
-        assert check_contest_permission(user, contest, 'manage_contest_lifecycle') is True
-
-    def test_get_all_permissions(self, setup):
-        """Test get_all_permissions function."""
-        user = setup['user']
-        contest = setup['contest']
-
-        perms = get_all_permissions(user, contest)
-        assert isinstance(perms, set)
-        assert 'manage_contest_settings' in perms
-        assert 'manage_contest_lifecycle' in perms
-
-    def test_check_permission_anonymous(self, setup):
-        """Test permission check for anonymous user."""
-        contest = setup['contest']
-        anon = Mock(is_authenticated=False)
-
-        assert check_contest_permission(anon, contest, 'manage_contest_settings') is False
-        assert check_contest_permission(None, contest, 'manage_contest_settings') is False
-
-
-# ============================================================================
-# Action Permission Map Completeness Test
-# ============================================================================
-
 class TestActionPermissionMapCompleteness:
     """Ensure action_permission_map covers expected actions."""
 
@@ -521,7 +470,7 @@ class TestClassroomPriorityACL:
     def _invite_code() -> str:
         return uuid4().hex[:8].upper()
 
-    def test_bound_classroom_prioritizes_classroom_scope(self):
+    def test_classroom_is_the_only_authority(self):
         contest_owner = User.objects.create_user('legacy_owner_2', 'legacy_owner_2@test.com', 'pass')
         classroom_owner = User.objects.create_user('class_owner_2', 'class_owner_2@test.com', 'pass')
         contest = Contest.objects.create(name='ACL Contest B', owner=contest_owner, status='published')
@@ -532,21 +481,15 @@ class TestClassroomPriorityACL:
         )
         ClassroomContest.objects.create(classroom=classroom, contest=contest)
 
-        # Legacy contest owner is not classroom member -> outsider
-        legacy_role = get_effective_contest_scope_role(contest_owner, contest)
-        assert legacy_role == 'outsider'
-        assert check_contest_permission(contest_owner, contest, 'manage_contest_settings') is False
+        # The contest creator has no classroom role, so no contest role either.
+        assert get_contest_scope_role(contest_owner, contest) == 'outsider'
+        assert can_manage_contest(contest_owner, contest) is False
+        assert get_contest_scope_role(classroom_owner, contest) == 'owner'
 
-        # Classroom owner is authoritative owner
-        scoped_role = get_effective_contest_scope_role(classroom_owner, contest)
-        assert scoped_role == 'owner'
-        assert check_contest_permission(classroom_owner, contest, 'manage_contest_lifecycle') is True
-
-    def test_maps_ta_to_manager_permissions(self):
-        contest_owner = User.objects.create_user('legacy_owner_3', 'legacy_owner_3@test.com', 'pass')
+    def test_ta_who_created_the_contest_is_co_owner(self):
         classroom_owner = User.objects.create_user('class_owner_3', 'class_owner_3@test.com', 'pass')
         ta_user = User.objects.create_user('ta_user_acl', 'ta_user_acl@test.com', 'pass')
-        contest = Contest.objects.create(name='ACL Contest C', owner=contest_owner, status='published')
+        contest = Contest.objects.create(name='ACL Contest C', owner=ta_user, status='published')
         classroom = Classroom.objects.create(
             name='Class C',
             owner=classroom_owner,
@@ -555,15 +498,12 @@ class TestClassroomPriorityACL:
         ClassroomMember.objects.create(classroom=classroom, user=ta_user, role='ta')
         ClassroomContest.objects.create(classroom=classroom, contest=contest)
 
-        role = get_effective_contest_scope_role(ta_user, contest)
+        role = get_contest_scope_role(ta_user, contest)
         assert role == 'co_owner'
-        assert check_contest_permission(ta_user, contest, 'manage_contest_settings') is True
-        assert check_contest_permission(ta_user, contest, 'manage_contest_lifecycle') is False
+        assert 'manage_contest_lifecycle' in BASE_ROLE_PERMISSIONS[role]
 
-    def test_without_binding_falls_back_to_legacy(self):
+    def test_unbound_contest_grants_no_role(self):
         contest_owner = User.objects.create_user('legacy_owner_4', 'legacy_owner_4@test.com', 'pass')
         contest = Contest.objects.create(name='ACL Contest D', owner=contest_owner, status='published')
 
-        role = get_effective_contest_scope_role(contest_owner, contest)
-        assert role == 'owner'
-        assert check_contest_permission(contest_owner, contest, 'manage_contest_lifecycle') is True
+        assert get_contest_scope_role(contest_owner, contest) == 'outsider'

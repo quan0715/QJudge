@@ -9,9 +9,9 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.classrooms.models import Classroom, ClassroomContest
-from apps.contests.models import Contest
 from apps.contests.serializers import ContestCreateUpdateSerializer
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom
 
 
 @pytest.fixture
@@ -129,7 +129,7 @@ def test_publish_requires_schedule_window(
     api_client: APIClient,
     owner: User,
 ) -> None:
-    contest = Contest.objects.create(
+    contest = create_contest_in_classroom(
         name="Draft Without Schedule",
         owner=owner,
         status="draft",
@@ -152,7 +152,7 @@ def test_publish_with_valid_schedule_succeeds(
     api_client: APIClient,
     owner: User,
 ) -> None:
-    contest = Contest.objects.create(
+    contest = create_contest_in_classroom(
         name="Draft With Schedule",
         owner=owner,
         status="draft",
@@ -185,7 +185,7 @@ def test_revert_to_draft_keeps_schedule_but_unpublishes_results(
 ) -> None:
     start_time = timezone.now() - timedelta(hours=1)
     end_time = timezone.now() + timedelta(hours=1)
-    contest = Contest.objects.create(
+    contest = create_contest_in_classroom(
         name="Published Contest",
         owner=owner,
         status="published",

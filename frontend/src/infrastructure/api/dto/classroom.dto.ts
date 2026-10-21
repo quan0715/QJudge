@@ -53,7 +53,6 @@ export interface ClassroomDetailDto extends ClassroomDto {
   invite_code_enabled?: boolean;
   members?: ClassroomMemberDto[];
   contests?: BoundContestDto[];
-  admins?: Array<{ id: number; username: string }>;
   announcements?: ClassroomAnnouncementDto[];
   updated_at: string;
 }

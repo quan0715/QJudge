@@ -9,7 +9,7 @@ from django.utils import timezone
 from rest_framework.response import Response
 
 from .models import Contest, ContestParticipant, ExamStatus
-from .permissions import get_contest_scope_role, map_classroom_role_to_contest_scope
+from .permissions import BASE_ROLE_PERMISSIONS, get_contest_scope_role
 
 
 # ============================================================================
@@ -65,36 +65,6 @@ class ErrorCodes:
 # Role-Based Permissions
 # ============================================================================
 
-# Base permissions for each scope role (not considering context)
-BASE_ROLE_PERMISSIONS = {
-    'platform_admin': {
-        'manage_contest_settings', 'manage_contest_lifecycle',
-        'manage_participants', 'manage_problems',
-        'view_scoreboard_full', 'view_report', 'export_report',
-        'submit', 'view_draft', 'view_participants',
-        'manage_clarifications', 'view_all_submissions',
-    },
-    'owner': {
-        'manage_contest_settings', 'manage_contest_lifecycle',
-        'manage_participants', 'manage_problems',
-        'view_scoreboard_full', 'view_report', 'export_report',
-        'submit', 'view_draft', 'view_participants',
-        'manage_clarifications', 'view_all_submissions',
-    },
-    'co_owner': {
-        'manage_contest_settings', 'manage_participants', 'manage_problems',
-        'view_scoreboard_full', 'view_report', 'export_report',
-        'submit', 'view_draft', 'view_participants',
-        'manage_clarifications', 'view_all_submissions',
-    },
-    'participant': {
-        'view_scoreboard_limited', 'submit', 'view_own_report',
-        'create_clarification',
-    },
-    'outsider': set(),
-    'anonymous': set(),
-}
-
 # Restrictions based on contest status
 STATUS_RESTRICTIONS = {
     'draft': {
@@ -103,21 +73,6 @@ STATUS_RESTRICTIONS = {
         'error_message': 'Contest is not published',
     }
 }
-
-def get_effective_contest_scope_role(user, contest: Contest) -> str:
-    """Use classroom membership as the authority for classroom-bound contests."""
-    binding = (
-        contest.classroom_bindings.select_related('classroom')
-        .order_by('bound_at')
-        .first()
-    )
-    if binding is not None:
-        from apps.classrooms.permissions import get_user_role_in_classroom
-
-        classroom_role = get_user_role_in_classroom(user, binding.classroom)
-        return map_classroom_role_to_contest_scope(classroom_role)
-    return get_contest_scope_role(user, contest)
-
 
 # ============================================================================
 # Contest Access Policy
@@ -158,8 +113,6 @@ class ContestAccessPolicy(permissions.BasePermission):
         'participants': 'view_participants',
         'unlock_participant': 'manage_participants',
         'update_participant': 'manage_participants',
-        'add_participant': 'manage_participants',
-        'remove_participant': 'manage_participants',
         'reopen_exam': 'manage_participants',
 
         # Clarifications
@@ -193,7 +146,7 @@ class ContestAccessPolicy(permissions.BasePermission):
 
         user = request.user
         action = view.action
-        role = get_effective_contest_scope_role(user, contest) if user.is_authenticated else 'anonymous'
+        role = get_contest_scope_role(user, contest)
 
         if role in {'outsider', 'anonymous'}:
             request._permission_error = self._get_error_response(
@@ -225,18 +178,6 @@ class ContestAccessPolicy(permissions.BasePermission):
                             'You do not have permission to view the scoreboard'
                         )
                         return False
-            elif (
-                action == "anticheat_config"
-                and required_permission == "submit"
-                and required_permission not in role_permissions
-            ):
-                if not ContestParticipant.objects.filter(contest=contest, user=user).exists():
-                    request._permission_error = self._get_error_response(
-                        action,
-                        ErrorCodes.INSUFFICIENT_ROLE,
-                        'You do not have permission to perform this action'
-                    )
-                    return False
             elif required_permission not in role_permissions:
                 request._permission_error = self._get_error_response(
                     action,
@@ -339,32 +280,3 @@ class ContestAccessPolicy(permissions.BasePermission):
         if action in self.mask_as_404:
             return PermissionError.not_found(code)
         return PermissionError.forbidden(code, message)
-
-
-# ============================================================================
-# Utility Functions
-# ============================================================================
-
-def check_contest_permission(user, contest, permission: str) -> bool:
-    """
-    Utility function to check if a user has a specific permission on a contest.
-    """
-    if not user or not user.is_authenticated:
-        role = 'anonymous'
-    else:
-        role = get_effective_contest_scope_role(user, contest)
-
-    role_permissions = BASE_ROLE_PERMISSIONS.get(role, set())
-    return permission in role_permissions
-
-
-def get_all_permissions(user, contest) -> set:
-    """
-    Get all permissions a user has for a contest.
-    """
-    if not user or not user.is_authenticated:
-        role = 'anonymous'
-    else:
-        role = get_effective_contest_scope_role(user, contest)
-
-    return BASE_ROLE_PERMISSIONS.get(role, set()).copy()

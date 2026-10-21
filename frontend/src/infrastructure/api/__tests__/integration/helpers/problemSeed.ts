@@ -1,51 +1,33 @@
-import {
-  createProblem,
-  getProblems,
-} from "@/infrastructure/api/repositories/problem.repository";
-import type { ProblemUpsertPayload } from "@/core/entities/problem.entity";
+import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 
-const buildProblemPayload = (title: string): ProblemUpsertPayload => ({
-  title,
-  difficulty: "easy",
-  time_limit: 1000,
-  memory_limit: 128,
-  description: "Given two integers a and b, output a + b.",
-  input_description: "Two integers a and b",
-  output_description: "The sum of a and b",
-  hint: "",
-  test_cases: [
-    {
-      input_data: "1 2\n",
-      output_data: "3\n",
-      is_sample: true,
-      weight_percent: 100,
-    },
-  ],
-  language_configs: [
-    {
-      language: "cpp",
-      template_code: "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n  return 0;\n}\n",
-      is_enabled: true,
-      order: 0,
-    },
-  ],
-  forbidden_keywords: [],
-  required_keywords: [],
-});
+type Page<T> = { results?: T[] } | T[];
+const rows = <T,>(page: Page<T>): T[] => (Array.isArray(page) ? page : page.results ?? []);
 
-export const ensureProblemExists = async (
-  preferredTitle: string
-): Promise<{ id: string; title: string }> => {
-  const existing = await getProblems();
-  const preferred = existing.find((problem) => problem.title === preferredTitle);
-  if (preferred) {
-    return { id: preferred.id, title: preferred.title };
-  }
-  if (existing.length > 0) {
-    return { id: existing[0].id, title: existing[0].title };
-  }
+/**
+ * Locate a problem from seed_e2e_data. Problems only exist inside contests, so
+ * look it up through the seeded contest the signed-in manager can see.
+ */
+export const findSeededContestProblem = async (
+  contestName: string,
+  problemTitle: string
+): Promise<{ contestId: string; contestProblemId: string; problemId: string; title: string }> => {
+  const contests = rows(
+    await requestJson<Page<{ id: string; name: string }>>(
+      httpClient.get("/api/v1/contests/?scope=manage"),
+      "Failed to fetch contests"
+    )
+  );
+  const contest = contests.find((item) => item.name === contestName);
+  if (!contest) throw new Error(`Seeded contest not found: ${contestName}`);
 
-  const title = `${preferredTitle} (${Date.now()})`;
-  const created = await createProblem(buildProblemPayload(title));
-  return { id: created.id, title: created.title };
+  const problems = rows(
+    await requestJson<Page<{ id: string; problem_id: string; title: string }>>(
+      httpClient.get(`/api/v1/contests/${contest.id}/problems/`),
+      "Failed to fetch contest problems"
+    )
+  );
+  const problem = problems.find((item) => item.title === problemTitle);
+  if (!problem) throw new Error(`Seeded problem not found in ${contestName}: ${problemTitle}`);
+
+  return { contestId: contest.id, contestProblemId: problem.id, problemId: problem.problem_id, title: problem.title };
 };

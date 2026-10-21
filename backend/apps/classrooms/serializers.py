@@ -6,14 +6,9 @@ from django.contrib.auth import get_user_model
 
 from .models import Classroom, ClassroomMember, ClassroomContest, ClassroomAnnouncement
 from apps.contests.services.participation import roster_user_ids
-from .permissions import get_user_role_in_classroom
+from .permissions import CLASSROOM_MANAGER_ROLES, get_user_role_in_classroom
 
 User = get_user_model()
-
-
-def get_reserved_user_ids(classroom) -> set[int]:
-    admin_user_ids = set(classroom.admins.values_list('id', flat=True))
-    return admin_user_ids | {classroom.owner_id}
 
 
 class ClassroomListSerializer(serializers.ModelSerializer):
@@ -30,7 +25,7 @@ class ClassroomListSerializer(serializers.ModelSerializer):
         ]
 
     def get_member_count(self, obj):
-        return obj.memberships.exclude(user_id__in=get_reserved_user_ids(obj)).count()
+        return obj.memberships.exclude(user_id=obj.owner_id).count()
 
     def get_current_user_role(self, obj):
         request = self.context.get('request')
@@ -111,18 +106,12 @@ class ClassroomAnnouncementWriteSerializer(serializers.ModelSerializer):
         fields = ['title', 'content', 'is_pinned']
 
 
-class AdminUserSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    username = serializers.CharField()
-
-
 class ClassroomDetailSerializer(serializers.ModelSerializer):
     owner_username = serializers.CharField(source='owner.username', read_only=True)
     member_count = serializers.SerializerMethodField()
     current_user_role = serializers.SerializerMethodField()
     members = serializers.SerializerMethodField()
     contests = serializers.SerializerMethodField()
-    admins = serializers.SerializerMethodField()
     invite_code = serializers.SerializerMethodField()
     announcements = serializers.SerializerMethodField()
 
@@ -132,11 +121,11 @@ class ClassroomDetailSerializer(serializers.ModelSerializer):
             'id', 'uuid', 'name', 'description', 'owner_username',
             'member_count', 'is_archived', 'invite_code', 'invite_code_enabled',
             'current_user_role', 'icon', 'cover_url', 'members', 'contests',
-            'admins', 'announcements', 'created_at', 'updated_at',
+            'announcements', 'created_at', 'updated_at',
         ]
 
     def get_member_count(self, obj):
-        return obj.memberships.exclude(user_id__in=get_reserved_user_ids(obj)).count()
+        return obj.memberships.exclude(user_id=obj.owner_id).count()
 
     def get_current_user_role(self, obj):
         request = self.context.get('request')
@@ -150,13 +139,13 @@ class ClassroomDetailSerializer(serializers.ModelSerializer):
         if not request or not request.user.is_authenticated:
             return None
         role = get_user_role_in_classroom(request.user, obj)
-        if role in ('platform_admin', 'owner', 'manager'):
+        if role in CLASSROOM_MANAGER_ROLES:
             return obj.invite_code
         return None
 
     def get_members(self, obj):
         return ClassroomMemberSerializer(
-            obj.memberships.select_related('user').exclude(user_id__in=get_reserved_user_ids(obj)),
+            obj.memberships.select_related('user').exclude(user_id=obj.owner_id),
             many=True
         ).data
 
@@ -165,15 +154,10 @@ class ClassroomDetailSerializer(serializers.ModelSerializer):
         user = getattr(request, 'user', None)
         role = get_user_role_in_classroom(user, obj) if user and user.is_authenticated else None
         bindings = obj.classroom_contests.select_related('contest')
-        if role not in ('platform_admin', 'owner', 'manager'):
+        if role not in CLASSROOM_MANAGER_ROLES:
             bindings = bindings.filter(contest__status='published')
         return BoundContestSerializer(
             bindings, many=True
-        ).data
-
-    def get_admins(self, obj):
-        return AdminUserSerializer(
-            obj.admins.all(), many=True
         ).data
 
     def get_announcements(self, obj):

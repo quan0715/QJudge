@@ -98,12 +98,10 @@ def build_classroom_gradebook(classroom: Classroom, *, viewer) -> Gradebook:
         )
         totals_by_contest[contest.id] = totals
 
-    # Same split as the members panel: staff are never graded, even when they
-    # also hold a student membership.
+    # Same split as the members panel: the owner and TAs are never graded.
     memberships = (
         classroom.memberships.filter(role="student")
         .exclude(user_id=classroom.owner_id)
-        .exclude(user__in=classroom.admins.all())
         .select_related("user__profile")
         .order_by("user__username")
     )

@@ -16,31 +16,18 @@ export const MembersPanel: React.FC<MembersPanelProps> = ({ classroom }) => {
 
   const managers: MemberCardData[] = useMemo(() => {
     const owner: MemberCardData = { key: "owner", username: classroom.ownerUsername, role: "owner" };
-    const adminCards: MemberCardData[] = classroom.admins
-      .filter((a) => a.username !== classroom.ownerUsername)
-      .map((a) => ({ key: `admin-${a.id}`, username: a.username, role: "manager" }));
     const taCards: MemberCardData[] = classroom.members
       .filter((m) => m.role === "ta")
       .map((m) => ({ key: `ta-${m.userId}`, username: m.username, email: m.email, avatarUrl: m.avatarUrl, role: "manager" as const }));
-    return [owner, ...adminCards, ...taCards];
-  }, [classroom.ownerUsername, classroom.admins, classroom.members]);
-
-  const reservedUserIds = useMemo(
-    () => new Set(classroom.admins.map((a) => a.id)),
-    [classroom.admins],
-  );
+    return [owner, ...taCards];
+  }, [classroom.ownerUsername, classroom.members]);
 
   const members: MemberCardData[] = useMemo(
     () =>
       classroom.members
-        .filter(
-          (m) =>
-            m.role === "student" &&
-            !reservedUserIds.has(m.userId) &&
-            m.username !== classroom.ownerUsername,
-        )
+        .filter((m) => m.role === "student" && m.username !== classroom.ownerUsername)
         .map((m) => ({ key: `student-${m.userId}`, username: m.username, email: m.email, avatarUrl: m.avatarUrl, role: "member" as const })),
-    [classroom.members, classroom.ownerUsername, reservedUserIds],
+    [classroom.members, classroom.ownerUsername],
   );
 
   const filterList = useCallback(

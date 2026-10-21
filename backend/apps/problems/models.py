@@ -9,7 +9,6 @@ import uuid
 
 from django.db import models
 from django.conf import settings
-from .managers import ProblemQuerySet
 
 
 class CodingProblem(models.Model):
@@ -76,7 +75,6 @@ class CodingProblem(models.Model):
         help_text='提交代碼中必須包含的關鍵字列表 (substring match)'
     )
 
-    objects = ProblemQuerySet.as_manager()
     
     class Meta:
         db_table = 'problems'
