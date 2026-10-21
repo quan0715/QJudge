@@ -1,26 +1,9 @@
-import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import type { ExamItem } from "../../types/exam.types";
 import { ExamNavigator } from "./ExamNavigator";
-
-vi.mock("@/shared/ui/markdown/MarkdownContent", () => ({
-  default: {
-    Problem: ({
-      children,
-      className,
-    }: {
-      children: ReactNode;
-      className?: string;
-    }) => (
-      <div data-testid="problem-markdown-preview" className={className}>
-        {children}
-      </div>
-    ),
-  },
-}));
 
 const createQuestion = (partial: Partial<ExamQuestion> = {}): ExamQuestion => ({
   id: "q1",
@@ -44,21 +27,27 @@ describe("ExamNavigator", () => {
     Element.prototype.scrollIntoView = vi.fn();
   });
 
-  it("renders question prompt previews through the problem markdown renderer", () => {
+  it("renders a text summary without embedding fenced code blocks", () => {
+    const items: ExamItem[] = [{ kind: "question", data: createQuestion({
+      prompt: "Consider **this code**:\n\n```cpp\nint secret = 1;\n```",
+    }) }];
+    const { container } = render(<ExamNavigator items={items} activeIndex={0} answeredIds={new Set()} onSelect={vi.fn()} />);
+    expect(screen.getByText("Consider this code:")).toBeInTheDocument();
+    expect(screen.queryByText(/int secret/)).not.toBeInTheDocument();
+    expect(container.querySelector("pre")).toBeNull();
+  });
+
+  it.each([false, true])("keeps grouped labels when collapsed=%s and navigates to the original item", (collapsed) => {
+    const onSelect = vi.fn();
     const items: ExamItem[] = [
-      { kind: "question", data: createQuestion() },
+      { kind: "question", data: createQuestion({ id: "a", groupId: "g" }) },
+      { kind: "question", data: createQuestion({ id: "b", groupId: "g" }) },
+      { kind: "question", data: createQuestion({ id: "c" }) },
     ];
-
-    render(
-      <ExamNavigator
-        items={items}
-        activeIndex={0}
-        answeredIds={new Set()}
-        onSelect={vi.fn()}
-      />,
-    );
-
-    const preview = screen.getByTestId("problem-markdown-preview");
-    expect(preview).toHaveTextContent("\\frac{\\pi}{2}");
+    render(<ExamNavigator items={items} activeIndex={0} collapsed={collapsed} answeredIds={new Set()} onSelect={onSelect} />);
+    expect(screen.getByText("Q1(a)")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Q1(b)"));
+    expect(onSelect).toHaveBeenCalledWith(1);
+    expect(screen.getByText("Q2")).toBeInTheDocument();
   });
 });

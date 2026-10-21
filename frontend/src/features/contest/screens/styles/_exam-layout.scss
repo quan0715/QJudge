@@ -204,9 +204,10 @@
 
 @mixin exam-question-area {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
-  align-items: center;
+  align-items: safe center;
   justify-content: center;
   padding: layout.$spacing-07 layout.$spacing-05;
 }

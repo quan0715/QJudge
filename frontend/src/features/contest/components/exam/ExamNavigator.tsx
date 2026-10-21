@@ -11,7 +11,8 @@ import {
   ListItemTitle,
   ListItemMeta,
 } from "@/shared/ui/list/ListPanel";
-import ProblemPromptPreview from "./ProblemPromptPreview";
+import { stripMarkdown } from "@/shared/utils/stringUtils";
+import { buildPaperQuestionLabels } from "../../domain/paperQuestionLabels";
 import styles from "./ExamNavigator.module.scss";
 
 interface ExamNavigatorProps {
@@ -42,6 +43,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
   hideHeader = false,
 }) => {
   const { t } = useTranslation("contest");
+  const questionLabels = buildPaperQuestionLabels(items.flatMap((item) => item.kind === "question" ? [item.data] : []));
   const answeredCount = items.filter((item) => {
     const id = item.kind === "coding" ? item.data.id : item.data.id;
     return answeredIds.has(id);
@@ -108,7 +110,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
                 onClick={() => onSelect(index)}
                 className={itemClassName}
               >
-                Q{index + 1}
+                Q{item.kind === "question" ? questionLabels.get(item.data.id)?.label : index + 1}
               </ListItem>
             );
           })}
@@ -202,7 +204,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
                       }
                     }}
                   >
-                    Q{index + 1}
+                    Q{item.kind === "question" ? questionLabels.get(item.data.id)?.label : index + 1}
                   </span>
                   <span className={styles.itemMetaDivider}>·</span>
                   <span>{typeLabel}</span>
@@ -211,7 +213,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
                   {item.kind === "coding" ? (
                     `${item.data.label}. ${item.data.title}`
                   ) : (
-                    <ProblemPromptPreview content={item.data.prompt} />
+                    <span className={styles.promptSummary}>{stripMarkdown(item.data.prompt.replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, " ").trim() || item.data.prompt)}</span>
                   )}
                 </ListItemTitle>
               </ListItemContent>
