@@ -9,8 +9,6 @@ from django.contrib.staticfiles import finders
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from apps.contests.services.paper_question_labels import build_paper_question_labels
-
 from .base import BaseRenderer
 from ..utils import render_pdf, scale_css_pixels, inline_markdown, render_markdown
 
@@ -173,6 +171,8 @@ class PaperExamReportRenderer(BaseRenderer):
         items_by_qid = scoring_ctx.get('items_by_qid', {})
 
         rows = []
+        from apps.contests.services.paper_question_labels import build_paper_question_labels
+
         labels = build_paper_question_labels(questions)
         for q in questions:
             idx = labels[q.id]
@@ -269,6 +269,8 @@ class PaperExamReportRenderer(BaseRenderer):
         """Render per-question detail blocks."""
         section_label = self.get_label('problem_details')
         parts = [f'<div class="section-title">{section_label}</div>']
+
+        from apps.contests.services.paper_question_labels import build_paper_question_labels
 
         labels = build_paper_question_labels(questions)
         for q in questions:
