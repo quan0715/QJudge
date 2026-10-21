@@ -215,7 +215,8 @@ class TestStudentReportEndpoints:
         text = unescape(strip_tags(html))
         assert student.username in text
         assert problem.question_asset.title in text
-        assert submission.code in text
+        for line in submission.code.splitlines():
+            assert line in text
 
     def test_contest_owner_can_download_participant_report(
         self, api_client, teacher, active_contest, student,
