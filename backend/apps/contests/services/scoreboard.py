@@ -66,10 +66,14 @@ class ScoreboardService:
             for b in bindings
         ]
 
-        participants = attempted_participants(contest).select_related("user")
+        # user__profile feeds both the embedded user payload and the display name.
+        participants = attempted_participants(contest).select_related("user__profile")
 
+        # The loop below only reads these columns; keep it free of per-row queries
+        # because the classroom gradebook runs one scoreboard per bound contest.
         submissions = (
             Submission.objects.filter(contest=contest)
+            .only("user_id", "problem_id", "status", "score", "created_at")
             .order_by("created_at")
         )
 
@@ -106,7 +110,7 @@ class ScoreboardService:
                 }
 
         for submission in submissions:
-            user_id = submission.user.id
+            user_id = submission.user_id
             problem_id = str(submission.problem_id)
 
             if user_id not in stats:
