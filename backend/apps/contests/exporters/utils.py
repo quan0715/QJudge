@@ -2,6 +2,8 @@
 Utility functions for contest exporters.
 Includes markdown helpers, filename sanitization, and code highlighting.
 """
+from io import BytesIO
+
 import markdown
 import re
 
@@ -185,3 +187,24 @@ def get_carbon_code_styles(scale: float = 1.0) -> str:
             word-wrap: break-word;
         }}
     '''
+
+
+def render_pdf(html: str) -> BytesIO:
+    """Convert rendered HTML to a rewound PDF stream."""
+    try:
+        from weasyprint import HTML
+    except (ImportError, OSError) as exc:
+        raise RuntimeError(
+            "PDF export is not available. WeasyPrint requires system libraries. "
+            f"Original error: {exc}"
+        ) from exc
+
+    pdf_file = BytesIO()
+    HTML(string=html).write_pdf(pdf_file)
+    pdf_file.seek(0)
+    return pdf_file
+
+
+def scale_css_pixels(css: str, scale: float) -> str:
+    """Scale pixel values while retaining the other CSS units."""
+    return re.sub(r'(\d+(?:\.\d+)?)px', lambda match: f"{float(match[1]) * scale}px", css)

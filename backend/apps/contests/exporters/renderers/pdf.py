@@ -11,7 +11,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from .base import BaseRenderer
-from ..utils import render_markdown, inline_markdown
+from ..utils import render_pdf, render_markdown, inline_markdown
 from ..dto import ContestProblemDTO
 
 
@@ -32,24 +32,7 @@ class PDFRenderer(BaseRenderer):
         self.layout = layout if layout in ('normal', 'compact') else 'normal'
 
     def export(self) -> BytesIO:
-        """Generate PDF content for the contest."""
-        html = self.render_html()
-
-        # Generate PDF
-        try:
-            from weasyprint import HTML
-        except (ImportError, OSError) as e:
-            raise RuntimeError(
-                "PDF export is not available. WeasyPrint requires system libraries "
-                "(libpango, libcairo, libgobject) to be installed. "
-                f"Original error: {e}"
-            )
-
-        pdf_file = BytesIO()
-        HTML(string=html).write_pdf(pdf_file)
-        pdf_file.seek(0)
-
-        return pdf_file
+        return render_pdf(self.render_html())
 
     def render_html(self) -> str:
         """Render the full HTML document for PDF conversion."""

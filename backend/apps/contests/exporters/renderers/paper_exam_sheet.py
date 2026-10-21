@@ -18,7 +18,7 @@ from django.template.loader import render_to_string
 from apps.contests.models import ExamQuestion
 
 from .base import BaseRenderer
-from ..utils import inline_markdown, render_markdown
+from ..utils import render_pdf, inline_markdown, render_markdown
 
 
 class PaperExamSheetRenderer(BaseRenderer):
@@ -40,19 +40,7 @@ class PaperExamSheetRenderer(BaseRenderer):
         self.include_answer_area = include_answer_area
 
     def export(self) -> BytesIO:
-        html = self.render_html()
-        try:
-            from weasyprint import HTML
-        except (ImportError, OSError) as e:
-            raise RuntimeError(
-                "PDF export is not available. WeasyPrint requires system libraries. "
-                f"Original error: {e}"
-            )
-
-        pdf_file = BytesIO()
-        HTML(string=html).write_pdf(pdf_file)
-        pdf_file.seek(0)
-        return pdf_file
+        return render_pdf(self.render_html())
 
     def render_html(self) -> str:
         from apps.contests.services.exam_scoring import ExamScoringService
