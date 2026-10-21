@@ -10,6 +10,7 @@ import { formatScore } from "@/features/contest/utils/scoreFormat";
 interface TargetQuestion {
   id: string;
   order: number;
+  questionLabel?: string;
   prompt: string;
   score: number;
   questionType?: string;
@@ -18,6 +19,7 @@ interface TargetQuestion {
 interface RedistributeTargetModalProps {
   open: boolean;
   questionIndex: number;
+  questionLabel?: string;
   availableTargets: TargetQuestion[];
   onClose: () => void;
   onConfirm: (targetIds: string[]) => void;
@@ -37,6 +39,7 @@ const TYPE_LABELS: Record<string, string> = {
 export default function RedistributeTargetModal({
   open,
   questionIndex,
+  questionLabel,
   availableTargets,
   onClose,
   onConfirm,
@@ -108,7 +111,7 @@ export default function RedistributeTargetModal({
     <Modal
       open={open}
       modalHeading={t("grading.scorePolicy.redistributeTitle", {
-        index: questionIndex,
+        index: questionLabel ?? questionIndex,
         defaultValue: "第 {{index}} 題 — 配分重分配",
       })}
       primaryButtonText={t("common.confirm", "確認")}
@@ -220,7 +223,7 @@ export default function RedistributeTargetModal({
                 <Checkbox
                   key={q.id}
                   id={`target-${questionIndex}-${q.id}`}
-                  labelText={`第 ${q.order + 1} 題 (${formatScore(q.score)}分) — ${q.prompt?.slice(0, 40) || "..."}`}
+                  labelText={`第 ${q.questionLabel ?? q.order + 1} 題 (${formatScore(q.score)}分) — ${q.prompt?.slice(0, 40) || "..."}`}
                   checked={selectedIds.has(q.id)}
                   onChange={(_, { checked }) => handleToggle(q.id, checked)}
                   style={{ marginBottom: "0.25rem" }}

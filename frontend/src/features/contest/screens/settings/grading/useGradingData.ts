@@ -1,3 +1,4 @@
+import { buildPaperQuestionLabels } from "@/features/contest/domain/paperQuestionLabels";
 /**
  * Data hook for exam grading.
  * Fetches real data from API.
@@ -115,11 +116,13 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
 
   // ── Derived: unique question info (source of truth = question list; fallback = answers) ──
   const questionInfoMap = useMemo(() => {
+    const labels = buildPaperQuestionLabels(questions);
     const map = new Map<
       string,
       {
         questionId: string;
         questionIndex: number;
+        questionLabel?: string;
         questionType: ExamQuestionType;
         prompt: string;
         gradingPrompt?: string;
@@ -136,6 +139,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         map.set(q.id, {
           questionId: q.id,
           questionIndex: (q.order ?? idx) + 1,
+          questionLabel: labels.get(q.id)?.label,
           questionType: q.questionType,
           prompt: q.prompt ?? "",
           gradingPrompt: q.gradingPrompt,
@@ -152,6 +156,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
       map.set(a.questionId, {
         questionId: a.questionId,
         questionIndex: a.questionIndex,
+        questionLabel: a.questionLabel,
         questionType: a.questionType,
         prompt: a.questionPrompt,
         maxScore: a.maxScore,
@@ -194,6 +199,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         return {
           questionId: q.questionId,
           questionIndex: q.questionIndex,
+          questionLabel: q.questionLabel,
           questionType: q.questionType,
           prompt: q.prompt,
           gradingPrompt: q.gradingPrompt,

@@ -90,7 +90,7 @@ export default function QuestionSidebarScreen({
                 onClick={() => onSelect(q.questionId)}
                 className={`${isActive ? mini.statusActive : ""} ${statusClass}`}
               >
-                Q{q.questionIndex}
+                Q{q.questionLabel ?? q.questionIndex}
               </ListItem>
             );
           })}
@@ -144,7 +144,7 @@ export default function QuestionSidebarScreen({
               </ListItemLeading>
               <ListItemContent>
                 <ListItemTitle>
-                  Q{q.questionIndex}
+                  Q{q.questionLabel ?? q.questionIndex}
                   {q.scorePolicy && q.scorePolicy !== "normal" && (
                     <ScorePolicyTag policy={q.scorePolicy} />
                   )}

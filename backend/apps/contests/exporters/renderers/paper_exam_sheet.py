@@ -44,7 +44,7 @@ class PaperExamSheetRenderer(BaseRenderer):
 
     def render_html(self) -> str:
         from apps.contests.services.exam_scoring import ExamScoringService
-        from apps.question_bank.problem_labels import label_for_contest_problem_order
+        from apps.contests.services.paper_question_labels import build_paper_question_labels
         questions = list(
             ExamQuestion.objects.filter(contest=self.contest).select_related("group").order_by("order", "id")
         )
@@ -55,14 +55,12 @@ class PaperExamSheetRenderer(BaseRenderer):
         question_rows: list[dict] = []
         answer_key_rows: list[dict] = []
         main_number = 0
-        child_index = 0
+        labels = build_paper_question_labels(questions)
         for idx, q in enumerate(questions, start=1):
             starts_group = q.group_id and (idx == 1 or questions[idx - 2].group_id != q.group_id)
             if not q.group_id or starts_group:
                 main_number += 1
-                child_index = 0
-            child_label = label_for_contest_problem_order(child_index).lower() if q.group_id else ""
-            child_index += 1
+            child_label = labels[q.id].split("(", 1)[1][:-1] if q.group_id else ""
             group_heading = None
             if starts_group:
                 last = idx
@@ -95,7 +93,7 @@ class PaperExamSheetRenderer(BaseRenderer):
             )
             answer_key_rows.append(
                 {
-                    "number": f"{main_number}({child_label})" if q.group_id else str(main_number),
+                    "number": labels[q.id],
                     "answer_text": self._format_answer_key_text(q, answer_text),
                     "score": self._fmt_score(q.score),
                 }
