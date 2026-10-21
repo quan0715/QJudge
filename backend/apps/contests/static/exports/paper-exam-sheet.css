@@ -45,6 +45,7 @@ p, li {
 }
 
 .paper-description {
+  white-space: pre-line;
   margin: 12px 0 0;
   text-align: left;
 }
@@ -81,13 +82,20 @@ p, li {
   margin-top: 44px;
 }
 
+.question-body {
+  position: relative;
+  padding-left: 24px;
+}
+
 .question-headline {
-  display: inline;
+  display: block;
   font-weight: 700;
 }
 
 .question-number {
-  margin-right: 4px;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .question-meta-inline {
@@ -97,9 +105,21 @@ p, li {
   font-size: 14px;
 }
 
+.question-headline .question-meta-inline {
+  position: absolute;
+  top: 0;
+  right: 0;
+  float: none;
+  margin: 0;
+}
+
+.question-prompt > p:first-child {
+  padding-right: 80px;
+}
+
 .question-prompt,
 .question-prompt > p:first-child {
-  display: inline;
+  display: block;
 }
 
 .question-group-heading {
@@ -118,6 +138,13 @@ p, li {
 
 .grouped-question .question-body {
   margin-left: 28px;
+  padding-left: 28px;
+}
+
+.grouped-question .question-number {
+  width: 28px;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .question-options {
@@ -136,6 +163,7 @@ p, li {
 
 .markdown-content pre,
 .markdown-content .codehilite {
+  break-inside: avoid;
   border: 0;
   border-radius: 0;
   background: transparent !important;
@@ -165,6 +193,26 @@ p, li {
   padding: 0;
   font-style: normal !important;
   font-weight: 400 !important;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin: 4px 0 12px;
+  padding-left: 24px;
+}
+
+.markdown-content li {
+  margin: 2px 0;
+}
+
+.markdown-content li > p {
+  margin: 0;
+}
+
+/* Keep an example label with its following code or console output. */
+.markdown-content p:has(+ pre),
+.markdown-content p:has(+ .codehilite) {
+  break-after: avoid;
 }
 
 .markdown-content p {
