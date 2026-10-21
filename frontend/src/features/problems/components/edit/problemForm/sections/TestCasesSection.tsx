@@ -1,3 +1,5 @@
+import { createPortal } from "react-dom";
+import { getModalPortalRoot } from "@/shared/ui/theme/portalRoot";
 import React, { useState, useCallback, useMemo } from "react";
 import { useFormContext, useFieldArray } from "react-hook-form";
 import {
@@ -270,7 +272,7 @@ const TestCasesSection: React.FC = () => {
       </DataTable>
 
       {/* Edit Modal */}
-      <Modal
+      {modalOpen && createPortal(<Modal
         open={modalOpen}
         onRequestClose={() => setModalOpen(false)}
         onRequestSubmit={handleModalSave}
@@ -278,7 +280,7 @@ const TestCasesSection: React.FC = () => {
         primaryButtonText="儲存"
         secondaryButtonText="取消"
         size="lg"
-        className={styles.modal}
+        className="coding-editor-child-modal"
       >
         <div className={styles.modalContent}>
           <div className={styles.ioGrid}>
@@ -360,7 +362,7 @@ const TestCasesSection: React.FC = () => {
             </RadioButtonGroup>
           </div>
         </div>
-      </Modal>
+      </Modal>, getModalPortalRoot())}
       </div>
     </Section>
   );
