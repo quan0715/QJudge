@@ -131,6 +131,7 @@ async def test_completed_run_posts_grades_and_records_written() -> None:
             "body": {
                 "grades": [{"exam_answer_id": "a1", "score": 8.0, "feedback": "不錯"}],
                 "only_if_ungraded": True,
+                "question_id": "q3",
             },
         }
     ]
@@ -216,6 +217,41 @@ async def test_backend_error_records_failed_progress() -> None:
     progress = _csv(artifacts.files["progress.csv"])[0]
     assert progress["status"] == "failed"
     assert "500" in progress["error"]
+
+
+@pytest.mark.asyncio
+async def test_backend_error_rows_are_reported() -> None:
+    artifacts = FakeArtifacts(_batch_files())
+    finalizer, _ = _finalizer(
+        FakeRuns(_info()), artifacts, responses=[{"exam_answer_id": "a1", "status": "error"}]
+    )
+
+    await finalizer(RUN_ID, "lease:teacher")
+
+    progress = _csv(artifacts.files["progress.csv"])[0]
+    assert progress["status"] == "completed"
+    assert progress["written_count"] == "0"
+    assert "1" in progress["error"]
+
+
+class FailingWrittenArtifacts(FakeArtifacts):
+    async def put_for_run(self, *, filename, **kwargs):
+        if filename.startswith("written_"):
+            raise RuntimeError("s3 down")
+        await super().put_for_run(filename=filename, **kwargs)
+
+
+@pytest.mark.asyncio
+async def test_artifact_failure_still_records_failed_progress() -> None:
+    artifacts = FailingWrittenArtifacts(_batch_files())
+    finalizer, posted = _finalizer(FakeRuns(_info()), artifacts)
+
+    await finalizer(RUN_ID, "lease:teacher")
+
+    assert len(posted) == 1
+    progress = _csv(artifacts.files["progress.csv"])[0]
+    assert progress["status"] == "failed"
+    assert "s3 down" in progress["error"]
 
 
 @pytest.mark.asyncio

@@ -46,6 +46,12 @@ def test_partial_csv_writes_scored_rows_only() -> None:
     assert plan.out_of_range_count == 0
 
 
+def test_scores_rounded_to_two_decimals() -> None:
+    plan = plan_grades(GRADE_HEADER + "1,a1,u1,x,,,7.336,好,\n", max_score=10)
+
+    assert plan.rows == [GradeRow("a1", 7.34, "好")]
+
+
 def test_out_of_range_scores_excluded() -> None:
     grade_csv = GRADE_HEADER + "1,a1,u1,x,,,11,太高,\n2,a2,u2,x,,,-1,負分,\n"
 

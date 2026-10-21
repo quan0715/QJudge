@@ -64,7 +64,10 @@ def plan_grades(grade_csv: str, max_score: float) -> GradePlan:
         if score < 0 or score > max_score:
             out_of_range += 1
             continue
-        rows.append(GradeRow(answer_id, score, (record.get("reason") or "").strip()))
+        # ExamAnswer.score keeps two decimals; the backend rejects anything finer.
+        rows.append(
+            GradeRow(answer_id, round(score, 2), (record.get("reason") or "").strip())
+        )
     return GradePlan(rows=rows, out_of_range_count=out_of_range)
 
 

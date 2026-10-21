@@ -80,16 +80,25 @@ class BatchGradingFinalizer:
         if question_id is None:
             return
 
+        try:
+            await self._finalize(info, run_id, question_id, lease_key)
+        except Exception as exc:  # the teacher must see it; never leave the question "running"
+            logger.exception("Batch grading finalize failed for run %s", run_id)
+            await self._write_progress(
+                info.session_id, run_id, question_id, status="failed",
+                error=f"收尾失敗：{exc}",
+            )
+
+    async def _finalize(self, info: Any, run_id: UUID, question_id: str, lease_key: str) -> None:
         session_id = info.session_id
         status = progress_status(info.status, info.error_code)
         written: list[GradeRow] = []
-        skipped = 0
-        out_of_range = 0
+        skipped = rejected = out_of_range = 0
         error = info.error_message or ""
 
         if status in ("completed", "failed"):
             try:
-                written, skipped, out_of_range = await self._write_grades(
+                written, skipped, rejected, out_of_range = await self._write_grades(
                     session_id, question_id, lease_key
                 )
             except McpReadinessError:
@@ -100,6 +109,8 @@ class BatchGradingFinalizer:
 
         if status == "paused":
             await self._runs.cancel_queued_in_session(session_id)
+        if status == "completed":
+            error = f"{rejected} 份寫入失敗" if rejected else ""
 
         if written:
             existing = await self._read(session_id, f"written_{question_id}.csv")
@@ -107,6 +118,23 @@ class BatchGradingFinalizer:
                 session_id, run_id, f"written_{question_id}.csv",
                 append_written_csv(existing, written),
             )
+        await self._write_progress(
+            session_id, run_id, question_id, status=status, error=error,
+            written=len(written), skipped=skipped, out_of_range=out_of_range,
+        )
+
+    async def _write_progress(
+        self,
+        session_id: UUID,
+        run_id: UUID,
+        question_id: str,
+        *,
+        status: str,
+        error: str,
+        written: int = 0,
+        skipped: int = 0,
+        out_of_range: int = 0,
+    ) -> None:
         progress = await self._read(session_id, "progress.csv")
         await self._write(
             session_id,
@@ -118,10 +146,10 @@ class BatchGradingFinalizer:
                     "question_id": question_id,
                     "run_id": str(run_id),
                     "status": status,
-                    "written_count": str(len(written)),
+                    "written_count": str(written),
                     "skipped_count": str(skipped),
                     "out_of_range_count": str(out_of_range),
-                    "error": error if status != "completed" else "",
+                    "error": error,
                     "updated_at": datetime.now(UTC).isoformat(),
                 },
             ),
@@ -129,7 +157,7 @@ class BatchGradingFinalizer:
 
     async def _write_grades(
         self, session_id: UUID, question_id: str, lease_key: str
-    ) -> tuple[list[GradeRow], int, int]:
+    ) -> tuple[list[GradeRow], int, int, int]:
         batch = json.loads(await self._read(session_id, "batch.json") or "{}")
         question = next(
             (q for q in batch.get("questions", []) if str(q.get("question_id")) == question_id),
@@ -140,7 +168,7 @@ class BatchGradingFinalizer:
             raise ValueError("找不到題目設定或批改檔")
         plan = plan_grades(grade_csv, float(question["max_score"]))
         if not plan.rows:
-            return [], 0, plan.out_of_range_count
+            return [], 0, 0, plan.out_of_range_count
 
         token = await self._credentials.worker_token(lease_key, retry_exchange_once=True)
         response = await self._http.post(
@@ -152,6 +180,8 @@ class BatchGradingFinalizer:
                     for r in plan.rows
                 ],
                 "only_if_ungraded": True,
+                # The AI can rewrite the CSV; never let it grade another question.
+                "question_id": question_id,
             },
             headers={"Authorization": f"Bearer {token}"},
         )
@@ -164,7 +194,8 @@ class BatchGradingFinalizer:
             if r.get("status") == "ok" and str(r.get("exam_answer_id")) in by_id
         ]
         skipped = sum(1 for r in results if r.get("status") == "skipped")
-        return written, skipped, plan.out_of_range_count
+        rejected = sum(1 for r in results if r.get("status") == "error")
+        return written, skipped, rejected, plan.out_of_range_count
 
     async def _read(self, session_id: UUID, filename: str) -> str | None:
         artifacts = await self._artifacts.list_for_run(
