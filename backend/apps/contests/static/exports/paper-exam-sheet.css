@@ -137,7 +137,7 @@ p, li {
 }
 
 .grouped-question .question-body {
-  margin-left: 28px;
+  margin-left: 0;
   padding-left: 28px;
 }
 
@@ -197,12 +197,13 @@ p, li {
 
 .markdown-content ul,
 .markdown-content ol {
-  margin: 4px 0 12px;
+  margin: 4px 0 8px;
   padding-left: 24px;
 }
 
 .markdown-content li {
-  margin: 2px 0;
+  line-height: 1.35;
+  margin: 0;
 }
 
 .markdown-content li > p {
