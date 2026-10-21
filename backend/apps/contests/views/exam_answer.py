@@ -622,7 +622,8 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         With ``only_if_ungraded`` an answer that already has a score is left
         untouched and reported as ``skipped`` (used by background AI grading so
-        it never overwrites a TA's score).
+        it never overwrites a TA's score). ``question_id`` limits writes to that
+        question's answers; others are reported as ``not found``.
         """
         contest = self._get_contest(contest_pk)
         if not can_manage_contest(request.user, contest):
@@ -630,6 +631,9 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         grades = request.data.get('grades', [])
         only_if_ungraded = request.data.get('only_if_ungraded') is True
+        answer_scope = ExamAnswer.objects.filter(participant__contest=contest)
+        if request.data.get('question_id') is not None:
+            answer_scope = answer_scope.filter(question_id=request.data.get('question_id'))
         if not isinstance(grades, list) or not grades:
             return Response(
                 {'error': 'grades must be a non-empty array'},
@@ -662,9 +666,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 continue
 
             with transaction.atomic():
-                answer_obj = ExamAnswer.objects.select_for_update().filter(
-                    participant__contest=contest, pk=answer_id,
-                ).first()
+                answer_obj = answer_scope.select_for_update().filter(pk=answer_id).first()
                 if not answer_obj:
                     results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': 'not found'})
                     continue

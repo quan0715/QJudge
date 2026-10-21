@@ -499,6 +499,32 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         self.assertEqual(ungraded.score, 12)
         self.assertEqual(ungraded.graded_by, self.teacher)
 
+    def test_question_id_limits_batch_grade_to_that_question(self):
+        other = ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_single,
+            answer={'selected': 'B'},
+        )
+        target = ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_essay,
+            answer={'text': 'My essay'},
+        )
+        self.client.force_authenticate(user=self.teacher)
+        resp = self.client.post(self._batch_grade_url(), {
+            'grades': [
+                {'exam_answer_id': other.id, 'score': 3, 'feedback': 'AI'},
+                {'exam_answer_id': target.id, 'score': 9, 'feedback': 'AI'},
+            ],
+            'only_if_ungraded': True,
+            'question_id': self.q_essay.id,
+        }, format='json')
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual([r['status'] for r in resp.data['results']], ['error', 'ok'])
+        other.refresh_from_db()
+        self.assertIsNone(other.score)
+
     def test_batch_grade_without_flag_still_overwrites(self):
         graded = ExamAnswer.objects.create(
             participant=self.participant,
