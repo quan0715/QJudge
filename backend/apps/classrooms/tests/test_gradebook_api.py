@@ -1,5 +1,6 @@
 from datetime import timedelta
 from unittest.mock import patch
+from urllib.parse import quote
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -191,3 +192,17 @@ class ClassroomGradebookApiTests(APITestCase):
         )
         self.assertEqual(lines[1], 'a_student,,,210.00,')
         self.assertEqual(lines[2], 'b_student,乙同學,96.00,0.00,')
+
+    def test_export_csv_keeps_non_ascii_classroom_name_in_filename(self):
+        self.classroom.name = '程式設計（一）'
+        self.classroom.save(update_fields=['name'])
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.get(self.export_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response['Content-Disposition'],
+            "attachment; filename*=utf-8''"
+            + quote('classroom_程式設計（一）_gradebook.csv'),
+        )

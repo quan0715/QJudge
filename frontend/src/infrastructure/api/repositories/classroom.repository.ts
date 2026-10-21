@@ -172,6 +172,20 @@ export const getClassroomGradebook = async (classroomId: string): Promise<Classr
   return mapClassroomGradebookDto(data);
 };
 
+// Non-ASCII names arrive as `filename*=UTF-8''<percent-encoded>`; ASCII ones as `filename="..."`.
+const parseContentDispositionFilename = (header: string | null): string | undefined => {
+  if (!header) return undefined;
+  const encoded = /filename\*=utf-8''([^;]+)/i.exec(header)?.[1];
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded.trim());
+    } catch {
+      // Malformed escape sequence: fall through to the plain filename.
+    }
+  }
+  return /filename="([^"]+)"/.exec(header)?.[1];
+};
+
 export const exportClassroomGradebook = async (classroomId: string): Promise<void> => {
   const res = await httpClient.get(`/api/v1/classrooms/${classroomId}/gradebook/export/`, {
     headers: {
@@ -187,7 +201,7 @@ export const exportClassroomGradebook = async (classroomId: string): Promise<voi
   }
 
   const filename =
-    /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ??
+    parseContentDispositionFilename(res.headers.get("Content-Disposition")) ??
     `classroom_${classroomId}_gradebook.csv`;
 
   const blob = await res.blob();

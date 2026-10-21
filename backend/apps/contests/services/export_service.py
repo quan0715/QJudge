@@ -5,6 +5,7 @@ from collections import defaultdict
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.http import HttpResponse
+from django.utils.http import content_disposition_header
 
 from ..exporters import (
     MarkdownRenderer,
@@ -134,7 +135,7 @@ def csv_download_response(filename: str) -> HttpResponse:
     prepend one to every chunk written, i.e. to every CSV row.
     """
     response = HttpResponse(content_type='text/csv; charset=utf-8')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response['Content-Disposition'] = content_disposition_header(True, filename)
     response.write('\ufeff')
     return response
 

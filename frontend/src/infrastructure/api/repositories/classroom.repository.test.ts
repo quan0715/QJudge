@@ -215,6 +215,23 @@ describe("exportClassroomGradebook", () => {
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:gradebook");
   });
 
+  it("decodes a percent-encoded filename* so non-ASCII classroom names survive", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response("a,b\n", {
+        status: 200,
+        headers: {
+          "Content-Type": "text/csv",
+          "Content-Disposition":
+            "attachment; filename*=utf-8''classroom_%E7%A8%8B%E5%BC%8F%E8%A8%AD%E8%A8%88%EF%BC%88%E4%B8%80%EF%BC%89_gradebook.csv",
+        },
+      }),
+    );
+
+    await exportClassroomGradebook("924abae8-bf3a-4479-8e38-bfbdfe9ea0fa");
+
+    expect(downloadedNames).toEqual(["classroom_程式設計（一）_gradebook.csv"]);
+  });
+
   it("falls back to a default filename without Content-Disposition", async () => {
     const classroomId = "924abae8-bf3a-4479-8e38-bfbdfe9ea0fa";
 
