@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     without reversing migrations, so the previous release must still find
     ``classrooms_classroom_admins``. Its foreign keys are dropped so the
     now-unmanaged table cannot block deletes or truncates of users and
-    classrooms. Drop the table in a later release.
+    classrooms. 0005 drops the table.
     """
 
     dependencies = [
