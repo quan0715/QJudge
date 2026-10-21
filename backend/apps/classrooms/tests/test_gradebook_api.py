@@ -184,6 +184,16 @@ class ClassroomGradebookApiTests(APITestCase):
         self.assertEqual(lines[1], 'a_student,,,210.00,')
         self.assertEqual(lines[2], 'b_student,乙同學,96.00,0.00,')
 
+    def test_export_csv_neutralizes_formula_cells(self):
+        """Student-editable names must not run as spreadsheet formulas."""
+        self.b_student.profile.display_name = '=HYPERLINK("http://evil.test","x")'
+        self.b_student.profile.save(update_fields=['display_name'])
+        self.client.force_authenticate(user=self.owner)
+
+        lines = self.client.get(self.export_url).content.decode('utf-8').lstrip('\ufeff').splitlines()
+
+        self.assertEqual(lines[2], 'b_student,"\'=HYPERLINK(""http://evil.test"",""x"")",96.00,0.00,')
+
     def test_export_csv_keeps_non_ascii_classroom_name_in_filename(self):
         self.classroom.name = '程式設計（一）'
         self.classroom.save(update_fields=['name'])
