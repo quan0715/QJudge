@@ -7,6 +7,7 @@ services each contest's own pages use, so the gradebook always matches them.
 from __future__ import annotations
 
 import csv
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -22,7 +23,7 @@ from apps.contests.services.scoreboard import ScoreboardScope, ScoreboardService
 
 @dataclass(frozen=True)
 class GradebookContest:
-    id: int
+    id: uuid.UUID
     name: str
     contest_type: str
     start_time: datetime | None
@@ -35,7 +36,7 @@ class GradebookStudent:
     username: str
     display_name: str
     # key = contest id; None = did not take part
-    scores: dict[int, float | None]
+    scores: dict[uuid.UUID, float | None]
 
 
 @dataclass(frozen=True)
@@ -79,7 +80,7 @@ def build_classroom_gradebook(classroom: Classroom, *, viewer) -> Gradebook:
         F("contest__start_time").asc(nulls_last=True), "contest__created_at"
     )
     contests: list[GradebookContest] = []
-    totals_by_contest: dict[int, dict[int, float]] = {}
+    totals_by_contest: dict[uuid.UUID, dict[int, float]] = {}
     for binding in bindings:
         contest = binding.contest
         if contest.contest_type == "paper_exam":
