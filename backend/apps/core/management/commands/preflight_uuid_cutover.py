@@ -14,16 +14,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import connection
+from apps.core.management import uuid_cutover
 
 
-TARGET_PK_TABLES = (
-    "problems",
-    "question_assets",
-    "question_bank_memberships",
-    "contest_question_bindings",
-    "exam_questions",
-)
 TARGET_ROW_COUNT_TABLES = (
     "question_banks",
     "question_assets",
@@ -34,12 +27,6 @@ TARGET_ROW_COUNT_TABLES = (
     "exam_answers",
     "submissions",
 )
-TARGET_FK_COLUMN_NAMES = (
-    "problem_id",
-    "question_asset_id",
-    "source_question_id",
-)
-INTEGER_UDT_NAMES = {"int2", "int4", "int8"}
 
 
 class Command(BaseCommand):
@@ -56,9 +43,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         report = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "row_counts": self._collect_row_counts(),
-            "pk_types": self._collect_pk_types(),
-            "int_fk_candidates": self._collect_int_fk_candidates(),
+            "row_counts": uuid_cutover.collect_row_counts(TARGET_ROW_COUNT_TABLES),
+            "pk_types": uuid_cutover.collect_pk_types(),
+            "int_fk_candidates": uuid_cutover.collect_int_fk_candidates(),
         }
 
         payload = json.dumps(report, ensure_ascii=False, indent=2)
@@ -79,66 +66,3 @@ class Command(BaseCommand):
             ]
             if report["int_fk_candidates"] or non_uuid_pk:
                 raise CommandError("Preflight detected UUID cutover issues. See JSON report.")
-
-    def _table_exists(self, table_name: str) -> bool:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT to_regclass(%s)", [f"public.{table_name}"])
-            return cursor.fetchone()[0] is not None
-
-    def _collect_row_counts(self) -> dict[str, int]:
-        counts: dict[str, int] = {}
-        with connection.cursor() as cursor:
-            for table_name in TARGET_ROW_COUNT_TABLES:
-                if not self._table_exists(table_name):
-                    continue
-                cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
-                counts[table_name] = int(cursor.fetchone()[0])
-        return counts
-
-    def _collect_pk_types(self) -> list[dict[str, str]]:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT c.table_name, c.column_name, c.data_type, c.udt_name
-                FROM information_schema.columns c
-                WHERE c.table_schema = 'public'
-                  AND c.table_name = ANY(%s)
-                  AND c.column_name = 'id'
-                ORDER BY c.table_name
-                """,
-                [list(TARGET_PK_TABLES)],
-            )
-            rows = cursor.fetchall()
-        return [
-            {
-                "table_name": row[0],
-                "column_name": row[1],
-                "data_type": row[2],
-                "udt_name": row[3],
-            }
-            for row in rows
-        ]
-
-    def _collect_int_fk_candidates(self) -> list[dict[str, str]]:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT c.table_name, c.column_name, c.data_type, c.udt_name
-                FROM information_schema.columns c
-                WHERE c.table_schema = 'public'
-                  AND c.column_name = ANY(%s)
-                  AND c.udt_name = ANY(%s)
-                ORDER BY c.table_name, c.column_name
-                """,
-                [list(TARGET_FK_COLUMN_NAMES), list(INTEGER_UDT_NAMES)],
-            )
-            rows = cursor.fetchall()
-        return [
-            {
-                "table_name": row[0],
-                "column_name": row[1],
-                "data_type": row[2],
-                "udt_name": row[3],
-            }
-            for row in rows
-        ]
