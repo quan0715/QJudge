@@ -44,6 +44,17 @@ describe("BatchGradingQuestionMenu", () => {
     await waitFor(() => expect(onRevert).toHaveBeenCalledWith("q1"));
   });
 
+  it("keeps the dialog open and shows the error when revert fails", async () => {
+    const onRevert = vi.fn().mockRejectedValue(new Error("撤回失敗：網路錯誤"));
+    render(<BatchGradingQuestionMenu state={state({})} onRevert={onRevert} onRegrade={vi.fn()} />);
+
+    openMenu();
+    fireEvent.click(menuItem("grading.batch.revert"));
+    fireEvent.click(screen.getByRole("button", { name: /grading.batch.revertConfirm/ }));
+
+    expect(await screen.findByText("撤回失敗：網路錯誤")).toBeInTheDocument();
+  });
+
   it("sends the regrade note", async () => {
     const onRegrade = vi.fn().mockResolvedValue(undefined);
     render(<BatchGradingQuestionMenu state={state({})} onRevert={vi.fn()} onRegrade={onRegrade} />);

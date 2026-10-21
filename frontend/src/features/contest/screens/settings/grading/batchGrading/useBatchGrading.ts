@@ -21,11 +21,12 @@ import {
   BATCH_ARTIFACT_STEP,
   BATCH_GRADING_TASK_TYPE,
   BATCH_JSON_FILENAME,
-  BATCH_RESUMABLE_STATUSES,
   PROGRESS_CSV_FILENAME,
+  applyFinalizeTimeout,
   buildBatchRunPrompt,
   deriveBatchState,
   gradeCsvFilename,
+  isUnfinished,
   parseWrittenCsv,
   selectBatchQuestions,
   selectRevertableAnswers,
@@ -35,7 +36,9 @@ import {
   type BatchQuestionState,
 } from "./batchGradingModel";
 
-const POLL_INTERVAL_MS = 5000;
+const ACTIVE_POLL_MS = 5_000;
+const IDLE_POLL_MS = 30_000;
+const FINALIZE_TIMEOUT_MS = 60_000;
 const WRITTEN_PREFIX = "written_";
 
 interface BatchSnapshot {
@@ -43,6 +46,9 @@ interface BatchSnapshot {
   activeRuns: BatchActiveRun[];
   progressCsv: string | null;
   writtenCsv: Record<string, string>;
+  /** When each run was first seen finalizing (run id → ms). */
+  finalizingSince: Record<string, number>;
+  fetchedAt: number;
 }
 
 const EMPTY_SNAPSHOT: BatchSnapshot = {
@@ -50,6 +56,8 @@ const EMPTY_SNAPSHOT: BatchSnapshot = {
   activeRuns: [],
   progressCsv: null,
   writtenCsv: {},
+  finalizingSince: {},
+  fetchedAt: 0,
 };
 
 export interface BatchGradingOverall {
@@ -65,13 +73,19 @@ export interface UseBatchGradingResult {
   questions: BatchQuestionState[];
   overall: BatchGradingOverall;
   canStart: boolean;
+  /** An action (start, stop, resume, revert, regrade) is in flight. */
+  busy: boolean;
   start(modelId?: string): Promise<void>;
+  /** Never throws; failures surface through `error`. */
   stop(): Promise<void>;
+  /** Never throws; failures surface through `error`. */
   resume(): Promise<void>;
   revertQuestion(questionId: string): Promise<string[]>;
   regradeQuestion(questionId: string, note?: string): Promise<void>;
   error?: string;
 }
+
+const messageOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 function latestByFilename(artifacts: readonly ArtifactRecord[]): Map<string, ArtifactRecord> {
   const latest = new Map<string, ArtifactRecord>();
@@ -97,7 +111,23 @@ async function uploadBatchFile(sessionId: string, filename: string, content: str
   });
 }
 
-async function loadSnapshot(sessionId: string): Promise<BatchSnapshot> {
+function deriveStates(questions: readonly BatchQuestion[], snapshot: BatchSnapshot) {
+  return deriveBatchState({
+    questions,
+    messages: snapshot.messages,
+    activeRuns: snapshot.activeRuns,
+    progressCsv: snapshot.progressCsv,
+    writtenCounts: Object.fromEntries(
+      Object.entries(snapshot.writtenCsv).map(([qid, csv]) => [qid, parseWrittenCsv(csv).length]),
+    ),
+  });
+}
+
+async function loadSnapshot(
+  sessionId: string,
+  questions: readonly BatchQuestion[],
+  previous: BatchSnapshot,
+): Promise<BatchSnapshot> {
   const [session, activeRuns, artifacts] = await Promise.all([
     chatbotRepository.getSession(sessionId),
     chatbotRepository.getActiveRuns(),
@@ -114,31 +144,50 @@ async function loadSnapshot(sessionId: string): Promise<BatchSnapshot> {
         (await read(artifact)) ?? "",
       ] as const),
   );
-  return {
+  const next: BatchSnapshot = {
     messages: session.messages,
     activeRuns: activeRuns
       .filter((run) => run.sessionId === sessionId)
       .map((run) => ({ id: run.id, status: run.status })),
     progressCsv: await read(latest.get(PROGRESS_CSV_FILENAME)),
     writtenCsv: Object.fromEntries(writtenEntries),
+    finalizingSince: {},
+    fetchedAt: Date.now(),
   };
+  const since = new Map(Object.entries(previous.finalizingSince));
+  applyFinalizeTimeout(deriveStates(questions, next), since, next.fetchedAt, FINALIZE_TIMEOUT_MS);
+  return { ...next, finalizingSince: Object.fromEntries(since) };
 }
+
+const isBusyPolling = (states: readonly BatchQuestionState[]) =>
+  states.some((q) => q.finalizing || BATCH_ACTIVE_STATUSES.includes(q.status));
 
 export function useBatchGrading(
   contestId: string,
   rows: readonly GradingAnswerRow[],
-  options: { resultsPublished: boolean; refreshGrades: () => Promise<void> },
+  options: {
+    resultsPublished: boolean;
+    /** Background refresh of the page's answers; must not show a loading screen. */
+    reloadAnswers: () => Promise<GradingAnswerRow[]>;
+  },
 ): UseBatchGradingResult {
   useRequestCopilot();
   const { sessions, select, refresh: refreshSessions } = useCopilotSessions();
   const [createdSessionId, setCreatedSessionId] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<BatchSnapshot>(EMPTY_SNAPSHOT);
-  const [error, setError] = useState<string>();
+  const [actionError, setActionError] = useState<string>();
+  const [pollError, setPollError] = useState<string>();
+  const [busy, setBusy] = useState(false);
   const modelRef = useRef<string | undefined>(undefined);
   const writtenTotalRef = useRef(0);
-  const { refreshGrades, resultsPublished } = options;
+  const snapshotRef = useRef(snapshot);
+  const { reloadAnswers, resultsPublished } = options;
 
   const questions = useMemo(() => selectBatchQuestions(rows), [rows]);
+  const questionsRef = useRef(questions);
+  useEffect(() => {
+    questionsRef.current = questions;
+  }, [questions]);
 
   const existingSessionId = useMemo(
     () =>
@@ -151,7 +200,6 @@ export function useBatchGrading(
         : null,
     [contestId, sessions],
   );
-
   const sessionId = createdSessionId ?? existingSessionId;
   const boundSessionRef = useRef<string | null>(null);
 
@@ -161,44 +209,56 @@ export function useBatchGrading(
     void select(sessionId);
   }, [select, sessionId]);
 
+  /** Load the batch state once; returns whether anything is still running. */
   const refreshSnapshot = useCallback(
-    async (id: string) => {
-      const next = await loadSnapshot(id);
+    async (id: string): Promise<boolean> => {
+      const next = await loadSnapshot(id, questionsRef.current, snapshotRef.current);
+      snapshotRef.current = next;
       setSnapshot(next);
+      setPollError(undefined);
       const writtenTotal = Object.values(next.writtenCsv).reduce(
         (sum, csv) => sum + parseWrittenCsv(csv).length,
         0,
       );
       if (writtenTotal !== writtenTotalRef.current) {
         writtenTotalRef.current = writtenTotal;
-        await refreshGrades();
+        await reloadAnswers();
       }
+      return isBusyPolling(deriveStates(questionsRef.current, next));
     },
-    [refreshGrades],
+    [reloadAnswers],
   );
 
   useEffect(() => {
     if (!sessionId) return undefined;
-    const tick = () =>
-      refreshSnapshot(sessionId).catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : String(err)),
-      );
+    let cancelled = false;
+    let timer: number | undefined;
+    const tick = async () => {
+      let running = false;
+      try {
+        running = await refreshSnapshot(sessionId);
+      } catch (err) {
+        if (!cancelled) setPollError(messageOf(err));
+      }
+      if (!cancelled) {
+        timer = window.setTimeout(tick, running ? ACTIVE_POLL_MS : IDLE_POLL_MS);
+      }
+    };
     void tick();
-    const timer = window.setInterval(tick, POLL_INTERVAL_MS);
-    return () => window.clearInterval(timer);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [refreshSnapshot, sessionId]);
 
   const questionStates = useMemo(
     () =>
-      deriveBatchState({
-        questions,
-        messages: snapshot.messages,
-        activeRuns: snapshot.activeRuns,
-        progressCsv: snapshot.progressCsv,
-        writtenCounts: Object.fromEntries(
-          Object.entries(snapshot.writtenCsv).map(([qid, csv]) => [qid, parseWrittenCsv(csv).length]),
-        ),
-      }),
+      applyFinalizeTimeout(
+        deriveStates(questions, snapshot),
+        new Map(Object.entries(snapshot.finalizingSince)),
+        snapshot.fetchedAt,
+        FINALIZE_TIMEOUT_MS,
+      ),
     [questions, snapshot],
   );
 
@@ -209,7 +269,7 @@ export function useBatchGrading(
       done: tracked.filter((q) => q.status === "completed").length,
       writtenCount: tracked.reduce((sum, q) => sum + q.writtenCount, 0),
       ungradedTotal: tracked.reduce((sum, q) => sum + q.ungradedCount, 0),
-      running: tracked.some((q) => BATCH_ACTIVE_STATUSES.includes(q.status)),
+      running: isBusyPolling(tracked),
     };
   }, [questionStates]);
 
@@ -231,19 +291,27 @@ export function useBatchGrading(
     [contestId],
   );
 
-  const guard = useCallback(async <T,>(action: () => Promise<T>): Promise<T> => {
-    setError(undefined);
-    try {
-      return await action();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-      throw err;
-    }
-  }, []);
+  /** Run one action at a time; record its error and optionally rethrow. */
+  const guard = useCallback(
+    async <T,>(action: () => Promise<T>, rethrow: boolean): Promise<T | undefined> => {
+      setActionError(undefined);
+      setBusy(true);
+      try {
+        return await action();
+      } catch (err) {
+        setActionError(messageOf(err));
+        if (rethrow) throw err;
+        return undefined;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [],
+  );
 
   const start = useCallback(
-    (modelId?: string) =>
-      guard(async () => {
+    async (modelId?: string) => {
+      await guard(async () => {
         if (resultsPublished) throw new Error("成績已公布，無法啟動整批批改");
         modelRef.current = modelId;
         const { sessionId: id } = await createTaskSession({
@@ -272,62 +340,56 @@ export function useBatchGrading(
         }
         setCreatedSessionId(id);
         await refreshSessions();
-      }),
+      }, true);
+    },
     [contestId, enqueue, guard, questions, refreshSessions, resultsPublished],
   );
 
-  const stop = useCallback(
-    () =>
-      guard(async () => {
-        if (!sessionId) return;
-        const runs = (await chatbotRepository.getActiveRuns()).filter(
-          (run) => run.sessionId === sessionId,
-        );
-        // Cancel queued runs first; cancelling the running one dispatches the next queued run.
-        const ordered = [
-          ...runs.filter((run) => run.status === "queued"),
-          ...runs.filter((run) => run.status !== "queued"),
-        ];
-        for (const run of ordered) await chatbotRepository.cancelRun(run.id);
-        await refreshSnapshot(sessionId);
-      }),
-    [guard, refreshSnapshot, sessionId],
-  );
+  const stop = useCallback(async () => {
+    await guard(async () => {
+      if (!sessionId) return;
+      const runs = (await chatbotRepository.getActiveRuns()).filter(
+        (run) => run.sessionId === sessionId,
+      );
+      // Cancel queued runs first; cancelling the running one dispatches the next queued run.
+      const ordered = [
+        ...runs.filter((run) => run.status === "queued"),
+        ...runs.filter((run) => run.status !== "queued"),
+      ];
+      for (const run of ordered) await chatbotRepository.cancelRun(run.id);
+      await refreshSnapshot(sessionId);
+    }, false);
+  }, [guard, refreshSnapshot, sessionId]);
 
-  const resume = useCallback(
-    () =>
-      guard(async () => {
-        if (!sessionId) return;
-        for (const state of questionStates) {
-          const question = questions.find((q) => q.questionId === state.questionId);
-          if (
-            question &&
-            question.ungradedRows.length > 0 &&
-            BATCH_RESUMABLE_STATUSES.includes(state.status)
-          ) {
-            await enqueue(sessionId, question, question.ungradedRows);
-          }
+  const resume = useCallback(async () => {
+    await guard(async () => {
+      if (!sessionId) return;
+      for (const state of questionStates.filter(isUnfinished)) {
+        const question = questions.find((q) => q.questionId === state.questionId);
+        if (question && question.ungradedRows.length > 0) {
+          await enqueue(sessionId, question, question.ungradedRows);
         }
-        await refreshSnapshot(sessionId);
-      }),
-    [enqueue, guard, questionStates, questions, refreshSnapshot, sessionId],
-  );
+      }
+      await refreshSnapshot(sessionId);
+    }, false);
+  }, [enqueue, guard, questionStates, questions, refreshSnapshot, sessionId]);
 
-  const revertQuestion = useCallback(
-    (questionId: string) =>
-      guard(async () => {
-        if (!sessionId) return [];
-        const state = questionStates.find((q) => q.questionId === questionId);
-        if (state && BATCH_ACTIVE_STATUSES.includes(state.status)) {
-          throw new Error("這題 AI 仍在執行，請等它完成後再撤回");
-        }
-        const filename = writtenCsvFilename(questionId);
-        const written = parseWrittenCsv(await readBatchFile(sessionId, filename));
-        const reverted = selectRevertableAnswers(written, rows);
-        for (const answerId of reverted) await ungradeExamAnswer(contestId, answerId);
+  /** Ungrade the AI-written answers of one question that nobody changed since. */
+  const revertAnswers = useCallback(
+    async (id: string, questionId: string): Promise<string[]> => {
+      const state = questionStates.find((q) => q.questionId === questionId);
+      if (state && BATCH_ACTIVE_STATUSES.includes(state.status)) {
+        throw new Error("這題 AI 仍在執行，請等它完成後再撤回");
+      }
+      const filename = writtenCsvFilename(questionId);
+      const written = parseWrittenCsv(await readBatchFile(id, filename));
+      // Compare against the latest grades: another teacher may have changed them.
+      const reverted = selectRevertableAnswers(written, await reloadAnswers());
+      for (const answerId of reverted) await ungradeExamAnswer(contestId, answerId);
+      if (reverted.length > 0) {
         const remaining = written.filter((record) => !reverted.includes(record.examAnswerId));
         await uploadBatchFile(
-          sessionId,
+          id,
           filename,
           serializeCsvRows([
             ["exam_answer_id", "score", "feedback"],
@@ -335,27 +397,38 @@ export function useBatchGrading(
           ]),
           "text/csv",
         );
-        await refreshGrades();
+      }
+      return reverted;
+    },
+    [contestId, questionStates, reloadAnswers],
+  );
+
+  const revertQuestion = useCallback(
+    async (questionId: string): Promise<string[]> =>
+      (await guard(async () => {
+        if (!sessionId) return [];
+        const reverted = await revertAnswers(sessionId, questionId);
+        await reloadAnswers();
         return reverted;
-      }),
-    [contestId, guard, questionStates, refreshGrades, rows, sessionId],
+      }, true)) ?? [],
+    [guard, reloadAnswers, revertAnswers, sessionId],
   );
 
   const regradeQuestion = useCallback(
     async (questionId: string, note?: string) => {
-      const reverted = await revertQuestion(questionId);
       await guard(async () => {
-        const question = questions.find((q) => q.questionId === questionId);
-        if (!sessionId || !question) return;
-        const ids = new Set([...question.ungradedRows.map((r) => r.id), ...reverted]);
-        const answers = rows
-          .filter((r) => ids.has(r.id))
-          .map((r) => (reverted.includes(r.id) ? { ...r, score: null, feedback: "" } : r));
-        if (answers.length > 0) await enqueue(sessionId, question, answers, note);
+        if (!sessionId) return;
+        await revertAnswers(sessionId, questionId);
+        const question = selectBatchQuestions(await reloadAnswers()).find(
+          (q) => q.questionId === questionId,
+        );
+        if (question && question.ungradedRows.length > 0) {
+          await enqueue(sessionId, question, question.ungradedRows, note);
+        }
         await refreshSnapshot(sessionId);
-      });
+      }, true);
     },
-    [enqueue, guard, questions, refreshSnapshot, revertQuestion, rows, sessionId],
+    [enqueue, guard, refreshSnapshot, reloadAnswers, revertAnswers, sessionId],
   );
 
   return {
@@ -363,11 +436,12 @@ export function useBatchGrading(
     questions: questionStates,
     overall,
     canStart: !sessionId && !resultsPublished && overall.ungradedTotal > 0,
+    busy,
     start,
     stop,
     resume,
     revertQuestion,
     regradeQuestion,
-    error,
+    error: actionError ?? pollError,
   };
 }

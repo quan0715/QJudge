@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import type { GradingAnswerRow } from "../gradingTypes";
 
@@ -82,9 +82,9 @@ const userMessage = (questionId: string, runId: string): ChatMessage => ({
   runId,
 });
 
-function render(rows = ROWS, refreshGrades = vi.fn().mockResolvedValue(undefined)) {
+function render(rows = ROWS, reloadAnswers = vi.fn().mockResolvedValue(rows)) {
   return renderHook(() =>
-    useBatchGrading("c1", rows, { resultsPublished: false, refreshGrades }),
+    useBatchGrading("c1", rows, { resultsPublished: false, reloadAnswers }),
   );
 }
 
@@ -150,7 +150,7 @@ describe("useBatchGrading", () => {
     expect(mocks.cancelRun.mock.calls.map(([id]) => id)).toEqual(["r2", "r1"]);
   });
 
-  it("resume only enqueues unfinished questions with ungraded answers", async () => {
+  it("resume enqueues every question that still has ungraded answers", async () => {
     mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
     mocks.getSession.mockResolvedValue({
       messages: [userMessage("q1", "r1"), userMessage("q2", "r2")],
@@ -175,8 +175,11 @@ describe("useBatchGrading", () => {
 
     await act(() => result.current.resume());
 
-    expect(mocks.startRun).toHaveBeenCalledTimes(1);
-    expect((mocks.startRun.mock.calls[0][1] as string).split("\n")[0]).toBe("batch_question_id: q2");
+    // q1 completed but its answer is still ungraded (e.g. rejected or out of range); q3 is skipped.
+    expect(mocks.startRun.mock.calls.map(([, prompt]) => (prompt as string).split("\n")[0])).toEqual([
+      "batch_question_id: q1",
+      "batch_question_id: q2",
+    ]);
   });
 
   it("revert is rejected while the question has an active run", async () => {
@@ -199,12 +202,12 @@ describe("useBatchGrading", () => {
       content: "exam_answer_id,score,feedback\na1,8.0,AI\na9,3.0,AI\n",
       contentType: "text/csv",
     });
-    const refreshGrades = vi.fn().mockResolvedValue(undefined);
     const rows = [
       row({ id: "a1", questionId: "q1", score: 8, feedback: "AI" }),
       row({ id: "a9", questionId: "q1", score: 7, feedback: "TA 改過" }),
     ];
-    const { result } = render(rows, refreshGrades);
+    const reloadAnswers = vi.fn().mockResolvedValue(rows);
+    const { result } = render(rows, reloadAnswers);
     await waitFor(() => expect(result.current.sessionId).toBe("s1"));
 
     await act(() => result.current.revertQuestion("q1"));
@@ -219,6 +222,69 @@ describe("useBatchGrading", () => {
     });
     expect(text).toContain("a9");
     expect(text).not.toContain("a1");
-    expect(refreshGrades).toHaveBeenCalled();
+    expect(reloadAnswers).toHaveBeenCalled();
+  });
+
+  it("revert compares against freshly loaded answers, not the stale page rows", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.listArtifacts.mockResolvedValue([
+      { artifact_id: "w", filename: "written_q1.csv", updated_at: "2026-10-22T00:00:00Z" },
+    ]);
+    mocks.fetchArtifactContent.mockResolvedValue({
+      content: "exam_answer_id,score,feedback\na1,8.0,AI\n",
+      contentType: "text/csv",
+    });
+    const staleRows = [row({ id: "a1", questionId: "q1", score: 8, feedback: "AI" })];
+    // Another teacher changed the score after the AI wrote it.
+    const freshRows = [row({ id: "a1", questionId: "q1", score: 6, feedback: "TA" })];
+    const { result } = render(staleRows, vi.fn().mockResolvedValue(freshRows));
+    await waitFor(() => expect(result.current.sessionId).toBe("s1"));
+
+    const reverted = await act(() => result.current.revertQuestion("q1"));
+
+    expect(reverted).toEqual([]);
+    expect(mocks.ungradeExamAnswer).not.toHaveBeenCalled();
+  });
+
+  it("stop reports a failure instead of throwing", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.getActiveRuns.mockResolvedValue([{ id: "r1", sessionId: "s1", status: "running" }]);
+    mocks.cancelRun.mockRejectedValue(new Error("網路錯誤"));
+    const { result } = render();
+    await waitFor(() => expect(result.current.sessionId).toBe("s1"));
+
+    await act(() => result.current.stop());
+
+    expect(result.current.error).toBe("網路錯誤");
+    expect(result.current.busy).toBe(false);
+  });
+});
+
+describe("useBatchGrading polling", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("polls slowly when nothing is running", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    render();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(mocks.getSession).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(6_000);
+    expect(mocks.getSession).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(mocks.getSession).toHaveBeenCalledTimes(2);
+  });
+
+  it("polls every five seconds while a run is active", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.getSession.mockResolvedValue({ messages: [userMessage("q1", "r1")] });
+    mocks.getActiveRuns.mockResolvedValue([{ id: "r1", sessionId: "s1", status: "running" }]);
+    render();
+    await vi.advanceTimersByTimeAsync(0);
+
+    await vi.advanceTimersByTimeAsync(5_100);
+    expect(mocks.getSession).toHaveBeenCalledTimes(2);
   });
 });

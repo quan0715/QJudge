@@ -1186,6 +1186,8 @@
       },
       "noticeRunning": "AI가 이 문제를 채점하고 있습니다. 완료되면 점수가 한 번에 기록됩니다. 지금 직접 채점한 답안은 AI가 건너뜁니다.",
       "noticeFailed": "이 문제에서 일괄 채점이 중단되었습니다",
+      "noticeIncomplete": "AI가 완료했지만 {{count}}개 답안이 기록되지 않았습니다",
+      "finalizeTimeout": "AI가 끝났지만 성적 기록 결과가 돌아오지 않았습니다",
       "noticeAwaitingApproval": "AI가 허용되지 않은 기록을 시도했습니다. AI 사이드바에서 거부한 뒤 계속하세요.",
       "menu": "AI 일괄 채점",
       "revert": "이 문제의 AI 점수 취소",

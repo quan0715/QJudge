@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import type { GradingAnswerRow } from "../gradingTypes";
 import {
+  applyFinalizeTimeout,
   buildBatchRunPrompt,
   deriveBatchState,
+  isUnfinished,
   selectBatchQuestions,
   selectRevertableAnswers,
   type BatchQuestion,
+  type BatchQuestionState,
 } from "./batchGradingModel";
 
 const row = (overrides: Partial<GradingAnswerRow>): GradingAnswerRow =>
@@ -48,6 +51,15 @@ const assistantMessage = (runId: string, runStatus: ChatMessage["runStatus"]): C
   timestamp: new Date(0),
   runId,
   runStatus,
+});
+
+const stateOf = (status: BatchQuestionState["status"]): BatchQuestionState => ({
+  questionId: "q1",
+  label: "Q1",
+  index: 1,
+  status,
+  ungradedCount: 0,
+  writtenCount: 0,
 });
 
 const PROGRESS_HEADER =
@@ -138,7 +150,7 @@ describe("deriveBatchState", () => {
       writtenCounts: {},
     });
 
-    expect(state[0].status).toBe("running");
+    expect(state[0]).toMatchObject({ status: "running", finalizing: true });
   });
 
   it("treats a cancelled queued run as cancelled", () => {
@@ -187,6 +199,34 @@ describe("deriveBatchState", () => {
     });
 
     expect(state[0].status).toBe("awaiting-approval");
+  });
+});
+
+describe("isUnfinished", () => {
+  it("counts completed questions that still have ungraded answers", () => {
+    expect(isUnfinished({ ...stateOf("completed"), ungradedCount: 2 })).toBe(true);
+    expect(isUnfinished({ ...stateOf("completed"), ungradedCount: 0 })).toBe(false);
+    expect(isUnfinished({ ...stateOf("running"), ungradedCount: 2 })).toBe(false);
+    expect(isUnfinished({ ...stateOf("skipped"), ungradedCount: 0 })).toBe(false);
+  });
+});
+
+describe("applyFinalizeTimeout", () => {
+  it("turns a run stuck in finalizing into a failure after the timeout", () => {
+    const firstSeen = new Map<string, number>();
+    const finalizing = { ...stateOf("running"), runId: "r1", finalizing: true };
+
+    const early = applyFinalizeTimeout([finalizing], firstSeen, 1_000, 60_000);
+    const late = applyFinalizeTimeout([finalizing], firstSeen, 70_000, 60_000);
+
+    expect(early[0].status).toBe("running");
+    expect(late[0]).toMatchObject({ status: "failed", error: "finalizeTimeout" });
+  });
+
+  it("leaves active runs alone", () => {
+    const running = { ...stateOf("running"), runId: "r1" };
+    expect(applyFinalizeTimeout([running], new Map([["r1", 0]]), 999_999, 60_000)[0].status)
+      .toBe("running");
   });
 });
 

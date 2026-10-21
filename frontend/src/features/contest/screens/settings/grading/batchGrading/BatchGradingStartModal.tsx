@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dropdown, Modal } from "@carbon/react";
+import { Dropdown, InlineNotification, Modal } from "@carbon/react";
 import { useCopilotModels, type CopilotModel } from "@copilot";
 import { useTranslation } from "react-i18next";
 import styles from "./BatchGrading.module.scss";
@@ -25,13 +25,17 @@ export function BatchGradingStartModal({
   const { models, selectedModelId } = useCopilotModels();
   const [modelId, setModelId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
   const effectiveModelId = modelId ?? selectedModelId ?? models[0]?.id ?? null;
 
   const handleSubmit = async () => {
     setBusy(true);
+    setError(undefined);
     try {
       await onConfirm(effectiveModelId ?? undefined);
       onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
     }
@@ -59,6 +63,7 @@ export function BatchGradingStartModal({
         <p>{t("grading.batch.modalWriteWarning")}</p>
         <p>{t("grading.batch.modalBackground")}</p>
       </div>
+      {error && <InlineNotification kind="error" lowContrast hideCloseButton title={error} />}
       {models.length > 0 && (
         <Dropdown<CopilotModel>
           id="batch-grading-model"

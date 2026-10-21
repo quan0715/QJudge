@@ -24,13 +24,20 @@ export const BATCH_ACTIVE_STATUSES: readonly BatchQuestionStatus[] = [
   "awaiting-approval",
 ];
 
-/** Statuses `resume` re-enqueues when ungraded answers remain. */
-export const BATCH_RESUMABLE_STATUSES: readonly BatchQuestionStatus[] = [
-  "idle",
-  "failed",
-  "cancelled",
-  "paused",
-];
+/** Error marker for a run whose finalize step never reported back. */
+export const FINALIZE_TIMEOUT_ERROR = "finalizeTimeout";
+
+/**
+ * A question still needs AI work when it has ungraded answers and nothing is
+ * running for it — including a completed run that left answers unwritten.
+ */
+export function isUnfinished(state: BatchQuestionState): boolean {
+  return (
+    state.ungradedCount > 0 &&
+    state.status !== "skipped" &&
+    !BATCH_ACTIVE_STATUSES.includes(state.status)
+  );
+}
 
 export interface BatchQuestion {
   questionId: string;
@@ -50,6 +57,8 @@ export interface BatchQuestionState {
   writtenCount: number;
   error?: string;
   runId?: string;
+  /** The run ended but its finalize step has not written progress yet. */
+  finalizing?: boolean;
 }
 
 export interface BatchActiveRun {
@@ -186,10 +195,37 @@ export function deriveBatchState(input: {
     const finished = assistantStatusByRun.get(runId);
     // A finished run without its progress row is still being finalized.
     if (finished === "completed" || finished === "failed") {
-      return { ...base, runId, status: "running" };
+      return { ...base, runId, status: "running", finalizing: true };
     }
     return { ...base, runId, status: "cancelled" };
   });
+}
+
+/**
+ * Downgrade runs that stay "finalizing" past `timeoutMs` to failures so the
+ * teacher can resume them. `firstSeen` remembers when each run was first seen
+ * finalizing and is pruned of runs that are no longer finalizing.
+ */
+export function applyFinalizeTimeout(
+  states: readonly BatchQuestionState[],
+  firstSeen: Map<string, number>,
+  now: number,
+  timeoutMs: number,
+): BatchQuestionState[] {
+  const finalizingIds = new Set<string>();
+  const result = states.map((state) => {
+    if (!state.finalizing || !state.runId) return state;
+    finalizingIds.add(state.runId);
+    const since = firstSeen.get(state.runId) ?? now;
+    firstSeen.set(state.runId, since);
+    return now - since >= timeoutMs
+      ? { ...state, status: "failed" as const, finalizing: false, error: FINALIZE_TIMEOUT_ERROR }
+      : state;
+  });
+  for (const runId of [...firstSeen.keys()]) {
+    if (!finalizingIds.has(runId)) firstSeen.delete(runId);
+  }
+  return result;
 }
 
 export function parseWrittenCsv(text: string | null): WrittenRecord[] {

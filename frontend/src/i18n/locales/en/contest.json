@@ -1186,6 +1186,8 @@
       },
       "noticeRunning": "AI is grading this question; scores are written when it finishes. Answers you grade by hand now are skipped by AI.",
       "noticeFailed": "Batch grading stopped on this question",
+      "noticeIncomplete": "AI finished, but {{count}} answers were not written",
+      "finalizeTimeout": "AI finished, but writing the grades never reported back",
       "noticeAwaitingApproval": "AI tried a write that is not allowed. Reject it in the AI sidebar to continue.",
       "menu": "AI batch grading",
       "revert": "Revert AI scores for this question",

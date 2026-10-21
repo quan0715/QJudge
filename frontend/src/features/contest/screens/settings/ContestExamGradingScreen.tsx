@@ -98,15 +98,15 @@ const ContestExamGradingScreen: React.FC = () => {
     gradeAnswer,
     ungradeAnswer,
     refreshData,
+    reloadAnswers,
     loading,
   } = useGradingData();
 
   const { flaggedIds, toggleFlag } = useGradingFlags();
 
-  const refreshGrades = useCallback(async () => refreshData(), [refreshData]);
   const batch = useBatchGrading(contest?.id ?? "", answers, {
     resultsPublished: contest?.resultsPublished ?? false,
-    refreshGrades,
+    reloadAnswers,
   });
   const [batchStartOpen, setBatchStartOpen] = useState(false);
   const batchQuestions = useMemo(() => selectBatchQuestions(answers), [answers]);

@@ -1,6 +1,10 @@
 import { ActionableNotification, InlineNotification } from "@carbon/react";
 import { useTranslation } from "react-i18next";
-import type { BatchQuestionState } from "./batchGradingModel";
+import {
+  FINALIZE_TIMEOUT_ERROR,
+  isUnfinished,
+  type BatchQuestionState,
+} from "./batchGradingModel";
 import styles from "./BatchGrading.module.scss";
 
 interface BatchGradingQuestionNoticeProps {
@@ -33,6 +37,8 @@ export function BatchGradingQuestionNotice({ state, onResume }: BatchGradingQues
       />
     );
   }
+  const errorText =
+    state.error === FINALIZE_TIMEOUT_ERROR ? t("grading.batch.finalizeTimeout") : state.error;
   if (state.status === "failed" || state.status === "paused") {
     return (
       <ActionableNotification
@@ -41,8 +47,23 @@ export function BatchGradingQuestionNotice({ state, onResume }: BatchGradingQues
         lowContrast
         inline
         hideCloseButton
-        title={t("grading.batch.noticeFailed", { error: state.error ?? "" })}
-        subtitle={state.error}
+        title={t("grading.batch.noticeFailed")}
+        subtitle={errorText}
+        actionButtonLabel={t("grading.batch.fill", { count: state.ungradedCount })}
+        onActionButtonClick={onResume}
+      />
+    );
+  }
+  if (isUnfinished(state)) {
+    return (
+      <ActionableNotification
+        className={styles.notice}
+        kind="warning"
+        lowContrast
+        inline
+        hideCloseButton
+        title={t("grading.batch.noticeIncomplete", { count: state.ungradedCount })}
+        subtitle={errorText}
         actionButtonLabel={t("grading.batch.fill", { count: state.ungradedCount })}
         onActionButtonClick={onResume}
       />

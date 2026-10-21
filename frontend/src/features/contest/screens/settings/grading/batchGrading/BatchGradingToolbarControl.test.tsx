@@ -19,6 +19,7 @@ const batch = (overrides: Partial<UseBatchGradingResult> = {}): UseBatchGradingR
   questions: [state({})],
   overall: { total: 1, done: 0, writtenCount: 0, ungradedTotal: 3, running: false },
   canStart: true,
+  busy: false,
   start: vi.fn(),
   stop: vi.fn().mockResolvedValue(undefined),
   resume: vi.fn().mockResolvedValue(undefined),
@@ -88,6 +89,52 @@ describe("BatchGradingToolbarControl", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "grading.batch.fill" }));
     expect(resume).toHaveBeenCalled();
+  });
+
+  it("offers to fill when a completed question still has ungraded answers", () => {
+    render(
+      <BatchGradingToolbarControl
+        batch={batch({
+          sessionId: "s1",
+          questions: [state({ status: "completed", ungradedCount: 2 })],
+          overall: { total: 1, done: 1, writtenCount: 3, ungradedTotal: 2, running: false },
+        })}
+        resultsPublished={false}
+        onRequestStart={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "grading.batch.fill" })).toBeEnabled();
+    expect(screen.queryByText("grading.batch.allWritten")).not.toBeInTheDocument();
+  });
+
+  it("disables actions while a batch action is in flight", () => {
+    render(
+      <BatchGradingToolbarControl
+        batch={batch({
+          sessionId: "s1",
+          busy: true,
+          questions: [state({ status: "failed", ungradedCount: 2 })],
+          overall: { total: 1, done: 0, writtenCount: 0, ungradedTotal: 2, running: false },
+        })}
+        resultsPublished={false}
+        onRequestStart={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "grading.batch.fill" })).toBeDisabled();
+  });
+
+  it("shows the latest batch error", () => {
+    render(
+      <BatchGradingToolbarControl
+        batch={batch({ sessionId: "s1", error: "網路錯誤" })}
+        resultsPublished={false}
+        onRequestStart={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("網路錯誤")).toBeInTheDocument();
   });
 
   it("shows all written when every question finished", () => {

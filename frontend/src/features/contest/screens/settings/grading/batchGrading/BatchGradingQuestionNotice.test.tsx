@@ -40,10 +40,35 @@ describe("BatchGradingQuestionNotice", () => {
     expect(screen.getByText("grading.batch.noticeAwaitingApproval")).toBeInTheDocument();
   });
 
-  it("renders nothing for completed", () => {
+  it("renders nothing for a fully written question", () => {
     const { container } = render(
-      <BatchGradingQuestionNotice state={state({ status: "completed" })} onResume={vi.fn()} />,
+      <BatchGradingQuestionNotice state={state({ status: "completed", ungradedCount: 0 })} onResume={vi.fn()} />,
     );
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("warns when a completed run left answers unwritten", () => {
+    const onResume = vi.fn();
+    render(
+      <BatchGradingQuestionNotice
+        state={state({ status: "completed", ungradedCount: 2, error: "1 份寫入失敗" })}
+        onResume={onResume}
+      />,
+    );
+
+    expect(screen.getByText("grading.batch.noticeIncomplete")).toBeInTheDocument();
+    expect(screen.getByText("1 份寫入失敗")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "grading.batch.fill" }));
+    expect(onResume).toHaveBeenCalled();
+  });
+
+  it("explains a finalize timeout", () => {
+    render(
+      <BatchGradingQuestionNotice
+        state={state({ status: "failed", error: "finalizeTimeout" })}
+        onResume={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("grading.batch.finalizeTimeout")).toBeInTheDocument();
   });
 });

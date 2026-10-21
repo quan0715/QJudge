@@ -1,7 +1,7 @@
-import { Button, ProgressBar, Tag } from "@carbon/react";
+import { Button, InlineNotification, ProgressBar, Tag } from "@carbon/react";
 import { Renew, StopFilled, MachineLearningModel } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { BATCH_RESUMABLE_STATUSES } from "./batchGradingModel";
+import { isUnfinished } from "./batchGradingModel";
 import type { UseBatchGradingResult } from "./useBatchGrading";
 import styles from "./BatchGrading.module.scss";
 
@@ -11,7 +11,25 @@ interface BatchGradingToolbarControlProps {
   onRequestStart(): void;
 }
 
-export function BatchGradingToolbarControl({
+export function BatchGradingToolbarControl(props: BatchGradingToolbarControlProps) {
+  const { batch } = props;
+  return (
+    <div className={styles.control}>
+      <BatchGradingToolbarActions {...props} />
+      {batch.error && (
+        <InlineNotification
+          kind="error"
+          lowContrast
+          hideCloseButton
+          title={batch.error}
+          className={styles.toolbarError}
+        />
+      )}
+    </div>
+  );
+}
+
+function BatchGradingToolbarActions({
   batch,
   resultsPublished,
   onRequestStart,
@@ -30,7 +48,7 @@ export function BatchGradingToolbarControl({
           kind="tertiary"
           size="sm"
           renderIcon={MachineLearningModel}
-          disabled={!batch.canStart}
+          disabled={!batch.canStart || batch.busy}
           onClick={onRequestStart}
         >
           {t("grading.batch.start")}
@@ -62,16 +80,20 @@ export function BatchGradingToolbarControl({
             max={Math.max(overall.total, 1)}
           />
         </div>
-        <Button kind="danger--ghost" size="sm" renderIcon={StopFilled} onClick={() => void batch.stop()}>
+        <Button
+          kind="danger--ghost"
+          size="sm"
+          renderIcon={StopFilled}
+          disabled={batch.busy}
+          onClick={() => void batch.stop()}
+        >
           {t("grading.batch.stop")}
         </Button>
       </div>
     );
   }
 
-  const unfinished = batch.questions.filter(
-    (q) => q.ungradedCount > 0 && BATCH_RESUMABLE_STATUSES.includes(q.status),
-  );
+  const unfinished = batch.questions.filter(isUnfinished);
   const remaining = unfinished.reduce((sum, q) => sum + q.ungradedCount, 0);
   const interrupted = unfinished.some((q) => q.status === "cancelled" || q.status === "paused");
 
@@ -79,7 +101,13 @@ export function BatchGradingToolbarControl({
     <div className={styles.control}>
       {beta}
       {remaining > 0 ? (
-        <Button kind="primary" size="sm" renderIcon={Renew} onClick={() => void batch.resume()}>
+        <Button
+          kind="primary"
+          size="sm"
+          renderIcon={Renew}
+          disabled={batch.busy}
+          onClick={() => void batch.resume()}
+        >
           {interrupted
             ? t("grading.batch.resume")
             : t("grading.batch.fill", { count: remaining })}

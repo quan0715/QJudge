@@ -72,32 +72,38 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
     participantMapRef.current = participantMap;
   }, [participantMap]);
 
-  // Fetch real data
-  const fetchData = useCallback(async () => {
-    if (!contestId || contest?.contestType !== "paper_exam") {
+  const isPaperExam = Boolean(contestId) && contest?.contestType === "paper_exam";
+
+  /** Fetch and apply the latest answers without touching `loading`. */
+  const loadRows = useCallback(async (): Promise<GradingAnswerRow[]> => {
+    if (!contestId || !isPaperExam) {
       setAnswers([]);
       setQuestions([]);
+      return [];
+    }
+    const [{ data: allAnswers }, questions] = await Promise.all([
+      getAllExamAnswersForGrading(contestId),
+      getExamQuestions(contestId),
+    ]);
+    const sortedQuestions = questions
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    setQuestions(sortedQuestions);
+    const rows = buildGradingRows(allAnswers, questions, participantMapRef.current);
+    setAnswers(rows);
+    return rows;
+  }, [contestId, isPaperExam]);
+
+  // Fetch real data
+  const fetchData = useCallback(async () => {
+    if (!isPaperExam) {
+      await loadRows();
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      const [{ data: allAnswers }, questions] = await Promise.all([
-        getAllExamAnswersForGrading(contestId),
-        getExamQuestions(contestId),
-      ]);
-
-      const sortedQuestions = questions
-        .slice()
-        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-      setQuestions(sortedQuestions);
-
-      const rows = buildGradingRows(
-        allAnswers,
-        questions,
-        participantMapRef.current,
-      );
-      setAnswers(rows);
+      await loadRows();
     } catch (err) {
       console.error("Failed to fetch grading data:", err);
       setAnswers([]);
@@ -105,10 +111,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [
-    contest?.contestType,
-    contestId,
-  ]);
+  }, [isPaperExam, loadRows]);
 
   useEffect(() => {
     void fetchData();
@@ -378,6 +381,8 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
     regradeObjectiveAnswers,
     regradingObjective,
     refreshData,
+    /** Background refresh: returns the latest rows and never shows the loading screen. */
+    reloadAnswers: loadRows,
     loading,
   };
 }
