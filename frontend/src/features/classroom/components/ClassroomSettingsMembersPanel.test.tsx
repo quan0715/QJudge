@@ -26,7 +26,8 @@ const renderPanel = (role: ClassroomScopeRole) =>
     <ClassroomSettingsMembersPanel classroom={classroomFor(role)} onRefresh={vi.fn()} onOpenAddMembers={vi.fn()} />,
   );
 
-describe("ClassroomSettingsMembersPanel", () => {
+// Renders the full Carbon DataTable and modals, which is slow under CI coverage.
+describe("ClassroomSettingsMembersPanel", { timeout: 20_000 }, () => {
   it("lets a TA remove students but not change roles or touch other TAs", () => {
     renderPanel("manager");
 
