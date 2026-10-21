@@ -18,6 +18,9 @@ from django.conf import settings
 
 RESOURCE_TOKEN_KID = "qjudge-ai-ed25519-v1"
 RESOURCE_TOKEN_ALGORITHM = "EdDSA"
+# MCP tokens never reach the browser; they live in the AI worker's encrypted
+# credential lease and must outlast queued background runs (e.g. batch grading).
+MCP_RESOURCE_TOKEN_LIFETIME_SECONDS = 8 * 60 * 60
 
 
 def canonical_oauth_issuer() -> str:
