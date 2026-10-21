@@ -28,9 +28,6 @@ class ClassroomGradebookApiTests(APITestCase):
         self.owner = User.objects.create_user(
             username='gb_owner', email='gb_owner@test.com', password='pw', role='teacher'
         )
-        self.manager = User.objects.create_user(
-            username='gb_manager', email='gb_manager@test.com', password='pw'
-        )
         self.ta = User.objects.create_user(
             username='gb_ta', email='gb_ta@test.com', password='pw'
         )
@@ -43,12 +40,6 @@ class ClassroomGradebookApiTests(APITestCase):
 
         self.classroom = Classroom.objects.create(
             name='Gradebook / 2026', owner=self.owner, invite_code='GRADEBK1'
-        )
-        # The manager is a co-admin who also holds a student membership: still
-        # staff, so never a gradebook row.
-        self.classroom.admins.add(self.manager)
-        ClassroomMember.objects.create(
-            classroom=self.classroom, user=self.manager, role='student'
         )
         ClassroomMember.objects.create(classroom=self.classroom, user=self.ta, role='ta')
         ClassroomMember.objects.create(

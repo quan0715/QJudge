@@ -2467,6 +2467,50 @@ paths:
               schema:
                 $ref: '#/components/schemas/ClassroomDetail'
           description: ''
+  /api/v1/classrooms/{id}/gradebook/:
+    get:
+      operationId: v1_classrooms_gradebook_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
+  /api/v1/classrooms/{id}/gradebook/export/:
+    get:
+      operationId: v1_classrooms_gradebook_export_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
   /api/v1/classrooms/{id}/invite-code/:
     post:
       operationId: v1_classrooms_invite_code_create
