@@ -30,6 +30,7 @@ from infrastructure.agent.event_adapter import (
     RunFailed,
     RunStarted,
     SummarizationEnded,
+    SubagentEventTracker,
     SummarizationStarted,
     UsageReport,
     adapt_langgraph_event,
@@ -595,6 +596,7 @@ class _DeepAgentRuntime:
         event_queue: asyncio.Queue | None,
         usage_accumulator: UsageAccumulator,
     ) -> AsyncGenerator[dict[str, Any], None]:
+        subagents = SubagentEventTracker()
         async for event in agent.astream_events(
             agent_input,
             config=config,
@@ -608,9 +610,9 @@ class _DeepAgentRuntime:
 
             usage_accumulator.ingest_langgraph_event(event)
 
-            internal_events = adapt_langgraph_event(event)
-            if internal_events is None:
-                continue
+            internal_events = subagents.annotate(
+                event, adapt_langgraph_event(event) or []
+            )
             for internal_event in internal_events:
                 yield to_sse_dict(internal_event)
 
