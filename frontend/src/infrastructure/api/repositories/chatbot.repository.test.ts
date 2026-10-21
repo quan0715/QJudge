@@ -1008,3 +1008,112 @@ describe("chatbotRepository stream events", () => {
     getSessionSpy.mockRestore();
   });
 });
+
+describe("chatbotRepository subagent events", () => {
+  type Handler = (
+    event: Record<string, unknown>,
+    currentMessage: Record<string, unknown>,
+    callbacks: Record<string, ReturnType<typeof vi.fn>>,
+    resolvedSessionId: string,
+  ) => void;
+  const handle = (
+    events: Record<string, unknown>[],
+    callbacks: Record<string, ReturnType<typeof vi.fn>> = {},
+  ) => {
+    const message: Record<string, unknown> = {};
+    const handler = (chatbotRepository as unknown as { _handleStreamEvent: Handler })
+      ._handleStreamEvent.bind(chatbotRepository);
+    for (const event of events) handler(event, message, callbacks, SESSION_ID);
+    return message;
+  };
+
+  it("routes subagent text into subagentActivity", () => {
+    const message = handle([
+      { type: "agent_message_delta", content: "主" },
+      { type: "agent_message_delta", content: "讀取作答", parent_tool_call_id: "T1" },
+    ]);
+
+    expect(message.content).toBe("主");
+    expect(message.subagentActivity).toEqual({ T1: { text: "讀取作答" } });
+  });
+
+  it("keeps main todo items when subagent writes todos", () => {
+    const onTodoItemsUpdate = vi.fn();
+    const message = handle(
+      [
+        {
+          type: "tool_call_started",
+          tool_name: "write_todos",
+          tool_call_id: "M1",
+          input_data: { todos: [{ content: "主待辦", status: "pending" }] },
+        },
+        {
+          type: "tool_call_started",
+          tool_name: "write_todos",
+          tool_call_id: "C1",
+          parent_tool_call_id: "T1",
+          input_data: { todos: [{ content: "子待辦", status: "pending" }] },
+        },
+      ],
+      { onTodoItemsUpdate },
+    );
+
+    const mainTodos = message.todoItems as { label: string }[];
+    const activity = message.subagentActivity as Record<string, { todoItems: { label: string }[] }>;
+    expect(mainTodos.map((item) => item.label)).toEqual(["主待辦"]);
+    expect(activity.T1.todoItems.map((item) => item.label)).toEqual(["子待辦"]);
+    expect(onTodoItemsUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it("tags finished subagent tools with parentToolCallId", () => {
+    const onToolStarted = vi.fn();
+    const message = handle(
+      [
+        { type: "tool_call_started", tool_name: "echo", tool_call_id: "C1", parent_tool_call_id: "T1" },
+        { type: "tool_call_finished", tool_call_id: "C1", result: "hi", parent_tool_call_id: "T1" },
+      ],
+      { onToolStarted },
+    );
+
+    const executions = message.toolExecutions as { toolCallId: string; parentToolCallId?: string }[];
+    expect(executions.at(-1)).toMatchObject({ toolCallId: "C1", parentToolCallId: "T1" });
+    expect(onToolStarted).toHaveBeenCalledWith(
+      expect.objectContaining({ toolCallId: "C1", parentToolCallId: "T1" }),
+    );
+  });
+
+  it("restores parentToolCallId from history metadata", async () => {
+    vi.spyOn(httpClient, "get").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          session_id: SESSION_ID,
+          title: "Chat",
+          context: {},
+          messages: [
+            {
+              ordinal: 2,
+              role: "assistant",
+              content: "done",
+              metadata: {
+                tools_executed: [
+                  { tool_name: "echo", tool_call_id: "C1", parent_tool_call_id: "T1" },
+                ],
+              },
+              created_at: "2026-10-22T00:00:00Z",
+            },
+          ],
+          created_at: "2026-10-22T00:00:00Z",
+          updated_at: "2026-10-22T00:00:00Z",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const session = await chatbotRepository.getSession(SESSION_ID);
+
+    expect(session.messages[0].toolExecutions?.[0]).toMatchObject({
+      toolCallId: "C1",
+      parentToolCallId: "T1",
+    });
+  });
+});
