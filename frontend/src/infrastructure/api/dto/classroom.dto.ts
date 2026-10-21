@@ -1,4 +1,5 @@
 import type { ClassroomScopeRole } from "@/core/entities/classroom.entity";
+import type { ContestType } from "@/core/entities/contest.entity";
 
 export interface ClassroomDto {
   uuid: string;
@@ -55,4 +56,24 @@ export interface ClassroomDetailDto extends ClassroomDto {
   admins?: Array<{ id: number; username: string }>;
   announcements?: ClassroomAnnouncementDto[];
   updated_at: string;
+}
+
+export interface ClassroomGradebookContestDto {
+  id: string;
+  name: string;
+  contest_type: ContestType;
+  start_time: string | null;
+  max_score: number;
+}
+
+export interface ClassroomGradebookStudentDto {
+  user_id: number;
+  username: string;
+  display_name: string;
+  scores: Record<string, number | null>;
+}
+
+export interface ClassroomGradebookDto {
+  contests: ClassroomGradebookContestDto[];
+  students: ClassroomGradebookStudentDto[];
 }

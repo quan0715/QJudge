@@ -27,6 +27,7 @@ from ..serializers import (
     ExamAnswerSubmitSerializer,
     ExamAnswerGradeSerializer,
 )
+from ..services.coding_result_summary import build_coding_dashboard_summary
 from ..services.exam_scoring import ExamScoringService
 from ..permissions import can_manage_contest
 from apps.core.api.envelope import envelope
@@ -78,31 +79,6 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
     def _participant_display_name(participant):
         profile = getattr(participant.user, 'profile', None)
         return getattr(profile, 'display_name', '') or ''
-
-    @staticmethod
-    def _build_score_distribution(scores, max_score):
-        buckets = [
-            {
-                'range_label': f'{index * 10}-{index * 10 + 9}%',
-                'count': 0,
-            }
-            for index in range(9)
-        ]
-        buckets.append({
-            'range_label': '90-100%',
-            'count': 0,
-        })
-
-        if max_score <= 0:
-            buckets[0]['count'] = len(scores)
-            return buckets
-
-        for score in scores:
-            normalized = max(0.0, min((float(score or 0) / float(max_score)) * 100, 100.0))
-            bucket_index = 9 if normalized >= 90 else int(normalized // 10)
-            buckets[bucket_index]['count'] += 1
-
-        return buckets
 
     @staticmethod
     def _build_question_score_bands(scores, max_score):
@@ -420,6 +396,9 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         contest = self._get_contest(contest_pk)
         if not self._can_view_dashboard_summary(request.user, contest):
             raise PermissionDenied('Results dashboard summary is not available.')
+
+        if contest.contest_type == 'coding':
+            return Response(build_coding_dashboard_summary(contest, request.user))
 
         kind_filter = self._parse_dashboard_kind(request.query_params.get('kind'))
 

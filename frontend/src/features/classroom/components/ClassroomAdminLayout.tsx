@@ -7,6 +7,7 @@ export type ClassroomAdminPanelId =
   | "announcements"
   | "contests"
   | "members"
+  | "gradebook"
   | "settings";
 
 interface ClassroomAdminLayoutProps {

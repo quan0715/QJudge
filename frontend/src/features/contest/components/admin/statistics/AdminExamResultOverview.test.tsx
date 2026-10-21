@@ -84,7 +84,6 @@ describe("AdminExamResultOverview", () => {
 
     render(
       <AdminExamResultOverview
-        contest={contest}
         dashboard={dashboard}
         loading={false}
         error={null}
@@ -109,18 +108,22 @@ describe("AdminExamResultOverview", () => {
     );
   });
 
-  it("does not render for coding contests", () => {
+  it("renders score distribution for coding contests", () => {
     const contest = buildContest({ contestType: "coding" });
+    const dashboard = createContestResultDashboardMock(contest);
+    dashboard.summary.averageScore = 150;
+    dashboard.summary.maxTotalScore = 300;
 
-    const { container } = render(
+    render(
       <AdminExamResultOverview
-        contest={contest}
-        dashboard={null}
+        dashboard={dashboard}
         loading={false}
         error={null}
       />,
     );
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText("分數分布")).toBeInTheDocument();
+    expect(screen.getByText("150.00 / 300.00")).toBeInTheDocument();
+    expect(screen.getByTestId("score-distribution-chart")).toBeInTheDocument();
   });
 });

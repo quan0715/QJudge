@@ -126,6 +126,18 @@
   "description": "설명",
   "editCover": "커버 이미지 편집",
   "editMember": "멤버 편집",
+  "gradebook": {
+    "average": "평균",
+    "colDisplayName": "이름",
+    "colUsername": "계정",
+    "empty": "학생 또는 시험이 아직 없습니다",
+    "export": "CSV 내보내기",
+    "exportFailed": "내보내기에 실패했습니다",
+    "loadFailed": "성적표를 불러올 수 없습니다",
+    "notAttempted": "미참여",
+    "summary": "학생 {{students}}명 · 시험 {{contests}}개",
+    "title": "성적표"
+  },
   "icon": "아이콘",
   "inviteLink": {
     "copied": "복사됨",
@@ -167,6 +179,7 @@
   "sideMenu": {
     "announcements": "교실 공지",
     "contests": "콘테스트 목록",
+    "gradebook": "성적표",
     "members": "교실 멤버",
     "overview": "개요",
     "schedule": "일정 캘린더",

@@ -4,18 +4,21 @@ import type {
   Classroom,
   ClassroomAnnouncement,
   ClassroomDetail,
+  ClassroomGradebook,
 } from "@/core/entities/classroom.entity";
 import {
   mapClassroomAnnouncementDto,
   mapBoundContestDto,
   mapClassroomDto,
   mapClassroomDetailDto,
+  mapClassroomGradebookDto,
 } from "@/infrastructure/mappers/classroom.mapper";
 import type {
   BoundContestDto,
   ClassroomAnnouncementDto,
   ClassroomDto,
   ClassroomDetailDto,
+  ClassroomGradebookDto,
 } from "@/infrastructure/api/dto/classroom.dto";
 
 // ============================================================================
@@ -158,4 +161,56 @@ export const createClassroomContest = async (
     "Failed to create classroom contest",
   );
   return mapBoundContestDto(responseData);
+};
+
+// Gradebook operations
+export const getClassroomGradebook = async (classroomId: string): Promise<ClassroomGradebook> => {
+  const data = await requestJson<ClassroomGradebookDto>(
+    httpClient.get(`/api/v1/classrooms/${classroomId}/gradebook/`),
+    "Failed to fetch classroom gradebook"
+  );
+  return mapClassroomGradebookDto(data);
+};
+
+// Non-ASCII names arrive as `filename*=UTF-8''<percent-encoded>`; ASCII ones as `filename="..."`.
+const parseContentDispositionFilename = (header: string | null): string | undefined => {
+  if (!header) return undefined;
+  const encoded = /filename\*=utf-8''([^;]+)/i.exec(header)?.[1];
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded.trim());
+    } catch {
+      // Malformed escape sequence: fall through to the plain filename.
+    }
+  }
+  return /filename="([^"]+)"/.exec(header)?.[1];
+};
+
+export const exportClassroomGradebook = async (classroomId: string): Promise<void> => {
+  const res = await httpClient.get(`/api/v1/classrooms/${classroomId}/gradebook/export/`, {
+    headers: {
+      Accept: "*/*",
+    },
+  });
+
+  if (!res.ok) {
+    if (res.status === 403) {
+      throw new Error("權限不足");
+    }
+    throw new Error("匯出失敗");
+  }
+
+  const filename =
+    parseContentDispositionFilename(res.headers.get("Content-Disposition")) ??
+    `classroom_${classroomId}_gradebook.csv`;
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
 };
