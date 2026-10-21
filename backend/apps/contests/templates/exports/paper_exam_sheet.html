@@ -35,7 +35,15 @@
     {% else %}
     <section class="question-list">
       {% for q in questions %}
-      <article class="question-item">
+      <article class="question-item{% if q.grouped %} grouped-question{% endif %}">
+        {% if q.group_heading %}
+        <section class="question-group-heading">
+          <div class="question-group-meta">{{ labels.question_group }} · {{ q.group_heading.range }} · {{ q.group_heading.score }} {{ labels.points_unit }}</div>
+          {% if q.group_heading.title %}<h3>{{ q.group_heading.title }}</h3>{% endif %}
+          <div class="markdown-content">{{ q.group_heading.stem_html|safe }}</div>
+        </section>
+        {% endif %}
+        <div class="question-body">
         <div class="question-headline">
           <span class="question-number">Q{{ q.number }}.</span>
           <span class="question-meta-inline">{{ q.score }}{{ labels.points_unit }} · {{ q.type_label }}</span>
@@ -79,6 +87,7 @@
           {% endfor %}
         </div>
         {% endif %}
+        </div>
       </article>
       {% endfor %}
     </section>

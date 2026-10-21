@@ -43,8 +43,6 @@ class PaperExamSheetRenderer(BaseRenderer):
         return render_pdf(self.render_html())
 
     def render_html(self) -> str:
-        from apps.contests.services.question_context import question_prompt_with_context
-
         from apps.contests.services.exam_scoring import ExamScoringService
         questions = list(
             ExamQuestion.objects.filter(contest=self.contest).select_related("group").order_by("order", "id")
@@ -56,6 +54,17 @@ class PaperExamSheetRenderer(BaseRenderer):
         question_rows: list[dict] = []
         answer_key_rows: list[dict] = []
         for idx, q in enumerate(questions, start=1):
+            group_heading = None
+            if q.group_id and (idx == 1 or questions[idx - 2].group_id != q.group_id):
+                last = idx
+                while last < len(questions) and questions[last].group_id == q.group_id:
+                    last += 1
+                group_heading = {
+                    "title": q.group.title,
+                    "range": f"Q{idx}–Q{last}" if last != idx else f"Q{idx}",
+                    "score": self._fmt_score(sum(child.score for child in questions[idx - 1:last])),
+                    "stem_html": render_markdown(q.group.shared_stem_markdown, soft_breaks=False),
+                }
             answer_text_raw = self._format_answer(q)
             answer_text = self._clean_answer_markdown(answer_text_raw)
             answer_ui = self._build_answer_ui(q)
@@ -65,7 +74,9 @@ class PaperExamSheetRenderer(BaseRenderer):
                     "question_type": q.question_type,
                     "type_label": self._get_question_type_label(q.question_type),
                     "score": self._fmt_score(q.score),
-                    "prompt_html": render_markdown(question_prompt_with_context(q), soft_breaks=False),
+                    "prompt_html": render_markdown(q.prompt or "", soft_breaks=False),
+                    "grouped": bool(q.group_id),
+                    "group_heading": group_heading,
                     "options": self._get_options(q),
                     "answer_text": answer_text,
                     "answer_html": render_markdown(answer_text, soft_breaks=False) if answer_text else "",
@@ -92,6 +103,7 @@ class PaperExamSheetRenderer(BaseRenderer):
             "contest_description": self.contest.description or "",
             "sheet_title": sheet_title,
             "labels": {
+                "question_group": self.get_label("question_group"),
                 "candidate_name": self.get_label("candidate_name"),
                 "candidate_id": self.get_label("candidate_id"),
                 "total_questions": self.get_label("total_questions"),

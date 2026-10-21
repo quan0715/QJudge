@@ -224,3 +224,32 @@
 .markdown-content p:last-child {
   margin-bottom: 0;
 }
+
+/* A shared stem introduces the run; child questions remain visually nested. */
+.question-group-heading {
+  border-top: 2px solid #161616;
+  padding: 12px 0 8px;
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.question-group-meta {
+  font-size: 13px;
+  font-weight: 600;
+  color: #525252;
+}
+
+.question-group-heading h3 {
+  font-size: 18px;
+  margin: 6px 0 10px;
+}
+
+.grouped-question .question-body {
+  border-left: 2px solid #c6c6c6;
+  margin-left: 8px;
+  padding-left: 16px;
+}
+
+.grouped-question .question-headline {
+  border-bottom: none;
+}

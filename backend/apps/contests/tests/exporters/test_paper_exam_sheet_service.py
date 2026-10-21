@@ -404,3 +404,27 @@ def test_question_paper_omits_writing_space_by_default(paper_exam_contest):
     assert "Reference solution" not in html
     assert 'class="answer-lines"' not in html
     assert 'class="choice-answer-bar"' not in html
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("include_answers", [False, True])
+def test_group_header_precedes_children_once(paper_exam_contest, include_answers):
+    from apps.contests.models import ExamQuestionGroup
+    group = ExamQuestionGroup.objects.create(
+        contest=paper_exam_contest, title="Loop exercise", shared_stem_markdown="Common rules for both parts.",
+    )
+    for index, score in enumerate([3, 5]):
+        ExamQuestion.objects.create(
+            contest=paper_exam_contest, group=group, question_type="essay",
+            prompt=f"Child part {index + 1}", score=score, order=index, order_in_group=index,
+        )
+    ExamQuestion.objects.create(
+        contest=paper_exam_contest, question_type="essay", prompt="Standalone", score=2, order=2,
+    )
+    html = PaperExamSheetRenderer(paper_exam_contest, include_answers=include_answers).render_html()
+    assert html.count("Common rules for both parts.") == 1
+    assert html.count("Loop exercise") == 1
+    assert "Q1–Q2" in html
+    assert "8.00" in html
+    assert html.index("Common rules for both parts.") < html.index("Child part 1") < html.index("Child part 2") < html.index("Standalone")
+    assert html.count('class="question-item grouped-question"') == 2
