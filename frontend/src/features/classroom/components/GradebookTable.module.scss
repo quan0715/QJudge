@@ -1,0 +1,100 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+$account-width: layout.rem(120px);
+$name-width: layout.rem(136px);
+$contest-width: layout.rem(192px);
+// Carbon `md` breakpoint (42rem). Below it the identity columns scroll away with
+// the rest: pinning them would leave almost no room for the scores on a phone.
+$sticky-min-width: 42rem;
+
+// Guards horizontal overflow for wide gradebooks (many contests). The sticky
+// columns attach to whichever ancestor actually scrolls, this wrapper or
+// Carbon's own table wrapper.
+.scroll {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.stickyHead,
+.stickyCell {
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stickyHead {
+  background: var(--cds-layer-accent);
+}
+
+.stickyCell {
+  background: var(--cds-layer);
+}
+
+.row:hover .stickyCell {
+  background: var(--cds-layer-hover);
+}
+
+.accountColumn {
+  left: 0;
+  width: $account-width;
+  min-width: $account-width;
+  max-width: $account-width;
+}
+
+.nameColumn {
+  left: $account-width;
+  width: $name-width;
+  min-width: $name-width;
+  max-width: $name-width;
+}
+
+@media (min-width: $sticky-min-width) {
+  .stickyHead,
+  .stickyCell {
+    position: sticky;
+    z-index: 1;
+  }
+
+  .nameColumn {
+    box-shadow: inset -1px 0 0 var(--cds-border-subtle);
+  }
+}
+
+.contestColumn {
+  min-width: $contest-width;
+}
+
+.contestHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: layout.$spacing-02;
+}
+
+.typeTag {
+  margin: 0;
+}
+
+.contestName {
+  @include type.type-style("heading-compact-01");
+  overflow-wrap: anywhere;
+  text-align: end;
+}
+
+.contestMeta {
+  @include type.type-style("label-01");
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: layout.$spacing-02;
+  color: var(--cds-text-secondary);
+}
+
+// Carbon aligns table cells to the start, so the cell content owns the alignment.
+.score {
+  display: block;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
