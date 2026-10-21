@@ -20,6 +20,8 @@ import {
 import type { QuestionProgress } from "./gradingTypes";
 import { computeEffectiveMaxTotal } from "./scorePolicyUtils";
 import { ScorePolicyTag } from "./components/ScorePolicyMenu";
+import { BatchStatusTag } from "./batchGrading/BatchStatusTag";
+import type { BatchQuestionState } from "./batchGrading/batchGradingModel";
 import styles from "./GradingByQuestion.module.scss";
 import mini from "./GradingMini.module.scss";
 
@@ -30,6 +32,8 @@ interface QuestionSidebarScreenProps {
   onHoverQuestion?: (questionId: string | null) => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  /** AI batch grading state per question; omitted when no batch is visible. */
+  batchStates?: Record<string, BatchQuestionState>;
 }
 
 function getStatusClass(q: QuestionProgress) {
@@ -44,6 +48,7 @@ export default function QuestionSidebarScreen({
   onSelect,
   collapsed = false,
   onToggleCollapse,
+  batchStates,
 }: QuestionSidebarScreenProps) {
   const { t } = useTranslation("contest");
   const orderedQuestions = [...questions].sort(
@@ -154,6 +159,9 @@ export default function QuestionSidebarScreen({
                         ? `${formatScore(q.maxScore)}→${formatScore(q.effectiveMaxScore)}`
                         : formatScore(q.maxScore)}
                     </span>
+                  )}
+                  {batchStates?.[q.questionId] && (
+                    <BatchStatusTag status={batchStates[q.questionId].status} />
                   )}
                 </ListItemTitle>
               </ListItemContent>

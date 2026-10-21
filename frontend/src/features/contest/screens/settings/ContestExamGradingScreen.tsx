@@ -26,6 +26,10 @@ import {
   IconModeSwitcher,
   type IconModeOption,
 } from "@/shared/ui/navigation";
+import { useBatchGrading } from "./grading/batchGrading/useBatchGrading";
+import { selectBatchQuestions } from "./grading/batchGrading/batchGradingModel";
+import { BatchGradingToolbarControl } from "./grading/batchGrading/BatchGradingToolbarControl";
+import { BatchGradingStartModal } from "./grading/batchGrading/BatchGradingStartModal";
 import styles from "./grading/ContestExamGrading.module.scss";
 
 type GradingViewMode = "byQuestion" | "byStudent" | "matrix";
@@ -40,7 +44,7 @@ const isValidFilter = (value: string): value is GradingFilter =>
 const ContestExamGradingScreen: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [, startTransition] = useTransition();
-  const { refreshContest } = useContest();
+  const { contest, refreshContest } = useContest();
   const { registerPanelRefresh } = useAdminPanelRefresh();
   const [selectionRequest, setSelectionRequest] = useState<{
     questionId: string;
@@ -98,6 +102,18 @@ const ContestExamGradingScreen: React.FC = () => {
   } = useGradingData();
 
   const { flaggedIds, toggleFlag } = useGradingFlags();
+
+  const refreshGrades = useCallback(async () => refreshData(), [refreshData]);
+  const batch = useBatchGrading(contest?.id ?? "", answers, {
+    resultsPublished: contest?.resultsPublished ?? false,
+    refreshGrades,
+  });
+  const [batchStartOpen, setBatchStartOpen] = useState(false);
+  const batchQuestions = useMemo(() => selectBatchQuestions(answers), [answers]);
+  const batchStates = useMemo(
+    () => Object.fromEntries(batch.questions.map((q) => [q.questionId, q])),
+    [batch.questions],
+  );
 
   const hasActiveFilters = searchQuery.trim().length > 0 || filter !== "all";
   const filterOptions = useMemo<GlobalFilterOption[]>(
@@ -255,7 +271,20 @@ const ContestExamGradingScreen: React.FC = () => {
         </div>
 
         <div className={styles.toolbarSpacer} />
+        <BatchGradingToolbarControl
+          batch={batch}
+          resultsPublished={contest?.resultsPublished ?? false}
+          onRequestStart={() => setBatchStartOpen(true)}
+        />
       </div>
+      <BatchGradingStartModal
+        open={batchStartOpen}
+        questionCount={batchQuestions.filter((q) => q.ungradedRows.length > 0).length}
+        answerCount={batchQuestions.reduce((sum, q) => sum + q.ungradedRows.length, 0)}
+        skippedCount={batchQuestions.reduce((sum, q) => sum + q.skippedCount, 0)}
+        onClose={() => setBatchStartOpen(false)}
+        onConfirm={batch.start}
+      />
 
       {/* Editor body */}
       <div className={styles.editorBody}>
@@ -281,6 +310,16 @@ const ContestExamGradingScreen: React.FC = () => {
               }
               selectionRequest={selectionRequest}
               onRefreshData={refreshData}
+              batch={
+                batch.sessionId
+                  ? {
+                      states: batchStates,
+                      onRevert: batch.revertQuestion,
+                      onRegrade: batch.regradeQuestion,
+                      onResume: () => void batch.resume(),
+                    }
+                  : undefined
+              }
             />
           ) : viewMode === "byStudent" ? (
             <GradingByStudentTabScreen

@@ -104,4 +104,44 @@ describe("QuestionSidebarScreen", () => {
 
     expect(screen.getAllByTestId("question-type-marker")).toHaveLength(2);
   });
+
+  const essay: QuestionProgress = {
+    questionId: "q-1",
+    questionIndex: 1,
+    questionType: "essay",
+    prompt: "Q1",
+    maxScore: 10,
+    totalAnswers: 3,
+    gradedCount: 1,
+    progressPercent: 33,
+    isObjective: false,
+  };
+
+  it("renders batch status tag per question", () => {
+    render(
+      <QuestionSidebarScreen
+        questions={[essay]}
+        selectedQuestionId="q-1"
+        onSelect={vi.fn()}
+        batchStates={{
+          "q-1": {
+            questionId: "q-1",
+            label: "Q1",
+            index: 1,
+            status: "running",
+            ungradedCount: 2,
+            writtenCount: 0,
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("grading.batch.status.running")).toBeInTheDocument();
+  });
+
+  it("hides batch status when batchStates is undefined", () => {
+    render(<QuestionSidebarScreen questions={[essay]} selectedQuestionId="q-1" onSelect={vi.fn()} />);
+
+    expect(screen.queryByText(/grading\.batch\.status/)).not.toBeInTheDocument();
+  });
 });
