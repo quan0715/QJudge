@@ -126,19 +126,13 @@ p, li {
   margin: 44px 0 24px;
 }
 
-.question-group-meta {
-  font-weight: 700;
-}
-
-.question-group-heading h3 {
-  margin: 0 0 14px;
-  font-size: 18px;
-  font-weight: 700;
-}
-
 .grouped-question .question-body {
   margin-left: 0;
   padding-left: 28px;
+}
+
+.question-group-heading.question-body {
+  padding-left: 24px;
 }
 
 .grouped-question .question-number {

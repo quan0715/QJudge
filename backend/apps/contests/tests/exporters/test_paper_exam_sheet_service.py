@@ -408,10 +408,11 @@ def test_question_paper_omits_writing_space_by_default(paper_exam_contest):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("include_answers", [False, True])
-def test_group_header_precedes_children_once(paper_exam_contest, include_answers):
+@pytest.mark.parametrize("group_title", ["Loop exercise", ""])
+def test_group_header_precedes_children_once(paper_exam_contest, include_answers, group_title):
     from apps.contests.models import ExamQuestionGroup
     group = ExamQuestionGroup.objects.create(
-        contest=paper_exam_contest, title="Loop exercise", shared_stem_markdown="Common rules for both parts.",
+        contest=paper_exam_contest, title=group_title, shared_stem_markdown="Common rules for both parts.",
     )
     for index, score in enumerate([3, 5]):
         ExamQuestion.objects.create(
@@ -430,8 +431,12 @@ def test_group_header_precedes_children_once(paper_exam_contest, include_answers
     )
     html = PaperExamSheetRenderer(paper_exam_contest, include_answers=include_answers).render_html()
     assert html.count("Common rules for both parts.") == 1
-    assert html.count("Loop exercise") == 1
-    assert "1. Loop exercise</h3>" in html
+    if group_title:
+        assert html.count(group_title) == 1
+        assert html.index(group_title) < html.index("Common rules for both parts.")
+    assert ">1.</span>" in html
+    assert "Question group" not in html
+    assert "題組" not in html
     assert ">(a)</span>" in html
     assert ">(b)</span>" in html
     assert ">2.</span>" in html
@@ -442,4 +447,5 @@ def test_group_header_precedes_children_once(paper_exam_contest, include_answers
         assert "<td>3(a)</td>" in html
     assert html.index("Common rules for both parts.") < html.index("Child part 1") < html.index("Child part 2") < html.index("Standalone")
     assert html.count('class="question-item grouped-question"') == 3
-    assert '3. Second group</h3>' in html
+    assert ">3.</span>" in html
+    assert html.count("Second group") == 1

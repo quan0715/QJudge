@@ -38,9 +38,15 @@
       {% if q.group_heading %}<section class="question-group-block">{% endif %}
       <article class="question-item{% if q.grouped %} grouped-question{% endif %}">
         {% if q.group_heading %}
-        <section class="question-group-heading">
-          <h3><span class="question-meta-inline">（{{ q.group_heading.score }} {{ labels.points_unit }}）</span>{{ q.group_heading.number }}. {% if q.group_heading.title %}{{ q.group_heading.title }}{% else %}{{ labels.question_group }}{% endif %}</h3>
-          <div class="markdown-content">{{ q.group_heading.stem_html|safe }}</div>
+        <section class="question-group-heading question-body">
+          <div class="question-headline">
+            <span class="question-number">{{ q.group_heading.number }}.</span>
+            <span class="question-meta-inline">（{{ q.group_heading.score }} {{ labels.points_unit }}）</span>
+          </div>
+          <div class="question-prompt markdown-content">
+            {% if q.group_heading.title %}<p>{{ q.group_heading.title }}</p>{% endif %}
+            {{ q.group_heading.stem_html|safe }}
+          </div>
         </section>
         {% endif %}
         <div class="question-body">
