@@ -10,12 +10,13 @@ vi.mock("@/features/problems/contexts/ProblemEditContext", () => ({
   useProblemEdit: () => ({ handleFieldChange: vi.fn() }),
 }));
 
-let form: UseFormReturn<ProblemFormSchema>;
+type Form = UseFormReturn<ProblemFormSchema>;
 
-function Harness({ configs }: { configs: ProblemFormSchema["languageConfigs"] }) {
-  form = useForm<ProblemFormSchema>({
+function Harness({ configs, onForm }: { configs: ProblemFormSchema["languageConfigs"]; onForm: (form: Form) => void }) {
+  const form = useForm<ProblemFormSchema>({
     defaultValues: { languageConfigs: configs, forbiddenKeywords: [], requiredKeywords: [] } as unknown as ProblemFormSchema,
   });
+  onForm(form);
   return (
     <FormProvider {...form}>
       <LanguageConfigSection />
@@ -25,14 +26,16 @@ function Harness({ configs }: { configs: ProblemFormSchema["languageConfigs"] })
 
 describe("LanguageConfigSection", () => {
   it("does not add a language entry for a language the question has no config for", () => {
-    render(<Harness configs={[{ language: "python", isEnabled: true, templateCode: "" }]} />);
+    let form!: Form;
+    render(<Harness configs={[{ language: "python", isEnabled: true, templateCode: "" }]} onForm={(f) => { form = f; }} />);
 
     expect(screen.getAllByText("C++").length).toBeGreaterThan(0);
     expect(form.getValues("languageConfigs")).toEqual([{ language: "python", isEnabled: true, templateCode: "" }]);
   });
 
   it("adds one complete entry when a missing language is turned on", () => {
-    render(<Harness configs={[{ language: "python", isEnabled: true, templateCode: "" }]} />);
+    let form!: Form;
+    render(<Harness configs={[{ language: "python", isEnabled: true, templateCode: "" }]} onForm={(f) => { form = f; }} />);
 
     fireEvent.click(document.getElementById("lang-toggle-cpp")!);
 

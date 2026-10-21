@@ -157,7 +157,8 @@ def _format_score(value: float | None) -> str:
     return "" if value is None else f"{value:.2f}"
 
 
-_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+# Full-width variants too: some spreadsheet locales treat them as formula starts.
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "＝", "＋", "－", "＠")
 
 
 def _csv_text(value: str) -> str:

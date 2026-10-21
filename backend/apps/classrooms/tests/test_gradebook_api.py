@@ -194,6 +194,16 @@ class ClassroomGradebookApiTests(APITestCase):
 
         self.assertEqual(lines[2], 'b_student,"\'=HYPERLINK(""http://evil.test"",""x"")",96.00,0.00,')
 
+    def test_export_csv_neutralizes_full_width_formula_cells(self):
+        for name in ('＝1+1', '＋1', '－1', '＠SUM(1)'):
+            self.b_student.profile.display_name = name
+            self.b_student.profile.save(update_fields=['display_name'])
+            self.client.force_authenticate(user=self.owner)
+
+            lines = self.client.get(self.export_url).content.decode('utf-8').lstrip('\ufeff').splitlines()
+
+            self.assertTrue(lines[2].startswith(f"b_student,'{name},"), lines[2])
+
     def test_export_csv_keeps_non_ascii_classroom_name_in_filename(self):
         self.classroom.name = '程式設計（一）'
         self.classroom.save(update_fields=['name'])
