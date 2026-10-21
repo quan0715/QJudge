@@ -126,11 +126,13 @@ export const GradebookTable: React.FC<GradebookTableProps> = ({
                 <TableRow key={student.userId} className={styles.row}>
                   <TableCell
                     className={`${styles.stickyCell} ${styles.accountColumn}`}
+                    title={student.username}
                   >
                     {student.username}
                   </TableCell>
                   <TableCell
                     className={`${styles.stickyCell} ${styles.nameColumn}`}
+                    title={student.displayName || undefined}
                   >
                     {student.displayName}
                   </TableCell>

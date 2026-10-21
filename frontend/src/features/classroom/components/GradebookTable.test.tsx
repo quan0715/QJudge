@@ -103,6 +103,51 @@ describe("GradebookTable", () => {
     expect(screen.getByText("學生 2 人 · 考試 2 場")).toBeInTheDocument();
   });
 
+  it("exposes the full username and name as titles on the identity cells", () => {
+    const longUsername = "a-very-long-username-that-the-sticky-column-will-clip";
+    const longName = "A Very Long Display Name That The Sticky Column Will Clip";
+    render(
+      <GradebookTable
+        gradebook={{
+          ...gradebook,
+          students: [
+            {
+              userId: 7,
+              username: longUsername,
+              displayName: longName,
+              scores: { "contest-lab": 1, "contest-midterm": null },
+            },
+            {
+              userId: 8,
+              username: "no-display-name",
+              displayName: "",
+              scores: { "contest-lab": 2, "contest-midterm": null },
+            },
+          ],
+        }}
+        onExport={vi.fn()}
+        exporting={false}
+      />,
+    );
+
+    expect(screen.getByText(longUsername).closest("td")).toHaveAttribute(
+      "title",
+      longUsername,
+    );
+    expect(screen.getByText(longName).closest("td")).toHaveAttribute(
+      "title",
+      longName,
+    );
+
+    const plainRow = screen.getByText("no-display-name").closest("tr");
+    expect(plainRow).not.toBeNull();
+    const [usernameCell, nameCell] = Array.from(
+      plainRow!.querySelectorAll("td"),
+    );
+    expect(usernameCell).toHaveAttribute("title", "no-display-name");
+    expect(nameCell).not.toHaveAttribute("title");
+  });
+
   it("renders raw scores and dash for absent", () => {
     render(
       <GradebookTable
