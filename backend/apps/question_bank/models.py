@@ -7,6 +7,8 @@ from django.conf import settings
 from django.db import models
 from django.db.models import UniqueConstraint
 
+from .problem_labels import label_for_contest_problem_order
+
 
 class QuestionBank(models.Model):
     class Category(models.TextChoices):
@@ -179,9 +181,7 @@ class ContestQuestionBinding(models.Model):
 
     @property
     def label(self) -> str:
-        if self.order < 26:
-            return chr(65 + self.order)
-        return f"P{self.order + 1}"
+        return label_for_contest_problem_order(self.order)
 
     class Meta:
         db_table = "contest_question_bindings"

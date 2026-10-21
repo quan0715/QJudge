@@ -6,6 +6,8 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.http import HttpResponse
 
+from apps.question_bank.problem_labels import label_for_contest_problem_order
+
 from ..exporters import (
     MarkdownRenderer,
     PDFRenderer,
@@ -236,7 +238,7 @@ def build_contest_results_csv_response(contest, scoreboard_result):
     # Header row
     header = ['帳號', '顯示名稱', 'Email', '身份', '解題數', '總分', '罰時']
     for problem in scoreboard_result.problems:
-        label = problem.get('label') or chr(65 + problem['order'])
+        label = problem.get('label') or label_for_contest_problem_order(problem['order'])
         title = problem.get('title') or ''
         header.append(f'{label} ({title})')
     writer.writerow(header)

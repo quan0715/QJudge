@@ -1,10 +1,13 @@
-/**
- * Visible label (A, B, …) for a coding contest problem at a given sort index.
- * Keep in sync with backend `ContestQuestionBinding.label` / `ContestProblem.label`.
+/** Visible label (A, …, Z, AA, AB, …) for a zero-based contest problem order.
+ * Keep in sync with backend `label_for_contest_problem_order`.
  */
 export function labelForContestProblemOrder(order: number): string {
-  if (order < 26) {
-    return String.fromCharCode(65 + order);
+  let label = "";
+  let number = order + 1;
+  while (number > 0) {
+    number -= 1;
+    label = String.fromCharCode(65 + (number % 26)) + label;
+    number = Math.floor(number / 26);
   }
-  return `P${order + 1}`;
+  return label;
 }
