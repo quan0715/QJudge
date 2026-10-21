@@ -424,7 +424,7 @@ def test_group_header_precedes_children_once(paper_exam_contest, include_answers
     html = PaperExamSheetRenderer(paper_exam_contest, include_answers=include_answers).render_html()
     assert html.count("Common rules for both parts.") == 1
     assert html.count("Loop exercise") == 1
-    assert "Q1–Q2" in html
-    assert "8.00" in html
+    assert "1–2" in html
+    assert "共 8 分" in html
     assert html.index("Common rules for both parts.") < html.index("Child part 1") < html.index("Child part 2") < html.index("Standalone")
     assert html.count('class="question-item grouped-question"') == 2

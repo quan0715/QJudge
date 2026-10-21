@@ -13,7 +13,7 @@
   <body>
     <header class="paper-header">
       <h1 class="paper-title">{{ contest_name|safe }}</h1>
-      <h2 class="paper-subtitle">{{ sheet_title }}</h2>
+      {% if include_answers %}<h2 class="paper-subtitle">{{ sheet_title }}</h2>{% endif %}
       {% if contest_description %}
       <p class="paper-description">{{ contest_description }}</p>
       {% endif %}
@@ -38,15 +38,15 @@
       <article class="question-item{% if q.grouped %} grouped-question{% endif %}">
         {% if q.group_heading %}
         <section class="question-group-heading">
-          <div class="question-group-meta">{{ labels.question_group }} · {{ q.group_heading.range }} · {{ q.group_heading.score }} {{ labels.points_unit }}</div>
+          <div class="question-group-meta">{{ q.group_heading.label }}</div>
           {% if q.group_heading.title %}<h3>{{ q.group_heading.title }}</h3>{% endif %}
           <div class="markdown-content">{{ q.group_heading.stem_html|safe }}</div>
         </section>
         {% endif %}
         <div class="question-body">
         <div class="question-headline">
-          <span class="question-number">Q{{ q.number }}.</span>
-          <span class="question-meta-inline">{{ q.score }}{{ labels.points_unit }} · {{ q.type_label }}</span>
+          <span class="question-number">{{ q.number }}.</span>
+          <span class="question-meta-inline">（{{ q.score }} {{ labels.points_unit }}）</span>
         </div>
         <div class="question-prompt markdown-content">
           {{ q.prompt_html|safe }}

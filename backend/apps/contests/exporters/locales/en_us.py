@@ -3,6 +3,7 @@ English (en-US) labels for contest exporters.
 """
 
 LABELS = {
+    'question_group_range': 'Questions {range} share the following passage ({score} points)',
     'question_group': 'Question group',
     # Score related
     'score': 'Score',

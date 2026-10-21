@@ -1,167 +1,173 @@
+/* Print typography for a formal exam paper, separate from report UI styling. */
 @page {
   size: A4;
-  margin: 18mm 14mm 16mm;
+  margin: 20mm 20mm 18mm;
+}
+
+body {
+  font-family: "IBM Plex Sans", "Noto Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  letter-spacing: 0;
+  color: #000;
+}
+
+p, li {
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .paper-header {
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 2px solid #161616;
-  text-align: left;
+  margin-bottom: 24px;
+  text-align: center;
 }
 
 .paper-title {
-  border: none;
-  margin: 0;
+  border: 0;
   padding: 0;
+  margin: 0;
   font-size: 24px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  line-height: 1.5;
+  color: #000;
 }
 
 .paper-subtitle {
-  margin: 6px 0 0;
-  font-size: 14px;
-  font-weight: 600;
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 400;
 }
 
 .paper-description {
-  margin-top: 6px;
-  color: #525252;
+  margin: 12px 0 0;
   text-align: left;
 }
 
 .meta-lines {
-  margin-bottom: 10px;
+  margin-bottom: 28px;
 }
 
 .meta-lines p {
   margin: 4px 0;
-  line-height: 1.5;
 }
 
 .meta-lines strong {
+  font-weight: 400;
   margin-right: 4px;
-  margin-left: 14px;
+  margin-left: 24px;
 }
 
 .meta-lines strong:first-child {
   margin-left: 0;
 }
 
-.empty-notice {
-  color: #525252;
-  margin-top: 18px;
-}
-
-.question-list {
-  margin-top: 4px;
-}
-
 .question-item {
   page-break-inside: avoid;
-  padding: 0;
   margin-bottom: 20px;
 }
 
 .question-headline {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid #d0d0d0;
-}
-
-.question-prompt {
-  margin-bottom: 3px;
-  line-height: 1.6;
+  display: inline;
+  font-weight: 700;
 }
 
 .question-number {
-  min-width: 44px;
-  font-weight: 700;
-  font-size: 16px;
-  color: #161616;
-  line-height: 1.5;
+  margin-right: 4px;
 }
 
 .question-meta-inline {
-  font-size: 13px;
-  color: #525252;
-  line-height: 1.5;
+  font-weight: 400;
+}
+
+.question-prompt,
+.question-prompt > p:first-child {
+  display: inline;
+}
+
+.question-group-heading {
+  margin: 24px 0 16px;
+}
+
+.question-group-meta {
+  font-weight: 700;
+}
+
+.question-group-heading h3 {
+  margin: 6px 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.grouped-question .question-body {
+  margin-left: 24px;
 }
 
 .question-options {
-  margin: 6px 0 0;
-  padding-left: 0;
   list-style: none;
+  padding-left: 24px;
+  margin: 8px 0 0;
 }
 
 .question-options li {
-  margin: 5px 0;
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
+  margin: 4px 0;
 }
 
 .choice-letter {
-  min-width: 20px;
-  font-weight: 600;
+  margin-right: 8px;
 }
 
-.choice-text {
-  flex: 1;
+.markdown-content pre,
+.markdown-content .codehilite {
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  padding: 0;
+  margin: 12px 0 12px 24px;
 }
 
-.answer-box {
-  margin-top: 8px;
-  padding-left: 2px;
+.markdown-content .codehilite pre {
+  margin: 0;
 }
 
-.choice-answer-bar {
-  margin-top: 8px;
-  padding-top: 2px;
+.markdown-content pre,
+.markdown-content code {
+  font-family: "DejaVu Sans Mono", "Noto Sans Mono CJK TC", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #000;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
 
-.choice-answer-slots {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
+.markdown-content code,
+.markdown-content .codehilite span {
+  color: #000 !important;
+  background: transparent !important;
+  border: 0;
+  padding: 0;
+  font-style: normal !important;
+  font-weight: 400 !important;
 }
 
-.choice-answer-slot {
-  display: inline-block;
-  min-width: 58px;
-  padding: 2px 6px;
-  border: 1px solid #c6c6c6;
-  border-radius: 2px;
-  background: #fff;
+.markdown-content p {
+  margin: 0 0 8px;
 }
 
-.answer-lines {
-  margin-top: 8px;
-  border: 1px solid #d0d0d0;
-  border-radius: 2px;
-  padding: 6px 8px 8px;
-  background: #fff;
-}
-
-.answer-line {
-  border-bottom: 1px solid #8d8d8d;
-  height: 26px;
-  margin-top: 8px;
-  width: 100%;
+.answer-box, .choice-answer-bar, .answer-lines {
+  margin-top: 12px;
 }
 
 .answer-label {
-  font-size: 12px;
-  color: #525252;
-  margin-bottom: 3px;
+  font-weight: 700;
 }
 
-.answer-content {
-  color: #161616;
+.choice-answer-slot {
+  margin-right: 16px;
+}
+
+.answer-line {
+  border-bottom: 1px solid #000;
+  height: 30px;
 }
 
 .answer-key-section {
@@ -169,87 +175,10 @@
 }
 
 .answer-key-note {
-  margin: 0 0 6px;
-  font-size: 12px;
-  color: #525252;
+  margin-bottom: 12px;
 }
 
 .answer-key-table td:last-child,
 .answer-key-table th:last-child {
   text-align: right;
-  width: 90px;
-}
-
-.markdown-content pre {
-  margin: 8px 0;
-  padding: 10px 12px;
-  border: 1px solid #d0d0d0;
-  border-radius: 2px;
-  background: #f8f8f8;
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
-  word-break: break-word;
-  font-family: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.markdown-content .codehilite {
-  margin: 8px 0;
-  border: 1px solid #d0d0d0;
-  border-radius: 2px;
-  background: #f8f8f8;
-  padding: 10px 12px;
-}
-
-.markdown-content .codehilite pre {
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-}
-
-.markdown-content code {
-  font-family: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
-}
-
-.markdown-content :not(pre) > code {
-  background: #f2f2f2;
-  border: 1px solid #e0e0e0;
-  border-radius: 2px;
-  padding: 1px 3px;
-  font-size: 0.95em;
-}
-
-.markdown-content p:last-child {
-  margin-bottom: 0;
-}
-
-/* A shared stem introduces the run; child questions remain visually nested. */
-.question-group-heading {
-  border-top: 2px solid #161616;
-  padding: 12px 0 8px;
-  margin-top: 12px;
-  margin-bottom: 8px;
-}
-
-.question-group-meta {
-  font-size: 13px;
-  font-weight: 600;
-  color: #525252;
-}
-
-.question-group-heading h3 {
-  font-size: 18px;
-  margin: 6px 0 10px;
-}
-
-.grouped-question .question-body {
-  border-left: 2px solid #c6c6c6;
-  margin-left: 8px;
-  padding-left: 16px;
-}
-
-.grouped-question .question-headline {
-  border-bottom: none;
 }

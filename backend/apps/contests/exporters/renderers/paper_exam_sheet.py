@@ -61,10 +61,13 @@ class PaperExamSheetRenderer(BaseRenderer):
                     last += 1
                 group_heading = {
                     "title": q.group.title,
-                    "range": f"Q{idx}–Q{last}" if last != idx else f"Q{idx}",
+                    "range": f"{idx}–{last}" if last != idx else str(idx),
                     "score": self._fmt_score(sum(child.score for child in questions[idx - 1:last])),
                     "stem_html": render_markdown(q.group.shared_stem_markdown, soft_breaks=False),
                 }
+                group_heading["label"] = self.get_label("question_group_range").format(
+                    range=group_heading["range"], score=group_heading["score"],
+                )
             answer_text_raw = self._format_answer(q)
             answer_text = self._clean_answer_markdown(answer_text_raw)
             answer_ui = self._build_answer_ui(q)
@@ -130,7 +133,7 @@ class PaperExamSheetRenderer(BaseRenderer):
 
     @staticmethod
     def _fmt_score(value) -> str:
-        return f"{float(value):.2f}"
+        return f"{float(value):g}"
 
     def _get_base_css(self) -> str:
         css = self._read_static_css("exports/report-base.css")
