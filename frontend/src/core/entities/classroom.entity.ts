@@ -1,3 +1,5 @@
+import type { ContestType } from "@/core/entities/contest.entity";
+
 export type ClassroomScopeRole =
   | "platform_admin"
   | "owner"
@@ -75,4 +77,24 @@ export interface ClassroomDetail extends Classroom {
   contests: BoundContest[];
   announcements: ClassroomAnnouncement[];
   updatedAt: string;
+}
+
+export interface ClassroomGradebookContest {
+  id: string;
+  name: string;
+  contestType: ContestType;
+  startTime: string | null;
+  maxScore: number;
+}
+
+export interface ClassroomGradebookStudent {
+  userId: number;
+  username: string;
+  displayName: string;
+  scores: Record<string, number | null>;
+}
+
+export interface ClassroomGradebook {
+  contests: ClassroomGradebookContest[];
+  students: ClassroomGradebookStudent[];
 }

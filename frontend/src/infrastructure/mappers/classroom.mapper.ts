@@ -4,6 +4,7 @@ import type {
   ClassroomMember,
   ClassroomAnnouncement,
   BoundContest,
+  ClassroomGradebook,
 } from "@/core/entities/classroom.entity";
 import type {
   ClassroomDto,
@@ -11,6 +12,7 @@ import type {
   ClassroomMemberDto,
   ClassroomAnnouncementDto,
   BoundContestDto,
+  ClassroomGradebookDto,
 } from "@/infrastructure/api/dto/classroom.dto";
 
 export function mapClassroomDto(dto: ClassroomDto): Classroom {
@@ -78,5 +80,23 @@ export function mapClassroomDetailDto(dto: ClassroomDetailDto): ClassroomDetail 
     contests: Array.isArray(dto.contests) ? dto.contests.map(mapBoundContestDto) : [],
     announcements: Array.isArray(dto.announcements) ? dto.announcements.map(mapClassroomAnnouncementDto) : [],
     updatedAt: dto.updated_at,
+  };
+}
+
+export function mapClassroomGradebookDto(dto: ClassroomGradebookDto): ClassroomGradebook {
+  return {
+    contests: dto.contests.map((contest) => ({
+      id: contest.id,
+      name: contest.name,
+      contestType: contest.contest_type,
+      startTime: contest.start_time,
+      maxScore: contest.max_score,
+    })),
+    students: dto.students.map((student) => ({
+      userId: student.user_id,
+      username: student.username,
+      displayName: student.display_name,
+      scores: student.scores,
+    })),
   };
 }

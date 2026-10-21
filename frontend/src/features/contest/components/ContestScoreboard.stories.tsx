@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Theme } from "@carbon/react";
 import { expect, fn, within } from "storybook/test";
 import ContestScoreboard from "./ContestScoreboard";
+import { labelForContestProblemOrder } from "../domain/contestProblemOrderLabel";
 
 const meta = {
   title: "features/contest/ContestScoreboard",
@@ -43,7 +44,7 @@ export const Dark: Story = {
 
 const manyProblems = Array.from({ length: 12 }, (_, index) => ({
   id: `binding-${index}`, title: `Problem ${index + 1}`,
-  label: String.fromCharCode(65 + index), order: index,
+  label: labelForContestProblemOrder(index), order: index,
 }));
 export const ManyProblems: Story = {
   args: {

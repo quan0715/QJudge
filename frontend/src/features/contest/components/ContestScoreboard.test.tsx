@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import ContestScoreboard from "./ContestScoreboard";
+import { labelForContestProblemOrder } from "../domain/contestProblemOrderLabel";
 
 const problems = [{ id: "binding-1", problem_id: "21", title: "A+B", label: "A", order: 0 }];
 const standings = [{ rank: 1, user: { id: 468, username: "Student" }, solved: 1, total_score: 100, time: 10,
@@ -37,4 +38,19 @@ describe("scoreboard participant navigation", () => {
     render(<ContestScoreboard problems={problems} standings={standings} />);
     expect(screen.queryByRole("button", { name: "Student" })).not.toBeInTheDocument();
   });
+});
+
+
+it("renders Z, AA and AB headers and preserves problem navigation", () => {
+  const onSelectParticipant = vi.fn();
+  const manyProblems = Array.from({ length: 28 }, (_, order) => ({
+    id: `binding-${order}`, problem_id: `coding-${order}`,
+    title: `Problem ${order + 1}`, order, label: labelForContestProblemOrder(order),
+  }));
+  render(<ContestScoreboard problems={manyProblems} standings={standings} onSelectParticipant={onSelectParticipant} />);
+  for (const label of ["Z", "AA", "AB"]) {
+    expect(screen.getByRole("columnheader", { name: label })).toBeInTheDocument();
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Student · AA" }));
+  expect(onSelectParticipant).toHaveBeenLastCalledWith("468", "coding-26");
 });

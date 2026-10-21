@@ -8,6 +8,7 @@ from typing import List, Optional, Dict
 from ..models import Contest
 from apps.problems.models import CodingProblem
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+from apps.question_bank.problem_labels import label_for_contest_problem_order
 from apps.submissions.models import Submission
 
 from .dto import (
@@ -77,7 +78,7 @@ class ContestDataService:
         for b in bindings:
             if not b.coding_problem:
                 continue
-            label = b.label or chr(65 + b.order)
+            label = b.label or label_for_contest_problem_order(b.order)
             problem_dto = self._format_problem(b.coding_problem, label)
             problem_dto.max_score = b.score or 0
 
@@ -339,7 +340,7 @@ class ContestDataService:
 
     def _get_label(self, binding) -> str:
         """Return the display label for a contest problem binding (A, B, ...)."""
-        return binding.label or chr(65 + binding.order)
+        return binding.label or label_for_contest_problem_order(binding.order)
 
     def _format_problem(self, problem: CodingProblem, label: str) -> ProblemDTO:
         """Format a problem's content for export."""

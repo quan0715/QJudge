@@ -32,6 +32,7 @@ import { HintField } from "./ContentSection";
 
 interface BasicInfoSectionProps {
   directEdit?: boolean;
+  showTags?: boolean;
 }
 
 // Tag color mapping based on tag properties or index
@@ -64,7 +65,7 @@ const TAG_HEX_COLORS = [
  * BasicInfoSection - Form section for basic problem info
  * Uses AutoSaveField for field-level auto-save
  */
-const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ directEdit = false }) => {
+const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ directEdit = false, showTags = true }) => {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin" || (user as any)?.is_staff;
   const isTeacherOrAdmin =
@@ -101,8 +102,8 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ directEdit = false 
   }, []);
 
   useEffect(() => {
-    loadTags();
-  }, [loadTags]);
+    if (showTags) void loadTags();
+  }, [loadTags, showTags]);
 
   // Create tag handler
   const handleCreateTag = async (
@@ -298,7 +299,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ directEdit = false 
         </AutoSaveField>
       </ActionRow>
 
-      <FieldRow label="標籤" description="用於分類題目，便於學生篩選與教師管理">
+      {showTags && <FieldRow label="標籤" description="用於分類題目，便於學生篩選與教師管理">
         <AutoSaveField name="existingTagIds">
           {({ field, onAutoSaveChange }) => {
             const selectedTags = availableTags.filter((t) =>
@@ -548,7 +549,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ directEdit = false 
           );
         }}
         </AutoSaveField>
-      </FieldRow>
+      </FieldRow>}
     </Section>
   );
 };

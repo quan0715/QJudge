@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
-import { IconButton, NumberInput, Tab, TabList, TabPanel, TabPanels, Tabs, Tag } from "@carbon/react";
+import CodingProblemEditor from "@/features/problems/components/codingEditor/CodingProblemEditor";
+import React, { useState } from "react";
+import { IconButton, NumberInput, Tag } from "@carbon/react";
 import { Code, Copy, DataBase, Draggable, TrashCan } from "@carbon/icons-react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -8,20 +9,13 @@ import { GlobalSaveStatus } from "@/shared/ui/autoSave";
 import { formatScore } from "@/shared/utils/scoreFormat";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
-import { ProblemPreview } from "@/shared/ui/problem";
 import { ActionRow } from "@/shared/layout/SettingsPanel";
 import { useProblemEdit } from "@/features/problems/contexts/ProblemEditContext";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
-import { formSchemaToPreview } from "@/features/problems/forms/problemPreviewAdapter";
-import ContentSection from "@/features/problems/components/edit/problemForm/sections/ContentSection";
-import TestCasesSection from "@/features/problems/components/edit/problemForm/sections/TestCasesSection";
-import BasicInfoSection from "@/features/problems/components/edit/problemForm/sections/BasicInfoSection";
-import LanguageConfigSection from "@/features/problems/components/edit/problemForm/sections/LanguageConfigSection";
 import { CODING_PROBLEM_DIFFICULTY_TAG } from "./codingProblemDifficultyDisplay";
 import { isContestProblemLinkedToBank } from "./codingContestProblemBank";
 import examStyles from "./ExamQuestionEditCard.module.scss";
 import previewStyles from "./CodingProblemPreviewCard.module.scss";
-import styles from "./CodingProblemTabbedEditor.module.scss";
 
 interface CodingProblemTabbedEditorProps {
   contestProblemId: string;
@@ -57,7 +51,6 @@ const CodingProblemTabbedEditor: React.FC<CodingProblemTabbedEditorProps> = ({
   const titleLive = useWatch({ control, name: "title", defaultValue: "" });
   const { autoSave } = useProblemEdit();
   const { confirm, modalProps } = useConfirmModal();
-  const [activeTab, setActiveTab] = useState(0);
   const [saveToBankOpen, setSaveToBankOpen] = useState(false);
   const [scoreDraft, setScoreDraft] = useState<number | string | null>(null);
 
@@ -197,26 +190,7 @@ const CodingProblemTabbedEditor: React.FC<CodingProblemTabbedEditorProps> = ({
       </div>
 
       <div className={examStyles.editBody}>
-        <Tabs
-          selectedIndex={activeTab}
-          onChange={({ selectedIndex }) => setActiveTab(selectedIndex ?? 0)}
-        >
-          <TabList aria-label={t("examEditor.problemEditTabs", "題目編輯分頁")} contained>
-            <Tab>{t("examEditor.tabBasicInfo", "基本資訊")}</Tab>
-            <Tab>{t("examEditor.tabContent", "題目內容")}</Tab>
-            <Tab>{t("examEditor.tabTestCasesAndScoring", "測資與配分")}</Tab>
-            <Tab>{t("examEditor.tabCodeSettings", "撰寫設定")}</Tab>
-            <Tab>{t("examEditor.tabPreview", "預覽")}</Tab>
-          </TabList>
-          <TabPanels>
-            <TabPanel className={styles.tabPanel}>
-              <BasicInfoSection directEdit />
-            </TabPanel>
-            <TabPanel className={styles.tabPanel}>
-              <ContentSection directEdit />
-            </TabPanel>
-            <TabPanel className={styles.tabPanel}>
-              {onScoreChange ? (
+        <CodingProblemEditor scoring={onScoreChange ? (
                 <ActionRow
                   label={t("examEditor.maxScoreFieldLabel", "配分")}
                   description={t("examEditor.scoreDescription", "設定此題在競賽中的最高分")}
@@ -240,17 +214,7 @@ const CodingProblemTabbedEditor: React.FC<CodingProblemTabbedEditorProps> = ({
                     disabled={frozen}
                   />
                 </ActionRow>
-              ) : null}
-              <TestCasesSection />
-            </TabPanel>
-            <TabPanel className={styles.tabPanel}>
-              <LanguageConfigSection />
-            </TabPanel>
-            <TabPanel className={styles.tabPanel}>
-              <PreviewTab />
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
+              ) : null} />
       </div>
       <SaveToBankModal
         open={saveToBankOpen}
@@ -263,16 +227,6 @@ const CodingProblemTabbedEditor: React.FC<CodingProblemTabbedEditorProps> = ({
       <ConfirmModal {...modalProps} />
     </div>
   );
-};
-
-const PreviewTab: React.FC = () => {
-  const { control } = useFormContext<ProblemFormSchema>();
-  const formValues = useWatch({ control });
-  const previewData = useMemo(
-    () => formSchemaToPreview(formValues as ProblemFormSchema),
-    [formValues],
-  );
-  return <ProblemPreview problem={previewData} />;
 };
 
 export default CodingProblemTabbedEditor;

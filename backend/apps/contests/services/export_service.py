@@ -5,6 +5,9 @@ from collections import defaultdict
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.http import HttpResponse
+from django.utils.http import content_disposition_header
+
+from apps.question_bank.problem_labels import label_for_contest_problem_order
 
 from ..exporters import (
     MarkdownRenderer,
@@ -127,14 +130,14 @@ def _get_admin_user_ids(contest):
     return admin_ids
 
 
-def _csv_response(filename: str) -> HttpResponse:
+def csv_download_response(filename: str) -> HttpResponse:
     """CSV download that Excel opens as UTF-8.
 
     The BOM is written once, up front. A ``utf-8-sig`` charset would instead
     prepend one to every chunk written, i.e. to every CSV row.
     """
     response = HttpResponse(content_type='text/csv; charset=utf-8')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response['Content-Disposition'] = content_disposition_header(True, filename)
     response.write('\ufeff')
     return response
 
@@ -144,7 +147,7 @@ def build_paper_exam_results_csv_response(contest):
     from ..models import ExamAnswer, ExamQuestion, ExamQuestionType
 
     safe_name = sanitize_filename(contest.name)
-    response = _csv_response(f'exam_{contest.id}_{safe_name}_results.csv')
+    response = csv_download_response(f'exam_{contest.id}_{safe_name}_results.csv')
 
     questions = list(
         ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
@@ -228,7 +231,7 @@ def build_paper_exam_results_csv_response(contest):
 
 def build_contest_results_csv_response(contest, scoreboard_result):
     """Generate CSV response for contest scoreboard results."""
-    response = _csv_response(f'contest_{contest.id}_results.csv')
+    response = csv_download_response(f'contest_{contest.id}_results.csv')
 
     admin_user_ids = _get_admin_user_ids(contest)
     writer = csv.writer(response)
@@ -236,7 +239,7 @@ def build_contest_results_csv_response(contest, scoreboard_result):
     # Header row
     header = ['帳號', '顯示名稱', 'Email', '身份', '解題數', '總分', '罰時']
     for problem in scoreboard_result.problems:
-        label = problem.get('label') or chr(65 + problem['order'])
+        label = problem.get('label') or label_for_contest_problem_order(problem['order'])
         title = problem.get('title') or ''
         header.append(f'{label} ({title})')
     writer.writerow(header)

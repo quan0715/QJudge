@@ -126,6 +126,18 @@
   "description": "Description",
   "editCover": "Edit Cover Image",
   "editMember": "Edit Member",
+  "gradebook": {
+    "average": "Average",
+    "colDisplayName": "Name",
+    "colUsername": "Username",
+    "empty": "No students or exams yet",
+    "export": "Export CSV",
+    "exportFailed": "Export failed",
+    "loadFailed": "Unable to load the gradebook",
+    "notAttempted": "Not attempted",
+    "summary": "{{students}} students · {{contests}} exams",
+    "title": "Gradebook"
+  },
   "icon": "Icon",
   "inviteLink": {
     "copied": "Copied",
@@ -166,6 +178,7 @@
   "sideMenu": {
     "announcements": "Classroom announcements",
     "contests": "Contest list",
+    "gradebook": "Gradebook",
     "members": "Classroom members",
     "overview": "Overview",
     "schedule": "Schedule Calendar",

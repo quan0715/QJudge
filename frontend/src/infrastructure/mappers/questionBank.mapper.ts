@@ -30,8 +30,16 @@ export function mapQuestionBankDto(dto: QuestionBankDto): QuestionBank {
 
 function mapCodingExtDto(dto?: CodingQuestionExtDto): CodingQuestionExt | undefined {
   if (!dto) return undefined;
+  // Adapt canonical content to the existing bank entity used by previews/imports.
+  const translations = dto.description !== undefined
+    ? [{
+        language: "zh-TW", title: "", description: dto.description,
+        input_description: dto.input_description,
+        output_description: dto.output_description, hint: dto.hint,
+      }]
+    : dto.translations || [];
   return {
-    translations: (dto.translations || []).map((t) => ({
+    translations: translations.map((t) => ({
       language: t.language,
       title: t.title,
       description: t.description,
