@@ -1,5 +1,6 @@
 // Shared shell styles for contest and question-bank coding editors.
 @use "@carbon/layout";
+@use "@carbon/styles/scss/utilities/z-index" as z;
 
 .problem-edit-page {
   position: fixed;
@@ -51,4 +52,14 @@
     margin: 0 auto;
   }
 
+}
+
+// The mobile navigation drawer also uses Carbon's modal layer. Keep coding
+// dialogs above it even when resizing mounts the drawer after the dialog.
+.coding-editor-modal {
+  z-index: z.z("modal") + 1;
+}
+
+.coding-editor-child-modal {
+  z-index: z.z("modal") + 2;
 }

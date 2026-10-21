@@ -126,6 +126,18 @@
   "description": "説明",
   "editCover": "カバー画像を編集",
   "editMember": "メンバーを編集",
+  "gradebook": {
+    "average": "平均",
+    "colDisplayName": "氏名",
+    "colUsername": "アカウント",
+    "empty": "学生または試験がまだありません",
+    "export": "CSV をエクスポート",
+    "exportFailed": "エクスポートに失敗しました",
+    "loadFailed": "成績一覧を読み込めません",
+    "notAttempted": "未参加",
+    "summary": "学生 {{students}} 名 · 試験 {{contests}} 件",
+    "title": "成績一覧"
+  },
   "icon": "アイコン",
   "inviteLink": {
     "copied": "コピーしました",
@@ -161,12 +173,12 @@
   "removeCover": "カバーを削除",
   "removeMember": "メンバーを削除",
   "removeMemberFailed": "メンバーの削除に失敗しました",
-  "roleAdmin": "管理者",
   "settingsMembers": "TA管理",
   "settingsSaveFailed": "設定の保存に失敗しました",
   "sideMenu": {
     "announcements": "教室のお知らせ",
     "contests": "コンテスト一覧",
+    "gradebook": "成績一覧",
     "members": "教室メンバー",
     "overview": "概要",
     "schedule": "スケジュールカレンダー",

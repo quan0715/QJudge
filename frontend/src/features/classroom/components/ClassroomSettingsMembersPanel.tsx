@@ -20,9 +20,10 @@ import {
   TableToolbarSearch,
 } from "@carbon/react";
 import { Add, Edit, TrashCan } from "@carbon/icons-react";
-import type {
-  ClassroomDetail,
-  ClassroomMember,
+import {
+  isClassroomOwnerRole,
+  type ClassroomDetail,
+  type ClassroomMember,
 } from "@/core/entities/classroom.entity";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { Section } from "@/shared/layout/SettingsPanel";
@@ -68,6 +69,8 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
   );
 
   const { showToast } = useToast();
+  // TAs manage students; only the owner changes roles or removes TAs.
+  const canManageRoles = isClassroomOwnerRole(classroom.currentUserRole);
 
   const [regenerateConfirmOpen, setRegenerateConfirmOpen] = useState(false);
   const [roleFilter, setRoleFilter] = useState<"all" | "student" | "ta">("all");
@@ -79,12 +82,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
   // Delete confirm state (triggered from edit modal)
   const [pendingMemberRemoval, setPendingMemberRemoval] = useState<ClassroomMember | null>(null);
 
-  type RowRole = "student" | "ta" | "admin";
-
-  const adminIds = useMemo(
-    () => new Set(classroom.admins.map((a) => a.id)),
-    [classroom.admins],
-  );
+  type RowRole = "student" | "ta";
 
   const memberMap = useMemo(() => {
     const map = new Map<number, ClassroomMember>();
@@ -92,24 +90,15 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
     return map;
   }, [classroom.members]);
 
-  // Combine admins + members into a unified list
   const allRows = useMemo(() => {
-    const adminRows = classroom.admins.map((a) => ({
-      id: `admin-${a.id}`,
-      numericId: a.id,
-      username: a.username,
-      email: "",
-      role: "admin" as RowRole,
-    }));
-    const memberRows = classroom.members.map((m) => ({
+    return classroom.members.map((m) => ({
       id: `member-${m.userId}`,
       numericId: m.userId,
       username: m.username,
       email: m.email,
       role: m.role as RowRole,
-    })).filter((row) => row.numericId !== undefined && !adminIds.has(row.numericId) && row.username !== classroom.ownerUsername);
-    return [...adminRows, ...memberRows];
-  }, [adminIds, classroom.admins, classroom.members, classroom.ownerUsername]);
+    })).filter((row) => row.numericId !== undefined && row.username !== classroom.ownerUsername);
+  }, [classroom.members, classroom.ownerUsername]);
 
   const filteredRows = useMemo(() => {
     if (roleFilter === "all") return allRows;
@@ -273,13 +262,10 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                   ) : (
                     tableRows.map((row) => {
                       const numericId = rowIdMap.get(row.id);
-                      const isAdmin = numericId != null && adminIds.has(numericId);
                       const member = numericId != null ? memberMap.get(numericId) : undefined;
-                      const roleValue = isAdmin ? "admin" : ((member?.role ?? "student") as RowRole);
-                      const roleTagType = roleValue === "admin" ? "red" : roleValue === "ta" ? "purple" : "teal";
-                      const roleLabel = roleValue === "admin"
-                        ? t("roleAdmin")
-                        : tc(`role.${roleValue}`);
+                      const roleValue = (member?.role ?? "student") as RowRole;
+                      const roleTagType = roleValue === "ta" ? "purple" : "teal";
+                      const roleLabel = tc(`role.${roleValue}`);
                       return (
                         <TableRow {...getRowProps({ row })} key={row.id}>
                           {row.cells.map((cell) => {
@@ -293,7 +279,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                               );
                             }
                             if (cell.info.header === "actions") {
-                              if (isAdmin) {
+                              if (!canManageRoles && roleValue === "ta") {
                                 return <TableCell key={cell.id} />;
                               }
                               return (
@@ -346,6 +332,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                   {editingMember.email}
                 </span>
               </div>
+              {canManageRoles && (
               <Dropdown
                 id="edit-member-role"
                 label=""
@@ -357,6 +344,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                   if (selectedItem) setEditRole(selectedItem.id as "student" | "ta");
                 }}
               />
+              )}
               <div style={{ borderTop: "1px solid var(--cds-border-subtle-01)", paddingTop: "1rem" }}>
                 <Button
                   kind="danger--ghost"

@@ -261,7 +261,6 @@ export function mapParticipantDashboardDto(
     actions: {
       canDownloadReport: !!dto?.actions?.can_download_report,
       canEditStatus: !!dto?.actions?.can_edit_status,
-      canRemoveParticipant: !!dto?.actions?.can_remove_participant,
       canUnlock: !!dto?.actions?.can_unlock,
       canReopenExam: !!dto?.actions?.can_reopen_exam,
       canViewEvidence: !!dto?.actions?.can_view_evidence,

@@ -6,18 +6,20 @@ import { LANGUAGE_OPTIONS } from "@/features/problems/constants/codeTemplates";
 
 export type { FieldSaveStatus, FieldSaveState, GlobalSaveStatus,
   FieldAutoSaveReturn as UseAutoSaveReturn } from "@/shared/hooks/useFieldAutoSave";
-export interface UseAutoSaveOptions extends Omit<FieldAutoSaveOptions, "target" | "write"> {
-  contestId: string;
-  contestProblemId: string;
-  getFormValues?: () => Record<string, unknown>;
-}
+export type ProblemSaveTarget =
+  | { contestId: string; contestProblemId: string; target?: never; write?: never }
+  | { target: string; write: FieldAutoSaveOptions["write"]; contestId?: never; contestProblemId?: never };
 
-export function useAutoSave({ contestId, contestProblemId, getFormValues, ...options }: UseAutoSaveOptions) {
+export type UseAutoSaveOptions = Omit<FieldAutoSaveOptions, "target" | "write"> & ProblemSaveTarget & {
+  getFormValues?: () => Record<string, unknown>;
+};
+
+export function useAutoSave({ contestId, contestProblemId, target, write, getFormValues, ...options }: UseAutoSaveOptions) {
   return useFieldAutoSave({
     ...options,
-    target: `${contestId}/${contestProblemId}`,
-    write: (field, value) =>
-      patchContestProblem(contestId, contestProblemId, buildPatchPayload(field, value, getFormValues?.())),
+    target: target ?? `${contestId}/${contestProblemId}`,
+    write: write ?? ((field, value) =>
+      patchContestProblem(contestId!, contestProblemId!, buildPatchPayload(field, value, getFormValues?.()))),
   });
 }
 

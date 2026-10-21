@@ -17,6 +17,7 @@ from apps.question_bank.models import (
 )
 from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom
 
 
 @pytest.fixture
@@ -37,7 +38,7 @@ def teacher() -> User:
 @pytest.fixture
 def contest(teacher: User) -> Contest:
     now = timezone.now()
-    return Contest.objects.create(
+    return create_contest_in_classroom(
         name="Asset Integration Contest",
         owner=teacher,
         contest_type="paper_exam",
@@ -49,9 +50,10 @@ def contest(teacher: User) -> Contest:
 
 @pytest.mark.django_db
 def test_problem_api_create_and_update_dual_write_question_asset(api_client: APIClient, teacher: User):
+    coding_contest = create_contest_in_classroom(name="Coding Asset Contest", owner=teacher, contest_type="coding")
     api_client.force_authenticate(user=teacher)
     create_resp = api_client.post(
-        "/api/v1/management/problems/",
+        f"/api/v1/contests/{coding_contest.id}/problems/",
         {
             "title": "Canonical Coding Problem",
             "slug": "canonical-coding-problem",
@@ -84,7 +86,7 @@ def test_problem_api_create_and_update_dual_write_question_asset(api_client: API
     assert problem.question_asset.asset_type == QuestionAsset.AssetType.CODING
 
     update_resp = api_client.patch(
-        f"/api/v1/management/problems/{problem.id}/",
+        f"/api/v1/contests/{coding_contest.id}/problems/{create_resp.data['binding_id']}/",
         {"title": "Canonical Coding Problem v2"},
         format="json",
     )
@@ -130,7 +132,7 @@ def test_contest_create_problem_title_mode_creates_asset_and_binding(
     api_client: APIClient,
     teacher: User,
 ):
-    contest = Contest.objects.create(
+    contest = create_contest_in_classroom(
         name="Coding Asset Contest",
         owner=teacher,
         contest_type="coding",
@@ -310,7 +312,7 @@ def test_reading_set_asset_fits_bank_and_contest_binding_shape(teacher: User):
         name="Reading Set Bank",
         category=QuestionBank.Category.EXAM,
     )
-    contest = Contest.objects.create(
+    contest = create_contest_in_classroom(
         name="Reading Set Contest",
         owner=teacher,
         contest_type="paper_exam",

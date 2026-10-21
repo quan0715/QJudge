@@ -9,6 +9,7 @@ import {
   Calendar,
   Dashboard,
   Education,
+  Report,
   Settings,
   Trophy,
   UserMultiple,
@@ -41,6 +42,7 @@ import { OverviewPanel } from "./panels/OverviewPanel";
 import { SchedulePanel } from "./panels/SchedulePanel";
 import { ContestPanel } from "./panels/ContestPanel";
 import { MembersPanel } from "./panels/MembersPanel";
+import { GradebookPanel } from "./panels/GradebookPanel";
 import { getClassroomIcon } from "../constants/classroomIcons";
 import { CLASSROOM_OPEN_SETTINGS_QUERY } from "../constants/classroomUrlParams";
 import { useTabWithUrlParam } from "@/shared/hooks";
@@ -86,6 +88,7 @@ const ClassroomDetailScreen: React.FC = () => {
         "announcements",
         "contests",
         "members",
+        "gradebook",
         "settings",
       ];
     }
@@ -377,6 +380,10 @@ const ClassroomDetailScreen: React.FC = () => {
                   <MembersPanel classroom={classroom} />
                 )}
 
+                {activePanel === "gradebook" && isPrivileged && (
+                  <GradebookPanel classroom={classroom} />
+                )}
+
                 {activePanel === "settings" && (
                   <div
                     className="classroom-admin-panel__settings-placeholder"
@@ -472,6 +479,10 @@ const TAB_CONFIG: Record<
   members: {
     label: (t) => t("sideMenu.members", "教室成員"),
     icon: UserMultiple,
+  },
+  gradebook: {
+    label: (t) => t("sideMenu.gradebook", "成績總表"),
+    icon: Report,
   },
   settings: {
     label: (t) => t("sideMenu.settings", "教室設定"),

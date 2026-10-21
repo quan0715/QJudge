@@ -16,6 +16,7 @@ from apps.contests.views.exam_validation_response import (
     validate_exam_operation_for_view,
 )
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 
 @pytest.fixture
@@ -41,7 +42,7 @@ def student() -> User:
 @pytest.fixture
 def published_contest(teacher: User) -> Contest:
     now = timezone.now()
-    return Contest.objects.create(
+    return create_contest_in_classroom(
         name="Published Service Boundary Contest",
         owner=teacher,
         status="published",
@@ -56,7 +57,7 @@ def test_validate_exam_operation_raises_drf_exceptions_instead_of_returning_resp
     teacher: User,
     student: User,
 ):
-    contest = Contest.objects.create(
+    contest = create_contest_in_classroom(
         name="Draft Service Boundary Contest",
         owner=teacher,
         status="draft",
@@ -75,6 +76,7 @@ def test_validate_exam_operation_returns_participant_on_success_and_raises_valid
     with pytest.raises(ValidationError, match="have not started this exam"):
         validate_exam_operation(published_contest, student, allow_admin_bypass=False)
 
+    enrol_candidates(published_contest, student)
     participant = ContestParticipant.objects.create(
         contest=published_contest,
         user=student,
@@ -95,6 +97,7 @@ def test_validate_exam_operation_admin_bypass_returns_participant_not_tuple(
     teacher: User,
     published_contest: Contest,
 ):
+    enrol_candidates(published_contest, teacher)
     participant = ContestParticipant.objects.create(
         contest=published_contest,
         user=teacher,
@@ -135,7 +138,7 @@ def test_validate_exam_operation_view_adapter_preserves_legacy_error_response(
     student: User,
     published_contest: Contest,
 ):
-    draft_contest = Contest.objects.create(
+    draft_contest = create_contest_in_classroom(
         name="Draft View Adapter Contest",
         owner=teacher,
         status="draft",
@@ -173,6 +176,7 @@ def test_device_conflict_service_returns_payload_not_response(
     assert hasattr(anti_cheat_session, "build_device_conflict_payload")
     build_device_conflict_payload = anti_cheat_session.build_device_conflict_payload
 
+    enrol_candidates(published_contest, student)
     participant = ContestParticipant.objects.create(
         contest=published_contest,
         user=student,
@@ -213,6 +217,7 @@ def test_device_conflict_view_adapter_wraps_payload_as_legacy_response(
     student: User,
     published_contest: Contest,
 ):
+    enrol_candidates(published_contest, student)
     participant = ContestParticipant.objects.create(
         contest=published_contest,
         user=student,

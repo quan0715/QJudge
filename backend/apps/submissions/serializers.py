@@ -3,6 +3,7 @@ Serializers for submissions app.
 """
 from rest_framework import serializers
 from .models import Submission, SubmissionResult, ScreenEvent
+from apps.contests.permissions import can_manage_contest
 from apps.problems.serializers import ProblemListSerializer
 from apps.users.serializers import EmbeddedUserSerializer
 
@@ -34,15 +35,24 @@ class SubmissionResultSerializer(serializers.ModelSerializer):
 
     def to_representation(self, obj):
         data = super().to_representation(obj)
-        if data['is_hidden'] and not self._is_privileged():
+        if data['is_hidden'] and not self._can_see_hidden_cases(obj.submission):
             data['input'] = None
             data['expected_output'] = None
         return data
 
-    def _is_privileged(self):
-        request = self.context.get('request')
-        user = request.user if request else None
-        return bool(user and (user.is_staff or getattr(user, 'role', '') in ['teacher', 'admin']))
+    def _can_see_hidden_cases(self, submission):
+        """Hidden test data is visible to platform admins and managers of the submission's contest."""
+        cache = self.__dict__.setdefault('_hidden_case_access', {})
+        if submission.pk not in cache:
+            request = self.context.get('request')
+            user = request.user if request else None
+            cache[submission.pk] = bool(
+                user and user.is_authenticated and (
+                    user.is_staff or user.is_superuser
+                    or (submission.contest is not None and can_manage_contest(user, submission.contest))
+                )
+            )
+        return cache[submission.pk]
 
     def get_input(self, obj):
         return obj.test_case.input_data if obj.test_case else obj.input_data

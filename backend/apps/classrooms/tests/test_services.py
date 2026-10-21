@@ -87,7 +87,7 @@ def test_add_classroom_members_resolves_users_and_skips_reserved_members(
     student_a: User,
     student_b: User,
 ) -> None:
-    classroom.admins.add(student_b)
+    ClassroomMember.objects.create(classroom=classroom, user=student_b, role="ta")
 
     result = add_classroom_members(
         classroom,
@@ -109,7 +109,7 @@ def test_add_classroom_members_resolves_users_and_skips_reserved_members(
         role="student",
     ).exists()
     assert not ClassroomMember.objects.filter(classroom=classroom, user=owner).exists()
-    assert not ClassroomMember.objects.filter(classroom=classroom, user=student_b).exists()
+    assert ClassroomMember.objects.get(classroom=classroom, user=student_b).role == "ta"
 
 
 @pytest.mark.django_db

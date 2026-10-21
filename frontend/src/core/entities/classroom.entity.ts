@@ -1,8 +1,15 @@
+import type { ContestType } from "@/core/entities/contest.entity";
+
 export type ClassroomScopeRole =
   | "platform_admin"
   | "owner"
   | "manager"
   | "member";
+
+/** Only the classroom owner (or a platform admin) deletes the classroom or changes member roles. */
+export function isClassroomOwnerRole(role: ClassroomScopeRole | null | undefined): boolean {
+  return role === "platform_admin" || role === "owner";
+}
 
 export interface Classroom {
   id: string;
@@ -68,7 +75,26 @@ export interface ClassroomDetail extends Classroom {
   inviteCodeEnabled: boolean;
   members: ClassroomMember[];
   contests: BoundContest[];
-  admins: { id: number; username: string }[];
   announcements: ClassroomAnnouncement[];
   updatedAt: string;
+}
+
+export interface ClassroomGradebookContest {
+  id: string;
+  name: string;
+  contestType: ContestType;
+  startTime: string | null;
+  maxScore: number;
+}
+
+export interface ClassroomGradebookStudent {
+  userId: number;
+  username: string;
+  displayName: string;
+  scores: Record<string, number | null>;
+}
+
+export interface ClassroomGradebook {
+  contests: ClassroomGradebookContest[];
+  students: ClassroomGradebookStudent[];
 }

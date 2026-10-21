@@ -46,8 +46,8 @@ class ParticipationFixture(APITestCase):
         self.classroom = Classroom.objects.create(
             name="Algorithms", owner=self.owner, invite_code=generate_invite_code(),
         )
-        self.classroom.admins.add(self.co_admin)
         for user, role in (
+            (self.co_admin, "ta"),
             (self.ta, "ta"),
             (self.student, "student"),
             (self.other_student, "student"),

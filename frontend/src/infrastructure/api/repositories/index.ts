@@ -17,11 +17,9 @@ export {
   downloadMyReport,
 } from "./contestExports.repository";
 export {
-  addContestParticipant,
   downloadParticipantReport,
   getContestParticipants,
   getParticipantDashboard,
-  removeParticipant,
   reopenExam,
   unlockParticipant,
   updateParticipant,

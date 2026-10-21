@@ -17,7 +17,6 @@ from django.utils import timezone
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.permissions import (
     MANAGER_SCOPE_ROLES,
-    LIFECYCLE_OWNER_ROLES,
     can_manage_contest,
     get_contest_scope_role,
 )
@@ -100,6 +99,8 @@ def contest(owner: User, co_owner: User) -> Contest:
 
 @pytest.fixture
 def registered_participant(contest: Contest, participant_user: User) -> ContestParticipant:
+    classroom = contest.classroom_bindings.get().classroom
+    ClassroomMember.objects.create(classroom=classroom, user=participant_user, role="student")
     return ContestParticipant.objects.create(
         contest=contest,
         user=participant_user,
@@ -195,18 +196,8 @@ def test_manager_scope_roles_contents() -> None:
     assert 'anonymous' not in MANAGER_SCOPE_ROLES
 
 
-def test_lifecycle_owner_roles_contents() -> None:
-    """Lifecycle operations must be restricted to platform_admin and owner only."""
-    assert 'platform_admin' in LIFECYCLE_OWNER_ROLES
-    assert 'owner' in LIFECYCLE_OWNER_ROLES
-    assert 'co_owner' not in LIFECYCLE_OWNER_ROLES
-    assert 'participant' not in LIFECYCLE_OWNER_ROLES
-    assert 'outsider' not in LIFECYCLE_OWNER_ROLES
-    assert 'anonymous' not in LIFECYCLE_OWNER_ROLES
-
-
 @pytest.mark.django_db
-def test_classroom_bound_contest_uses_classroom_scope_by_default(owner: User) -> None:
+def test_classroom_bound_contest_uses_only_classroom_scope(owner: User) -> None:
     legacy_contest_owner = User.objects.create_user(
         username="legacy_contest_owner",
         email="legacy_contest_owner@example.com",
@@ -236,9 +227,9 @@ def test_classroom_bound_contest_uses_classroom_scope_by_default(owner: User) ->
 
     assert get_contest_scope_role(owner, contest) == "owner"
     assert get_contest_scope_role(classroom_ta, contest) == "co_owner"
-    # Contest creator keeps owner scope even when not a classroom member (merge w/ classroom ACL).
-    assert get_contest_scope_role(legacy_contest_owner, contest) == "owner"
-    assert can_manage_contest(legacy_contest_owner, contest) is True
+    # The contest creator has no role outside the classroom.
+    assert get_contest_scope_role(legacy_contest_owner, contest) == "outsider"
+    assert can_manage_contest(legacy_contest_owner, contest) is False
     assert can_manage_contest(classroom_ta, contest) is True
 
 
@@ -254,12 +245,9 @@ def test_base_permissions_platform_admin() -> None:
     assert 'view_scoreboard_full' in perms
 
 
-def test_base_permissions_co_owner_no_lifecycle() -> None:
-    """co_owner should not have lifecycle management (toggle status, delete)."""
-    perms = BASE_ROLE_PERMISSIONS['co_owner']
-    assert 'manage_contest_settings' in perms
-    assert 'manage_participants' in perms
-    assert 'manage_contest_lifecycle' not in perms
+def test_base_permissions_co_owner_match_owner() -> None:
+    """Classroom TAs can do everything the classroom owner can in a contest."""
+    assert BASE_ROLE_PERMISSIONS['co_owner'] == BASE_ROLE_PERMISSIONS['owner']
 
 
 def test_base_permissions_participant() -> None:
@@ -285,17 +273,15 @@ def test_object_permissions_resolve_the_contest_from_either_shape(
 ) -> None:
     from types import SimpleNamespace
 
-    from apps.contests.permissions import IsContestLifecycleOwner, IsContestOwnerOrAdmin
+    from apps.contests.permissions import IsContestOwnerOrAdmin
 
     def request_for(user):
         return SimpleNamespace(user=user)
 
     related = SimpleNamespace(contest=contest)
     manage = IsContestOwnerOrAdmin()
-    lifecycle = IsContestLifecycleOwner()
 
     assert manage.has_object_permission(request_for(co_owner), None, contest) is True
     assert manage.has_object_permission(request_for(co_owner), None, related) is True
+    assert manage.has_object_permission(request_for(owner), None, related) is True
     assert manage.has_object_permission(request_for(outsider), None, contest) is False
-    assert lifecycle.has_object_permission(request_for(owner), None, contest) is True
-    assert lifecycle.has_object_permission(request_for(co_owner), None, related) is False

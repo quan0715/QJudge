@@ -38,16 +38,9 @@ export function useContestResultDashboard(
   const loadedDetailIdsRef = useRef<Set<string>>(new Set());
 
   const contestId = contest?.id;
-  const contestType = contest?.contestType;
 
   useEffect(() => {
     if (!contestId || !contest) {
-      setData(null);
-      setLoading(false);
-      hydratedContestIdRef.current = null;
-      return;
-    }
-    if (contestType === "coding") {
       setData(null);
       setLoading(false);
       hydratedContestIdRef.current = null;
@@ -86,7 +79,7 @@ export function useContestResultDashboard(
     return () => {
       cancelRef.current = true;
     };
-  }, [contestId, contestType, refreshKey]);
+  }, [contestId, refreshKey]);
 
   const loadQuestionDetail = useCallback(
     async (questionId: string) => {

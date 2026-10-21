@@ -100,7 +100,6 @@ export interface ParticipantDashboardTimelineItem {
 export interface ParticipantDashboardActions {
   canDownloadReport: boolean;
   canEditStatus: boolean;
-  canRemoveParticipant: boolean;
   canUnlock: boolean;
   canReopenExam: boolean;
   canViewEvidence: boolean;
@@ -271,7 +270,6 @@ export type ExamStatusType =
 export interface ContestDetail extends Contest {
   rules?: string;
   ownerUsername?: string;
-  isClassroomBound?: boolean;
   boundClassroomId?: string | null;
 
   // Contest type

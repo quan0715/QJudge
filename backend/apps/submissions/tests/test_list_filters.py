@@ -15,10 +15,11 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.contests.models import ContestParticipant, ExamStatus
 from apps.problems.models import CodingProblem
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
+from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 User = get_user_model()
 
@@ -41,11 +42,12 @@ class SubmissionListProblemFilterContractTests(TestCase):
             role="student",
         )
 
-        cls.contest = Contest.objects.create(
+        cls.contest = create_contest_in_classroom(
             name="Filter Contract Contest",
             owner=cls.teacher,
             status="published",
         )
+        enrol_candidates(cls.contest, cls.student)
         ContestParticipant.objects.create(
             contest=cls.contest,
             user=cls.student,
@@ -133,7 +135,7 @@ class SubmissionListUserFilterTests(TestCase):
     def setUpTestData(cls) -> None:
         owner = User.objects.create_user(username="problem-owner", email="problem@example.com", password="password123")
         cls.problem = CodingProblem.objects.create(slug="user-filter-problem", created_by=owner)
-        cls.contest = Contest.objects.create(
+        cls.contest = create_contest_in_classroom(
             name="User Filter Contest", owner=owner, status="published",
             start_time=timezone.now() - timedelta(hours=1), end_time=timezone.now() + timedelta(hours=1),
             scoreboard_visible_during_contest=False,
@@ -141,6 +143,7 @@ class SubmissionListUserFilterTests(TestCase):
         cls.user1 = User.objects.create_user(username="user1", email="user1@example.com", password="password123")
         cls.user2 = User.objects.create_user(username="user2", email="user2@example.com", password="password123")
         for user in (cls.user1, cls.user2):
+            enrol_candidates(cls.contest, user)
             ContestParticipant.objects.create(contest=cls.contest, user=user, exam_status=ExamStatus.IN_PROGRESS)
         cls.own = [cls._submission(cls.user1), cls._submission(cls.user1)]
         cls.others = cls._submission(cls.user2)

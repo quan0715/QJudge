@@ -22,14 +22,14 @@ class IsSuperAdmin(BasePermission):
 
 class IsTeacherOrAdmin(BasePermission):
     """
-    Permission check for teacher or admin users.
-    Only users with role='teacher' or role='admin' can access.
+    Platform-level permission for teachers and platform admins.
+    Contest- and classroom-scoped access must use their own role checks.
     """
 
     def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated and
-            request.user.role in ('teacher', 'admin')
+        user = request.user
+        return user.is_authenticated and (
+            user.is_staff or user.is_superuser or user.role == 'teacher'
         )
 
     message = '只有教師或管理員可以執行此操作'

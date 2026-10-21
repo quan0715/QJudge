@@ -86,22 +86,19 @@ class SubmissionViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         """
         Get submission details.
-        Strict permission check: Only owner, admin, problem owner, or contest owner can view.
+        Only the submitter, platform admins, and managers of the submission's contest can view.
         """
         instance = self.get_object()
         user = request.user
-        
-        # Check permissions
+
         is_owner = instance.user == user
-        is_platform_admin = user.is_staff or getattr(user, 'role', '') == 'admin'
-        is_contest_owner = instance.contest and instance.contest.owner == user
-        is_problem_owner = instance.problem.created_by == user
+        is_platform_admin = user.is_staff or user.is_superuser
         is_contest_admin = (
             instance.contest
             and SubmissionAccessPolicy.is_privileged(user, instance.contest)
         )
 
-        if not (is_owner or is_platform_admin or is_contest_owner or is_problem_owner or is_contest_admin):
+        if not (is_owner or is_platform_admin or is_contest_admin):
             return Response(
                 {'detail': 'You do not have permission to view this submission details.'},
                 status=status.HTTP_403_FORBIDDEN

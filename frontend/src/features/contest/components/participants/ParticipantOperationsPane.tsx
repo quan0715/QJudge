@@ -18,7 +18,6 @@ import {
   ArrowRight,
   Renew,
   SendAlt,
-  TrashCan,
   UserMultiple,
   WarningAlt,
   View,
@@ -45,7 +44,6 @@ interface ParticipantOperationsPaneProps {
   onReopenExam: () => void;
   onAssistedAttendance?: (purpose: "check_in" | "check_out") => void;
   onResetExamRecord?: () => void;
-  onRemoveParticipant?: () => void;
   onOpenDetail: (detail: ParticipantDashboardDetail) => void;
   onOpenGrading: () => void;
   onOpenProctoring: () => void;
@@ -77,7 +75,6 @@ const ParticipantOperationsPane = ({
   onReopenExam,
   onAssistedAttendance,
   onResetExamRecord,
-  onRemoveParticipant,
   onOpenDetail,
   onOpenGrading,
   onOpenProctoring,
@@ -312,17 +309,6 @@ const ParticipantOperationsPane = ({
                   label={t("participants.actions.resetExamRecord", "重置考試紀錄")}
                   renderIcon={Renew}
                   onClick={onResetExamRecord}
-                />
-              </>
-            ) : null}
-            {onRemoveParticipant ? (
-              <>
-                <MenuItemDivider />
-                <MenuItem
-                  kind="danger"
-                  label={t("participants.actions.remove", "移除參賽者")}
-                  renderIcon={TrashCan}
-                  onClick={onRemoveParticipant}
                 />
               </>
             ) : null}

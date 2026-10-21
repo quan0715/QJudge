@@ -10,8 +10,9 @@ from uuid import UUID
 from django.db import IntegrityError, transaction
 from django.db.models import Max, Q
 
-from apps.contests.models import ExamQuestion, ExamQuestionType
-from apps.contests.permissions import can_manage_contest
+from apps.contests.managers import classroom_manager_filter
+from apps.contests.models import Contest, ExamQuestion, ExamQuestionType
+from apps.contests.permissions import can_manage_coding_problem, can_manage_contest
 from apps.problems.models import CodingProblem
 
 from .models import QuestionBank, QuestionBankMembership
@@ -109,15 +110,6 @@ def _resolve_problem_source_context(problem: CodingProblem) -> tuple[str | None,
     if binding is None:
         return None, ""
     return str(binding.contest_id), binding.contest.name
-
-
-def _user_may_ingest_coding_problem(*, user, problem: CodingProblem) -> bool:
-    """Allow the creator or anyone who manages a contest that links this problem."""
-    if getattr(problem, "created_by_id", None) == user.id:
-        return True
-    from apps.question_bank.models import ContestQuestionBinding
-    bindings = ContestQuestionBinding.objects.filter(coding_problem=problem).select_related("contest")
-    return any(can_manage_contest(user, binding.contest) for binding in bindings)
 
 
 def upsert_problem_into_bank(problem: CodingProblem, bank: QuestionBank, created_by=None) -> QuestionBankMembership:
@@ -278,6 +270,10 @@ def _resolve_effective_existing_membership(*, queryset, user) -> QuestionBankMem
     return queryset.filter(bank__owner=user, bank__is_archived=False).order_by("-updated_at", "-id").first()
 
 
+def _contests_managed_in_classroom(user):
+    return Contest.objects.filter(classroom_manager_filter(user)).values("id")
+
+
 def list_question_bank_inbox(user, category: str | None = None) -> dict[str, list[dict[str, Any]]]:
     result: dict[str, list[dict[str, Any]]] = {
         "coding": [],
@@ -298,8 +294,7 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
         )
         managed_problem_ids = ContestQuestionBinding.objects.filter(
             coding_problem__isnull=False,
-        ).filter(
-            Q(contest__owner=user)
+            contest__in=_contests_managed_in_classroom(user),
         ).values_list("coding_problem_id", flat=True)
         coding_rows = (
             CodingProblem.objects.filter(Q(created_by=user) | Q(id__in=managed_problem_ids))
@@ -330,7 +325,7 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
             source_type="exam_question",
         )
         exam_rows = (
-            ExamQuestion.objects.filter(Q(contest__owner=user))
+            ExamQuestion.objects.filter(contest__in=_contests_managed_in_classroom(user))
             .filter(source_bank_id__isnull=True)
             .exclude(id__in=synced)
             .select_related("contest")
@@ -402,7 +397,7 @@ def ingest_question_bank_inbox_items(
 
             if source_type == "problem":
                 source = CodingProblem.objects.filter(id=source_id).first()
-                if not source or not _user_may_ingest_coding_problem(user=user, problem=source):
+                if not source or not can_manage_coding_problem(user, source):
                     raise ValueError(f"Problem {source_id} not found")
 
                 if not source.question_asset_id:

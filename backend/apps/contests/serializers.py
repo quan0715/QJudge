@@ -94,7 +94,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     exam_status = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
     participant_count = serializers.SerializerMethodField()
-    is_classroom_bound = serializers.SerializerMethodField()
     bound_classroom_id = serializers.SerializerMethodField()
     exam_questions_count = serializers.SerializerMethodField()
     question_edit_locked = serializers.SerializerMethodField()
@@ -142,7 +141,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'problems',
             'allow_multiple_joins',
             'participant_count',
-            'is_classroom_bound',
             'bound_classroom_id',
             'results_published',
             'exam_questions_count',
@@ -250,18 +248,12 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         """Roster size: student members plus anyone who actually sat it."""
         return len(roster_user_ids(obj))
 
-    def _get_primary_classroom_binding(self, obj):
-        return (
+    def get_bound_classroom_id(self, obj):
+        binding = (
             obj.classroom_bindings.select_related('classroom')
             .order_by('bound_at')
             .first()
         )
-
-    def get_is_classroom_bound(self, obj):
-        return self._get_primary_classroom_binding(obj) is not None
-
-    def get_bound_classroom_id(self, obj):
-        binding = self._get_primary_classroom_binding(obj)
         if binding is None:
             return None
         return str(binding.classroom.uuid)
