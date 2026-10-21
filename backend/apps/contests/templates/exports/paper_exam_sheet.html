@@ -35,6 +35,7 @@
     {% else %}
     <section class="question-list">
       {% for q in questions %}
+      {% if q.group_heading %}<section class="question-group-block">{% endif %}
       <article class="question-item{% if q.grouped %} grouped-question{% endif %}">
         {% if q.group_heading %}
         <section class="question-group-heading">
@@ -88,6 +89,7 @@
         {% endif %}
         </div>
       </article>
+      {% if q.group_end %}</section>{% endif %}
       {% endfor %}
     </section>
 

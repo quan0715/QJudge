@@ -2,6 +2,12 @@
 @page {
   size: A4;
   margin: 20mm 20mm 18mm;
+  @bottom-center {
+    content: counter(page);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 11px;
+    color: #525252;
+  }
 }
 
 body {
@@ -63,7 +69,16 @@ p, li {
 
 .question-item {
   page-break-inside: avoid;
-  margin-bottom: 20px;
+  margin-bottom: 28px;
+}
+
+.question-group-block {
+  page-break-inside: avoid;
+}
+
+.question-group-block + .question-item,
+.question-item + .question-item:not(.grouped-question) {
+  margin-top: 44px;
 }
 
 .question-headline {
@@ -88,7 +103,7 @@ p, li {
 }
 
 .question-group-heading {
-  margin: 28px 0 16px;
+  margin: 44px 0 24px;
 }
 
 .question-group-meta {

@@ -86,6 +86,7 @@ class PaperExamSheetRenderer(BaseRenderer):
                     "prompt_html": render_markdown(q.prompt or "", soft_breaks=False),
                     "grouped": bool(q.group_id),
                     "group_heading": group_heading,
+                    "group_end": bool(q.group_id) and (idx == len(questions) or questions[idx].group_id != q.group_id),
                     "options": self._get_options(q),
                     "answer_text": answer_text,
                     "answer_html": render_markdown(answer_text, soft_breaks=False) if answer_text else "",
