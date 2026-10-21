@@ -410,6 +410,38 @@ describe("chatbotCopilotMapper", () => {
     ]);
   });
 
+  it("maps parentToolCallId onto tool parts", () => {
+    const message: ChatMessage = {
+      id: "message-subagent-tool",
+      role: "assistant",
+      content: "",
+      timestamp: new Date("2026-01-01T00:00:00Z"),
+      toolExecutions: [{ toolName: "echo", toolCallId: "C1", parentToolCallId: "T1" }],
+    };
+
+    expect(mapChatMessageToCopilot(message).parts[0]).toMatchObject({
+      type: "tool",
+      toolCallId: "C1",
+      parentToolCallId: "T1",
+    });
+  });
+
+  it("attaches subagent activity to the task part", () => {
+    const message: ChatMessage = {
+      id: "message-subagent-activity",
+      role: "assistant",
+      content: "",
+      timestamp: new Date("2026-01-01T00:00:00Z"),
+      toolExecutions: [{ toolName: "task", toolCallId: "T1" }],
+      subagentActivity: { T1: { text: "讀取作答" } },
+    };
+
+    expect(mapChatMessageToCopilot(message).parts[0]).toMatchObject({
+      toolCallId: "T1",
+      activity: { text: "讀取作答" },
+    });
+  });
+
   it("keeps QJudge artifact metadata outside the public attachment", () => {
     const artifact: ArtifactRecord = {
       artifact_id: "artifact-1",
@@ -752,6 +784,51 @@ describe("createQJudgeCopilotTransport", () => {
     );
     expect(toolCallIds[0]).toEqual(expect.any(String));
     expect(toolCallIds[1]).toBe(toolCallIds[0]);
+  });
+
+  it("upserts task part with subagent activity", async () => {
+    const repository = createRepository({
+      subscribeRunEvents: vi.fn(
+        async (_run: ChatRun, callbacks: StreamCallbacks) => {
+          callbacks.onToolStarted?.(
+            { toolName: "task", toolCallId: "T1", inputData: { description: "批改 Q3" } },
+            1,
+          );
+          callbacks.onToolStarted?.(
+            { toolName: "echo", toolCallId: "C1", parentToolCallId: "T1" },
+            2,
+          );
+          callbacks.onMessageUpdate?.(
+            { subagentActivity: { T1: { text: "讀取作答" } } },
+            3,
+          );
+          await new Promise<void>(() => {});
+        },
+      ),
+    });
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    const run = await transport.startRun({ sessionId: legacySession.id, text: "Hi" });
+    const events: CopilotRunEvent[] = [];
+
+    transport.subscribeRun(run, {
+      next: (event) => events.push(event),
+      error: vi.fn(),
+      complete: vi.fn(),
+    });
+    await vi.waitFor(() => expect(events).toHaveLength(3));
+
+    expect(events).toMatchObject([
+      { part: { toolCallId: "T1", state: "input-ready" } },
+      { part: { toolCallId: "C1", parentToolCallId: "T1" } },
+      {
+        part: {
+          toolCallId: "T1",
+          state: "input-ready",
+          input: { description: "批改 Q3" },
+          activity: { text: "讀取作答" },
+        },
+      },
+    ]);
   });
 
   it("keeps interleaved tool starts paired to their own terminal updates", async () => {

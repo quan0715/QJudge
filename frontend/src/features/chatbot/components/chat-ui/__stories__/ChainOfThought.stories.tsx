@@ -60,3 +60,44 @@ export const WithError: Story = {
     isProcessing: false,
   },
 };
+
+const subagentTask = {
+  type: "tool" as const,
+  toolCallId: "task-1",
+  toolName: "task",
+  input: { description: "批改 Q3 TCP 三向交握\n逐份閱讀 grade_q3.csv 並填入 score 與 reason" },
+};
+const subagentChildren = [
+  { ...mockToolSteps[0], toolCallId: "child-1", parentToolCallId: "task-1" },
+  { ...mockToolSteps[1], toolCallId: "child-2", parentToolCallId: "task-1" },
+];
+
+export const SubagentRunning: Story = {
+  name: "子代理執行中",
+  args: {
+    steps: subagentChildren,
+    isProcessing: true,
+    activeStep: {
+      ...subagentTask,
+      state: "input-ready",
+      activity: {
+        text: "已讀取 36 份作答，正在建立評分準則。",
+        todos: [
+          { id: "1", label: "讀取作答", status: "success" },
+          { id: "2", label: "建立 rubric", status: "in_progress" },
+        ],
+      },
+    },
+  },
+};
+
+export const SubagentCompleted: Story = {
+  name: "子代理完成",
+  args: {
+    steps: [
+      { ...subagentTask, state: "output-ready", output: "Q3 已填 36 份，平均 9.1 分" },
+      ...subagentChildren,
+    ],
+    isProcessing: false,
+  },
+};
