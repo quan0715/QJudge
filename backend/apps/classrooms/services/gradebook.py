@@ -171,3 +171,17 @@ def write_gradebook_csv(gradebook: Gradebook, out) -> None:
             [student.username, student.display_name]
             + [_format_score(student.scores.get(c.id)) for c in gradebook.contests]
         )
+    writer.writerow(
+        ["平均", ""]
+        + [_format_score(_average_score(gradebook, c.id)) for c in gradebook.contests]
+    )
+
+
+def _average_score(gradebook: Gradebook, contest_id: uuid.UUID) -> float | None:
+    """Mean over students who attempted the contest; ``None`` when nobody did."""
+    scores = [
+        score
+        for student in gradebook.students
+        if (score := student.scores.get(contest_id)) is not None
+    ]
+    return sum(scores) / len(scores) if scores else None

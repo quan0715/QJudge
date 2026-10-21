@@ -16,16 +16,19 @@ class WriteGradebookCsvTests(SimpleTestCase):
             contests=[
                 GradebookContest(1, 'Lab 1', 'coding', None, 300.0),
                 GradebookContest(2, '期中考, 上', 'paper_exam', None, 120.0),
+                GradebookContest(3, 'Lab 2', 'coding', None, 200.0),
             ],
             students=[
-                GradebookStudent(10, '110550001', '王小明', {1: 300.0, 2: 96.5}),
-                GradebookStudent(11, '110550002', '', {1: 0.0, 2: None}),
+                GradebookStudent(10, '110550001', '王小明', {1: 300.0, 2: 96.5, 3: None}),
+                GradebookStudent(11, '110550002', '', {1: 0.0, 2: None, 3: None}),
             ],
         )
         out = io.StringIO()
         write_gradebook_csv(gb, out)
         self.assertEqual(out.getvalue().splitlines(), [
-            '帳號,姓名,Lab 1（滿分 300.00）,"期中考, 上（滿分 120.00）"',
-            '110550001,王小明,300.00,96.50',
-            '110550002,,0.00,',
+            '帳號,姓名,Lab 1（滿分 300.00）,"期中考, 上（滿分 120.00）",Lab 2（滿分 200.00）',
+            '110550001,王小明,300.00,96.50,',
+            '110550002,,0.00,,',
+            # Average over students who attempted each contest; blank when nobody did.
+            '平均,,150.00,96.50,',
         ])
