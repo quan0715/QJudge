@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.contests.models import Contest, ContestParticipant, ExamIntegrityRun
+from apps.contests.models import ContestParticipant, ExamIntegrityRun
 from apps.contests.serializers import ContestCreateUpdateSerializer
 from apps.contests.services.anticheat_config import build_integrity_policy_snapshot
 from apps.users.models import User

@@ -20,7 +20,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestParticipant, ExamQuestion, ExamStatus
+from apps.contests.models import ContestParticipant, ExamQuestion, ExamStatus
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionBank
 from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.contests import views as contest_views

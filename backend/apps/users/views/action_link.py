@@ -145,7 +145,7 @@ class ActionLinkIssueView(SchemaAPIView):
     def _issue_classroom_join(self, request, classroom_id):
         classroom = (
             Classroom.objects.select_related("owner")
-                .filter(uuid=classroom_id, is_archived=False)
+            .filter(uuid=classroom_id, is_archived=False)
             .first()
         )
         if classroom is None:

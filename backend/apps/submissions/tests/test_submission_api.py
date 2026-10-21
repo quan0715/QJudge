@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
-from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.contests.models import ContestParticipant, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
 from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 from apps.submissions.models import Submission

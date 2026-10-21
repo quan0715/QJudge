@@ -14,9 +14,7 @@ from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 
 from apps.users.models import User
-from apps.contests.models import (
-    Contest, ContestParticipant, ExamStatus
-)
+from apps.contests.models import ContestParticipant, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
 from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates

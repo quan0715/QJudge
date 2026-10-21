@@ -8,7 +8,7 @@ from django.urls import resolve
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestParticipant, ExamAnswer, ExamQuestion
+from apps.contests.models import ContestParticipant, ExamAnswer, ExamQuestion
 from apps.users.models import User
 from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 

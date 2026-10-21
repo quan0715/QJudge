@@ -10,7 +10,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.contests.models import Contest, ContestParticipant, ExamIntegrityRun, ExamStatus
+from apps.contests.models import ContestParticipant, ExamIntegrityRun, ExamStatus
 from apps.contests.services.anti_cheat_session import active_session_key
 from apps.contests.services.livekit_service import (
     build_video_grants,

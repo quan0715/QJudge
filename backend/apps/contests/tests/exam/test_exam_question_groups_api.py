@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestParticipant, ExamQuestion
+from apps.contests.models import ContestParticipant, ExamQuestion
 from apps.contests.tests.classroom_candidates import create_contest_in_classroom, enrol_candidates
 
 

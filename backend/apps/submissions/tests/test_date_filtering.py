@@ -6,7 +6,6 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.test import APIClient
-from apps.contests.models import Contest
 from apps.problems.models import CodingProblem
 from apps.submissions.models import Submission
 from apps.contests.tests.classroom_candidates import create_contest_in_classroom

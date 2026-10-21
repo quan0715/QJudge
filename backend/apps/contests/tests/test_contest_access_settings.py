@@ -9,7 +9,6 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.classrooms.models import Classroom, ClassroomContest
-from apps.contests.models import Contest
 from apps.contests.serializers import ContestCreateUpdateSerializer
 from apps.users.models import User
 from apps.contests.tests.classroom_candidates import create_contest_in_classroom

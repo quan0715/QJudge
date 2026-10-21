@@ -6,14 +6,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.contests.models import (
-    Contest,
-    ContestParticipant,
-    ExamAnswer,
-    ExamQuestion,
-    ExamQuestionType,
-    ExamStatus,
-)
+from apps.contests.models import ContestParticipant, ExamAnswer, ExamQuestion, ExamQuestionType, ExamStatus
 from apps.contests.services.exam_scoring import ExamScoringService
 from apps.contests.services.locked_question_update import apply_locked_question_update
 from apps.users.models import User

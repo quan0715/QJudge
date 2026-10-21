@@ -17,7 +17,7 @@ from django.db import IntegrityError, close_old_connections
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ExamIntegrityRun
+from apps.contests.models import ExamIntegrityRun
 from apps.contests.services import integrity_runs as integrity_run_service
 from apps.contests.services.integrity_runs import (
     IntegrityLifecycleError,

@@ -1159,7 +1159,7 @@ class TestCategoryValidation:
             upsert_problem_into_bank(problem=problem, bank=exam_bank)
 
     def test_upsert_exam_question_into_coding_bank_raises(self, teacher: User):
-        from apps.contests.models import Contest, ExamQuestion
+        from apps.contests.models import ExamQuestion
 
         coding_bank = QuestionBank.objects.create(
             owner=teacher,

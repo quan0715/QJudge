@@ -15,13 +15,7 @@ from django.core.cache import cache
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.contests.models import (
-    Contest,
-    ContestParticipant,
-    ExamEvent,
-    ExamIntegrityRun,
-    ExamStatus,
-)
+from apps.contests.models import ContestParticipant, ExamEvent, ExamIntegrityRun, ExamStatus
 from apps.contests.infrastructure.integrity_worker_client import (
     IntegrityWorkerProtocolError,
     IntegrityWorkerRejected,
