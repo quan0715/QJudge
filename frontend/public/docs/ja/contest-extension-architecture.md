@@ -54,7 +54,7 @@ Dashboard コンテナが肥大化するのを防ぐため、Registry パター�
 
 ### A. 共通化すべきであり、コンテストタイプごとに重複実装すべきではない
 - **不正防止メカニズム (Anti-Cheat / Precheck)**: その起動の有無は `contest.cheatDetectionEnabled` という Feature Flag のみに依存すべきであり、**決して**特定の `contestType` に紐付けてはいけません。
-- **Dashboard コンテナの骨組み**: `StudentDashboardLayout` および `AdminDashboardLayout`。
+- **Dashboard の構成**: `ContestWorkspaceLayout` / `AdminOverviewScreen`.
 - **解答ルートの計算**: `enterExamUseCase` を使用し、モジュールから解析された `answeringEntryPath` を渡すことで、試験開始フローを統一します。
 
 ### B. コンテストモジュールが決定すべきである（タイプによって異なり得る）

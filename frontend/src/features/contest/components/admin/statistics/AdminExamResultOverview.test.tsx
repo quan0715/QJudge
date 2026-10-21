@@ -108,6 +108,20 @@ describe("AdminExamResultOverview", () => {
     );
   });
 
+  it("withholds stale scores while loading and renders them after loading", () => {
+    const dashboard = createContestResultDashboardMock(buildContest());
+    const { rerender } = render(
+      <AdminExamResultOverview dashboard={dashboard} loading error={null} />,
+    );
+    expect(screen.getByLabelText("考試結果總覽")).toBeInTheDocument();
+    expect(screen.queryByText("71.80 / 100.00")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("score-distribution-chart")).not.toBeInTheDocument();
+
+    rerender(<AdminExamResultOverview dashboard={dashboard} loading={false} error={null} />);
+    expect(screen.getByText("71.80 / 100.00")).toBeInTheDocument();
+    expect(screen.getByTestId("score-distribution-chart")).toBeInTheDocument();
+  });
+
   it("renders score distribution for coding contests", () => {
     const contest = buildContest({ contestType: "coding" });
     const dashboard = createContestResultDashboardMock(contest);
