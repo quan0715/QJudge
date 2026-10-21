@@ -113,8 +113,6 @@ class ContestAccessPolicy(permissions.BasePermission):
         'participants': 'view_participants',
         'unlock_participant': 'manage_participants',
         'update_participant': 'manage_participants',
-        'add_participant': 'manage_participants',
-        'remove_participant': 'manage_participants',
         'reopen_exam': 'manage_participants',
 
         # Clarifications

@@ -80,7 +80,6 @@ interface AdminOverviewCommandCenterProps {
   gradingLoading?: boolean;
   contestId?: string;
   antiCheatEnabled?: boolean;
-  classroomBound?: boolean;
   contestInProgress?: boolean;
   onOpenPanel: (panel: AdminPanelId) => void;
   participants: ContestParticipant[];

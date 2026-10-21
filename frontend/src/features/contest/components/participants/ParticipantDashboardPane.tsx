@@ -28,7 +28,6 @@ import {
   Login,
   Logout,
   SendAlt,
-  TrashCan,
   Trophy,
   UserMultiple,
   WarningAlt,
@@ -67,8 +66,6 @@ interface ParticipantDashboardPaneProps {
   onEditStatus: () => void;
   onUnlock: () => void;
   onReopenExam: () => void;
-  /** When undefined, roster removal is hidden (e.g. classroom-managed contests). */
-  onRemoveParticipant?: () => void;
   onOpenGrading: () => void;
   onRefreshEvents?: () => Promise<void> | void;
 }
@@ -138,7 +135,6 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   onEditStatus,
   onUnlock,
   onReopenExam,
-  onRemoveParticipant,
   onOpenGrading,
   onRefreshEvents,
 }) => {
@@ -468,20 +464,6 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                               renderIcon={DocumentTasks}
                               onClick={onReopenExam}
                             />
-                          ) : null}
-                          {onRemoveParticipant ? (
-                            <>
-                              <MenuItemDivider />
-                              <MenuItem
-                                kind="danger"
-                                label={t(
-                                  "participants.actions.remove",
-                                  "移除參賽者",
-                                )}
-                                renderIcon={TrashCan}
-                                onClick={onRemoveParticipant}
-                              />
-                            </>
                           ) : null}
                         </MenuButton>
                       </div>

@@ -92,18 +92,6 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             return "upcoming"
         return "running"
 
-    def _classroom_managed_response(self):
-        return Response(
-            {
-                "error": {
-                    "code": "contest_managed_by_classroom",
-                    "message": "This contest is managed by a classroom. Update members in classroom.",
-                    "type": "permission_denied",
-                }
-            },
-            status=status.HTTP_403_FORBIDDEN,
-        )
-
     @staticmethod
     def _contest_requires_classroom_binding_response():
         return Response(
@@ -116,10 +104,6 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
-
-    def _classroom_roster_admin_gate(self, contest: Contest):
-        """Rosters come from the classroom, so manual roster endpoints are disabled."""
-        return self._classroom_managed_response()
 
     def _build_time_progress(self, contest: Contest, now):
         start_time = contest.start_time
@@ -536,23 +520,6 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             return Response({'status': 'reopened', 'exam_status': ExamStatus.PAUSED})
         except ContestParticipant.DoesNotExist:
             raise NotFound('Participant not found')
-
-    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='add_participant')
-    def add_participant(self, request, pk=None):
-        """
-        Manually add a participant to the contest.
-        """
-        contest = self.get_object()
-        return self._classroom_roster_admin_gate(contest)
-
-    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='remove_participant')
-    def remove_participant(self, request, pk=None):
-        """
-        Remove a participant from the contest.
-        Only contest owners/admins can perform this action.
-        """
-        contest = self.get_object()
-        return self._classroom_roster_admin_gate(contest)
 
     # ========== Standings & Export ==========
 

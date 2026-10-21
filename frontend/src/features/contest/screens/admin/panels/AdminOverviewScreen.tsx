@@ -10,7 +10,6 @@ import {
   QrCode,
   Renew,
   Scan,
-  UserFollow,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -20,7 +19,6 @@ import AdminPreparationCommandCenter from "@/features/contest/components/admin/A
 import AdminExamResultOverview from "@/features/contest/components/admin/statistics/AdminExamResultOverview";
 import AdminQuestionStatsGallery from "@/features/contest/components/admin/statistics/AdminQuestionStatsGallery";
 import { useContestResultDashboard } from "@/features/contest/components/admin/statistics/useContestResultDashboard";
-import { AddParticipantModal } from "@/features/contest/components/modals/AddParticipantModal";
 import ContestSubmissionListScreen from "@/features/contest/screens/ContestSubmissionListScreen";
 import AdminStandingsScreen from "@/features/contest/screens/admin/panels/AdminStandingsScreen";
 import {
@@ -35,7 +33,7 @@ import type {
   ContestSettingsSectionId,
 } from "@/features/contest/modules/types";
 import { useGradingData } from "@/features/contest/screens/settings/grading";
-import { addContestParticipant, updateContest } from "@/infrastructure/api/repositories";
+import { updateContest } from "@/infrastructure/api/repositories";
 import { exportContestResults } from "@/infrastructure/api/repositories/contestExports.repository";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
@@ -85,11 +83,9 @@ export default function AdminOverviewScreen({
   const [publishingResults, setPublishingResults] = useState(false);
   const [publishingContest, setPublishingContest] = useState(false);
   const [resultRefreshKey, setResultRefreshKey] = useState(0);
-  const [addParticipantOpen, setAddParticipantOpen] = useState(false);
   const [studentQrScannerOpen, setStudentQrScannerOpen] = useState(false);
   const [announcementOpen, setAnnouncementOpen] = useState(false);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
-  const classroomBound = Boolean(contest?.isClassroomBound);
 
   useEffect(() => {
     const updateTime = () => setCurrentTimeMs(Date.now());
@@ -111,32 +107,6 @@ export default function AdminOverviewScreen({
     return getContestState(contest, currentTimeMs) === "upcoming";
   }, [contest, currentTimeMs]);
 
-  const handleAddParticipant = useCallback(
-    async (username: string) => {
-      if (!contest?.id) return;
-      try {
-        await addContestParticipant(contest.id, username);
-        await refreshAllAdminData();
-        showToast({
-          kind: "success",
-          title: t("common.success", "成功"),
-          subtitle: t("participants.added", "參賽者已新增"),
-        });
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : t("participants.addFailed", "新增參賽者失敗");
-        showToast({
-          kind: "error",
-          title: t("common.error", "錯誤"),
-          subtitle: message,
-        });
-        throw error;
-      }
-    },
-    [contest?.id, refreshAllAdminData, showToast, t],
-  );
   const { globalStats, loading: gradingLoading } = useGradingData({
     participantsOverride: participants,
     refetchOnParticipantsChange: false,
@@ -481,18 +451,6 @@ export default function AdminOverviewScreen({
               disabled={!attendanceProjectionPath || !contest.attendanceCheckEnabled}
               onClick={openAttendanceProjection}
             />
-            {classroomBound ? null : (
-              <Button
-                kind="ghost"
-                hasIconOnly
-                renderIcon={UserFollow}
-                iconDescription={t(
-                  "adminOverview.screen.actions.addParticipant",
-                  "新增參賽者",
-                )}
-                onClick={() => setAddParticipantOpen(true)}
-              />
-            )}
             <Button
               kind="ghost"
               hasIconOnly
@@ -550,7 +508,6 @@ export default function AdminOverviewScreen({
               gradingLoading={gradingLoading}
               contestId={contest.id}
               antiCheatEnabled={contest.cheatDetectionEnabled}
-              classroomBound={classroomBound}
               contestInProgress={contestInProgress}
               onOpenPanel={openPanel}
               participants={participants}
@@ -617,16 +574,6 @@ export default function AdminOverviewScreen({
           )
         )}
       </div>
-      {classroomBound ? null : (
-        <AddParticipantModal
-          isOpen={addParticipantOpen}
-          onClose={() => setAddParticipantOpen(false)}
-          onSubmit={async (username) => {
-            await handleAddParticipant(username);
-            setAddParticipantOpen(false);
-          }}
-        />
-      )}
       <ConfirmModal {...confirmModalProps} />
     </div>
   );

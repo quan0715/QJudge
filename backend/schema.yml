@@ -4750,41 +4750,6 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/v1/contests/{id}/add_participant/:
-    post:
-      operationId: v1_contests_add_participant_create
-      description: Manually add a participant to the contest.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
   /api/v1/contests/{id}/anticheat-config/:
     get:
       operationId: v1_contests_anticheat_config_retrieve
@@ -5098,43 +5063,6 @@ paths:
     post:
       operationId: v1_contests_participants_reset_exam_record_create
       description: ViewSet for contests.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
-  /api/v1/contests/{id}/remove_participant/:
-    post:
-      operationId: v1_contests_remove_participant_create
-      description: |-
-        Remove a participant from the contest.
-        Only contest owners/admins can perform this action.
       parameters:
       - in: path
         name: id
@@ -8584,9 +8512,6 @@ components:
         participant_count:
           type: string
           readOnly: true
-        is_classroom_bound:
-          type: string
-          readOnly: true
         bound_classroom_id:
           type: string
           readOnly: true
@@ -8624,7 +8549,6 @@ components:
       - has_joined
       - has_started
       - id
-      - is_classroom_bound
       - is_exam_monitored
       - left_at
       - lock_reason

@@ -744,7 +744,6 @@ def build_participant_dashboard(
     actions = {
         "can_download_report": True,
         "can_edit_status": True,
-        "can_remove_participant": True,
         "can_unlock": participant.exam_status == ExamStatus.LOCKED,
         "can_reopen_exam": participant.exam_status == ExamStatus.SUBMITTED,
         "can_view_evidence": contest.contest_type == "paper_exam",

@@ -1101,35 +1101,7 @@ def test_platform_admin_can_toggle_status(
 
 
 @pytest.mark.django_db
-def test_classroom_bound_contest_blocks_participant_roster_mutation_endpoints(
-    api_client: APIClient,
-    contest: Contest,
-    owner: User,
-    other_teacher: User,
-) -> None:
-    api_client.force_authenticate(user=owner)
-
-    add_response = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_participant/",
-        {"username": other_teacher.username},
-        format="json",
-    )
-    assert add_response.status_code == status.HTTP_403_FORBIDDEN
-    assert add_response.data["error"]["code"] == "contest_managed_by_classroom"
-
-    enrol_candidates(contest, other_teacher)
-    participant = ContestParticipant.objects.create(contest=contest, user=other_teacher)
-    remove_response = api_client.post(
-        f"/api/v1/contests/{contest.id}/remove_participant/",
-        {"user_id": participant.user_id},
-        format="json",
-    )
-    assert remove_response.status_code == status.HTTP_403_FORBIDDEN
-    assert remove_response.data["error"]["code"] == "contest_managed_by_classroom"
-
-
-@pytest.mark.django_db
-def test_contest_detail_includes_classroom_binding_flags(
+def test_contest_detail_includes_bound_classroom_id(
     api_client: APIClient,
     contest: Contest,
     owner: User,
@@ -1139,13 +1111,8 @@ def test_contest_detail_includes_classroom_binding_flags(
 
     bound_response = api_client.get(f"/api/v1/contests/{contest.id}/")
     assert bound_response.status_code == status.HTTP_200_OK
-    assert bound_response.data["is_classroom_bound"] is True
     assert bound_response.data["bound_classroom_id"] == str(classroom.uuid)
 
-
-# ---------------------------------------------------------------------------
-# remove_participant: classroom binding protection
-# ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
 def test_overview_metrics_uses_checkpoint_as_primary_online_count(

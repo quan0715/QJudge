@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/features/contest/contexts", () => ({
   useContest: () => ({
-    contest: createMockContest({ status: "draft", isClassroomBound: true }),
+    contest: createMockContest({ status: "draft" }),
     refreshContest: mocks.refreshContest,
   }),
   useContestAdmin: () => ({ participants: [], examEvents: [], overviewMetrics: null }),

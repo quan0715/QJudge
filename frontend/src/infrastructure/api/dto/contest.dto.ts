@@ -106,7 +106,6 @@ export interface ContestDetailDto extends ContestDto {
   rules?: string;
   rule?: string; // Legacy alias
   owner_username?: string;
-  is_classroom_bound?: boolean;
   bound_classroom_id?: number | string | null;
   contest_type?: ContestType;
   cheat_detection_enabled?: boolean;
@@ -284,7 +283,6 @@ export interface ParticipantDashboardDto {
   actions?: {
     can_download_report?: boolean;
     can_edit_status?: boolean;
-    can_remove_participant?: boolean;
     can_unlock?: boolean;
     can_reopen_exam?: boolean;
     can_view_evidence?: boolean;
