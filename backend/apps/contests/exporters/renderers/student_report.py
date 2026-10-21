@@ -559,12 +559,3 @@ class StudentReportRenderer(BaseRenderer):
             'message': message,
         }
         return render_to_string('exports/components/empty_chart.svg', context)
-
-    def _get_report_styles(self) -> str:
-        """
-        Get complete CSS styles for the student report.
-        Backward-compatible method that combines base and report styles.
-        """
-        base_css = self._get_base_css()
-        report_css = self._get_report_css()
-        return f"{base_css}\n{report_css}"

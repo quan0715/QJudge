@@ -17,10 +17,7 @@ from rest_framework import exceptions
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
-try:
-    from drf_spectacular.extensions import OpenApiAuthenticationExtension
-except Exception:  # pragma: no cover - optional import path for runtime safety
-    OpenApiAuthenticationExtension = None
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
 
 
 class CSRFCheck(CsrfViewMiddleware):
@@ -122,26 +119,25 @@ class CookieJWTAuthentication(JWTAuthentication):
             )
 
 
-if OpenApiAuthenticationExtension is not None:
-    class CookieJWTAuthenticationScheme(OpenApiAuthenticationExtension):
-        """
-        OpenAPI auth schema for CookieJWTAuthentication.
-        """
+class CookieJWTAuthenticationScheme(OpenApiAuthenticationExtension):
+    """
+    OpenAPI auth schema for CookieJWTAuthentication.
+    """
 
-        target_class = "apps.users.authentication.CookieJWTAuthentication"
-        name = "cookieJwtAuth"
+    target_class = "apps.users.authentication.CookieJWTAuthentication"
+    name = "cookieJwtAuth"
 
-        def get_security_definition(self, auto_schema):
-            cookie_name = getattr(settings, "JWT_AUTH_COOKIE", "access_token")
-            return {
-                "type": "apiKey",
-                "in": "cookie",
-                "name": cookie_name,
-                "description": (
-                    "JWT access token in HttpOnly cookie. "
-                    "Authorization: Bearer is also supported."
-                ),
-            }
+    def get_security_definition(self, auto_schema):
+        cookie_name = getattr(settings, "JWT_AUTH_COOKIE", "access_token")
+        return {
+            "type": "apiKey",
+            "in": "cookie",
+            "name": cookie_name,
+            "description": (
+                "JWT access token in HttpOnly cookie. "
+                "Authorization: Bearer is also supported."
+            ),
+        }
 
 
 def set_jwt_cookies(response, tokens):
