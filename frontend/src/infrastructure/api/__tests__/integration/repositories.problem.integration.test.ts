@@ -1,19 +1,19 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
-import {
-  getProblem,
-  getProblems,
-  testRun,
-} from "@/infrastructure/api/repositories/problem.repository";
+import { testRun } from "@/infrastructure/api/repositories/problem.repository";
+import { getContestProblem } from "@/infrastructure/api/repositories/contestProblems.repository";
 import { loginAndSetToken, setAuthToken, setupApiTestEnv } from "./helpers/apiTestEnv";
 import {
   TEST_CODE_SAMPLES,
+  TEST_CONTESTS,
   TEST_PROBLEMS,
   TEST_USERS,
 } from "@/tests/helpers/data.helper";
-import { ensureProblemExists } from "./helpers/problemSeed";
+import { findSeededContestProblem } from "./helpers/problemSeed";
 
 describe("problem repository integration", () => {
   let restoreFetch: (() => void) | undefined;
+  let contestId = "";
+  let contestProblemId = "";
   let problemId = "";
   let problemTitle = "";
 
@@ -26,8 +26,10 @@ describe("problem repository integration", () => {
       password: TEST_USERS.teacher.password,
     });
 
-    const target = await ensureProblemExists(TEST_PROBLEMS.aPlusB.title);
-    problemId = target.id;
+    const target = await findSeededContestProblem(TEST_CONTESTS.active.name, TEST_PROBLEMS.aPlusB.title);
+    contestId = target.contestId;
+    contestProblemId = target.contestProblemId;
+    problemId = target.problemId;
     problemTitle = target.title;
   });
 
@@ -36,16 +38,8 @@ describe("problem repository integration", () => {
     restoreFetch?.();
   });
 
-  it("loads problem list with expected entries", async () => {
-    const problems = await getProblems();
-    const hasTargetProblem = problems.some((problem) => problem.id === problemId);
-
-    expect(problems.length).toBeGreaterThan(0);
-    expect(hasTargetProblem).toBe(true);
-  });
-
   it("loads problem detail", async () => {
-    const detail = await getProblem(problemId);
+    const detail = await getContestProblem(contestId, contestProblemId);
 
     if (!detail) {
       throw new Error("Problem detail request returned empty response");

@@ -9,7 +9,7 @@ from apps.contests.models import (
     ContestParticipant,
     ExamStatus,
 )
-from apps.contests.permissions import can_manage_contest
+from apps.contests.permissions import can_manage_coding_problem, can_manage_contest
 from apps.users.models import User
 from apps.contests.services.participation import NO_ATTEMPT_MESSAGE
 
@@ -43,9 +43,7 @@ class SubmissionAccessPolicy:
                 raise SubmissionAccessError("Problem does not belong to this contest")
             return binding
 
-        if not type(problem).objects.visible_to(
-            user=user, scope=None, action="retrieve",
-        ).filter(pk=problem.pk).exists():
+        if not can_manage_coding_problem(user, problem):
             raise SubmissionAccessError("You do not have access to this problem")
         return None
 

@@ -4,64 +4,21 @@ Views for problems app.
 import logging
 from uuid import UUID
 
-from rest_framework import viewsets, permissions, filters, status, serializers
+from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
-from django_filters import rest_framework as django_filters
-from django.db import transaction
-from django.db.models import QuerySet
 
 from .models import (
     CodingProblem,
     Tag,
 )
 from .serializers import (
-    ProblemStatsListSerializer,
-    ProblemDetailSerializer,
-    ProblemAdminSerializer,
     TagSerializer,
     TestRunSerializer,
 )
 from .test_run_service import ProblemTestRunService, TestRunSetupError
-from apps.contests.services.question_edit_lock import ensure_contest_question_editable
 
 logger = logging.getLogger(__name__)
-
-
-class ProblemFilter(django_filters.FilterSet):
-    """
-    Custom filter for CodingProblem list view.
-    Supports multiple difficulty values and tag filtering with OR logic.
-    """
-    difficulty = django_filters.MultipleChoiceFilter(
-        choices=[('easy', 'easy'), ('medium', 'medium'), ('hard', 'hard')],
-        method='filter_difficulty',
-        conjoined=False,
-    )
-    tags = django_filters.CharFilter(method='filter_tags')
-
-    def filter_difficulty(self, queryset, name, value):
-        """Filter by difficulty from QuestionAsset payload (OR logic)."""
-        if not value:
-            return queryset
-        return queryset.filter(question_asset__payload__difficulty__in=value)
-
-    def filter_tags(self, queryset, name, value):
-        """
-        Filter problems by tag slugs (comma-separated).
-        Uses OR logic: returns problems that have ANY of the specified tags.
-        """
-        if not value:
-            return queryset
-        slugs = [s.strip() for s in value.split(',') if s.strip()]
-        if not slugs:
-            return queryset
-        return queryset.filter(tags__slug__in=slugs).distinct()
-
-    class Meta:
-        model = CodingProblem
-        fields = []
 
 
 class IsAdminOnly(permissions.BasePermission):
@@ -82,117 +39,16 @@ class IsAdminOrTeacherOrTagReadOnly(permissions.BasePermission):
         )
 
 
-class IsProblemManager(permissions.BasePermission):
-    """Problems app is now a pure management/transition surface."""
-
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and (
-            request.user.is_staff or request.user.role in ['admin', 'teacher']
-        )
-
-    def has_object_permission(self, request, view, obj):
-        if request.user.is_staff or request.user.role == 'admin':
-            return True
-        if request.user.role == 'teacher':
-            return obj.created_by == request.user
-        return False
-
-
-class ProblemViewSet(viewsets.ModelViewSet):
+class ProblemViewSet(viewsets.GenericViewSet):
     """
-    ViewSet for viewing and editing problems.
+    Problem-level actions outside a contest route.
+
+    Problems are created and edited through their contest
+    (``/contests/{id}/problems/``); only code test runs live here.
     """
     queryset = CodingProblem.objects.all()
-    permission_classes = [IsProblemManager]
-    filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
-        filters.OrderingFilter
-    ]
-    filterset_class = ProblemFilter
-    search_fields = ['question_asset__title']
-    ordering_fields = ['id', 'submission_count', 'acceptance_rate']
-    ordering = ['id']
+    permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'id'
-    
-    def get_queryset(self):
-        """
-        Filter queryset based on user role.
-        Tag filtering is handled by ProblemFilter for OR logic support.
-        """
-        return super().get_queryset().visible_to(
-            user=self.request.user,
-            scope="manage",
-            action=self.action,
-        ).with_submission_stats()
-
-    def get_object(self):
-        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
-        lookup_value = self.kwargs.get(lookup_url_kwarg)
-        try:
-            UUID(str(lookup_value))
-        except (TypeError, ValueError):
-            raise serializers.ValidationError({"id": "Must be a valid UUID."})
-        return super().get_object()
-
-    def get_serializer_class(self):
-        """
-        Return appropriate serializer based on action and user role.
-        """
-        if self.action == 'list':
-            return ProblemStatsListSerializer
-        
-        user = self.request.user
-        if user.is_authenticated and (
-            user.is_staff or user.role in ['admin', 'teacher']
-        ):
-            return ProblemAdminSerializer
-            
-        return ProblemDetailSerializer
-    
-    def get_serializer_context(self):
-        """
-        Add language to serializer context.
-        """
-        context = super().get_serializer_context()
-        context['language'] = self.request.query_params.get('lang', 'zh-TW')
-        return context
-    
-    def perform_create(self, serializer):
-        """Set created_by to current user.
-        Asset creation is handled inside ProblemService.create_problem_adapter.
-        """
-        serializer.save(created_by=self.request.user)
-
-    def _get_bound_contests(self, problem: CodingProblem) -> QuerySet:
-        from apps.contests.models import Contest
-        from apps.question_bank.models import ContestQuestionBinding
-
-        contest_ids = set(
-            ContestQuestionBinding.objects.filter(
-                coding_problem=problem
-            ).values_list("contest_id", flat=True)
-        )
-
-        if not contest_ids:
-            return Contest.objects.none()
-
-        return Contest.objects.filter(id__in=contest_ids)
-
-    def _ensure_problem_editable_under_contest_lock(self, problem: CodingProblem) -> None:
-        for contest in self._get_bound_contests(problem).select_for_update().order_by("id"):
-            ensure_contest_question_editable(contest=contest)
-
-    @transaction.atomic
-    def perform_update(self, serializer):
-        self._ensure_problem_editable_under_contest_lock(serializer.instance)
-        # Asset update is handled inside ProblemService.update_problem_adapter.
-        serializer.save()
-
-    @transaction.atomic
-    def perform_destroy(self, instance):
-        self._ensure_problem_editable_under_contest_lock(instance)
-        instance.delete()
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def test_run(self, request, id=None):
@@ -291,106 +147,6 @@ class ProblemViewSet(viewsets.ModelViewSet):
         progress = task.info if task.state == "PROGRESS" and isinstance(task.info, dict) else {}
         return Response({**progress, "status": "pending", "execution_status": "judging",
                          "results": progress.get("results", [])})
-
-    @action(detail=True, methods=['get'])
-    def statistics(self, request, id=None):
-        """
-        Get problem statistics including status distribution and submission trend.
-        
-        Query params:
-        - contest: Contest ID to filter submissions (optional)
-        - limit: Number of recent submissions for trend data (default: 100)
-        """
-        from django.db.models import Count
-        from django.db.models.functions import TruncDate
-        from apps.submissions.models import Submission
-        from .models import CodingProblem
-        
-        contest_id = request.query_params.get('contest')
-        limit = int(request.query_params.get('limit', 100))
-        
-        # For contest statistics, check if user is a participant and get problem directly
-        if contest_id:
-            from apps.contests.models import ContestParticipant
-            from apps.question_bank.models import ContestQuestionBinding
-            from django.shortcuts import get_object_or_404
-            from rest_framework.exceptions import PermissionDenied
-
-            # Get the problem directly through the management/contest surface.
-            problem = get_object_or_404(CodingProblem, id=id)
-
-            # Verify the problem is part of this contest
-            if not ContestQuestionBinding.objects.filter(
-                contest_id=contest_id, coding_problem=problem
-            ).exists():
-                raise PermissionDenied("This problem is not part of the specified contest.")
-            
-            # Verify user is a participant of this contest (or admin/teacher)
-            user = request.user
-            if not (user.is_staff or getattr(user, 'role', None) in ['admin', 'teacher']):
-                if not user.is_authenticated:
-                    raise PermissionDenied("Authentication required.")
-                if not ContestParticipant.objects.filter(contest_id=contest_id, user=user).exists():
-                    raise PermissionDenied("You are not a participant of this contest.")
-        else:
-            # For non-contest statistics, use the filtered queryset
-            problem = self.get_object()
-        
-        # Base queryset
-        submissions_qs = Submission.objects.filter(problem=problem)
-        
-        if contest_id:
-            submissions_qs = submissions_qs.filter(contest_id=contest_id)
-        status_counts = dict(
-            submissions_qs.values('status')
-            .annotate(count=Count('id'))
-            .values_list('status', 'count')
-        )
-        submission_count = sum(status_counts.values())
-        accepted_count = status_counts.get('AC', 0)
-        
-        # Get last N submissions for trend data
-        # First get the IDs of the last N submissions
-        recent_submission_ids = list(
-            submissions_qs
-            .order_by('-created_at')
-            .values_list('id', flat=True)[:limit]
-        )
-        
-        # Then aggregate by date from those submissions
-        # Use local timezone for date truncation to match user expectations
-        from django.utils import timezone as tz
-        local_tz = tz.get_current_timezone()
-        
-        trend_qs = Submission.objects.filter(id__in=recent_submission_ids)
-        
-        trend_data = list(
-            trend_qs
-            .annotate(date=TruncDate('created_at', tzinfo=local_tz))
-            .values('date')
-            .annotate(count=Count('id'))
-            .order_by('date')
-        )
-        
-        # Format trend data
-        formatted_trend = [
-            {
-                'date': item['date'].isoformat() if item['date'] else None,
-                'count': item['count']
-            }
-            for item in trend_data
-        ]
-        
-        # Calculate AC rate
-        ac_rate = round((accepted_count / submission_count * 100), 2) if submission_count > 0 else 0
-        
-        return Response({
-            'submission_count': submission_count,
-            'accepted_count': accepted_count,
-            'ac_rate': ac_rate,
-            'status_counts': status_counts,
-            'trend': formatted_trend,
-        })
 
 
 # TagViewSet - API endpoints for managing tags

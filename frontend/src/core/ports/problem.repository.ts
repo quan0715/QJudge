@@ -1,20 +1,3 @@
-import type {
-  Difficulty,
-} from "@/core/entities/problem.entity";
-
-// ============================================================================
-// Query Parameters
-// ============================================================================
-
-export interface GetProblemsParams {
-  scope?: string;
-  search?: string;
-  difficulty?: Difficulty[];
-  tags?: string[];
-  page?: number;
-  page_size?: number;
-}
-
 // ============================================================================
 // Test Run Types
 // ============================================================================

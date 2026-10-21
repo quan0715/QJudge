@@ -102,6 +102,18 @@ def can_manage_contest(user, contest) -> bool:
     return get_contest_scope_role(user, contest) in MANAGER_SCOPE_ROLES
 
 
+def can_manage_coding_problem(user, problem) -> bool:
+    """Platform admins, the problem's author, or managers of a contest that uses it."""
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_staff or user.is_superuser or problem.created_by_id == user.id:
+        return True
+    from apps.question_bank.models import ContestQuestionBinding
+
+    bindings = ContestQuestionBinding.objects.filter(coding_problem=problem).select_related('contest')
+    return any(can_manage_contest(user, binding.contest) for binding in bindings)
+
+
 def get_contest_permissions(user, contest):
     """Return the contest UI permission flags for *user*."""
     granted = BASE_ROLE_PERMISSIONS[get_contest_scope_role(user, contest)]

@@ -563,7 +563,7 @@ int main() {
             self.stdout.write('  ✓ 題庫題目: exam seed → E2E Exam Bank')
 
     def _bind_classroom_contests(self):
-        """將常用競賽綁定到 E2E Test Classroom（/classrooms/.../admin 需要）"""
+        """將所有 E2E 競賽綁定到 E2E Test Classroom（競賽權限來自教室）"""
         self.stdout.write('綁定競賽與 E2E 教室...')
         classroom = Classroom.objects.filter(name="E2E Test Classroom").first()
         if not classroom:
@@ -573,6 +573,8 @@ int main() {
             "E2E Exam Mode Contest",
             "E2E Test Contest",
             "E2E Draft Coding Editor",
+            "Upcoming Contest",
+            "E2E Exam Bank Source Contest",
         ]
         for name in names:
             contest = Contest.objects.filter(name=name).first()
