@@ -38,14 +38,13 @@
       <article class="question-item{% if q.grouped %} grouped-question{% endif %}">
         {% if q.group_heading %}
         <section class="question-group-heading">
-          <div class="question-group-meta">{{ q.group_heading.label }}</div>
-          {% if q.group_heading.title %}<h3>{{ q.group_heading.title }}</h3>{% endif %}
+          <h3><span class="question-meta-inline">（{{ q.group_heading.score }} {{ labels.points_unit }}）</span>{{ q.group_heading.number }}. {% if q.group_heading.title %}{{ q.group_heading.title }}{% else %}{{ labels.question_group }}{% endif %}</h3>
           <div class="markdown-content">{{ q.group_heading.stem_html|safe }}</div>
         </section>
         {% endif %}
         <div class="question-body">
         <div class="question-headline">
-          <span class="question-number">{{ q.number }}.</span>
+          <span class="question-number">{{ q.number }}</span>
           <span class="question-meta-inline">（{{ q.score }} {{ labels.points_unit }}）</span>
         </div>
         <div class="question-prompt markdown-content">
@@ -107,7 +106,7 @@
         <tbody>
           {% for row in answer_key %}
           <tr>
-            <td>Q{{ row.number }}</td>
+            <td>{{ row.number }}</td>
             <td>{{ row.answer_text }}</td>
             <td>{{ row.score }}</td>
           </tr>

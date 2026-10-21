@@ -44,6 +44,7 @@ class PaperExamSheetRenderer(BaseRenderer):
 
     def render_html(self) -> str:
         from apps.contests.services.exam_scoring import ExamScoringService
+        from apps.question_bank.problem_labels import label_for_contest_problem_order
         questions = list(
             ExamQuestion.objects.filter(contest=self.contest).select_related("group").order_by("order", "id")
         )
@@ -53,27 +54,32 @@ class PaperExamSheetRenderer(BaseRenderer):
 
         question_rows: list[dict] = []
         answer_key_rows: list[dict] = []
+        main_number = 0
+        child_index = 0
         for idx, q in enumerate(questions, start=1):
+            starts_group = q.group_id and (idx == 1 or questions[idx - 2].group_id != q.group_id)
+            if not q.group_id or starts_group:
+                main_number += 1
+                child_index = 0
+            child_label = label_for_contest_problem_order(child_index).lower() if q.group_id else ""
+            child_index += 1
             group_heading = None
-            if q.group_id and (idx == 1 or questions[idx - 2].group_id != q.group_id):
+            if starts_group:
                 last = idx
                 while last < len(questions) and questions[last].group_id == q.group_id:
                     last += 1
                 group_heading = {
                     "title": q.group.title,
-                    "range": f"{idx}–{last}" if last != idx else str(idx),
+                    "number": main_number,
                     "score": self._fmt_score(sum(child.score for child in questions[idx - 1:last])),
                     "stem_html": render_markdown(q.group.shared_stem_markdown, soft_breaks=False),
                 }
-                group_heading["label"] = self.get_label("question_group_range").format(
-                    range=group_heading["range"], score=group_heading["score"],
-                )
             answer_text_raw = self._format_answer(q)
             answer_text = self._clean_answer_markdown(answer_text_raw)
             answer_ui = self._build_answer_ui(q)
             question_rows.append(
                 {
-                    "number": idx,
+                    "number": f"({child_label})" if q.group_id else f"{main_number}.",
                     "question_type": q.question_type,
                     "type_label": self._get_question_type_label(q.question_type),
                     "score": self._fmt_score(q.score),
@@ -88,7 +94,7 @@ class PaperExamSheetRenderer(BaseRenderer):
             )
             answer_key_rows.append(
                 {
-                    "number": idx,
+                    "number": f"{main_number}({child_label})" if q.group_id else str(main_number),
                     "answer_text": self._format_answer_key_text(q, answer_text),
                     "score": self._fmt_score(q.score),
                 }
@@ -122,7 +128,7 @@ class PaperExamSheetRenderer(BaseRenderer):
                 "choice_marking_hint": self.get_label("choice_marking_hint"),
                 "answer_key_note": self.get_label("answer_key_note"),
             },
-            "question_count": len(questions),
+            "question_count": main_number,
             "total_score": total_score,
             "questions": question_rows,
             "answer_key": answer_key_rows,

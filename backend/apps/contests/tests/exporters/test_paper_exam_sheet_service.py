@@ -421,10 +421,25 @@ def test_group_header_precedes_children_once(paper_exam_contest, include_answers
     ExamQuestion.objects.create(
         contest=paper_exam_contest, question_type="essay", prompt="Standalone", score=2, order=2,
     )
+    next_group = ExamQuestionGroup.objects.create(
+        contest=paper_exam_contest, title="Second group", shared_stem_markdown="Next shared prompt.",
+    )
+    ExamQuestion.objects.create(
+        contest=paper_exam_contest, group=next_group, question_type="essay",
+        prompt="Next child", score=1, order=3, order_in_group=0,
+    )
     html = PaperExamSheetRenderer(paper_exam_contest, include_answers=include_answers).render_html()
     assert html.count("Common rules for both parts.") == 1
     assert html.count("Loop exercise") == 1
-    assert "1–2" in html
-    assert "共 8 分" in html
+    assert "1. Loop exercise</h3>" in html
+    assert ">(a)</span>" in html
+    assert ">(b)</span>" in html
+    assert ">2.</span>" in html
+    if include_answers:
+        assert "<td>1(a)</td>" in html
+        assert "<td>1(b)</td>" in html
+        assert "<td>2</td>" in html
+        assert "<td>3(a)</td>" in html
     assert html.index("Common rules for both parts.") < html.index("Child part 1") < html.index("Child part 2") < html.index("Standalone")
-    assert html.count('class="question-item grouped-question"') == 2
+    assert html.count('class="question-item grouped-question"') == 3
+    assert '3. Second group</h3>' in html
