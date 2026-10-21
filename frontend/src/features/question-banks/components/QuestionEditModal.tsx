@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Button, Modal, Tag } from "@carbon/react";
+import { Accordion, AccordionItem, Button, Modal, Tag } from "@carbon/react";
 import {
   View,
   Edit,
@@ -9,8 +9,6 @@ import {
   TrashCan,
   Copy,
   ListBoxes,
-  Checkmark,
-  Code,
 } from "@carbon/icons-react";
 import { SettingsModal } from "@/shared/ui/modal/SettingsModal";
 import { Section, ActionRow } from "@/shared/layout/SettingsPanel";
@@ -194,8 +192,9 @@ const QuestionActionsPanel = ({
       </Section>
 
       {/* Confirm Delete — portaled to avoid double-modal stacking */}
-      {createPortal(
+      {confirmDelete && createPortal(
         <Modal
+          className="coding-editor-child-modal"
           open={confirmDelete}
           danger
           modalHeading={t("questionBank.confirmDelete", "確認刪除？")}
@@ -211,8 +210,9 @@ const QuestionActionsPanel = ({
       )}
 
       {/* Confirm Duplicate — portaled to avoid double-modal stacking */}
-      {createPortal(
+      {confirmDuplicate && createPortal(
         <Modal
+          className="coding-editor-child-modal"
           open={confirmDuplicate}
           modalHeading={t("questionBank.confirmDuplicate", "確認複製？")}
           primaryButtonText={t("questionBank.duplicateQuestion", "複製題目")}
@@ -250,15 +250,9 @@ const QuestionEditModal = ({
       { id: "preview", label: t("questionBank.tabPreview", "預覽"), icon: View },
       { id: "edit", label: t("questionBank.tabEdit", "編輯"), icon: Edit },
     ];
-    if (isCoding) {
-      base.push(
-        { id: "validation", label: t("questionBank.tabValidation", "驗證規則"), icon: Checkmark },
-        { id: "languages", label: t("questionBank.tabLanguages", "語言設定"), icon: Code },
-      );
-    }
     base.push({ id: "actions", label: t("questionBank.tabActions", "其他"), icon: OverflowMenuVertical });
     return base;
-  }, [t, isCoding]);
+  }, [t]);
 
   if (!question) return null;
 
@@ -267,6 +261,40 @@ const QuestionEditModal = ({
   const heading = isExam
     ? `#${Number(question.order || 0) + 1} · ${t(`questionType.label.${examType}`, examType || "")}`
     : getQuestionDisplayTitle(question);
+
+  if (isCoding) {
+    return createPortal(
+      <Modal
+        className="coding-editor-modal"
+        open={open}
+        onRequestClose={onRequestClose}
+        modalHeading={heading}
+        passiveModal
+        size="lg"
+        preventCloseOnClickOutside
+        selectorsFloatingMenus={[".coding-editor-child-modal"]}
+      >
+        {open && <>
+          <CodingQuestionEditPanel
+            key={`${bank.id}:${question.bankItemId}`}
+            bankId={bank.id}
+            question={question}
+            onSaved={onSaved}
+          />
+          <Accordion>
+            <AccordionItem title={t("questionBank.tabActions", "其他")}>
+              <QuestionActionsPanel
+                question={question}
+                onDelete={() => void onDelete(question)}
+                onDuplicate={() => void onDuplicate(question)}
+              />
+            </AccordionItem>
+          </Accordion>
+        </>}
+      </Modal>,
+      getModalPortalRoot(),
+    );
+  }
 
   return (
     <SettingsModal
@@ -281,17 +309,7 @@ const QuestionEditModal = ({
         }
 
         if (activeId === "edit") {
-          return isExam
-            ? <ExamQuestionEditPanel key={`${bank.id}:${question.bankItemId}`} bankId={bank.id} question={question} onSaved={onSaved} />
-            : <CodingQuestionEditPanel key={`${bank.id}:${question.bankItemId}`} bankId={bank.id} question={question} onSaved={onSaved} activeTab="edit" />;
-        }
-
-        if (activeId === "validation" && isCoding) {
-          return <CodingQuestionEditPanel key={`${bank.id}:${question.bankItemId}`} bankId={bank.id} question={question} onSaved={onSaved} activeTab="validation" />;
-        }
-
-        if (activeId === "languages" && isCoding) {
-          return <CodingQuestionEditPanel key={`${bank.id}:${question.bankItemId}`} bankId={bank.id} question={question} onSaved={onSaved} activeTab="languages" />;
+          return <ExamQuestionEditPanel key={`${bank.id}:${question.bankItemId}`} bankId={bank.id} question={question} onSaved={onSaved} />;
         }
 
         if (activeId === "actions") {

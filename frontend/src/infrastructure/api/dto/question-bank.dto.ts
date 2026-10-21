@@ -1,6 +1,10 @@
 import type { BankCategory, QuestionInboxSourceType } from "@/core/entities/question-bank.entity";
 
 export interface CodingQuestionExtDto {
+  description?: string;
+  input_description?: string;
+  output_description?: string;
+  hint?: string;
   translations?: Array<{
     language: string;
     title: string;

@@ -10,6 +10,7 @@ import {
   useAutoSave,
   type FieldSaveState,
   type UseAutoSaveReturn,
+  type ProblemSaveTarget,
 } from "@/features/problems/hooks/useAutoSave";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
 import {
@@ -52,11 +53,10 @@ const ProblemEditContext = createContext<ProblemEditContextValue | null>(null);
 /**
  * ProblemEditProvider props
  */
-interface ProblemEditProviderProps {
+type ProblemEditProviderProps = ProblemSaveTarget & {
   children: ReactNode;
-  contestId: string;
-  contestProblemId: string;
-}
+  onSaved?: () => void;
+};
 
 /**
  * Count errors for a specific section
@@ -102,8 +102,8 @@ function countSectionErrors(
  */
 export const ProblemEditProvider: React.FC<ProblemEditProviderProps> = ({
   children,
-  contestId,
-  contestProblemId,
+  onSaved,
+  ...saveTarget
 }) => {
   // Get form context
   const {
@@ -114,8 +114,8 @@ export const ProblemEditProvider: React.FC<ProblemEditProviderProps> = ({
 
   // Auto-save hook - pass getFormValues for translation merging
   const autoSave = useAutoSave({
-    contestId,
-    contestProblemId,
+    ...saveTarget,
+    onSaveSuccess: onSaved,
     debounceMs: 1500,
     getFormValues: () => getValues() as unknown as Record<string, unknown>,
   });

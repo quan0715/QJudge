@@ -91,6 +91,9 @@ const LanguageConfigSection: React.FC = () => {
   }, [forbiddenKeywords, setValue, triggerKeywordsSave]);
 
   // Count enabled languages
+  const languages = [...LANGUAGE_OPTIONS, ...languageConfigs
+    .filter(config => !LANGUAGE_OPTIONS.some(option => option.id === config.language))
+    .map(config => ({ id: config.language, label: config.language, icon: config.language }))];
   const enabledCount = languageConfigs.filter((lc) => lc?.isEnabled !== false).length;
 
   return (
@@ -100,14 +103,16 @@ const LanguageConfigSection: React.FC = () => {
         description="設定此題目可使用的程式語言，以及每種語言的範本程式碼"
         action={
           <Tag type="blue" size="sm">
-            {enabledCount} / {LANGUAGE_OPTIONS.length} 已啟用
+            {enabledCount} / {languages.length} 已啟用
           </Tag>
         }
       >
         <Accordion align="start" className={styles.languageAccordion}>
-          {LANGUAGE_OPTIONS.map((lang, langIndex) => {
-            const config = languageConfigs?.[langIndex];
-            const isEnabled = config?.isEnabled !== false;
+          {languages.map((lang) => {
+            const existingIndex = languageConfigs.findIndex(config => config.language === lang.id);
+            const langIndex = existingIndex < 0 ? languageConfigs.length : existingIndex;
+            const config = languageConfigs[existingIndex];
+            const isEnabled = !!config && config.isEnabled !== false;
 
             return (
               <AccordionItem
@@ -134,9 +139,13 @@ const LanguageConfigSection: React.FC = () => {
                         labelText="啟用此語言"
                         labelA="停用"
                         labelB="啟用"
-                        toggled={field.value !== false}
+                        toggled={isEnabled}
                         onToggle={(checked) => {
-                          field.onChange(checked);
+                          if (!config) {
+                            setValue(`languageConfigs.${langIndex}`, { language: lang.id, isEnabled: checked, templateCode: DEFAULT_TEMPLATES[lang.id] ?? "" });
+                          } else {
+                            field.onChange(checked);
+                          }
                           triggerLanguageConfigSave();
                         }}
                       />
@@ -154,7 +163,7 @@ const LanguageConfigSection: React.FC = () => {
                             <Editor
                               height="180px"
                               language={lang.id === "cpp" ? "cpp" : lang.id}
-                              value={field.value || DEFAULT_TEMPLATES[lang.id]}
+                              value={field.value ?? DEFAULT_TEMPLATES[lang.id] ?? ""}
                               theme="vs-dark"
                               onChange={(value) => {
                                 field.onChange(value || "");
