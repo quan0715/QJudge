@@ -41,6 +41,7 @@ export function isUnfinished(state: BatchQuestionState): boolean {
 
 export interface BatchQuestion {
   questionId: string;
+  groupId?: string | null;
   label: string;
   index: number;
   maxScore: number;
@@ -50,6 +51,7 @@ export interface BatchQuestion {
 
 export interface BatchQuestionState {
   questionId: string;
+  groupId?: string | null;
   label: string;
   index: number;
   status: BatchQuestionStatus;
@@ -85,6 +87,7 @@ export function selectBatchQuestions(rows: readonly GradingAnswerRow[]): BatchQu
     if (!BATCH_QUESTION_TYPES.includes(row.questionType) || row.isAbsent) continue;
     const question = byQuestion.get(row.questionId) ?? {
       questionId: row.questionId,
+      groupId: row.questionGroupId,
       label: `Q${row.questionLabel ?? row.questionIndex}`,
       index: row.questionIndex,
       maxScore: row.maxScore,
@@ -98,7 +101,7 @@ export function selectBatchQuestions(rows: readonly GradingAnswerRow[]): BatchQu
   return [...byQuestion.values()].sort((a, b) => a.index - b.index);
 }
 
-/** Questions sharing one run; each gets its own subagent, so they are graded in parallel. */
+/** Independent units sharing one run; siblings remain in one unit/subagent. */
 export const BATCH_PARALLEL_QUESTIONS = 3;
 
 export function groupForRuns<T>(items: readonly T[], size = BATCH_PARALLEL_QUESTIONS): T[][] {
@@ -107,27 +110,6 @@ export function groupForRuns<T>(items: readonly T[], size = BATCH_PARALLEL_QUEST
   return groups;
 }
 
-export function buildBatchRunPrompt(input: {
-  contestId: string;
-  questions: readonly { questionId: string; label: string; maxScore: number }[];
-  regradeNote?: string;
-}): string {
-  const { contestId, questions, regradeNote } = input;
-  const note = regradeNote?.trim();
-  return [
-    `batch_question_id: ${questions.map((q) => q.questionId).join(",")}`,
-    `整批批改，contest_id: ${contestId}。在同一則回覆裡同時呼叫 task 工具（general-purpose），每題一個子代理平行執行；把該題的檔名${note ? "與老師註記" : ""}寫進子代理的任務說明，你只轉述各子代理回的一行摘要。`,
-    "每個子代理依 qjudge-exam-grading-sop 批改一題，完成後回一行：已填幾份、平均分。",
-    ...questions.map(
-      (q) =>
-        `- ${q.label}（滿分 ${q.maxScore}）：作答在 \`${gradeCsvFilename(q.questionId)}\`，rubric 用 \`rubric_${q.questionId}.md\``,
-    ),
-    "不要寫回或發布成績，系統會自動寫入。",
-    note ? `老師註記：${note}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
 
 function batchQuestionIdsOf(message: ChatMessage): string[] {
   const match = /^\s*batch_question_id:\s*(.+?)\s*$/.exec(message.content.split("\n", 1)[0] ?? "");
@@ -180,6 +162,7 @@ export function deriveBatchState(input: {
   return input.questions.map((question) => {
     const base = {
       questionId: question.questionId,
+      groupId: question.groupId,
       label: question.label,
       index: question.index,
       ungradedCount: question.ungradedRows.length,

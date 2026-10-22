@@ -1197,7 +1197,7 @@
       "revertConfirm": "취소하기",
       "regrade": "AI로 다시 채점…",
       "regradeTitle": "{{label}} AI로 다시 채점",
-      "regradeBody": "이 문제의 AI 점수를 먼저 취소하고(직접 준 점수는 유지) 다시 대기열에 넣습니다.",
+      "regradeBody": "AI 점수를 취소하고 다시 채점합니다. 문항 그룹은 함께 채점하되 소문항별 점수와 수동 변경은 유지합니다.",
       "regradeNote": "AI에게 남길 메모(선택)",
       "regradeConfirm": "취소 후 다시 채점",
       "noticeSkippedAtWrite": "{{count}}개 답안은 AI가 기록할 때 이미 점수가 있어(다른 사람 또는 수동 채점) 기존 점수를 유지했습니다.",

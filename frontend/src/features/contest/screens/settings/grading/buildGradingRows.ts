@@ -48,6 +48,7 @@ export function buildGradingRows(
       questionId: a.questionId,
       questionIndex: qIdx + 1,
       questionLabel: labels.get(a.questionId)?.label,
+      questionGroupId: q?.groupId,
       questionPrompt: q?.gradingPrompt ?? q?.prompt ?? "",
       questionExplanation: q?.explanation ?? "",
       questionExplanationDocument: q?.explanationDocument ?? null,

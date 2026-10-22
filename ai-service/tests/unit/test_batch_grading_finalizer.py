@@ -58,7 +58,7 @@ class FakeArtifacts:
         self.reads.append(filename)
         return self.files[filename].encode()
 
-    async def put_for_run(self, *, session_id, run_id, step, filename, content, content_type, metadata):
+    async def put_for_run(self, *, session_id, run_id, step, filename, content, content_type, metadata, worker_owned=False):
         assert step == "batch"
         self.files[filename] = content.decode()
 
@@ -382,3 +382,21 @@ async def test_auth_rejection_also_pauses_other_questions_in_the_same_run(http_s
     assert runs.cancelled_sessions == [SESSION_ID]
     progress = {row["question_id"]: row["status"] for row in _csv(artifacts.files["progress.csv"])}
     assert progress == {"q3": "paused", "q4": "paused"}
+
+
+@pytest.mark.asyncio
+async def test_v2_missing_rubric_blocks_entire_group_then_validates_child_scores():
+    from dataclasses import replace
+    from test_batch_grading_contract import fixture
+    m,c,r,files = fixture()
+    m.update(context_file='context.json',rubric_file='rubric.json')
+    batch={'contest_id':'c1','questions':[{'question_id':'a','max_score':3},{'question_id':'b','max_score':5}]}
+    stored={'batch.json':json.dumps(batch),'context.json':json.dumps(c),**{f'grade_{qid}.csv':content for qid,content in files.items()}}
+    info=replace(_info(question_ids='a,b'),user_message='batch_question_id: a,b\nbatch_units: '+json.dumps([m]))
+    artifacts=FakeArtifacts(stored); finalizer,posted=_finalizer(FakeRuns(info),artifacts)
+    await finalizer(RUN_ID,'lease')
+    assert posted==[]
+    assert {x['status'] for x in _csv(artifacts.files['progress.csv'])}=={'failed'}
+    artifacts.files['rubric.json']=json.dumps(r)
+    await finalizer(RUN_ID,'lease')
+    assert [p['body']['grades'][0]['score'] for p in posted]==[2,4]

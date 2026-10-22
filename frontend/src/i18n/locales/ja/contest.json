@@ -1197,7 +1197,7 @@
       "revertConfirm": "取り消す",
       "regrade": "AI で再採点…",
       "regradeTitle": "{{label}} を AI で再採点",
-      "regradeBody": "この設問の AI 点数を先に取り消し（手動の点数はそのまま）、再度キューに追加します。",
+      "regradeBody": "AI の点数を取り消して再採点します。設問群は全小問をまとめて採点し、小問別の点数を保持します。手動変更は保持されます。",
       "regradeNote": "AI へのメモ（任意）",
       "regradeConfirm": "取り消して再採点",
       "noticeSkippedAtWrite": "{{count}} 件は AI の書き込み時にすでに採点済み（他の人または手動）のため、元の点数を残しました。",

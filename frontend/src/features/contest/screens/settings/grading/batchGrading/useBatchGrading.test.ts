@@ -4,6 +4,7 @@ import type { ChatMessage } from "@/core/types/chatbot.types";
 import type { GradingAnswerRow } from "../gradingTypes";
 
 const mocks = vi.hoisted(() => ({
+  getExamQuestions: vi.fn(),
   select: vi.fn(),
   refreshSessions: vi.fn(),
   sessions: [] as { id: string; metadata?: Record<string, unknown> }[],
@@ -56,12 +57,15 @@ vi.mock("@/infrastructure/api/repositories/examAnswers.repository", () => ({
   getBatchGradeWrites: mocks.getBatchGradeWrites,
 }));
 
+vi.mock("@/infrastructure/api/repositories/examQuestions.repository", () => ({ getExamQuestions: mocks.getExamQuestions }));
+
 import { useBatchGrading } from "./useBatchGrading";
 
 const row = (overrides: Partial<GradingAnswerRow>): GradingAnswerRow =>
   ({
     id: "a1",
     studentUsername: "s1",
+    studentId: "s1",
     questionId: "q1",
     questionIndex: 1,
     questionType: "essay",
@@ -98,6 +102,7 @@ function render(rows = ROWS, reloadAnswers = vi.fn().mockResolvedValue(rows)) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.sessions = [];
+  mocks.getExamQuestions.mockResolvedValue([1,2,3,4].map(i => ({id: `q${i}`, questionType: "essay", prompt: "題目", explanation: "", score: 10, order: i})));
   mocks.getBatchGradeWrites.mockResolvedValue([]);
   mocks.getModels.mockResolvedValue([{ model_id: "default-model", is_default: true }]);
   mocks.getRun.mockResolvedValue({ modelId: "legacy-model" });
@@ -124,11 +129,11 @@ describe("useBatchGrading", () => {
       (file as File).name,
       options,
     ]);
-    expect(uploaded).toEqual([
+    expect(uploaded).toEqual(expect.arrayContaining([
       ["batch.json", { step: "batch" }],
       ["grade_q1.csv", { step: "batch" }],
       ["grade_q2.csv", { step: "batch" }],
-    ]);
+    ]));
     // Questions share one run (one subagent each) so they are graded in parallel.
     expect(mocks.startRun.mock.calls.map(([, prompt]) => (prompt as string).split("\n")[0])).toEqual([
       "batch_question_id: q1,q2",
@@ -427,4 +432,40 @@ describe("batch grading recovery", () => {
     await act(() => result.current.revertQuestion("q1"));
     expect(mocks.ungradeExamAnswer).not.toHaveBeenCalled();
   });
+});
+
+it("regrading one child includes all siblings while protecting manual changes", async () => {
+  mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+  mocks.getExamQuestions.mockResolvedValue([1,2].map(i => ({id:`q${i}`,groupId:"g",questionType:"essay",prompt:"shared",score:10,order:i})));
+  const grouped = [row({id:"a1",questionId:"q1",questionGroupId:"g",score:8,feedback:"AI"}),
+    row({id:"a2",questionId:"q2",questionGroupId:"g",score:9,feedback:"teacher"})];
+  const reload = vi.fn().mockResolvedValue(grouped);
+  mocks.getBatchGradeWrites.mockResolvedValue([
+    {question_id:"q1",exam_answer_id:"a1",score:8,feedback:"AI",current:true},
+    {question_id:"q2",exam_answer_id:"a2",score:7,feedback:"AI",current:false},
+  ]);
+  mocks.ungradeExamAnswer.mockImplementation(async () => { grouped[0]={...grouped[0],score:null}; });
+  const {result}=render(grouped,reload);
+  await waitFor(()=>expect(result.current.sessionId).toBe("s1"));
+  await act(()=>result.current.regradeQuestion("q1","keep partial credit"));
+  expect(mocks.ungradeExamAnswer.mock.calls.map(call=>call[1])).toEqual(["a1"]);
+  const prompt=mocks.startRun.mock.calls[0][1] as string;
+  const [unit]=JSON.parse(prompt.split("\n")[1].slice("batch_units: ".length));
+  expect(unit.id).toBe("group_g");
+  expect(unit.question_ids).toEqual(["q1"]);
+  expect(grouped[1].score).toBe(9);
+});
+
+it("opens the same versioned group rubric from either child and retains legacy files", async () => {
+  const { listQuestionFiles } = await import("./batchGradingApi");
+  const files = [
+    { filename: "rubric_group_g1_v1.json", step: "batch", updated_at: "2026-01-01" },
+    { filename: "rubric_group_g1_v2.json", step: "batch", updated_at: "2026-01-02" },
+    { filename: "rubric_q3.md", step: "rubric", updated_at: "2026-01-01" },
+    { filename: "grade_q1.csv", step: "batch", updated_at: "2026-01-01" },
+  ];
+  mocks.listArtifacts.mockResolvedValue(files);
+  expect(await listQuestionFiles("s1", "q1", "g1")).toEqual({ rubric: files[1], grade: files[3] });
+  expect(await listQuestionFiles("s1", "q2", "g1")).toEqual({ rubric: files[1], grade: null });
+  expect(await listQuestionFiles("s1", "q3")).toEqual({ rubric: files[2], grade: null });
 });

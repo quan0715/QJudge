@@ -7,8 +7,10 @@ import {
 } from "@/features/ai-tasks/lib/aiTaskRuntime";
 import { ungradeExamAnswer } from "@/infrastructure/api/repositories/examAnswers.repository";
 import type { GradingAnswerRow } from "../gradingTypes";
-import { buildSeedGradeCsv, serializeCsvRows } from "../gradeCsv";
+import { serializeCsvRows } from "../gradeCsv";
 import {
+  readBatchQuestions,
+  readBatchFile,
   cancelBatchRun,
   fetchBatchRemoteState,
   listQuestionFiles,
@@ -26,7 +28,6 @@ import {
   BATCH_GRADING_TASK_TYPE,
   BATCH_JSON_FILENAME,
   applyFinalizeTimeout,
-  buildBatchRunPrompt,
   deriveBatchState,
   gradeCsvFilename,
   groupForRuns,
@@ -38,6 +39,8 @@ import {
   type BatchQuestion,
   type BatchQuestionState,
 } from "./batchGradingModel";
+
+import { buildBatchRunPrompt, buildGradingUnits, buildUnitGradeCsv, prepareGradingUnit, sha256 } from "./batchGradingUnits";
 
 const ACTIVE_POLL_MS = 5_000;
 const IDLE_POLL_MS = 30_000;
@@ -256,24 +259,34 @@ export function useBatchGrading(
   const enqueue = useCallback(
     async (id: string, toGrade: readonly BatchQuestion[], note?: string) => {
       const modelId = await batchModelId(id);
-      const pending = toGrade.filter((q) => q.ungradedRows.length > 0);
-      for (const group of groupForRuns(pending)) {
-        for (const question of group) {
-          await uploadBatchFile(
-            id,
-            gradeCsvFilename(question.questionId),
-            buildSeedGradeCsv(question.ungradedRows),
-            "text/csv",
-          );
+      const definitions = await readBatchQuestions(contestId);
+      const allRows = await reloadAnswers();
+      const requested = new Set(toGrade.map((q) => q.questionId));
+      const units = buildGradingUnits(selectBatchQuestions(allRows).filter((q) => requested.has(q.questionId)), definitions);
+      for (const group of groupForRuns(units)) {
+        const manifests = [];
+        for (const unit of group) {
+          const noteFile = `note_${unit.id}.json`;
+          const previous = JSON.parse(await readBatchFile(id, noteFile) ?? "{}");
+          const teacherNote = note ?? previous.teacher_note ?? "";
+          const { content, manifest } = await prepareGradingUnit(unit, allRows, teacherNote);
+          const existingRubric = await readBatchFile(id, `accepted_${manifest.rubric_file}`);
+          if (existingRubric) {
+            manifest.rubric_sha256 = await sha256(existingRubric);
+            await uploadBatchFile(id, manifest.rubric_file, existingRubric, "application/json");
+          }
+          await uploadBatchFile(id, noteFile, JSON.stringify({ teacher_note: teacherNote }), "application/json");
+          await uploadBatchFile(id, manifest.context_file, content, "application/json");
+          for (const question of unit.targets) {
+            await uploadBatchFile(id, gradeCsvFilename(question.questionId),
+              buildUnitGradeCsv(question.ungradedRows), "text/csv");
+          }
+          manifests.push(manifest);
         }
-        await startBatchRun(
-          id,
-          buildBatchRunPrompt({ contestId, questions: group, regradeNote: note }),
-          modelId,
-        );
+        await startBatchRun(id, buildBatchRunPrompt({ contestId, units: manifests }), modelId);
       }
     },
-    [batchModelId, contestId],
+    [batchModelId, contestId, reloadAnswers],
   );
 
   /** Run one action at a time; record its error and optionally rethrow. */
@@ -309,10 +322,12 @@ export function useBatchGrading(
           id,
           BATCH_JSON_FILENAME,
           JSON.stringify({
+            schema_version: 2,
             contest_id: contestId,
             model_id: selectedModelId,
             questions: questions.map((q) => ({
               question_id: q.questionId,
+              group_id: q.groupId,
               label: q.label,
               index: q.index,
               max_score: q.maxScore,
@@ -410,24 +425,31 @@ export function useBatchGrading(
         setRegradingId(questionId);
         try {
           await batchModelId(sessionId);
-          await revertAnswers(sessionId, questionId);
+          const definitions = await readBatchQuestions(contestId);
+          const target = definitions.find((q) => q.id === questionId);
+          const ids = new Set(definitions.filter((q) => target?.groupId
+            ? q.groupId === target.groupId : q.id === questionId).map((q) => q.id));
+          if (questionStates.some((q) => ids.has(q.questionId) && BATCH_ACTIVE_STATUSES.includes(q.status))) {
+            throw new Error("題組仍在批改，請等整組完成後再重改");
+          }
+          for (const id of ids) await revertAnswers(sessionId, id);
           const reloaded = selectBatchQuestions(await reloadAnswers());
-          await enqueue(sessionId, reloaded.filter((q) => q.questionId === questionId), note);
+          await enqueue(sessionId, reloaded.filter((q) => ids.has(q.questionId)), note);
           await refreshSnapshot(sessionId);
         } finally {
           setRegradingId(null);
         }
       }, true);
     },
-    [batchModelId, enqueue, guard, refreshSnapshot, reloadAnswers, revertAnswers, sessionId],
+    [batchModelId, contestId, enqueue, guard, questionStates, refreshSnapshot, reloadAnswers, revertAnswers, sessionId],
   );
 
   const loadQuestionFiles = useCallback(
     async (questionId: string): Promise<BatchQuestionFiles> => {
       if (!sessionId) return { rubric: null, grade: null };
-      return listQuestionFiles(sessionId, questionId);
+      return listQuestionFiles(sessionId, questionId, questionStates.find((q) => q.questionId === questionId)?.groupId ?? undefined);
     },
-    [sessionId],
+    [questionStates, sessionId],
   );
 
   return {

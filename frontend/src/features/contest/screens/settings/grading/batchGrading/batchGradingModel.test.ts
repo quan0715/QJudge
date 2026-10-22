@@ -3,7 +3,6 @@ import type { ChatMessage } from "@/core/types/chatbot.types";
 import type { GradingAnswerRow } from "../gradingTypes";
 import {
   applyFinalizeTimeout,
-  buildBatchRunPrompt,
   groupForRuns,
   deriveBatchState,
   isUnfinished,
@@ -87,33 +86,6 @@ describe("selectBatchQuestions", () => {
   it("prefixes the question label like the grading page does", () => {
     const [question] = selectBatchQuestions([row({ questionLabel: "2-1", questionIndex: 3 })]);
     expect(question.label).toBe("Q2-1");
-  });
-});
-
-describe("buildBatchRunPrompt", () => {
-  const q7 = { questionId: "q7", label: "Q7", maxScore: 15 };
-  const q8 = { questionId: "q8", label: "Q8", maxScore: 10 };
-  const input = { contestId: "c1", questions: [q7, q8] };
-
-  it("run prompt lists every question id on the first line and names each question's files", () => {
-    const prompt = buildBatchRunPrompt(input);
-
-    expect(prompt.split("\n")[0]).toBe("batch_question_id: q7,q8");
-    expect(prompt).toContain("c1");
-    for (const id of ["q7", "q8"]) {
-      expect(prompt).toContain(`grade_${id}.csv`);
-      expect(prompt).toContain(`rubric_${id}.md`);
-    }
-  });
-
-  it("adds the regrade note as one extra line only when given", () => {
-    const single = { contestId: "c1", questions: [q7] };
-    const plain = buildBatchRunPrompt(single);
-    const noted = buildBatchRunPrompt({ ...single, regradeNote: "  英文不扣分  " });
-
-    expect(buildBatchRunPrompt({ ...single, regradeNote: "   " })).toBe(plain);
-    expect(noted.split("\n")).toHaveLength(plain.split("\n").length + 1);
-    expect(noted).toContain("英文不扣分");
   });
 });
 

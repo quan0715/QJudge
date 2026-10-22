@@ -150,6 +150,8 @@ class ArtifactService:
     ) -> Artifact:
         if not await self._repository.session_belongs_to(principal, session_id):
             raise ArtifactNotFound(f"Session not found: {session_id}")
+        if filename.startswith("accepted_rubric_"):
+            raise InvalidArtifact("Accepted grading rubrics are worker-owned")
         return await self._put(
             session_id=session_id,
             produced_by_run_id=produced_by_run_id,
@@ -170,9 +172,12 @@ class ArtifactService:
         content: bytes,
         content_type: str,
         metadata: dict[str, Any],
+        worker_owned: bool = False,
     ) -> Artifact:
         if not await self._repository.session_exists(session_id):
             raise ArtifactNotFound(f"Session not found: {session_id}")
+        if filename.startswith("accepted_rubric_") and not worker_owned:
+            raise InvalidArtifact("Accepted grading rubrics are worker-owned")
         return await self._put(
             session_id=session_id,
             produced_by_run_id=run_id,
@@ -201,6 +206,14 @@ class ArtifactService:
             raise ArtifactNotFound(f"Run not found in session: {produced_by_run_id}")
 
         async with self._repository.atomic_write():
+            if filename.startswith("accepted_rubric_"):
+                existing = await self._repository.list_for_session(
+                    session_id, step=step, filename=filename,
+                )
+                if existing:
+                    if existing[0].checksum != hashlib.sha256(content).hexdigest():
+                        raise InvalidArtifact("Accepted grading rubric cannot change within a version")
+                    return existing[0]
             artifact = await self._repository.upsert(
                 Artifact(
                     id=uuid4(),

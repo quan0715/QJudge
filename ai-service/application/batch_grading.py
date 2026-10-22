@@ -1,7 +1,7 @@
 """Framework-free planning for finalizing one batch grading run.
 
-A batch grading session (task_type ``grading.batch``) runs a few questions per
-run, one subagent each. The AI only fills ``grade_<qid>.csv``; after the run
+A batch grading session (task_type ``grading.batch``) runs a few grading units per
+run, one subagent per standalone question or complete question group. The AI only fills ``grade_<qid>.csv``; after the run
 ends the worker turns each CSV into backend grade writes and records the
 outcome in artifacts.
 """
