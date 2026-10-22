@@ -5,6 +5,7 @@ export interface GradeAppeal {
   exam_answer: number;
   question_id: string;
   question_order: number;
+  question_label?: string;
   question_prompt: string;
   student_id: number;
   student_username: string;
@@ -27,6 +28,7 @@ export interface GradeAppealDetail extends GradeAppeal {
   current_max_score: number;
   answer_format: ExamQuestionAnswerFormat;
   answer: {
+    question_prompt?: string;
     answer: Record<string, unknown>;
     question_type: ExamQuestionType;
     question_options: string[];

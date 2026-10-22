@@ -21,14 +21,14 @@ it("preserves failed replies and only closes on the separate staff action", asyn
   vi.mocked(api.closeGradeAppeal).mockResolvedValue({...ticket,status:"closed",closed_at:"2026-10-03T01:00:00Z",closed_by:1});
   render(<GradeAppealDialog contestId="c1" appealId={7} managing onClose={vi.fn()} onChanged={vi.fn()} />);
   await screen.findByText("Please review");
-  fireEvent.change(screen.getByLabelText("留言內容"),{target:{value:"A reply"}});
-  fireEvent.click(screen.getByRole("button",{name:"送出留言"}));
-  await waitFor(()=>expect(screen.getByRole("button",{name:"送出留言"})).not.toBeDisabled());
-  expect(screen.getByLabelText("留言內容")).toHaveValue("A reply");
+  fireEvent.change(screen.getByRole("textbox"),{target:{value:"A reply"}});
+  fireEvent.click(screen.getByRole("button",{name:"送出回覆"}));
+  await waitFor(()=>expect(screen.getByRole("button",{name:"送出回覆"})).not.toBeDisabled());
+  expect(screen.getByRole("textbox")).toHaveValue("A reply");
   expect(api.closeGradeAppeal).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button",{name:"結案"}));
   await screen.findByText("此申訴已結案，可查閱對話。",{exact:false});
-  expect(screen.queryByLabelText("留言內容")).not.toBeInTheDocument();
+  expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
 });
 
 it("hides cached private content after refresh is denied", async () => {
@@ -44,8 +44,22 @@ it("hides cached private content after refresh is denied", async () => {
 it("keeps a draft when another tab already created the ticket", async () => {
   vi.mocked(api.createGradeAppeal).mockResolvedValue({ ...ticket, created: false });
   render(<GradeAppealDialog contestId="c1" answerId={5} managing={false} onClose={vi.fn()} onChanged={vi.fn()} />);
-  fireEvent.change(screen.getByLabelText("申訴理由"), {target:{value:"My unsent explanation"}});
+  fireEvent.change(screen.getByRole("textbox"), {target:{value:"My unsent explanation"}});
   fireEvent.click(screen.getByRole("button", {name:"送出申訴"}));
   await screen.findByText("Please review");
-  expect(screen.getByLabelText("留言內容")).toHaveValue("My unsent explanation");
+  expect(screen.getByRole("textbox")).toHaveValue("My unsent explanation");
+});
+
+
+it("keeps complete original context and group identity after opening an existing appeal", async () => {
+  vi.mocked(api.getGradeAppeal).mockResolvedValue({ ...ticket, question_label: "1(b)", question_prompt: "Child only", answer: { ...ticket.answer, question_prompt: "Shared rules\n\nOriginal child" } });
+  render(<GradeAppealDialog contestId="c1" appealId={7} managing={false} onClose={vi.fn()} onChanged={vi.fn()} />);
+  expect(await screen.findByRole("heading", { name: "成績申訴 · 第 1(b) 題" })).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "申訴題目與作答" })).toHaveTextContent("Shared rules");
+  expect(screen.getByText("Saved answer")).toBeInTheDocument();
+  expect(screen.queryByText("Child only")).not.toBeInTheDocument();
+  fireEvent.change(screen.getByRole("textbox"), { target: { value: "Please recheck the original answer" } });
+  vi.mocked(api.sendGradeAppealMessage).mockResolvedValue({ ...ticket, messages: [...ticket.messages, { ...ticket.messages[0], id: 2, content: "Please recheck the original answer" }] });
+  fireEvent.click(screen.getByRole("button", { name: "送出說明" }));
+  await waitFor(() => expect(api.sendGradeAppealMessage).toHaveBeenCalledWith("c1", 7, "Please recheck the original answer"));
 });
