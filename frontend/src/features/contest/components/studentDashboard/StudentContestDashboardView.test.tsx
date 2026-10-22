@@ -462,6 +462,7 @@ describe("StudentContestDashboard", () => {
     vi.mocked(getExamQuestions).mockResolvedValueOnce([
       {
         id: "question-1",
+        groupId: "group-1",
         contestId: "contest-1",
         questionType: "short_answer",
         prompt: "Explain",
@@ -474,6 +475,7 @@ describe("StudentContestDashboard", () => {
       },
       {
         id: "question-2",
+        groupId: "group-1",
         contestId: "contest-1",
         questionType: "single_choice",
         prompt: "Choose",
@@ -513,6 +515,8 @@ describe("StudentContestDashboard", () => {
     expect(screen.getByText("已作答")).toBeInTheDocument();
     expect(screen.getByText("未作答")).toBeInTheDocument();
     expect(screen.getByText("draft answer")).toBeInTheDocument();
+    expect(screen.getByText(/^Q1\(a\)/)).toBeInTheDocument();
+    expect(screen.getByText(/^Q1\(b\)/)).toBeInTheDocument();
     expect(getMyExamAnswers).toHaveBeenCalledWith("contest-1");
     expect(getExamResults).not.toHaveBeenCalled();
   });

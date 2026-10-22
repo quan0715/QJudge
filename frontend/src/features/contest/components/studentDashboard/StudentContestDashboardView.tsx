@@ -1,3 +1,4 @@
+import { buildPaperQuestionLabels } from "@/features/contest/domain/paperQuestionLabels";
 import GradeAppealDialog from "@/features/contest/components/GradeAppealDialog";
 import { useGradeAppeals } from "@/features/contest/hooks/useGradeAppeals";
 import { useQueryClient } from "@tanstack/react-query";
@@ -174,7 +175,7 @@ export default function StudentContestDashboard({
   const { user } = useAuth();
   const appealEnabled = contest.contestType === "paper_exam" && contest.resultsPublished;
   const { appeals, refresh: refreshAppeals } = useGradeAppeals(contest.id, !!appealEnabled);
-  const [appealTarget, setAppealTarget] = useState<{ answerId: number; appealId?: number; prompt: string } | null>(null);
+  const [appealTarget, setAppealTarget] = useState<{ answerId: number; appealId?: number; prompt: string; label?: string } | null>(null);
   const tr = useCallback(
     (
       key: string,
@@ -752,6 +753,7 @@ export default function StudentContestDashboard({
       );
     }
 
+    const questionLabels = buildPaperQuestionLabels(paperData.questions);
     const resultMap = new Map(
       (paperData.results?.answers ?? []).map((result) => [
         String(result.questionId),
@@ -829,6 +831,7 @@ export default function StudentContestDashboard({
               key={question.id}
               questionId={String(question.id)}
               index={index + 1}
+              questionLabel={questionLabels.get(question.id)?.label}
               questionType={questionType}
               answerFormat={question.answerFormat}
               typeLabel={t(
@@ -854,7 +857,7 @@ export default function StudentContestDashboard({
               }
               explanationDocument={question.explanationDocument}
               scorePolicy={question.scorePolicy}
-              actions={contest.resultsPublished && result?.score != null ? <Button kind="tertiary" size="sm" onClick={() => setAppealTarget({ answerId: Number(result.id), appealId: appeals.find(a => a.exam_answer === Number(result.id))?.id, prompt })}>{appeals.some(a => a.exam_answer === Number(result.id)) ? "查看申訴" : "提出申訴"}</Button> : undefined}
+              actions={contest.resultsPublished && result?.score != null ? <Button kind="tertiary" size="sm" onClick={() => setAppealTarget({ answerId: Number(result.id), appealId: appeals.find(a => a.exam_answer === Number(result.id))?.id, prompt, label: questionLabels.get(question.id)?.label })}>{appeals.some(a => a.exam_answer === Number(result.id)) ? "查看申訴" : "提出申訴"}</Button> : undefined}
             />
           );
         })}
@@ -865,7 +868,7 @@ export default function StudentContestDashboard({
 
   return (
     <>
-    {appealEnabled && appealTarget && <GradeAppealDialog key={appealTarget.answerId} contestId={contest.id} answerId={appealTarget.answerId} appealId={appealTarget.appealId} questionPrompt={appealTarget.prompt} managing={false} onClose={() => { setAppealTarget(null); setPaperReloadKey(k => k + 1); }} onChanged={() => void refreshAppeals()} />}
+    {appealEnabled && appealTarget && <GradeAppealDialog key={appealTarget.answerId} contestId={contest.id} answerId={appealTarget.answerId} appealId={appealTarget.appealId} questionPrompt={appealTarget.prompt} questionLabel={appealTarget.label} managing={false} onClose={() => { setAppealTarget(null); setPaperReloadKey(k => k + 1); }} onChanged={() => void refreshAppeals()} />}
     <DashboardPage
       ariaLabel={t("studentDashboard.ariaLabel", "學生競賽首頁")}
       fullBleed

@@ -201,3 +201,31 @@ def test_concurrent_open_and_send_close(case):
     data = client(case['student']).get(detail).data["data"]
     assert data['status'] == 'closed'
     assert len(data['messages']) == (2 if sent.status_code == 201 else 1)
+
+
+def test_group_context_and_labels_match_in_create_list_detail_and_reply(case):
+    from apps.contests.models import ExamQuestionGroup
+    group = ExamQuestionGroup.objects.create(contest=case['contest'], title='Loop task', shared_stem_markdown='No libraries.\n\n```cpp\nint x;\n```')
+    ExamQuestion.objects.create(contest=case['contest'], group=group, order=0, prompt='First child without an answer', score=3)
+    question = case['question']
+    question.group = group
+    question.order = 1
+    question.save()
+    ExamQuestion.objects.create(contest=case['contest'], order=2, prompt='Standalone', score=2)
+    ticket = opened(case)
+    assert ticket['question_label'] == '1(b)'
+    for user in [case['teacher'], case['student']]:
+        detail = client(user).get(url(case, f"{ticket['id']}/")).data['data']
+        listing = client(user).get(url(case)).data['data']
+        for data in [detail, listing[0]]:
+            assert data['question_label'] == '1(b)'
+            assert 'No libraries.' in data['question_prompt']
+            assert 'int x;' in data['question_prompt']
+            assert question.prompt in data['question_prompt']
+        assert detail['question_prompt'] == detail['answer']['question_prompt']
+    response = client(case['student']).post(url(case, f"{ticket['id']}/messages/"), {'content': 'Please review my original answer.'}, format='json')
+    assert response.status_code == 201
+    case['answer'].refresh_from_db()
+    assert case['answer'].answer == {'text': 'My answer'}
+    assert case['answer'].score == 6
+    assert response.data['data']['question_label'] == '1(b)'
