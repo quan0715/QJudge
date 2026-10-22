@@ -77,9 +77,16 @@ class BatchGradingFinalizer:
         manifest = info.session_context.get("task_manifest") or {}
         if manifest.get("task_type") != BATCH_TASK_TYPE:
             return
+        paused = False
         for question_id in parse_batch_question_ids(info.user_message):
             try:
-                await self._finalize(info, run_id, question_id, lease_key)
+                if paused:
+                    await self._write_progress(
+                        info.session_id, run_id, question_id, status="paused",
+                        error="寫入成績的授權已失效，請確認權限後繼續",
+                    )
+                    continue
+                paused = await self._finalize(info, run_id, question_id, lease_key) == "paused"
             except Exception as exc:  # the teacher must see it; never leave the question "running"
                 logger.exception("Batch grading finalize failed for run %s", run_id)
                 await self._write_progress(
@@ -87,7 +94,7 @@ class BatchGradingFinalizer:
                     error=f"收尾失敗：{exc}",
                 )
 
-    async def _finalize(self, info: Any, run_id: UUID, question_id: str, lease_key: str) -> None:
+    async def _finalize(self, info: Any, run_id: UUID, question_id: str, lease_key: str) -> str:
         session_id = info.session_id
         status = progress_status(info.status, info.error_code)
         written: list[GradeRow] = []
@@ -97,10 +104,15 @@ class BatchGradingFinalizer:
         if status in ("completed", "failed"):
             try:
                 written, skipped, rejected, out_of_range = await self._write_grades(
-                    session_id, question_id, lease_key
+                    session_id, run_id, question_id, lease_key
                 )
             except McpReadinessError:
                 status, error = "paused", "授權已過期"
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code in (401, 403):
+                    status, error = "paused", "寫入成績的授權已失效，請確認權限後繼續"
+                else:
+                    status, error = "failed", f"寫入成績失敗：{exc}"
             except Exception as exc:  # recorded for the teacher, not raised
                 logger.exception("Batch grading write failed for run %s", run_id)
                 status, error = "failed", f"寫入成績失敗：{exc}"
@@ -111,15 +123,21 @@ class BatchGradingFinalizer:
             error = f"{rejected} 份寫入失敗" if rejected else ""
 
         if written:
-            existing = await self._read(session_id, f"written_{question_id}.csv")
-            await self._write(
-                session_id, run_id, f"written_{question_id}.csv",
-                append_written_csv(existing, written),
-            )
+            try:
+                existing = await self._read(session_id, f"written_{question_id}.csv")
+                await self._write(
+                    session_id, run_id, f"written_{question_id}.csv",
+                    append_written_csv(existing, written),
+                )
+            except Exception:
+                # Django committed a durable receipt with each grade. The UI
+                # reads those receipts even when this presentation copy fails.
+                logger.exception("Batch write artifact unavailable for run %s", run_id)
         await self._write_progress(
             session_id, run_id, question_id, status=status, error=error,
             written=len(written), skipped=skipped, out_of_range=out_of_range,
         )
+        return status
 
     async def _write_progress(
         self,
@@ -154,7 +172,7 @@ class BatchGradingFinalizer:
         )
 
     async def _write_grades(
-        self, session_id: UUID, question_id: str, lease_key: str
+        self, session_id: UUID, run_id: UUID, question_id: str, lease_key: str
     ) -> tuple[list[GradeRow], int, int, int]:
         batch = json.loads(await self._read(session_id, "batch.json") or "{}")
         question = next(
@@ -178,6 +196,8 @@ class BatchGradingFinalizer:
                     for r in plan.rows
                 ],
                 "only_if_ungraded": True,
+                "batch_session_id": str(session_id),
+                "batch_run_id": str(run_id),
                 # The AI can rewrite the CSV; never let it grade another question.
                 "question_id": question_id,
             },

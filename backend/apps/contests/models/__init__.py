@@ -15,7 +15,7 @@ from .communications import Clarification, ContestAnnouncement
 from .appeals import GradeAppeal, GradeAppealMessage
 from .monitoring import ContestActivity, ExamEvent, ExamEvidenceFrame
 from .integrity import ExamEvidenceChunk, ExamIntegrityRun, IntegrityUploadGrant, IntegrityBatchAdmission
-from .answers import ExamAnswer
+from .answers import ExamAnswer, ExamBatchGradeWrite
 
 __all__ = [
     "Clarification",
@@ -26,6 +26,7 @@ __all__ = [
     "ContestAnnouncement",
     "ContestParticipant",
     "ExamAnswer",
+    "ExamBatchGradeWrite",
     "ExamEvent",
     "ExamEvidenceFrame",
     "ExamEvidenceChunk",
