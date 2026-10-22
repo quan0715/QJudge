@@ -90,22 +90,24 @@ describe("selectBatchQuestions", () => {
 });
 
 describe("buildBatchRunPrompt", () => {
-  it("run prompt starts with batch_question_id line", () => {
-    const prompt = buildBatchRunPrompt({ contestId: "c1", questionId: "q7", label: "Q7", maxScore: 15 });
+  const input = { contestId: "c1", questionId: "q7", label: "Q7", maxScore: 15 };
+
+  it("run prompt starts with batch_question_id line and names the question's files", () => {
+    const prompt = buildBatchRunPrompt(input);
 
     expect(prompt.split("\n")[0]).toBe("batch_question_id: q7");
+    expect(prompt).toContain("c1");
     expect(prompt).toContain("grade_q7.csv");
-    expect(prompt).toContain("0 到 15");
-    expect(prompt).not.toContain("重改註記");
+    expect(prompt).toContain("rubric_q7.md");
   });
 
-  it("includes the regrade note when given", () => {
-    const prompt = buildBatchRunPrompt({
-      contestId: "c1", questionId: "q7", label: "Q7", maxScore: 15, regradeNote: "英文不扣分",
-    });
+  it("adds the regrade note as one extra line only when given", () => {
+    const plain = buildBatchRunPrompt(input);
+    const noted = buildBatchRunPrompt({ ...input, regradeNote: "  英文不扣分  " });
 
-    expect(prompt).toContain("重改註記");
-    expect(prompt).toContain("英文不扣分");
+    expect(buildBatchRunPrompt({ ...input, regradeNote: "   " })).toBe(plain);
+    expect(noted.split("\n")).toHaveLength(plain.split("\n").length + 1);
+    expect(noted).toContain("英文不扣分");
   });
 });
 

@@ -107,15 +107,10 @@ export function buildBatchRunPrompt(input: {
   const note = regradeNote?.trim();
   return [
     `batch_question_id: ${questionId}`,
-    `這是整批批改中的一題（${label}，滿分 ${maxScore}）。contest_id: ${contestId}`,
-    "請呼叫 task 工具（subagent_type: general-purpose），把下列工作完整交給子代理，然後只回覆子代理交回的一行摘要：",
-    `- 讀取 artifact \`${gradeCsvFilename(questionId)}\`，必要時用 qjudge_grading 的 question_detail 取得題目與參考解答；若已有 \`rubric_${questionId}.md\` 先沿用。`,
-    `- 建立或更新 \`rubric_${questionId}.md\`，可參考 \`qjudge-exam-grading-sop\` 技能。`,
-    `- 逐份閱讀 answer_text，用 artifact_csv_patch（key_column: exam_answer_id）只填 score 與 reason；score 介於 0 到 ${maxScore}。`,
-    "- reason 簡短說明給分或扣分依據；學生用英文作答時 reason 也用英文。",
-    "- 交回一行摘要：已填幾份、平均分。",
-    note ? `重改註記（優先考量，但維持 rubric 一致）：${note}` : "",
-    "嚴禁呼叫 qjudge_grading 的 grade、batch_grade、ungrade，也不要發布成績。",
+    `整批批改 ${label}（滿分 ${maxScore}），contest_id: ${contestId}。用 task 工具（general-purpose）交給子代理，你只轉述它回的一行摘要。`,
+    `子代理依 qjudge-exam-grading-sop 批改：學生作答已在 \`${gradeCsvFilename(questionId)}\`，rubric 用 \`rubric_${questionId}.md\`；完成後回一行：已填幾份、平均分。`,
+    "不要寫回或發布成績，系統會自動寫入。",
+    note ? `老師註記：${note}` : "",
   ]
     .filter(Boolean)
     .join("\n");
