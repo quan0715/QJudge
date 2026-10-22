@@ -1197,7 +1197,7 @@
       "revertConfirm": "Revert",
       "regrade": "Regrade with AI…",
       "regradeTitle": "Regrade {{label}} with AI",
-      "regradeBody": "AI-written scores for this question are reverted first (manual scores stay), then the question is queued again.",
+      "regradeBody": "Revert AI-written scores and regrade. For a question group, regrade all siblings together while keeping separate child scores. Manual changes are preserved.",
       "regradeNote": "Note for the AI (optional)",
       "regradeConfirm": "Revert and regrade",
       "noticeSkippedAtWrite": "{{count}} answers already had a score (from someone else or by hand) when the AI wrote; their scores were kept.",

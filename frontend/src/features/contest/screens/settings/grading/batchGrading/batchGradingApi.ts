@@ -1,3 +1,4 @@
+export { getExamQuestions as readBatchQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 /**
  * Batch grading data access. Kept apart from the hook so copilot-aware code
  * never imports the chatbot repository directly (copilot dogfood boundary).
@@ -55,14 +56,19 @@ export interface BatchQuestionFiles {
   grade: ArtifactRecord | null;
 }
 
-/** The AI's own files for one question; the rubric is written outside the batch step. */
+/** Legacy per-question rubrics and versioned whole-unit rubrics share this viewer. */
 export async function listQuestionFiles(
   sessionId: string,
   questionId: string,
+  groupId?: string,
 ): Promise<BatchQuestionFiles> {
   const latest = latestByFilename(await listArtifacts({ sessionId }));
+  const prefix = `rubric_${groupId ? `group_${groupId}` : `question_${questionId}`}_`;
+  const rubric = [...latest.values()]
+    .filter((file) => file.step === BATCH_ARTIFACT_STEP && file.filename.startsWith(prefix))
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
   return {
-    rubric: latest.get(`rubric_${questionId}.md`) ?? null,
+    rubric: rubric ?? latest.get(`rubric_${questionId}.md`) ?? null,
     grade: latest.get(gradeCsvFilename(questionId)) ?? null,
   };
 }

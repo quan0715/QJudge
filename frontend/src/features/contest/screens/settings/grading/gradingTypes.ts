@@ -27,6 +27,7 @@ export interface GradingAnswerRow {
   studentUsername: string;
   studentDisplayName: string;
   questionId: string;
+  questionGroupId?: string | null;
   questionLabel?: string;
   questionIndex: number; // 1-based
   questionPrompt: string;
