@@ -91,6 +91,15 @@ export interface CopilotToolPart {
   input?: unknown;
   output?: unknown;
   error?: CopilotError;
+  /** Set when a delegated sub-agent (the tool call with this id) made the call. */
+  parentToolCallId?: string;
+  /** Live output of a sub-agent; only present on the delegating tool call. */
+  activity?: CopilotToolActivity;
+}
+
+export interface CopilotToolActivity {
+  text: string;
+  todos?: readonly unknown[];
 }
 
 export interface CopilotAttachmentPart {

@@ -118,6 +118,7 @@ def test_renderer_uses_choice_specific_answer_bar_for_single_choice(paper_exam_c
         contest=paper_exam_contest,
         language="zh-TW",
         include_answers=False,
+        include_answer_area=True,
     ).render_html()
 
     assert "choice-answer-bar" in html
@@ -142,6 +143,7 @@ def test_renderer_short_answer_line_count_is_compact_for_fact_question(paper_exa
         contest=paper_exam_contest,
         language="zh-TW",
         include_answers=False,
+        include_answer_area=True,
     ).render_html()
 
     assert html.count('class="answer-line"') == 1
@@ -161,6 +163,7 @@ def test_renderer_short_answer_line_count_expands_for_explain_prompt(paper_exam_
         contest=paper_exam_contest,
         language="zh-TW",
         include_answers=False,
+        include_answer_area=True,
     ).render_html()
 
     assert html.count('class="answer-line"') == 4
@@ -301,6 +304,7 @@ def test_renderer_applies_codehilite_to_prompt_markdown(paper_exam_contest):
         contest=paper_exam_contest,
         language="zh-TW",
         include_answers=False,
+
     ).render_html()
 
     assert "codehilite" in html
@@ -327,6 +331,7 @@ def test_renderer_does_not_render_instructions_section_even_when_rules_exist(tea
         contest=contest,
         language="zh-TW",
         include_answers=False,
+
     ).render_html()
 
     assert "先寫姓名" not in html
@@ -350,6 +355,7 @@ def test_renderer_does_not_show_generated_time(paper_exam_contest):
         contest=paper_exam_contest,
         language="zh-TW",
         include_answers=False,
+
     ).render_html()
 
     assert "產生時間" not in html
@@ -379,8 +385,67 @@ def test_renderer_hides_class_exam_window_and_time_limit_fields(teacher):
         contest=contest,
         language="en",
         include_answers=False,
+
     ).render_html()
 
     assert "Class" not in html
     assert "Exam Window" not in html
     assert "Time Limit" not in html
+
+
+@pytest.mark.django_db
+def test_question_paper_omits_writing_space_by_default(paper_exam_contest):
+    ExamQuestion.objects.create(
+        contest=paper_exam_contest, question_type="essay",
+        prompt="Explain the algorithm.", correct_answer="Reference solution", score=5, order=0,
+    )
+    html = PaperExamSheetRenderer(paper_exam_contest).render_html()
+    assert "Explain the algorithm." in html
+    assert "Reference solution" not in html
+    assert 'class="answer-lines"' not in html
+    assert 'class="choice-answer-bar"' not in html
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("include_answers", [False, True])
+@pytest.mark.parametrize("group_title", ["Loop exercise", ""])
+def test_group_header_precedes_children_once(paper_exam_contest, include_answers, group_title):
+    from apps.contests.models import ExamQuestionGroup
+    group = ExamQuestionGroup.objects.create(
+        contest=paper_exam_contest, title=group_title, shared_stem_markdown="Common rules for both parts.",
+    )
+    for index, score in enumerate([3, 5]):
+        ExamQuestion.objects.create(
+            contest=paper_exam_contest, group=group, question_type="essay",
+            prompt=f"Child part {index + 1}", score=score, order=index, order_in_group=index,
+        )
+    ExamQuestion.objects.create(
+        contest=paper_exam_contest, question_type="essay", prompt="Standalone", score=2, order=2,
+    )
+    next_group = ExamQuestionGroup.objects.create(
+        contest=paper_exam_contest, title="Second group", shared_stem_markdown="Next shared prompt.",
+    )
+    ExamQuestion.objects.create(
+        contest=paper_exam_contest, group=next_group, question_type="essay",
+        prompt="Next child", score=1, order=3, order_in_group=0,
+    )
+    html = PaperExamSheetRenderer(paper_exam_contest, include_answers=include_answers).render_html()
+    assert html.count("Common rules for both parts.") == 1
+    if group_title:
+        assert html.count(group_title) == 1
+        assert html.index(group_title) < html.index("Common rules for both parts.")
+    assert ">1.</span>" in html
+    assert "Question group" not in html
+    assert "題組" not in html
+    assert ">(a)</span>" in html
+    assert ">(b)</span>" in html
+    assert ">2.</span>" in html
+    if include_answers:
+        assert "<td>1(a)</td>" in html
+        assert "<td>1(b)</td>" in html
+        assert "<td>2</td>" in html
+        assert "<td>3(a)</td>" in html
+    assert html.index("Common rules for both parts.") < html.index("Child part 1") < html.index("Child part 2") < html.index("Standalone")
+    assert html.count('class="question-item grouped-question"') == 3
+    assert ">3.</span>" in html
+    assert html.count("Second group") == 1

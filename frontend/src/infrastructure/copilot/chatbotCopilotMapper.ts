@@ -4,6 +4,7 @@ import type {
   ChatRun,
   ChatRunStatus,
   ChatSession,
+  SubagentActivity,
   ToolInfo,
 } from "@/core/types/chatbot.types";
 import type {
@@ -16,6 +17,7 @@ import type {
   CopilotRunStatus,
   CopilotSession,
   CopilotSessionSummary,
+  CopilotToolActivity,
   CopilotToolPart,
 } from "@copilot";
 import type { ArtifactRecord } from "@/infrastructure/api/repositories/artifact.repository";
@@ -59,6 +61,16 @@ export function mapToolInfoToCopilotPart(
           recoverable: false,
         }
       : undefined,
+    ...(tool.parentToolCallId ? { parentToolCallId: tool.parentToolCallId } : {}),
+  };
+}
+
+export function mapSubagentActivityToCopilot(
+  activity: SubagentActivity,
+): CopilotToolActivity {
+  return {
+    text: activity.text,
+    ...(activity.todoItems ? { todos: activity.todoItems } : {}),
   };
 }
 
@@ -73,7 +85,9 @@ export function mapChatMessageToCopilot(message: ChatMessage): CopilotMessage {
     });
   }
   for (const [index, tool] of (message.toolExecutions ?? []).entries()) {
-    parts.push(mapToolInfoToCopilotPart(tool, index));
+    const part = mapToolInfoToCopilotPart(tool, index);
+    const activity = message.subagentActivity?.[part.toolCallId];
+    parts.push(activity ? { ...part, activity: mapSubagentActivityToCopilot(activity) } : part);
   }
   if (message.todoItems) {
     parts.push({ type: "data-todo-items", data: message.todoItems });

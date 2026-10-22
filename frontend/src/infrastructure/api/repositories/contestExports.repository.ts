@@ -171,7 +171,7 @@ export const downloadExamPaperFile = async (
   mode: "question" | "answer",
   language: string = "zh-TW",
   scale: number = 1.0,
-  includeAnswerArea: boolean = true
+  includeAnswerArea: boolean = false
 ): Promise<void> => {
   const params = new URLSearchParams({
     mode,

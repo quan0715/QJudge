@@ -25,6 +25,7 @@ export type {
   CopilotSessionSummary,
   CopilotStartRunInput,
   CopilotTextPart,
+  CopilotToolActivity,
   CopilotToolPart,
 } from "./copilot.types";
 

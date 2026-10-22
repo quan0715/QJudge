@@ -15,13 +15,14 @@ interface Props {
   appealId?: number;
   answerId?: number;
   questionPrompt?: string;
+  questionLabel?: string;
   managing: boolean;
   gradingHref?: string;
   onClose: () => void;
   onChanged: () => void;
 }
 
-export default function GradeAppealDialog({ contestId, appealId, answerId, questionPrompt, managing, gradingHref, onClose, onChanged }: Props) {
+export default function GradeAppealDialog({ contestId, appealId, answerId, questionPrompt, questionLabel, managing, gradingHref, onClose, onChanged }: Props) {
   const [ticket, setTicket] = useState<GradeAppealDetail | null>(null);
   const [currentId, setCurrentId] = useState(appealId);
   const [draft, setDraft] = useState("");
@@ -93,20 +94,24 @@ export default function GradeAppealDialog({ contestId, appealId, answerId, quest
       }
     } finally { setSaving(false); }
   };
+  const displayLabel = ticket?.question_label ?? questionLabel ?? (ticket ? String(ticket.question_order + 1) : undefined);
   const tooLong = Array.from(draft.trim()).length > 5000;
   return (
-    <Modal open passiveModal modalHeading="成績申訴" size="lg" onRequestClose={onClose} preventCloseOnClickOutside>
+    <Modal open passiveModal modalHeading={displayLabel ? `成績申訴 · 第 ${displayLabel} 題` : "成績申訴"} size="lg" onRequestClose={onClose} preventCloseOnClickOutside>
       <div className={styles.root}>
         <div className={styles.actions}>
           {ticket && <Tag type={ticket.status === "closed" ? "gray" : "blue"}>{ticket.status === "closed" ? "已結案" : "未結案"}</Tag>}
           {currentId && <Button kind="ghost" size="sm" disabled={loading || saving} onClick={() => void load(currentId)}>重新整理留言</Button>}
           {managing && gradingHref && <Button kind="tertiary" size="sm" href={gradingHref}>前往批改</Button>}
         </div>
+        <p className={styles.meta}>{managing
+          ? "請依交卷時的原答案與相同評分規則複核；不得要求補作答或以新增內容給分。"
+          : "請說明交卷時的原答案，或指出可能漏評、誤判的部分；不得補作答。"}</p>
         {loading ? <SkeletonText paragraph lineCount={4} /> : error ? (
           <InlineNotification kind="error" title={error} hideCloseButton lowContrast />
         ) : <>
           <section className={styles.context} aria-label="申訴題目與作答">
-            <MarkdownRenderer>{ticket?.question_prompt ?? questionPrompt ?? "請說明這題需要重新檢視的部分。"}</MarkdownRenderer>
+            <MarkdownRenderer>{ticket?.answer.question_prompt ?? ticket?.question_prompt ?? questionPrompt ?? "請說明這題需要重新檢視的部分。"}</MarkdownRenderer>
             {ticket && <>
               <p>考生：{ticket.student_username} · 目前成績：{formatScore(ticket.current_score)} / {formatScore(ticket.current_max_score)}</p>
               <AnswerDisplay questionType={ticket.answer.question_type} answerFormat={ticket.answer_format} answerContent={ticket.answer.answer} options={ticket.answer.question_options} correctAnswer={null} showCorrectness={false} />
@@ -120,9 +125,9 @@ export default function GradeAppealDialog({ contestId, appealId, answerId, quest
             </article>)}
           </section>}
           {ticket?.status === "closed" ? <p role="status">此申訴已結案，可查閱對話。</p> : <>
-            <TextArea id="grade-appeal-message" labelText={currentId ? "留言內容" : "申訴理由"} helperText="限 5000 字；補充說明會保留在同一件申訴中。" value={draft} onChange={e => setDraft(e.target.value)} invalid={tooLong} invalidText="請將訊息縮短至 5000 字內。" rows={4} disabled={saving} />
+            <TextArea id="grade-appeal-message" labelText={managing ? "複核回覆" : "說明原答案（不得補作答）"} helperText={managing ? "限 5000 字；請指出原答案的複核依據及處理結果。" : "限 5000 字；可解釋原答案，不得新增程式、推導或解法來補足作答。"} value={draft} onChange={e => setDraft(e.target.value)} invalid={tooLong} invalidText="請將訊息縮短至 5000 字內。" rows={4} disabled={saving} />
             <div className={styles.actions}>
-              <Button size="sm" disabled={saving || !draft.trim() || tooLong} onClick={() => void send()}>{saving ? "處理中…" : currentId ? "送出留言" : "送出申訴"}</Button>
+              <Button size="sm" disabled={saving || !draft.trim() || tooLong} onClick={() => void send()}>{saving ? "處理中…" : currentId ? managing ? "送出回覆" : "送出說明" : "送出申訴"}</Button>
               {managing && currentId && <Button kind="tertiary" size="sm" disabled={saving} onClick={() => void close()}>結案</Button>}
             </div>
           </>}

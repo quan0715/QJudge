@@ -25,6 +25,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from apps.users.permissions import IsTeacherOrAdmin
 
 from .resource_tokens import (
+    MCP_RESOURCE_TOKEN_LIFETIME_SECONDS,
     canonical_oauth_issuer,
     decode_resource_token,
     issue_resource_token,
@@ -478,12 +479,13 @@ class TokenExchangeView(APIView):
             user,
             "qjudge-mcp",
             frozenset({"mcp"}),
+            lifetime_seconds=MCP_RESOURCE_TOKEN_LIFETIME_SECONDS,
         )
         return Response(
             {
                 "access_token": resource_token,
                 "token_type": "Bearer",
-                "expires_in": 300,
+                "expires_in": MCP_RESOURCE_TOKEN_LIFETIME_SECONDS,
                 "scope": "mcp",
             },
             headers={

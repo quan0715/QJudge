@@ -10,7 +10,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from .base import BaseRenderer
-from ..utils import inline_markdown, render_markdown
+from ..utils import render_pdf, scale_css_pixels, inline_markdown, render_markdown
 
 
 class PaperExamReportRenderer(BaseRenderer):
@@ -33,21 +33,7 @@ class PaperExamReportRenderer(BaseRenderer):
         self._scoring_context_cache = None
 
     def export(self) -> BytesIO:
-        """Generate PDF report for the student."""
-        html = self.render_html()
-
-        try:
-            from weasyprint import HTML
-        except (ImportError, OSError) as e:
-            raise RuntimeError(
-                "PDF export is not available. WeasyPrint requires system libraries. "
-                f"Original error: {e}"
-            )
-
-        pdf_file = BytesIO()
-        HTML(string=html).write_pdf(pdf_file)
-        pdf_file.seek(0)
-        return pdf_file
+        return render_pdf(self.render_html())
 
     def render_html(self) -> str:
         """Render the full HTML document for PDF conversion."""
@@ -80,13 +66,13 @@ class PaperExamReportRenderer(BaseRenderer):
     def _get_base_css(self) -> str:
         css = self._read_static_css('exports/report-base.css')
         if self.scale != 1.0:
-            return self._apply_scale_to_css(css)
+            return scale_css_pixels(css, self.scale)
         return css
 
     def _get_report_css(self) -> str:
         css = self._read_static_css('exports/paper-exam-report.css')
         if self.scale != 1.0:
-            return self._apply_scale_to_css(css)
+            return scale_css_pixels(css, self.scale)
         return css
 
     def _read_static_css(self, relative_path: str) -> str:
@@ -94,16 +80,6 @@ class PaperExamReportRenderer(BaseRenderer):
         if not css_path:
             raise FileNotFoundError(f"Static CSS not found: {relative_path}")
         return Path(css_path).read_text(encoding="utf-8")
-
-    def _apply_scale_to_css(self, css: str) -> str:
-        import re
-        scale = self.scale
-
-        def scale_px(match):
-            value = float(match.group(1))
-            return f"{value * scale}px"
-
-        return re.sub(r'(\d+(?:\.\d+)?)px', scale_px, css)
 
     # ----------------------------------------------------------------
     # Data helpers
@@ -140,7 +116,7 @@ class PaperExamReportRenderer(BaseRenderer):
         if self._questions_cache is None:
             from apps.contests.models import ExamQuestion
             self._questions_cache = list(
-                ExamQuestion.objects.filter(contest=self.contest).order_by('order', 'id')
+                ExamQuestion.objects.filter(contest=self.contest).select_related("group").order_by('order', 'id')
             )
         return self._questions_cache
 
@@ -195,7 +171,11 @@ class PaperExamReportRenderer(BaseRenderer):
         items_by_qid = scoring_ctx.get('items_by_qid', {})
 
         rows = []
-        for idx, q in enumerate(questions, 1):
+        from apps.contests.services.paper_question_labels import build_paper_question_labels
+
+        labels = build_paper_question_labels(questions)
+        for q in questions:
+            idx = labels[q.id]
             ans = answers_map.get(q.id)
             has_answer = ans and self._has_answer(ans)
             is_graded = ans and ans.score is not None
@@ -290,7 +270,11 @@ class PaperExamReportRenderer(BaseRenderer):
         section_label = self.get_label('problem_details')
         parts = [f'<div class="section-title">{section_label}</div>']
 
-        for idx, q in enumerate(questions, 1):
+        from apps.contests.services.paper_question_labels import build_paper_question_labels
+
+        labels = build_paper_question_labels(questions)
+        for q in questions:
+            idx = labels[q.id]
             ans = answers_map.get(q.id)
             parts.append(self._render_single_question(idx, q, ans, scoring_ctx))
 
@@ -400,7 +384,9 @@ class PaperExamReportRenderer(BaseRenderer):
         lines.append('</div>')
 
         # Prompt
-        prompt_html = render_markdown(question.prompt)
+        from apps.contests.services.question_context import question_prompt_with_context
+
+        prompt_html = render_markdown(question_prompt_with_context(question))
         lines.append(f'<div class="question-prompt">{prompt_html}</div>')
 
         if q_type in ('true_false', 'single_choice', 'multiple_choice'):

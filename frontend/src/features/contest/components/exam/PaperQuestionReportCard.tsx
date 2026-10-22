@@ -29,6 +29,7 @@ type StatusTone =
 interface PaperQuestionReportCardProps {
   questionId: string;
   index: number;
+  questionLabel?: string;
   questionType: ExamQuestionType;
   answerFormat?: ExamQuestionAnswerFormat;
   typeLabel: string;
@@ -53,6 +54,7 @@ interface PaperQuestionReportCardProps {
 
 export default function PaperQuestionReportCard({
   index,
+  questionLabel,
   questionType,
   answerFormat,
   typeLabel,
@@ -86,7 +88,7 @@ export default function PaperQuestionReportCard({
       <div className={styles.header}>
         <div>
           <div className={styles.title}>
-            Q{index} · {typeLabel}
+            Q{questionLabel ?? index} · {typeLabel}
             {isExcluded && <span className={styles.policyExcluded}> (不計分)</span>}
             {isFullMarks && <span className={styles.policyFullMarks}> (送分)</span>}
             {isRedistribute && <span className={styles.policyExcluded}> (配分重分配)</span>}

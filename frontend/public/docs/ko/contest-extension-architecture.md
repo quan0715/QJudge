@@ -54,7 +54,7 @@ Dashboard 컨테이너가 지나치게 비대해지는 것을 방지하기 위�
 
 ### A. 공통화해야 하며, 대회 유형별로 중복 구현하지 말 것
 - **부정행위 방지 메커니즘 (Anti-Cheat / Precheck)**: 활성화 여부는 오직 `contest.cheatDetectionEnabled`라는 Feature Flag에만 의존해야 하며, **절대로** 특정 `contestType`에 결합해서는 안 됩니다.
-- **Dashboard 컨테이너 골격**: `StudentDashboardLayout` 및 `AdminDashboardLayout`.
+- **Dashboard 구성**: `ContestWorkspaceLayout` / `AdminOverviewScreen`.
 - **응시 라우트 계산**: `enterExamUseCase`를 사용하고 모듈에서 해석된 `answeringEntryPath`를 전달하여 시험 시작 프로세스를 통일합니다.
 
 ### B. 대회 모듈이 결정해야 함 (유형에 따라 다를 수 있음)

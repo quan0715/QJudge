@@ -89,3 +89,11 @@
   flex: 1;
   min-width: 0;
 }
+
+// The app sidebar already owns the divider in the runtime shell.
+.container[data-external-navigator="true"] {
+  .singleContent,
+  .allContent {
+    border-left: 0;
+  }
+}

@@ -28,6 +28,7 @@ from .services.ai_service_client import (
     get_ai_service_client,
     safe_upstream_error,
     unavailable_error,
+    upstream_error_status,
 )
 
 
@@ -95,7 +96,8 @@ def _proxy_json(
         )
     if upstream.status_code >= 400:
         return Response(
-            safe_upstream_error(upstream, request), status=upstream.status_code
+            safe_upstream_error(upstream, request),
+            status=upstream_error_status(upstream),
         )
     if upstream.status_code == status.HTTP_204_NO_CONTENT:
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -259,7 +261,7 @@ class ChatRunViewSet(viewsets.ViewSet):
         except AIServiceUpstreamResponse as exc:
             return Response(
                 safe_upstream_error(exc.response, request),
-                status=exc.response.status_code,
+                status=upstream_error_status(exc.response),
             )
         response = StreamingHttpResponse(
             _as_async_sse_chunks(chunks), content_type="text/event-stream"

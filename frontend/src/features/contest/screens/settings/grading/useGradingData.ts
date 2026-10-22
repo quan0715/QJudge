@@ -1,3 +1,4 @@
+import { buildPaperQuestionLabels } from "@/features/contest/domain/paperQuestionLabels";
 /**
  * Data hook for exam grading.
  * Fetches real data from API.
@@ -71,32 +72,38 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
     participantMapRef.current = participantMap;
   }, [participantMap]);
 
-  // Fetch real data
-  const fetchData = useCallback(async () => {
-    if (!contestId || contest?.contestType !== "paper_exam") {
+  const isPaperExam = Boolean(contestId) && contest?.contestType === "paper_exam";
+
+  /** Fetch and apply the latest answers without touching `loading`. */
+  const loadRows = useCallback(async (): Promise<GradingAnswerRow[]> => {
+    if (!contestId || !isPaperExam) {
       setAnswers([]);
       setQuestions([]);
+      return [];
+    }
+    const [{ data: allAnswers }, questions] = await Promise.all([
+      getAllExamAnswersForGrading(contestId),
+      getExamQuestions(contestId),
+    ]);
+    const sortedQuestions = questions
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    setQuestions(sortedQuestions);
+    const rows = buildGradingRows(allAnswers, questions, participantMapRef.current);
+    setAnswers(rows);
+    return rows;
+  }, [contestId, isPaperExam]);
+
+  // Fetch real data
+  const fetchData = useCallback(async () => {
+    if (!isPaperExam) {
+      await loadRows();
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      const [{ data: allAnswers }, questions] = await Promise.all([
-        getAllExamAnswersForGrading(contestId),
-        getExamQuestions(contestId),
-      ]);
-
-      const sortedQuestions = questions
-        .slice()
-        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-      setQuestions(sortedQuestions);
-
-      const rows = buildGradingRows(
-        allAnswers,
-        questions,
-        participantMapRef.current,
-      );
-      setAnswers(rows);
+      await loadRows();
     } catch (err) {
       console.error("Failed to fetch grading data:", err);
       setAnswers([]);
@@ -104,10 +111,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [
-    contest?.contestType,
-    contestId,
-  ]);
+  }, [isPaperExam, loadRows]);
 
   useEffect(() => {
     void fetchData();
@@ -115,13 +119,16 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
 
   // ── Derived: unique question info (source of truth = question list; fallback = answers) ──
   const questionInfoMap = useMemo(() => {
+    const labels = buildPaperQuestionLabels(questions);
     const map = new Map<
       string,
       {
         questionId: string;
         questionIndex: number;
+        questionLabel?: string;
         questionType: ExamQuestionType;
         prompt: string;
+        gradingPrompt?: string;
         maxScore: number;
         effectiveMaxScore?: number;
         scorePolicy?: ExamQuestionScorePolicy;
@@ -135,8 +142,10 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         map.set(q.id, {
           questionId: q.id,
           questionIndex: (q.order ?? idx) + 1,
+          questionLabel: labels.get(q.id)?.label,
           questionType: q.questionType,
           prompt: q.prompt ?? "",
+          gradingPrompt: q.gradingPrompt,
           maxScore: q.score ?? 0,
           effectiveMaxScore: q.effectiveMaxScore,
           scorePolicy: q.scorePolicy ?? "normal",
@@ -150,6 +159,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
       map.set(a.questionId, {
         questionId: a.questionId,
         questionIndex: a.questionIndex,
+        questionLabel: a.questionLabel,
         questionType: a.questionType,
         prompt: a.questionPrompt,
         maxScore: a.maxScore,
@@ -192,8 +202,10 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         return {
           questionId: q.questionId,
           questionIndex: q.questionIndex,
+          questionLabel: q.questionLabel,
           questionType: q.questionType,
           prompt: q.prompt,
+          gradingPrompt: q.gradingPrompt,
           maxScore: q.maxScore,
           effectiveMaxScore: q.effectiveMaxScore,
           totalAnswers,
@@ -369,6 +381,8 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
     regradeObjectiveAnswers,
     regradingObjective,
     refreshData,
+    /** Background refresh: returns the latest rows and never shows the loading screen. */
+    reloadAnswers: loadRows,
     loading,
   };
 }

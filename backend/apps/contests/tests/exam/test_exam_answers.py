@@ -461,6 +461,154 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         resp = self.client.post(url, {'score': 15}, format='json')
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 
+    def _batch_grade_url(self):
+        return reverse(
+            'contests:contest-exam-answers-batch-grade',
+            kwargs={'contest_pk': self.contest.id},
+        )
+
+    def test_only_if_ungraded_skips_graded_answer(self):
+        graded = ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_single,
+            answer={'selected': 'B'},
+            score=5,
+        )
+        ungraded = ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_essay,
+            answer={'text': 'My essay'},
+        )
+        self.client.force_authenticate(user=self.teacher)
+        resp = self.client.post(self._batch_grade_url(), {
+            'grades': [
+                {'exam_answer_id': graded.id, 'score': 9, 'feedback': 'AI'},
+                {'exam_answer_id': ungraded.id, 'score': 12, 'feedback': 'AI'},
+            ],
+            'only_if_ungraded': True,
+        }, format='json')
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [r['status'] for r in resp.data['results']], ['skipped', 'ok'],
+        )
+        self.assertEqual(resp.data['graded_count'], 1)
+        graded.refresh_from_db()
+        ungraded.refresh_from_db()
+        self.assertEqual(graded.score, 5)
+        self.assertEqual(ungraded.score, 12)
+        self.assertEqual(ungraded.graded_by, self.teacher)
+
+    def test_question_id_limits_batch_grade_to_that_question(self):
+        other = ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_single,
+            answer={'selected': 'B'},
+        )
+        target = ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_essay,
+            answer={'text': 'My essay'},
+        )
+        self.client.force_authenticate(user=self.teacher)
+        resp = self.client.post(self._batch_grade_url(), {
+            'grades': [
+                {'exam_answer_id': other.id, 'score': 3, 'feedback': 'AI'},
+                {'exam_answer_id': target.id, 'score': 9, 'feedback': 'AI'},
+            ],
+            'only_if_ungraded': True,
+            'question_id': self.q_essay.id,
+        }, format='json')
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual([r['status'] for r in resp.data['results']], ['error', 'ok'])
+        other.refresh_from_db()
+        self.assertIsNone(other.score)
+
+    def test_batch_grade_without_flag_still_overwrites(self):
+        graded = ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_essay,
+            answer={'text': 'My essay'},
+            score=5,
+        )
+        self.client.force_authenticate(user=self.teacher)
+        resp = self.client.post(self._batch_grade_url(), {
+            'grades': [{'exam_answer_id': graded.id, 'score': 9, 'feedback': 'x'}],
+        }, format='json')
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        graded.refresh_from_db()
+        self.assertEqual(graded.score, 9)
+
+    def _ungrade(self, answer, payload=None):
+        self.client.force_authenticate(user=self.teacher)
+        url = reverse(
+            'contests:contest-exam-answers-ungrade-answer',
+            kwargs={'contest_pk': self.contest.id, 'pk': answer.id},
+        )
+        return self.client.post(url, payload or {}, format='json')
+
+    def _graded_essay(self, score=8, feedback='AI'):
+        return ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_essay,
+            answer={'text': 'My essay'},
+            score=score,
+            feedback=feedback,
+            graded_by=self.teacher,
+        )
+
+    def test_ungrade_without_expectation_clears_grade(self):
+        ans = self._graded_essay()
+
+        resp = self._ungrade(ans)
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        ans.refresh_from_db()
+        self.assertIsNone(ans.score)
+        self.assertEqual(ans.feedback, '')
+        self.assertIsNone(ans.graded_by)
+
+    def test_ungrade_clears_grade_that_still_matches_expectation(self):
+        ans = self._graded_essay(score=8, feedback='AI')
+
+        resp = self._ungrade(ans, {'expected_score': 8.0, 'expected_feedback': 'AI'})
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        ans.refresh_from_db()
+        self.assertIsNone(ans.score)
+
+    def test_ungrade_keeps_grade_changed_since_expectation(self):
+        # Another teacher saved 6 / "TA" after the AI wrote 8 / "AI".
+        ans = self._graded_essay(score=6, feedback='TA')
+
+        resp = self._ungrade(ans, {'expected_score': 8, 'expected_feedback': 'AI'})
+
+        self.assertEqual(resp.status_code, status.HTTP_409_CONFLICT)
+        ans.refresh_from_db()
+        self.assertEqual(ans.score, 6)
+        self.assertEqual(ans.feedback, 'TA')
+        self.assertEqual(ans.graded_by, self.teacher)
+
+    def test_ungrade_keeps_grade_when_only_feedback_changed(self):
+        ans = self._graded_essay(score=8, feedback='TA 補充')
+
+        resp = self._ungrade(ans, {'expected_score': 8, 'expected_feedback': 'AI'})
+
+        self.assertEqual(resp.status_code, status.HTTP_409_CONFLICT)
+        ans.refresh_from_db()
+        self.assertEqual(ans.feedback, 'TA 補充')
+
+    def test_ungrade_rejects_non_numeric_expected_score(self):
+        ans = self._graded_essay()
+
+        resp = self._ungrade(ans, {'expected_score': 'abc'})
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        ans.refresh_from_db()
+        self.assertEqual(ans.score, 8)
+
     def test_teacher_view_all_answers(self):
         ExamAnswer.objects.create(
             participant=self.participant,

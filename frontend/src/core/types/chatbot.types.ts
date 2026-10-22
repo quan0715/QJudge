@@ -39,6 +39,14 @@ export interface ToolInfo {
   result?: string | Record<string, unknown>;
   isError?: boolean;
   durationMs?: number;
+  /** Set when a deepagents subagent (the `task` tool call with this id) made the call. */
+  parentToolCallId?: string;
+}
+
+/** Live activity of one deepagents subagent, keyed by its `task` tool call id. */
+export interface SubagentActivity {
+  text: string;
+  todoItems?: RunTodoItem[];
 }
 
 export type RunTodoStatus = "pending" | "in_progress" | "success" | "fail";
@@ -90,6 +98,7 @@ export interface ChatMessage {
   toolExecutions?: ToolInfo[];
   verificationReports?: VerificationReport[];
   todoItems?: RunTodoItem[];
+  subagentActivity?: Record<string, SubagentActivity>;
   isThinking?: boolean;
   toolName?: string;
   runId?: string;

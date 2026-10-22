@@ -438,6 +438,44 @@ def test_upstream_error_preserves_safe_contract_fields(
     }
 
 
+@pytest.mark.parametrize(
+    "gateway_path",
+    [
+        f"/api/v1/ai/sessions/{SESSION_ID}/",
+        f"/api/v1/ai/artifacts/{ARTIFACT_ID}/content/",
+        f"/api/v1/ai/runs/{RUN_ID}/events/",
+    ],
+)
+def test_upstream_401_is_reported_as_bad_gateway(
+    api_client, teacher, ai_transport, gateway_path
+) -> None:
+    # The AI Service rejected the token Django signed; the user's own session
+    # is fine, so the browser must not see a 401 and log the user out.
+    ai_transport.respond_json(
+        401,
+        {"error": {"code": "UNAUTHORIZED", "message": "Invalid token.", "retryable": False}},
+    )
+    api_client.force_authenticate(teacher)
+
+    response = api_client.get(gateway_path)
+
+    assert response.status_code == 502
+    assert response.json()["error"]["code"] == "UNAUTHORIZED"
+    assert response.json()["error"]["retryable"] is False
+
+
+def test_upstream_403_still_passes_through(api_client, teacher, ai_transport) -> None:
+    ai_transport.respond_json(
+        403,
+        {"error": {"code": "FORBIDDEN", "message": "Not your session.", "retryable": False}},
+    )
+    api_client.force_authenticate(teacher)
+
+    response = api_client.get(f"/api/v1/ai/sessions/{SESSION_ID}/")
+
+    assert response.status_code == 403
+
+
 def test_transport_failure_returns_stable_unavailable_error(
     api_client, teacher, monkeypatch
 ) -> None:

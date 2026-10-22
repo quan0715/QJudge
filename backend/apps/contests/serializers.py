@@ -25,6 +25,7 @@ from .permissions import can_manage_contest, get_contest_permissions, get_contes
 from .services.attendance import build_attendance_status
 from .services.objective_answer import objective_answer_error
 from .services.open_answer_document import validate_open_answer_document
+from .services.question_context import question_prompt_with_context
 from .services.question_edit_lock import is_contest_question_edit_locked
 from .services.participation import is_contest_candidate, roster_user_ids
 from apps.users.serializers import EmbeddedUserSerializer
@@ -621,6 +622,7 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
     """
     Serializer for paper-style exam questions (admin/teacher).
     """
+    grading_prompt = serializers.SerializerMethodField()
     source_bank = serializers.SerializerMethodField()
     source_question_id = serializers.UUIDField(read_only=True)
     source_mode = serializers.CharField(read_only=True)
@@ -641,6 +643,7 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             'contest',
             'question_type',
             'prompt',
+            'grading_prompt',
             'options',
             'correct_answer',
             'reference_answer_document',
@@ -664,6 +667,9 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['contest', 'created_at', 'updated_at']
+
+    def get_grading_prompt(self, obj) -> str:
+        return question_prompt_with_context(obj)
 
     def get_effective_max_score(self, obj):
         """Post-redistribution effective max score for this question."""
@@ -1104,7 +1110,7 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_question_prompt(self, obj):
-        return obj.question.prompt
+        return question_prompt_with_context(obj.question)
 
     def get_question_type(self, obj):
         return obj.question.question_type

@@ -69,6 +69,8 @@ export default function GradingSplitPanelScreen({
   const [saving, setSaving] = useState(false);
   const { showToast } = useToast();
   const activeAnswerId = useRef(answer?.id);
+  /** The answer values the form was last filled from. */
+  const syncedValuesRef = useRef({ score: answer?.score ?? 0, feedback: answer?.feedback ?? "" });
   const scoreInputBufferRef = useRef("");
   const scoreInputBufferTimerRef = useRef<number | null>(null);
   const saveLockedRef = useRef(false);
@@ -140,11 +142,30 @@ export default function GradingSplitPanelScreen({
     if (answer) {
       setScore(answer.score ?? 0);
       setFeedback(answer.feedback ?? "");
+      syncedValuesRef.current = { score: answer.score ?? 0, feedback: answer.feedback ?? "" };
       setSaved(false);
       scoreInputBufferRef.current = "";
     }
     panelBodyRef.current?.scrollTo?.({ top: 0, behavior: "smooth" });
   }, [answer?.id]);
+
+  // Follow outside changes to the same answer (e.g. AI batch grading writes or
+  // reverts it) unless the teacher has already edited the form.
+  const latestFormRef = useRef({ score, feedback });
+  latestFormRef.current = { score, feedback };
+  useEffect(() => {
+    if (!answer || answer.id !== activeAnswerId.current) return;
+    const next = { score: answer.score ?? 0, feedback: answer.feedback ?? "" };
+    const synced = syncedValuesRef.current;
+    const untouched =
+      latestFormRef.current.score === synced.score &&
+      latestFormRef.current.feedback === synced.feedback;
+    syncedValuesRef.current = next;
+    if (untouched) {
+      setScore(next.score);
+      setFeedback(next.feedback);
+    }
+  }, [answer?.score, answer?.feedback]);
 
   useEffect(() => {
     return () => {
@@ -429,7 +450,7 @@ export default function GradingSplitPanelScreen({
       >
         <div className={styles.panelHeaderLeading}>
           <span className={styles.panelHeaderLabel}>
-            Q{answer.questionIndex}
+            Q{answer.questionLabel ?? answer.questionIndex}
           </span>
         </div>
         <div className={styles.panelHeaderActions}>

@@ -87,30 +87,59 @@ def reduce_run_event(
     projected_assistant = assistant
     metadata = _assistant_metadata(assistant)
 
+    parent_tool_call_id = event.get("parent_tool_call_id")
+
     if event_type == "agent_message_delta":
         content = event.get("content")
-        if assistant is not None and isinstance(content, str) and content:
+        if (
+            assistant is not None
+            and parent_tool_call_id is None
+            and isinstance(content, str)
+            and content
+        ):
             projected_assistant = replace(assistant, content=assistant.content + content)
 
     elif event_type == "thinking_delta":
         content = event.get("content")
-        if isinstance(content, str) and content:
+        if parent_tool_call_id is None and isinstance(content, str) and content:
             metadata["thinking"] = f"{metadata.get('thinking', '')}{content}"
             projected_assistant = _with_metadata(assistant, metadata)
 
     elif event_type == "tool_call_started":
-        metadata["current_tool"] = {
+        started = {
             "tool_name": event.get("tool_name"),
             "tool_call_id": event.get("tool_call_id"),
             "input": event.get("input_data"),
         }
-        if event.get("tool_name") in _TODO_TOOL_NAMES:
-            _project_todos(metadata, event.get("input_data"))
+        if parent_tool_call_id is not None:
+            started["parent_tool_call_id"] = parent_tool_call_id
+        in_flight = metadata.get("in_flight_tools")
+        in_flight = dict(in_flight) if isinstance(in_flight, dict) else {}
+        in_flight[str(event.get("tool_call_id"))] = started
+        metadata["in_flight_tools"] = in_flight
+        if parent_tool_call_id is None:
+            metadata["current_tool"] = started
+            if event.get("tool_name") in _TODO_TOOL_NAMES:
+                _project_todos(metadata, event.get("input_data"))
         projected_assistant = _with_metadata(assistant, metadata)
 
     elif event_type == "tool_call_finished":
-        current = metadata.pop("current_tool", {})
-        tool = dict(current) if isinstance(current, dict) else {}
+        call_id = event.get("tool_call_id")
+        in_flight = metadata.get("in_flight_tools")
+        in_flight = dict(in_flight) if isinstance(in_flight, dict) else {}
+        started = in_flight.pop(str(call_id), None)
+        if in_flight:
+            metadata["in_flight_tools"] = in_flight
+        else:
+            metadata.pop("in_flight_tools", None)
+        current = metadata.get("current_tool")
+        if not isinstance(current, dict) or current.get("tool_call_id") in (None, call_id):
+            metadata.pop("current_tool", None)
+        if started is None:
+            started = current if isinstance(current, dict) else {}
+        tool = dict(started)
+        if parent_tool_call_id is not None:
+            tool["parent_tool_call_id"] = parent_tool_call_id
         if event.get("tool_name") is not None:
             tool["tool_name"] = event.get("tool_name")
         tool.update(
@@ -125,7 +154,10 @@ def reduce_run_event(
             *(tools_executed if isinstance(tools_executed, list) else []),
             tool,
         ]
-        if tool.get("tool_name") in _TODO_TOOL_NAMES:
+        if (
+            tool.get("tool_name") in _TODO_TOOL_NAMES
+            and "parent_tool_call_id" not in tool
+        ):
             _project_todos(metadata, tool.get("input"))
             _project_todos(metadata, event.get("result"))
         if tool.get("tool_name") == "suggest_next_actions":

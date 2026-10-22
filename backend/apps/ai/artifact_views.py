@@ -22,6 +22,7 @@ from .services.ai_service_client import (
     get_ai_service_client,
     safe_upstream_error,
     unavailable_error,
+    upstream_error_status,
 )
 from .views import _proxy_json
 
@@ -120,7 +121,8 @@ class ArtifactViewSet(viewsets.ViewSet):
             )
         if upstream.status_code >= 400:
             return Response(
-                safe_upstream_error(upstream, request), status=upstream.status_code
+                safe_upstream_error(upstream, request),
+                status=upstream_error_status(upstream),
             )
         response = HttpResponse(
             upstream.content,
@@ -146,7 +148,8 @@ class ArtifactViewSet(viewsets.ViewSet):
         if upstream.status_code != status.HTTP_307_TEMPORARY_REDIRECT:
             if upstream.status_code >= 400:
                 return Response(
-                    safe_upstream_error(upstream, request), status=upstream.status_code
+                    safe_upstream_error(upstream, request),
+                    status=upstream_error_status(upstream),
                 )
             return Response(
                 {

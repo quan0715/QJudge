@@ -1,6 +1,6 @@
 """ExamAnswerViewSet — student answer submission and TA grading."""
 import json
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.utils import timezone
 from django.core.cache import cache
@@ -285,7 +285,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         answers = list(
             ExamAnswer.objects.filter(participant=participant)
-            .select_related('question', 'graded_by')
+            .select_related('question__group', 'graded_by')
         )
         scoring = ExamScoringService(contest)
         breakdown = scoring.get_participant_breakdown(
@@ -329,7 +329,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         answers = ExamAnswer.objects.filter(
             participant__contest=contest
-        ).select_related('participant__user', 'question', 'graded_by')
+        ).select_related('participant__user', 'question__group', 'graded_by')
 
         # Optional filters
         participant_id = request.query_params.get('participant_id')
@@ -617,13 +617,23 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
     def batch_grade(self, request, contest_pk=None):
         """Batch grade multiple answers at once (TA/admin only).
 
-        Request body: {"grades": [{"exam_answer_id": 123, "score": 8.5, "feedback": "..."}]}
+        Request body: {"grades": [{"exam_answer_id": 123, "score": 8.5, "feedback": "..."}],
+                       "only_if_ungraded": false}
+
+        With ``only_if_ungraded`` an answer that already has a score is left
+        untouched and reported as ``skipped`` (used by background AI grading so
+        it never overwrites a TA's score). ``question_id`` limits writes to that
+        question's answers; others are reported as ``not found``.
         """
         contest = self._get_contest(contest_pk)
         if not can_manage_contest(request.user, contest):
             raise PermissionDenied('Only contest staff can grade answers.')
 
         grades = request.data.get('grades', [])
+        only_if_ungraded = request.data.get('only_if_ungraded') is True
+        answer_scope = ExamAnswer.objects.filter(participant__contest=contest)
+        if request.data.get('question_id') is not None:
+            answer_scope = answer_scope.filter(question_id=request.data.get('question_id'))
         if not isinstance(grades, list) or not grades:
             return Response(
                 {'error': 'grades must be a non-empty array'},
@@ -655,19 +665,21 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': {'score': ['Ensure this value is greater than or equal to 0.']}})
                 continue
 
-            answer_obj = ExamAnswer.objects.filter(
-                participant__contest=contest, pk=answer_id,
-            ).first()
-            if not answer_obj:
-                results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': 'not found'})
-                continue
+            with transaction.atomic():
+                answer_obj = answer_scope.select_for_update().filter(pk=answer_id).first()
+                if not answer_obj:
+                    results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': 'not found'})
+                    continue
+                if only_if_ungraded and answer_obj.score is not None:
+                    results.append({'exam_answer_id': answer_id, 'status': 'skipped'})
+                    continue
 
-            answer_obj.score = validated_score
-            answer_obj.feedback = validated_feedback
-            answer_obj.graded_by = request.user
-            answer_obj.graded_at = now
-            answer_obj.is_correct = validated_score > 0
-            answer_obj.save()
+                answer_obj.score = validated_score
+                answer_obj.feedback = validated_feedback
+                answer_obj.graded_by = request.user
+                answer_obj.graded_at = now
+                answer_obj.is_correct = validated_score > 0
+                answer_obj.save()
 
             affected_question_ids.add(answer_obj.question_id)
             results.append({'exam_answer_id': answer_id, 'status': 'ok', 'score': float(validated_score)})
@@ -680,22 +692,48 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
     @action(detail=True, methods=['post'], url_path='ungrade')
     def ungrade_answer(self, request, contest_pk=None, pk=None):
-        """Revoke grading for a single answer (TA/admin only)."""
+        """Revoke grading for a single answer (TA/admin only).
+
+        With ``expected_score`` (and optionally ``expected_feedback``) the grade
+        is cleared only if it still matches; otherwise the answer is left as is
+        and 409 is returned. Batch AI revert uses this so it never clears a
+        grade another teacher saved after the AI wrote it.
+        """
         contest = self._get_contest(contest_pk)
         if not can_manage_contest(request.user, contest):
             raise PermissionDenied('Only contest staff can revoke grading.')
 
-        answer_obj = get_object_or_404(
-            ExamAnswer.objects.filter(participant__contest=contest),
-            pk=pk
-        )
+        expected_score = request.data.get('expected_score')
+        expected_feedback = request.data.get('expected_feedback')
+        if expected_score is not None:
+            if isinstance(expected_score, bool):
+                raise ValidationError({'expected_score': ['A number is required.']})
+            try:
+                expected_score = Decimal(str(expected_score))
+            except InvalidOperation:
+                raise ValidationError({'expected_score': ['A number is required.']})
 
-        answer_obj.score = None
-        answer_obj.feedback = ''
-        answer_obj.graded_by = None
-        answer_obj.graded_at = None
-        answer_obj.is_correct = None
-        answer_obj.save()
+        with transaction.atomic():
+            answer_obj = get_object_or_404(
+                ExamAnswer.objects.select_for_update().filter(participant__contest=contest),
+                pk=pk
+            )
+            if expected_score is not None and (
+                answer_obj.score is None
+                or answer_obj.score != expected_score
+                or (expected_feedback is not None and answer_obj.feedback != expected_feedback)
+            ):
+                return Response(
+                    {'error': 'The grade changed since it was read; nothing was revoked.'},
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            answer_obj.score = None
+            answer_obj.feedback = ''
+            answer_obj.graded_by = None
+            answer_obj.graded_at = None
+            answer_obj.is_correct = None
+            answer_obj.save()
         self._invalidate_dashboard_cache(contest.id, answer_obj.question_id)
 
         return Response(ExamAnswerDetailSerializer(answer_obj).data)

@@ -3,6 +3,7 @@ English (en-US) labels for contest exporters.
 """
 
 LABELS = {
+    'question_group': 'Question group',
     # Score related
     'score': 'Score',
     'total_score': 'Total Score',

@@ -12,6 +12,8 @@ from ..models import Contest, ContestParticipant, ExamAnswer, GradeAppeal, Grade
 from ..permissions import can_manage_contest
 from ..serializers import ExamAnswerDetailSerializer
 from ..services.exam_scoring import ExamScoringService
+from ..services.paper_question_labels import build_paper_question_labels
+from ..services.question_context import question_prompt_with_context
 
 
 class MessageInput(serializers.Serializer):
@@ -49,13 +51,20 @@ class GradeAppealViewSet(viewsets.GenericViewSet):
         return tickets
 
     @staticmethod
-    def _summary(ticket):
+    def _question_labels(contest):
+        return build_paper_question_labels(
+            contest.exam_questions.only("id", "group_id", "order").order_by("order", "id")
+        )
+
+    @staticmethod
+    def _summary(ticket, question_labels):
         answer = ticket.exam_answer
         user = answer.participant.user
         return {
             'id': ticket.id, 'exam_answer': answer.id,
             'question_id': str(answer.question_id), 'question_order': answer.question.order,
-            'question_prompt': answer.question.prompt,
+            'question_label': question_labels[answer.question_id],
+            'question_prompt': question_prompt_with_context(answer.question),
             'student_id': user.id, 'student_username': user.username,
             'status': ticket.status, 'created_at': ticket.created_at,
             'closed_at': ticket.closed_at, 'closed_by': ticket.closed_by_id,
@@ -65,14 +74,14 @@ class GradeAppealViewSet(viewsets.GenericViewSet):
     def _detail(self, ticket):
         # Re-fetch after mutations, including related rows, so responses never use stale messages.
         ticket = GradeAppeal.objects.select_related(
-            'exam_answer__participant__user', 'exam_answer__question', 'exam_answer__graded_by',
+            'exam_answer__participant__user', 'exam_answer__question__group', 'exam_answer__graded_by',
         ).prefetch_related(Prefetch('messages', queryset=GradeAppealMessage.objects.select_related('author'))).get(pk=ticket.pk)
         answer = ticket.exam_answer
         scoring = ExamScoringService(answer.participant.contest)
         breakdown = scoring.get_participant_breakdown(answer.participant)
         current_score = next(item['score'] for item in breakdown.items if item['question_id'] == answer.question_id)
         messages = list(ticket.messages.all())
-        data = self._summary(ticket)
+        data = self._summary(ticket, self._question_labels(answer.participant.contest))
         data.update({
             'last_message_at': messages[-1].created_at if messages else ticket.created_at,
             'messages': [{'id': m.id, 'author_id': m.author_id,
@@ -87,10 +96,11 @@ class GradeAppealViewSet(viewsets.GenericViewSet):
 
     def list(self, request, contest_pk=None):
         contest = self._contest()
-        tickets = self._tickets(contest).select_related('exam_answer__participant__user', 'exam_answer__question').annotate(
+        tickets = self._tickets(contest).select_related('exam_answer__participant__user', 'exam_answer__question__group').annotate(
             last_message_at=Max('messages__created_at'),
         ).order_by('-last_message_at', '-id')
-        data = [self._summary(t) for t in tickets]
+        question_labels = self._question_labels(contest)
+        data = [self._summary(t, question_labels) for t in tickets]
         return envelope(data, meta={'count': len(data)})
 
     def retrieve(self, request, pk=None, contest_pk=None):

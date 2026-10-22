@@ -269,7 +269,7 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
   );
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} data-external-navigator={externalNavigator}>
       {showToolbar && (
         <div className={`${styles.toolbar} ${toolbarVisible ? "" : styles.toolbarHidden}`}>
           <div className={styles.toolbarLeft}>{toolbarLeft}</div>

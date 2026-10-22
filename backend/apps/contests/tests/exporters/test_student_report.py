@@ -204,6 +204,20 @@ class TestStudentReportEndpoints:
         content = get_response_content(response)
         assert content[:4] == b'%PDF'
     
+    def test_report_contains_student_problem_and_accepted_code(
+        self, active_contest, student, submitted_participant, problem, submission
+    ):
+        from html import unescape
+        from django.utils.html import strip_tags
+        from apps.contests.exporters import StudentReportRenderer
+
+        html = StudentReportRenderer(active_contest, student).render_html()
+        text = unescape(strip_tags(html))
+        assert student.username in text
+        assert problem.question_asset.title in text
+        for line in submission.code.splitlines():
+            assert line in text
+
     def test_contest_owner_can_download_participant_report(
         self, api_client, teacher, active_contest, student,
         submitted_participant, problem, submission
@@ -518,17 +532,6 @@ class TestStudentReportPermissions:
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
     
-    def test_owner_can_access_admin_endpoint(
-        self, api_client, teacher, contest, student, participant
-    ):
-        """Test that contest owner can access admin endpoint."""
-        api_client.force_authenticate(user=teacher)
-        
-        response = api_client.get(
-            f'/api/v1/contests/{contest.id}/participants/{student.id}/report/'
-        )
-        
-        assert response.status_code == status.HTTP_200_OK
 
 
 @pytest.mark.django_db

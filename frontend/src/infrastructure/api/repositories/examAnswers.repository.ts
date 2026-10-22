@@ -335,14 +335,23 @@ export const gradeExamAnswer = async (
   return mapAnswerDetailDto(dto);
 };
 
-/** Revoke grading for a single answer (TA only). */
+/**
+ * Revoke grading for a single answer (TA only).
+ *
+ * With `expected`, the server clears the grade only if it still matches and
+ * otherwise rejects with status 409, leaving the answer unchanged.
+ */
 export const ungradeExamAnswer = async (
   contestId: string,
-  answerId: string
+  answerId: string,
+  expected?: { score: number; feedback: string }
 ): Promise<ExamAnswerDetail> => {
   const dto = await requestJson<ExamAnswerDetailDto>(
     httpClient.post(
-      `/api/v1/contests/${contestId}/exam-answers/${answerId}/ungrade/`
+      `/api/v1/contests/${contestId}/exam-answers/${answerId}/ungrade/`,
+      expected
+        ? { expected_score: expected.score, expected_feedback: expected.feedback }
+        : undefined
     ),
     "Failed to ungrade answer"
   );

@@ -27,6 +27,7 @@ export interface GradingAnswerRow {
   studentUsername: string;
   studentDisplayName: string;
   questionId: string;
+  questionLabel?: string;
   questionIndex: number; // 1-based
   questionPrompt: string;
   questionExplanation?: string;
@@ -62,7 +63,9 @@ export interface GradingAnswerRow {
 
 /** Per-question progress stats. */
 export interface QuestionProgress {
+  gradingPrompt?: string;
   questionId: string;
+  questionLabel?: string;
   questionIndex: number;
   questionType: ExamQuestionType;
   prompt: string;

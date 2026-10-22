@@ -28,6 +28,7 @@ import {
 import { hasExamPrecheckPassed } from "@/features/contest/anticheat/examPrecheckGate";
 import { useExamCapture } from "@/features/contest/contexts/ExamCaptureContext";
 import type { ExamItem } from "../../types/exam.types";
+import { buildPaperQuestionLabels } from "../../domain/paperQuestionLabels";
 import { buildQuestionPresentationById } from "./paperExamSectionView";
 import styles from "./PaperExamAnswering.module.scss";
 import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
@@ -78,6 +79,10 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
   const { items, sections, answers, setAnswers, answeredIds, loadingQuestions } =
     usePaperExamQuestions(contestId);
+  const questionLabels = useMemo(
+    () => buildPaperQuestionLabels(items.flatMap((item) => item.kind === "question" ? [item.data] : [])),
+    [items],
+  );
   const questionIds = useMemo(
     () => items.filter((item) => item.kind === "question").map((item) => item.data.id),
     [items]
@@ -296,6 +301,8 @@ const PaperExamAnsweringScreen: React.FC = () => {
           group={presentation?.group}
           showGroupStem={presentation?.showGroupStem ?? false}
           index={item.data.order}
+          displayLabel={questionLabels.get(item.data.id)?.label}
+          groupNumber={questionLabels.get(item.data.id)?.mainNumber}
           answer={answers[item.data.id]}
           onAnswerChange={handleAnswerChange}
           onBlur={handleBlur}
@@ -311,6 +318,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
       handleBlur,
       markedIds,
       singleModePresentationById,
+      questionLabels,
       toggleMark,
     ],
   );
@@ -546,7 +554,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
                 >
                   {marked && <FlagFilled size={14} style={{ color: "var(--cds-support-warning)", flexShrink: 0 }} />}
                   <span style={{ flexShrink: 0 }}>
-                    {t("answering.submit.questionPreview", { index: item.data.order + 1 })}
+                    {t("answering.submit.questionPreview", { index: questionLabels.get(item.data.id)?.label ?? item.data.order + 1 })}
                   </span>
                   <ProblemPromptPreview
                     content={item.data.prompt}

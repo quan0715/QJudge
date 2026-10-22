@@ -11,6 +11,11 @@ import {
   createTaskSession,
 } from "@/features/ai-tasks/lib/aiTaskRuntime";
 import type { GradingAnswerRow } from "./gradingTypes";
+import {
+  buildSeedGradeCsv,
+  parseCsvContent,
+  serializeCsvRows,
+} from "./gradeCsv";
 
 interface AiSuggestion {
   score: number | null;
@@ -30,18 +35,6 @@ interface AiState {
 
 const MAX_RETRY = 4;
 export const AI_GRADING_TASK_TYPE = "grading.question";
-const GRADE_CSV_COLUMNS = [
-  "index",
-  "exam_answer_id",
-  "username",
-  "answer_text",
-  "original_score",
-  "original_feedback",
-  "score",
-  "reason",
-  "synced",
-] as const;
-
 const toNumberOrNull = (value: unknown): number | null => {
   if (value == null) return null;
   if (typeof value === "string" && value.trim() === "") return null;
@@ -57,108 +50,10 @@ function parseSynced(value: unknown): boolean {
   return ["1", "true", "yes", "y", "synced", "submitted"].includes(normalized);
 }
 
-function stringifyAnswer(answer: Record<string, unknown>): string {
-  const text = answer?.text;
-  if (typeof text === "string" && text.trim()) return text;
-  const selected = answer?.selected;
-  if (typeof selected === "string" || typeof selected === "number") return String(selected);
-  if (Array.isArray(selected)) return selected.join(", ");
-  const code = answer?.code;
-  if (typeof code === "string" && code.trim()) return code;
-
-  try {
-    return JSON.stringify(answer, null, 2);
-  } catch {
-    return "";
-  }
-}
-
-function encodeCsvCell(value: unknown): string {
-  const text = value == null ? "" : String(value);
-  return `"${text.replace(/"/g, '""')}"`;
-}
-
-function buildSeedGradeCsv(rows: GradingAnswerRow[]): string {
-  const lines = [
-    GRADE_CSV_COLUMNS.map(encodeCsvCell).join(","),
-    ...rows.map((row, index) =>
-      GRADE_CSV_COLUMNS.map((column) => {
-        switch (column) {
-          case "index":
-            return encodeCsvCell(index + 1);
-          case "exam_answer_id":
-            return encodeCsvCell(row.id);
-          case "username":
-            return encodeCsvCell(row.studentUsername);
-          case "answer_text":
-            return encodeCsvCell(stringifyAnswer(row.answerContent));
-          case "original_score":
-            return encodeCsvCell(row.score ?? "");
-          case "original_feedback":
-            return encodeCsvCell(row.feedback ?? "");
-          case "score":
-          case "reason":
-          case "synced":
-            return encodeCsvCell("");
-          default:
-            return encodeCsvCell("");
-        }
-      }).join(","),
-    ),
-  ];
-  return `${lines.join("\n")}\n`;
-}
-
 async function seedGradeCsvArtifact(sessionId: string, rows: GradingAnswerRow[]): Promise<void> {
   const csv = buildSeedGradeCsv(rows);
   const file = new File([csv], "grade.csv", { type: "text/csv" });
   await uploadUserArtifact(sessionId, file, { step: "grade" });
-}
-
-function parseCsvContent(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let cur = "";
-  let inQuotes = false;
-  let fieldStarted = false;
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    if (inQuotes) {
-      if (ch === '"' && text[i + 1] === '"') {
-        cur += '"';
-        i += 1;
-      } else if (ch === '"') {
-        inQuotes = false;
-      } else {
-        cur += ch;
-      }
-      continue;
-    }
-    if (ch === ',') {
-      row.push(cur);
-      cur = "";
-      fieldStarted = false;
-    } else if (ch === '\n') {
-      row.push(cur);
-      rows.push(row);
-      row = [];
-      cur = "";
-      fieldStarted = false;
-    } else if (ch === '\r') {
-      // handled by \n or trailing
-    } else if (ch === '"' && !fieldStarted) {
-      inQuotes = true;
-      fieldStarted = true;
-    } else {
-      cur += ch;
-      fieldStarted = true;
-    }
-  }
-  if (cur.length > 0 || row.length > 0) {
-    row.push(cur);
-    rows.push(row);
-  }
-  return rows.filter((r) => !(r.length === 1 && r[0] === ""));
 }
 
 function parseSuggestions(
@@ -205,22 +100,9 @@ export function buildDefaultGradingPrompt(contestId: string, questionId: string)
 
 function buildPrompt(contestId: string, questionId: string): string {
   return [
-    "請協助批改這題申論/短答題，必要時可參考 `qjudge-exam-grading-sop` 技能的評分原則。",
-    "",
-    "Input：",
-    `- contest_id: ${contestId}`,
-    `- grading_question_id: ${questionId}`,
-    "- `grade.csv` 已由前端建立，欄位固定為：index, exam_answer_id, username, answer_text, original_score, original_feedback, score, reason, synced。",
-    "- 請用 artifact_read(filename=\"grade.csv\") 讀取學生作答，並用 qjudge_grading 等工具取得題目、滿分與參考解答/評分說明。",
-    "",
-    "Output：",
-    "- 開始後請建立對應 TODO，至少包含讀取資料、建立 rubric、逐筆評分、批次更新 `grade.csv`，讓使用者能了解目前進度。",
-    "- 先建立 `rubric.md`，根據題目、滿分、參考解答/評分說明整理本題評分準則。",
-    "- 透過 artifact_csv_patch 更新同一份 `grade.csv`，key_column 固定為 exam_answer_id。",
-    "- 只填寫每列的 score 與 reason；不要改動 index, exam_answer_id, username, answer_text, original_score, original_feedback, synced。",
-    "- 如果作答很多，可以批量處理，但每一筆都要實際閱讀 answer_text 後，再給出 score 與 reason。",
-    "- reason 簡短說明扣分或給分依據；中英文皆可，如果學生用英文回答，建議 reason 也用英文。",
-    "- 更新完 `grade.csv` 後停止；不要呼叫 qjudge_grading 寫回分數，也不要發布成績。",
+    `依 qjudge-exam-grading-sop 批改這題。contest_id: ${contestId}，question_id: ${questionId}。`,
+    "學生作答已在 `grade.csv`，rubric 用 `rubric.md`；開始時建立 TODO 讓老師看到進度。",
+    "填完 `grade.csv` 就停止，不要寫回或發布成績。",
   ].join("\n");
 }
 
@@ -231,33 +113,15 @@ function buildRetryPrompt(
   note?: string,
 ): string {
   return [
-    "請重新批改指定作答，依既有 rubric、題目脈絡與必要的 `qjudge-exam-grading-sop` 評分原則處理。",
-    "",
-    "Input：",
-    `- contest_id: ${contestId}`,
-    `- grading_question_id: ${questionId}`,
-    `- exam_answer_ids: ${answerIds.join(", ")}`,
-    note?.trim() ? `- regrade_note: ${note.trim()}` : "",
-    "",
-    "Output：",
-    "- 開始後請建立對應 TODO，至少包含讀取指定作答、確認 rubric、逐筆重新評分、批次更新 `grade.csv`，讓使用者能了解目前進度。",
-    "- 先參考既有 `rubric.md`；若不存在，請根據題目與參考解答/評分說明建立 `rubric.md`。",
-    "- 請先 artifact_read(filename=\"grade.csv\")，只重新批改上述 exam_answer_ids 對應列。",
-    "- 透過 artifact_csv_patch 更新既有 `grade.csv`，key_column 固定為 exam_answer_id。",
-    "- 只更新指定列的 score 與 reason；不要改動其他欄位或非指定列。",
-    "- 如果指定作答很多，可以批量處理，但每一筆都要實際閱讀 answer_text 後，再給出 score 與 reason。",
-    "- reason 簡短說明扣分或給分依據；中英文皆可，如果學生用英文回答，建議 reason 也用英文。",
-    note?.trim() ? "重新批改時請優先考量 regrade_note，但仍需維持 rubric 一致性。" : "",
-    "- 更新完 `grade.csv` 後停止；不要呼叫 qjudge_grading 寫回分數，也不要發布成績。",
+    `依 qjudge-exam-grading-sop 重新批改這題的指定作答。contest_id: ${contestId}，question_id: ${questionId}。`,
+    `只改 \`grade.csv\` 中這些 exam_answer_id：${answerIds.join(", ")}；rubric 用 \`rubric.md\`。`,
+    "填完就停止，不要寫回或發布成績。",
+    note?.trim() ? `老師註記：${note.trim()}` : "",
   ].filter(Boolean).join("\n");
 }
 
 function buildTaskContext(contestId: string, questionId: string): Record<string, string> {
   return { contest_id: contestId, question_id: questionId };
-}
-
-function serializeCsvRows(rows: string[][]): string {
-  return `${rows.map((row) => row.map(encodeCsvCell).join(",")).join("\n")}\n`;
 }
 
 function patchSuggestionCsv(

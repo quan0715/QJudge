@@ -25,9 +25,10 @@ export interface ScorePolicyMenuImpactContext {
 interface ScorePolicyMenuProps {
   questionId: string;
   questionIndex: number;
+  questionLabel?: string;
   currentPolicy: ExamQuestionScorePolicy;
   /** All questions in the exam for redistribute target selection */
-  allQuestions?: Array<{ id: string; order: number; prompt: string; score: number; questionType?: string; scorePolicy?: string }>;
+  allQuestions?: Array<{ id: string; questionLabel?: string; order: number; prompt: string; score: number; questionType?: string; scorePolicy?: string }>;
   onPolicyChanged?: () => void;
   impactContext: ScorePolicyMenuImpactContext;
   /** Called when the overflow menu opens — use to trigger lazy data loading */
@@ -37,6 +38,7 @@ interface ScorePolicyMenuProps {
 export default function ScorePolicyMenu({
   questionId,
   questionIndex,
+  questionLabel,
   currentPolicy,
   allQuestions = [],
   onPolicyChanged,
@@ -209,6 +211,7 @@ export default function ScorePolicyMenu({
         key={redistributeModalKey}
         open={redistributeModalOpen}
         questionIndex={questionIndex}
+        questionLabel={questionLabel}
         availableTargets={availableTargets}
         initialSelectedIds={pendingRedistributeTargetIds}
         onClose={() => setRedistributeModalOpen(false)}

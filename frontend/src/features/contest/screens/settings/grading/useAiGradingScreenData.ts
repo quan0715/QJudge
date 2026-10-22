@@ -1,3 +1,4 @@
+import { buildPaperQuestionLabels } from "@/features/contest/domain/paperQuestionLabels";
 /**
  * Data hook for the AI grading screen.
  *
@@ -186,6 +187,7 @@ export function useAiGradingScreenData(
   }, [rawAnswersByQuestion, questions, participantMap]);
 
   const questionProgress = useMemo<QuestionProgress[]>(() => {
+    const labels = buildPaperQuestionLabels(questions);
     return questions
       .map((q, idx) => {
         const stats = questionStatsById.get(q.id) ?? {
@@ -199,6 +201,7 @@ export function useAiGradingScreenData(
         return {
           questionId: q.id,
           questionIndex: (q.order ?? idx) + 1,
+          questionLabel: labels.get(q.id)?.label,
           questionType: qType,
           prompt: q.prompt ?? "",
           explanation: q.explanation ?? "",

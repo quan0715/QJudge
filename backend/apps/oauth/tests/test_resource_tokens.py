@@ -154,6 +154,37 @@ def test_ai_token_exchanges_to_distinct_mcp_audience(
     assert claims["sub"] == str(teacher.pk)
 
 
+def test_mcp_token_lives_eight_hours(api_client, teacher, signing_key_file):
+    ai_token = issue_resource_token(teacher, "ai-service", frozenset({"ai:chat"}))
+
+    response = api_client.post(
+        "/api/oauth/token-exchange/",
+        {"audience": "qjudge-mcp", "scope": "mcp"},
+        format="json",
+        HTTP_AUTHORIZATION=f"Bearer {ai_token}",
+    )
+
+    assert response.status_code == 200
+    assert response.data["expires_in"] == 28800
+    claims = _decode(response.data["access_token"], signing_key_file, "qjudge-mcp")
+    assert claims["exp"] - claims["iat"] == 28800
+
+
+def test_ai_chat_token_still_five_minutes(api_client, teacher, signing_key_file):
+    api_client.force_authenticate(teacher)
+
+    response = api_client.post(
+        "/api/oauth/resource-token/",
+        {"audience": "ai-service", "scope": "ai:chat"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.data["expires_in"] == 300
+    claims = _decode(response.data["access_token"], signing_key_file, "ai-service")
+    assert claims["exp"] - claims["iat"] == 300
+
+
 def test_token_exchange_response_disables_caching(
     api_client, teacher, signing_key_file
 ):

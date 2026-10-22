@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from .base import BaseRenderer
 from ..dto import SubmissionDTO, ContestProblemDTO
-from ..utils import inline_markdown, highlight_code as _highlight_code
+from ..utils import render_pdf, scale_css_pixels, inline_markdown, highlight_code as _highlight_code
 
 
 class StudentReportRenderer(BaseRenderer):
@@ -37,22 +37,7 @@ class StudentReportRenderer(BaseRenderer):
         self._standings_cache = None
 
     def export(self) -> BytesIO:
-        """Generate PDF report for the student."""
-        html = self.render_html()
-
-        try:
-            from weasyprint import HTML
-        except (ImportError, OSError) as e:
-            raise RuntimeError(
-                "PDF export is not available. WeasyPrint requires system libraries. "
-                f"Original error: {e}"
-            )
-
-        pdf_file = BytesIO()
-        HTML(string=html).write_pdf(pdf_file)
-        pdf_file.seek(0)
-
-        return pdf_file
+        return render_pdf(self.render_html())
 
     def render_html(self) -> str:
         """Render the full HTML document for PDF conversion using Django template."""
@@ -84,7 +69,7 @@ class StudentReportRenderer(BaseRenderer):
         """Get base CSS from external file with scale applied."""
         base_css = self._read_static_css('exports/report-base.css')
         if self.scale != 1.0:
-            return self._apply_scale_to_css(base_css)
+            return scale_css_pixels(base_css, self.scale)
         return base_css
 
     def _get_report_css(self) -> str:
@@ -92,7 +77,7 @@ class StudentReportRenderer(BaseRenderer):
         base_css = self._read_static_css('exports/student-report.css')
         # Apply scale to CSS values if scale != 1.0
         if self.scale != 1.0:
-            return self._apply_scale_to_css(base_css)
+            return scale_css_pixels(base_css, self.scale)
         return base_css
 
     def _read_static_css(self, relative_path: str) -> str:
@@ -101,18 +86,6 @@ class StudentReportRenderer(BaseRenderer):
         if not css_path:
             raise FileNotFoundError(f"Static CSS not found: {relative_path}")
         return Path(css_path).read_text(encoding="utf-8")
-
-    def _apply_scale_to_css(self, css: str) -> str:
-        """Apply scale factor to CSS pixel values."""
-        import re
-        scale = self.scale
-
-        def scale_px(match):
-            value = float(match.group(1))
-            return f"{value * scale}px"
-
-        # Scale px values (but not percentages or other units)
-        return re.sub(r'(\d+(?:\.\d+)?)px', scale_px, css)
 
     def _get_user_submissions(self) -> List[SubmissionDTO]:
         """Get all submissions for this user in this contest."""
@@ -586,12 +559,3 @@ class StudentReportRenderer(BaseRenderer):
             'message': message,
         }
         return render_to_string('exports/components/empty_chart.svg', context)
-
-    def _get_report_styles(self) -> str:
-        """
-        Get complete CSS styles for the student report.
-        Backward-compatible method that combines base and report styles.
-        """
-        base_css = self._get_base_css()
-        report_css = self._get_report_css()
-        return f"{base_css}\n{report_css}"

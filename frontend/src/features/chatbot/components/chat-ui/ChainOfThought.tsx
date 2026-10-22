@@ -1,128 +1,83 @@
 import { memo, useMemo } from "react";
 import { Accordion, AccordionItem } from "@carbon/react";
-import { Checkmark, Warning, InProgress } from "@carbon/icons-react";
+import { InProgress } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { CopilotToolPart } from "@copilot";
+import { ChainOfThoughtStep } from "./ChainOfThoughtStep";
+import { formatToolName } from "./chainOfThoughtFormat";
+import { SubagentStep } from "./SubagentStep";
 import styles from "./ChainOfThought.module.scss";
 
+const SUBAGENT_TOOL_NAME = "task";
+
 interface ChainOfThoughtProps {
+  /** Finished top-level steps plus every sub-agent step (any state). */
   steps: readonly CopilotToolPart[];
   isProcessing: boolean;
   currentToolName?: string;
+  /** The top-level step still running, if any. */
+  activeStep?: CopilotToolPart;
 }
 
-interface StepProps {
-  step: CopilotToolPart;
-  index: number;
-  inputLabel: string;
-  outputLabel: string;
-  displayToolName: string;
-}
-
-const ChainOfThoughtStep = memo(function ChainOfThoughtStep({
-  step,
-  index,
-  inputLabel,
-  outputLabel,
-  displayToolName,
-}: StepProps) {
-  const isDone = step.state === "output-ready" || step.state === "error";
-  const isFailed = step.state === "error";
-  const StatusIcon = isFailed ? Warning : isDone ? Checkmark : InProgress;
-  const statusClass = isFailed
-    ? styles.failure
-    : isDone
-      ? styles.success
-      : styles.processing;
-
-  const inputJson = useMemo(() => {
-    if (step.input === undefined || step.input === null) return "";
-    try {
-      return JSON.stringify(step.input, null, 2);
-    } catch {
-      return String(step.input);
+function groupChildren(steps: readonly CopilotToolPart[]) {
+  const children = new Map<string, CopilotToolPart[]>();
+  const topLevel: CopilotToolPart[] = [];
+  for (const step of steps) {
+    if (step.parentToolCallId) {
+      const group = children.get(step.parentToolCallId) ?? [];
+      group.push(step);
+      children.set(step.parentToolCallId, group);
+    } else {
+      topLevel.push(step);
     }
-  }, [step.input]);
-
-  const resultText = useMemo(() => {
-    if (step.output === undefined || step.output === null) return "";
-    if (typeof step.output === "string") return step.output;
-    try {
-      return JSON.stringify(step.output, null, 2);
-    } catch {
-      return String(step.output);
-    }
-  }, [step.output]);
-
-  return (
-    <AccordionItem
-      title={
-        <span className={styles.stepTitle}>
-          <StatusIcon size={16} className={statusClass} />
-          {displayToolName} #{index + 1}
-        </span>
-      }
-    >
-      {inputJson && (
-        <div className={styles.section}>
-          <div className={styles.sectionLabel}>{inputLabel}</div>
-          <pre className={styles.json}>{inputJson}</pre>
-        </div>
-      )}
-      {resultText && (
-        <div className={styles.section}>
-          <div className={styles.sectionLabel}>{outputLabel}</div>
-          <pre className={styles.json}>{resultText}</pre>
-        </div>
-      )}
-    </AccordionItem>
-  );
-});
-
-function formatToolName(
-  toolName: string,
-  t: ReturnType<typeof useTranslation>["t"],
-) {
-  if (toolName.startsWith("__skill__:")) {
-    const skillName = toolName.slice(10);
-    return t("ui.useSkill", { skillName, defaultValue: `使用技能 ${skillName}` });
   }
-  return toolName;
+  return { topLevel, children };
 }
 
 function ChainOfThoughtComponent({
   steps,
   isProcessing,
   currentToolName,
+  activeStep,
 }: ChainOfThoughtProps) {
   const { t } = useTranslation("chatbot");
-  const inputLabel = t("ui.stepInput");
-  const outputLabel = t("ui.stepOutput");
+  const { topLevel, children } = useMemo(() => groupChildren(steps), [steps]);
+  const activeName = activeStep?.toolName ?? currentToolName;
+  const activeIsSubagent = activeStep?.toolName === SUBAGENT_TOOL_NAME;
 
-  if (steps.length === 0 && !isProcessing) return null;
+  if (topLevel.length === 0 && !isProcessing) return null;
 
   return (
     <div className={styles.cot}>
       <div className={styles.label}>{t("ui.reasoningSteps")}</div>
       <Accordion size="sm">
-        {steps.map((step, i) => (
-          <ChainOfThoughtStep
-            key={step.toolCallId}
-            step={step}
-            index={i}
-            inputLabel={inputLabel}
-            outputLabel={outputLabel}
-            displayToolName={formatToolName(step.toolName, t)}
-          />
-        ))}
+        {topLevel.map((step, i) =>
+          step.toolName === SUBAGENT_TOOL_NAME ? (
+            <SubagentStep
+              key={step.toolCallId}
+              step={step}
+              childSteps={children.get(step.toolCallId) ?? []}
+            />
+          ) : (
+            <ChainOfThoughtStep key={step.toolCallId} step={step} index={i} />
+          ),
+        )}
 
-        {isProcessing && currentToolName && (
+        {isProcessing && activeStep && activeIsSubagent && (
+          <SubagentStep
+            open
+            step={activeStep}
+            childSteps={children.get(activeStep.toolCallId) ?? []}
+          />
+        )}
+
+        {isProcessing && activeName && !activeIsSubagent && (
           <AccordionItem
             open
             title={
               <span className={styles.stepTitle}>
                 <InProgress size={16} className={styles.processing} />
-                {formatToolName(currentToolName, t)} #{steps.length + 1}
+                {formatToolName(activeName, t)} #{topLevel.length + 1}
               </span>
             }
           >
