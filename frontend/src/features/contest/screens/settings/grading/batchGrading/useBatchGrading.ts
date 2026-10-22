@@ -1,27 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCopilotSessions } from "@copilot";
-import type { ChatMessage } from "@/core/types/chatbot.types";
 import { useRequestCopilot } from "@/features/chatbot/contexts/CopilotDemandContext";
 import {
   createTaskSession,
   findLatestTaskSession,
 } from "@/features/ai-tasks/lib/aiTaskRuntime";
-import chatbotRepository from "@/infrastructure/api/repositories/chatbot.repository";
-import {
-  fetchArtifactContent,
-  listArtifacts,
-  uploadUserArtifact,
-  type ArtifactRecord,
-} from "@/infrastructure/api/repositories/artifact.repository";
 import { ungradeExamAnswer } from "@/infrastructure/api/repositories/examAnswers.repository";
 import type { GradingAnswerRow } from "../gradingTypes";
 import { buildSeedGradeCsv, serializeCsvRows } from "../gradeCsv";
 import {
+  cancelBatchRun,
+  fetchBatchRemoteState,
+  listSessionActiveRuns,
+  readBatchFile,
+  startBatchRun,
+  uploadBatchFile,
+  type BatchRemoteState,
+} from "./batchGradingApi";
+import {
   BATCH_ACTIVE_STATUSES,
-  BATCH_ARTIFACT_STEP,
   BATCH_GRADING_TASK_TYPE,
   BATCH_JSON_FILENAME,
-  PROGRESS_CSV_FILENAME,
   applyFinalizeTimeout,
   buildBatchRunPrompt,
   deriveBatchState,
@@ -31,7 +30,6 @@ import {
   selectBatchQuestions,
   selectRevertableAnswers,
   writtenCsvFilename,
-  type BatchActiveRun,
   type BatchQuestion,
   type BatchQuestionState,
 } from "./batchGradingModel";
@@ -39,13 +37,8 @@ import {
 const ACTIVE_POLL_MS = 5_000;
 const IDLE_POLL_MS = 30_000;
 const FINALIZE_TIMEOUT_MS = 60_000;
-const WRITTEN_PREFIX = "written_";
 
-interface BatchSnapshot {
-  messages: ChatMessage[];
-  activeRuns: BatchActiveRun[];
-  progressCsv: string | null;
-  writtenCsv: Record<string, string>;
+interface BatchSnapshot extends BatchRemoteState {
   /** When each run was first seen finalizing (run id → ms). */
   finalizingSince: Record<string, number>;
   fetchedAt: number;
@@ -87,30 +80,6 @@ export interface UseBatchGradingResult {
 
 const messageOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
-function latestByFilename(artifacts: readonly ArtifactRecord[]): Map<string, ArtifactRecord> {
-  const latest = new Map<string, ArtifactRecord>();
-  for (const artifact of artifacts) {
-    const current = latest.get(artifact.filename);
-    if (!current || new Date(artifact.updated_at) > new Date(current.updated_at)) {
-      latest.set(artifact.filename, artifact);
-    }
-  }
-  return latest;
-}
-
-async function readBatchFile(sessionId: string, filename: string): Promise<string | null> {
-  const artifact = latestByFilename(
-    await listArtifacts({ sessionId, step: BATCH_ARTIFACT_STEP }),
-  ).get(filename);
-  return artifact ? (await fetchArtifactContent(artifact.artifact_id)).content : null;
-}
-
-async function uploadBatchFile(sessionId: string, filename: string, content: string, type: string) {
-  await uploadUserArtifact(sessionId, new File([content], filename, { type }), {
-    step: BATCH_ARTIFACT_STEP,
-  });
-}
-
 function deriveStates(questions: readonly BatchQuestion[], snapshot: BatchSnapshot) {
   return deriveBatchState({
     questions,
@@ -128,29 +97,8 @@ async function loadSnapshot(
   questions: readonly BatchQuestion[],
   previous: BatchSnapshot,
 ): Promise<BatchSnapshot> {
-  const [session, activeRuns, artifacts] = await Promise.all([
-    chatbotRepository.getSession(sessionId),
-    chatbotRepository.getActiveRuns(),
-    listArtifacts({ sessionId, step: BATCH_ARTIFACT_STEP }),
-  ]);
-  const latest = latestByFilename(artifacts);
-  const read = async (artifact: ArtifactRecord | undefined) =>
-    artifact ? (await fetchArtifactContent(artifact.artifact_id)).content : null;
-  const writtenEntries = await Promise.all(
-    [...latest.entries()]
-      .filter(([filename]) => filename.startsWith(WRITTEN_PREFIX))
-      .map(async ([filename, artifact]) => [
-        filename.slice(WRITTEN_PREFIX.length, -".csv".length),
-        (await read(artifact)) ?? "",
-      ] as const),
-  );
   const next: BatchSnapshot = {
-    messages: session.messages,
-    activeRuns: activeRuns
-      .filter((run) => run.sessionId === sessionId)
-      .map((run) => ({ id: run.id, status: run.status })),
-    progressCsv: await read(latest.get(PROGRESS_CSV_FILENAME)),
-    writtenCsv: Object.fromEntries(writtenEntries),
+    ...(await fetchBatchRemoteState(sessionId)),
     finalizingSince: {},
     fetchedAt: Date.now(),
   };
@@ -276,7 +224,7 @@ export function useBatchGrading(
   const enqueue = useCallback(
     async (id: string, question: BatchQuestion, answers: GradingAnswerRow[], note?: string) => {
       await uploadBatchFile(id, gradeCsvFilename(question.questionId), buildSeedGradeCsv(answers), "text/csv");
-      await chatbotRepository.startRun(
+      await startBatchRun(
         id,
         buildBatchRunPrompt({
           contestId,
@@ -285,7 +233,7 @@ export function useBatchGrading(
           maxScore: question.maxScore,
           regradeNote: note,
         }),
-        { modelOverride: modelRef.current },
+        modelRef.current,
       );
     },
     [contestId],
@@ -348,15 +296,13 @@ export function useBatchGrading(
   const stop = useCallback(async () => {
     await guard(async () => {
       if (!sessionId) return;
-      const runs = (await chatbotRepository.getActiveRuns()).filter(
-        (run) => run.sessionId === sessionId,
-      );
+      const runs = await listSessionActiveRuns(sessionId);
       // Cancel queued runs first; cancelling the running one dispatches the next queued run.
       const ordered = [
         ...runs.filter((run) => run.status === "queued"),
         ...runs.filter((run) => run.status !== "queued"),
       ];
-      for (const run of ordered) await chatbotRepository.cancelRun(run.id);
+      for (const run of ordered) await cancelBatchRun(run.id);
       await refreshSnapshot(sessionId);
     }, false);
   }, [guard, refreshSnapshot, sessionId]);
