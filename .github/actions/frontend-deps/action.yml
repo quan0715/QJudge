@@ -11,14 +11,14 @@ runs:
   steps:
     - uses: actions/setup-node@v7
       with:
-        node-version: "20"
+        node-version: "24.22.1"
 
     - name: Restore node_modules
       id: modules
       uses: actions/cache@v6
       with:
         path: frontend/node_modules
-        key: frontend-modules-${{ runner.os }}-node20-${{ hashFiles('frontend/package-lock.json') }}
+        key: frontend-modules-${{ runner.os }}-node24-${{ hashFiles('frontend/package-lock.json') }}
 
     - name: Install dependencies
       if: steps.modules.outputs.cache-hit != 'true'
