@@ -395,7 +395,7 @@ describe("batch grading recovery", () => {
 
   it("recovers the model from an existing batch run instead of the default", async () => {
     mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
-    mocks.getSession.mockResolvedValue({ messages: [userMessage("q1", "r1")] });
+    mocks.getSession.mockResolvedValue({ messages: [userMessage("q1", "r1"), userMessage("q2", "r2"), { ...userMessage("q1", "chat-run"), content: "Explain this grade" }] });
     const { result } = render();
     await waitFor(() => expect(result.current.sessionId).toBe("s1"));
     await act(() => result.current.resume());

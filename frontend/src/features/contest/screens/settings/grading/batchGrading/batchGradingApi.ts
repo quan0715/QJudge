@@ -146,9 +146,11 @@ export async function readBatchModelId(sessionId: string): Promise<string> {
   const config = JSON.parse((await readBatchFile(sessionId, BATCH_JSON_FILENAME)) ?? "{}");
   if (typeof config.model_id === "string" && config.model_id) return config.model_id;
   // Existing batches predate model persistence. Recover the actual model from
-  // their last run, instead of silently switching to today's server default.
+  // their first grading run, ignoring subsequent sidebar chats or model drift.
   const session = await chatbotRepository.getSession(sessionId);
-  const runId = [...session.messages].reverse().find((message) => message.runId)?.runId;
+  const runId = session.messages.find((message) =>
+    message.role === "user" && message.runId && /^batch_question_id:/.test(message.content),
+  )?.runId;
   const modelId = runId
     ? (await getChatRun(runId)).modelId
     : await defaultBatchModelId();
