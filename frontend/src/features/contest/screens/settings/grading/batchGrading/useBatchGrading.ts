@@ -39,12 +39,15 @@ const IDLE_POLL_MS = 30_000;
 const FINALIZE_TIMEOUT_MS = 60_000;
 
 interface BatchSnapshot extends BatchRemoteState {
+  /** The session this state was read from. */
+  sessionId: string | null;
   /** When each run was first seen finalizing (run id → ms). */
   finalizingSince: Record<string, number>;
   fetchedAt: number;
 }
 
 const EMPTY_SNAPSHOT: BatchSnapshot = {
+  sessionId: null,
   messages: [],
   activeRuns: [],
   progressCsv: null,
@@ -99,10 +102,13 @@ async function loadSnapshot(
 ): Promise<BatchSnapshot> {
   const next: BatchSnapshot = {
     ...(await fetchBatchRemoteState(sessionId)),
+    sessionId,
     finalizingSince: {},
     fetchedAt: Date.now(),
   };
-  const since = new Map(Object.entries(previous.finalizingSince));
+  const since = new Map(
+    previous.sessionId === sessionId ? Object.entries(previous.finalizingSince) : [],
+  );
   applyFinalizeTimeout(deriveStates(questions, next), since, next.fetchedAt, FINALIZE_TIMEOUT_MS);
   return { ...next, finalizingSince: Object.fromEntries(since) };
 }
@@ -121,7 +127,8 @@ export function useBatchGrading(
 ): UseBatchGradingResult {
   useRequestCopilot();
   const { sessions, select, refresh: refreshSessions } = useCopilotSessions();
-  const [createdSessionId, setCreatedSessionId] = useState<string | null>(null);
+  // Keyed by contest: the screen can stay mounted while the route switches contests.
+  const [created, setCreated] = useState<{ contestId: string; sessionId: string } | null>(null);
   const [snapshot, setSnapshot] = useState<BatchSnapshot>(EMPTY_SNAPSHOT);
   const [actionError, setActionError] = useState<string>();
   const [pollError, setPollError] = useState<string>();
@@ -148,7 +155,10 @@ export function useBatchGrading(
         : null,
     [contestId, sessions],
   );
+  const createdSessionId = created?.contestId === contestId ? created.sessionId : null;
   const sessionId = createdSessionId ?? existingSessionId;
+  // Ignore state still held from another session until this one is loaded.
+  const currentSnapshot = snapshot.sessionId === sessionId ? snapshot : EMPTY_SNAPSHOT;
   const boundSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -202,12 +212,12 @@ export function useBatchGrading(
   const questionStates = useMemo(
     () =>
       applyFinalizeTimeout(
-        deriveStates(questions, snapshot),
-        new Map(Object.entries(snapshot.finalizingSince)),
-        snapshot.fetchedAt,
+        deriveStates(questions, currentSnapshot),
+        new Map(Object.entries(currentSnapshot.finalizingSince)),
+        currentSnapshot.fetchedAt,
         FINALIZE_TIMEOUT_MS,
       ),
-    [questions, snapshot],
+    [questions, currentSnapshot],
   );
 
   const overall = useMemo<BatchGradingOverall>(() => {
@@ -286,7 +296,7 @@ export function useBatchGrading(
             await enqueue(id, question, question.ungradedRows);
           }
         }
-        setCreatedSessionId(id);
+        setCreated({ contestId, sessionId: id });
         await refreshSessions();
       }, true);
     },
@@ -330,8 +340,20 @@ export function useBatchGrading(
       const filename = writtenCsvFilename(questionId);
       const written = parseWrittenCsv(await readBatchFile(id, filename));
       // Compare against the latest grades: another teacher may have changed them.
-      const reverted = selectRevertableAnswers(written, await reloadAnswers());
-      for (const answerId of reverted) await ungradeExamAnswer(contestId, answerId);
+      const candidates = selectRevertableAnswers(written, await reloadAnswers());
+      const reverted: string[] = [];
+      for (const record of written.filter((r) => candidates.includes(r.examAnswerId))) {
+        try {
+          // The server re-checks the grade, covering changes made after the reload above.
+          await ungradeExamAnswer(contestId, record.examAnswerId, {
+            score: record.score,
+            feedback: record.feedback,
+          });
+          reverted.push(record.examAnswerId);
+        } catch (err) {
+          if ((err as { status?: number }).status !== 409) throw err;
+        }
+      }
       if (reverted.length > 0) {
         const remaining = written.filter((record) => !reverted.includes(record.examAnswerId));
         await uploadBatchFile(
