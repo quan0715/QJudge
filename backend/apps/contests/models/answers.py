@@ -100,3 +100,21 @@ class ExamAnswer(models.Model):
             correct_set = set(correct) if isinstance(correct, list) else set()
             self.is_correct = selected == correct_set
             self.score = q_score if self.is_correct else 0
+
+
+class ExamBatchGradeWrite(models.Model):
+    """Latest batch write per answer, committed atomically with the grade.
+
+    Artifacts are presentation copies. This receipt remains available if object
+    storage or the worker fails after a grade commits.
+    """
+    answer = models.OneToOneField(ExamAnswer, on_delete=models.CASCADE, related_name='batch_write')
+    session_id = models.UUIDField(db_index=True)
+    run_id = models.UUIDField()
+    grader = models.ForeignKey(User, on_delete=models.CASCADE)
+    score = models.DecimalField(max_digits=6, decimal_places=2)
+    feedback = models.TextField(blank=True)
+    graded_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'exam_batch_grade_writes'

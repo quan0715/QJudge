@@ -357,3 +357,24 @@ export const ungradeExamAnswer = async (
   );
   return mapAnswerDetailDto(dto);
 };
+
+
+export interface BatchGradeWrite {
+  exam_answer_id: string;
+  question_id: string;
+  score: number;
+  feedback: string;
+  current: boolean;
+}
+
+/** Durable batch receipts; restricted to the requesting teacher and contest. */
+export const getBatchGradeWrites = async (
+  contestId: string,
+  sessionId: string,
+): Promise<BatchGradeWrite[]> => {
+  const response = await requestJson<{ writes: BatchGradeWrite[] }>(
+    httpClient.get(`/api/v1/contests/${contestId}/exam-answers/batch-writes/?session_id=${encodeURIComponent(sessionId)}`),
+    "無法載入整批批改紀錄",
+  );
+  return response.writes;
+};
