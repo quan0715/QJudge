@@ -129,9 +129,9 @@ describe("useBatchGrading", () => {
       ["grade_q1.csv", { step: "batch" }],
       ["grade_q2.csv", { step: "batch" }],
     ]);
+    // Questions share one run (one subagent each) so they are graded in parallel.
     expect(mocks.startRun.mock.calls.map(([, prompt]) => (prompt as string).split("\n")[0])).toEqual([
-      "batch_question_id: q1",
-      "batch_question_id: q2",
+      "batch_question_id: q1,q2",
     ]);
     expect(mocks.startRun.mock.calls[0][2]).toMatchObject({ modelOverride: "model-x" });
     expect(mocks.select).toHaveBeenCalledWith("s1");
@@ -187,8 +187,7 @@ describe("useBatchGrading", () => {
 
     // q1 completed but its answer is still ungraded (e.g. rejected or out of range); q3 is skipped.
     expect(mocks.startRun.mock.calls.map(([, prompt]) => (prompt as string).split("\n")[0])).toEqual([
-      "batch_question_id: q1",
-      "batch_question_id: q2",
+      "batch_question_id: q1,q2",
     ]);
   });
 

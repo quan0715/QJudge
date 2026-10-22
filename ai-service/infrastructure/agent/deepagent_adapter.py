@@ -17,6 +17,7 @@ from deepagents import FilesystemPermission, create_deep_agent
 from deepagents.backends.composite import CompositeBackend
 from deepagents.backends.filesystem import FilesystemBackend
 from deepagents.backends.state import StateBackend
+from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
 from deepagents.middleware.summarization import SummarizationMiddleware
 from langgraph.types import Command
 
@@ -43,7 +44,10 @@ from infrastructure.agent.interrupt_state_adapter import (
     extract_interrupt_type,
     extract_question_payload,
 )
-from infrastructure.agent.hitl_middleware import ActionAwareHITLMiddleware
+from infrastructure.agent.hitl_middleware import (
+    ActionAwareHITLMiddleware,
+    SubagentWriteGuardMiddleware,
+)
 from infrastructure.agent.model_factory import (
     ModelFactory,
     SUMMARIZATION_TRIGGER_FRACTION,
@@ -429,6 +433,15 @@ class _DeepAgentRuntime:
                     paths=["/app/.deepagents/**"],
                     mode="deny",
                 )
+            ],
+            # Replaces the default general-purpose subagent: it inherits the tools but
+            # not the approval middleware, so write actions are refused there.
+            "subagents": [
+                {
+                    **GENERAL_PURPOSE_SUBAGENT,
+                    "skills": skills,
+                    "middleware": [SubagentWriteGuardMiddleware(write_actions=WRITE_ACTIONS)],
+                }
             ],
             "middleware": [
                 # Must be the last middleware: inspects the final tool_calls produced by

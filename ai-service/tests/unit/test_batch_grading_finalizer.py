@@ -73,13 +73,18 @@ class Credentials:
         return "mcp-token"
 
 
-def _info(status: str = "completed", error_code: str | None = None, context=BATCH_CONTEXT):
+def _info(
+    status: str = "completed",
+    error_code: str | None = None,
+    context=BATCH_CONTEXT,
+    question_ids: str = "q3",
+):
     return TerminalRunInfo(
         session_id=SESSION_ID,
         status=status,
         error_code=error_code,
         error_message="boom" if status == "failed" else None,
-        user_message="batch_question_id: q3\n請批改",
+        user_message=f"batch_question_id: {question_ids}\n請批改",
         session_context=context,
     )
 
@@ -323,3 +328,57 @@ async def test_backend_auth_rejection_pauses_remaining_queue(http_status):
     assert runs.cancelled_sessions == [SESSION_ID]
     assert _csv(artifacts.files["progress.csv"])[0]["status"] == "paused"
     assert "written_q3.csv" not in artifacts.files
+
+
+@pytest.mark.asyncio
+async def test_run_with_several_questions_finalizes_each_one() -> None:
+    files = _batch_files()
+    batch = json.loads(files["batch.json"])
+    batch["questions"] += [
+        {"question_id": "q4", "label": "Q4", "index": 4, "max_score": 10},
+        {"question_id": "q5", "label": "Q5", "index": 5, "max_score": 10},
+    ]
+    files["batch.json"] = json.dumps(batch)
+    files["grade_q4.csv"] = GRADE_CSV.replace("a1,", "b1,").replace("a2,", "b2,").replace("a3,", "b3,")
+    # q5 has no grade CSV: it fails alone without blocking the others.
+    artifacts = FakeArtifacts(files)
+    finalizer, posted = _finalizer(FakeRuns(_info(question_ids="q3,q4,q5")), artifacts)
+
+    await finalizer(RUN_ID, "lease:teacher")
+
+    assert [p["body"]["question_id"] for p in posted] == ["q3", "q4"]
+    assert _csv(artifacts.files["written_q4.csv"])[0]["exam_answer_id"] == "b1"
+    progress = {row["question_id"]: row for row in _csv(artifacts.files["progress.csv"])}
+    assert {qid: row["status"] for qid, row in progress.items()} == {
+        "q3": "completed",
+        "q4": "completed",
+        "q5": "failed",
+    }
+    assert {row["run_id"] for row in progress.values()} == {str(RUN_ID)}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("http_status", [401, 403])
+async def test_auth_rejection_also_pauses_other_questions_in_the_same_run(http_status):
+    files = _batch_files()
+    batch = json.loads(files["batch.json"])
+    batch["questions"].append({"question_id": "q4", "max_score": 10})
+    files["batch.json"] = json.dumps(batch)
+    files["grade_q4.csv"] = GRADE_CSV
+    artifacts = FakeArtifacts(files)
+    runs = FakeRuns(_info(question_ids="q3,q4"))
+    requests = []
+
+    def reject(request):
+        requests.append(request)
+        return httpx.Response(http_status)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(reject)) as http:
+        finalizer = BatchGradingFinalizer(runs=runs, artifacts=artifacts,
+            credentials=Credentials(), http=http, backend_url="http://backend:8000")
+        await finalizer(RUN_ID, "lease:teacher")
+
+    assert len(requests) == 1
+    assert runs.cancelled_sessions == [SESSION_ID]
+    progress = {row["question_id"]: row["status"] for row in _csv(artifacts.files["progress.csv"])}
+    assert progress == {"q3": "paused", "q4": "paused"}

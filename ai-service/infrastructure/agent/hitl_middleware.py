@@ -190,3 +190,36 @@ class ActionAwareHITLMiddleware(AgentMiddleware[StateT, ContextT]):
         self, state: AgentState[Any], runtime: Runtime[ContextT]
     ) -> dict[str, Any] | None:
         return self.after_model(state, runtime)
+
+
+SUBAGENT_WRITE_BLOCKED = (
+    "Subagents cannot run QJudge write actions because they have no approval step. "
+    "Return the result to the main agent; it writes through the teacher's approval."
+)
+
+
+class SubagentWriteGuardMiddleware(AgentMiddleware[StateT, ContextT]):
+    """Refuse write actions inside a subagent, where no approval step runs."""
+
+    def __init__(self, *, write_actions: Mapping[str, Iterable[str]]) -> None:
+        super().__init__()
+        self.write_actions: dict[str, frozenset[str]] = {
+            name: frozenset(actions) for name, actions in write_actions.items()
+        }
+
+    def _blocked(self, tool_call: ToolCall) -> ToolMessage | None:
+        actions = self.write_actions.get(tool_call["name"])
+        if actions is None or (tool_call.get("args") or {}).get("action") not in actions:
+            return None
+        return ToolMessage(
+            content=SUBAGENT_WRITE_BLOCKED,
+            name=tool_call["name"],
+            tool_call_id=tool_call["id"],
+            status="error",
+        )
+
+    def wrap_tool_call(self, request: Any, handler: Any) -> Any:
+        return self._blocked(request.tool_call) or handler(request)
+
+    async def awrap_tool_call(self, request: Any, handler: Any) -> Any:
+        return self._blocked(request.tool_call) or await handler(request)
