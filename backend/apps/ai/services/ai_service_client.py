@@ -36,6 +36,16 @@ def unavailable_error(request) -> dict[str, object]:
     }
 
 
+def upstream_error_status(response: httpx.Response) -> int:
+    """Status the browser gets for an AI Service error response.
+
+    Django signs a fresh token for every upstream call, so an AI Service 401
+    means the services disagree about tokens, not that the user's session
+    ended. Passing 401 through would make the frontend log the user out.
+    """
+    return 502 if response.status_code == 401 else response.status_code
+
+
 def safe_upstream_error(response: httpx.Response, request) -> dict[str, object]:
     fallback_request_id = request_id_for(request)
     try:
