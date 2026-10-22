@@ -18,6 +18,9 @@ import GradingSplitPanelScreen from "./GradingSplitPanelScreen";
 import GradingMobileNav from "./GradingMobileNav";
 import ScorePolicyMenu from "./components/ScorePolicyMenu";
 import type { ScorePolicyMenuImpactContext } from "./components/ScorePolicyMenu";
+import { BatchGradingQuestionMenu } from "./batchGrading/BatchGradingQuestionMenu";
+import { BatchGradingQuestionNotice } from "./batchGrading/BatchGradingQuestionNotice";
+import type { BatchQuestionState } from "./batchGrading/batchGradingModel";
 import {
   GRADING_COLLAPSED_LIST_WIDTH,
   GRADING_PRIMARY_LIST_WIDTH,
@@ -56,6 +59,13 @@ interface GradingByQuestionTabScreenProps {
   } | null;
   readOnly?: boolean;
   onRefreshData?: () => void;
+  /** AI batch grading (beta); omitted when the viewer has no batch session. */
+  batch?: {
+    states: Record<string, BatchQuestionState>;
+    onRevert(questionId: string): Promise<unknown>;
+    onRegrade(questionId: string, note?: string): Promise<void>;
+    onResume(): void;
+  };
 }
 
 export default function GradingByQuestionTabScreen({
@@ -75,6 +85,7 @@ export default function GradingByQuestionTabScreen({
   selectionRequest = null,
   readOnly = false,
   onRefreshData,
+  batch,
 }: GradingByQuestionTabScreenProps) {
   const { t } = useTranslation("contest");
   const [isQuestionPaneCollapsed, setIsQuestionPaneCollapsed] = useState(false);
@@ -318,8 +329,11 @@ export default function GradingByQuestionTabScreen({
       onSelect={handleQuestionSelect}
       collapsed={isQuestionPaneCollapsed}
       onToggleCollapse={() => setIsQuestionPaneCollapsed((prev) => !prev)}
+      batchStates={batch?.states}
     />
   );
+  const batchState =
+    batch && selectedQuestion ? batch.states[selectedQuestion.questionId] : undefined;
 
   const middlePaneContent = (
     <ListPanel
@@ -328,6 +342,14 @@ export default function GradingByQuestionTabScreen({
           title={t("grading.answerList", "作答列表")}
           action={
             selectedQuestion && !readOnly ? (
+              <div className={styles.answerListActions}>
+              {batch && batchState && (
+                <BatchGradingQuestionMenu
+                  state={batchState}
+                  onRevert={batch.onRevert}
+                  onRegrade={batch.onRegrade}
+                />
+              )}
               <ScorePolicyMenu
                 questionId={selectedQuestion.questionId}
                 questionIndex={selectedQuestion.questionIndex}
@@ -345,6 +367,7 @@ export default function GradingByQuestionTabScreen({
                 onPolicyChanged={onRefreshData}
                 impactContext={impactContext}
               />
+              </div>
             ) : undefined
           }
         />
@@ -451,6 +474,11 @@ export default function GradingByQuestionTabScreen({
         questionContent={sidebarContent}
         studentContent={middlePaneContent}
       />
+      {batch && batchState && (
+        <div className={styles.batchNotice}>
+          <BatchGradingQuestionNotice state={batchState} onResume={batch.onResume} />
+        </div>
+      )}
       <GradingSplitPanelScreen
         answer={selectedAnswer}
         onGrade={onGrade}

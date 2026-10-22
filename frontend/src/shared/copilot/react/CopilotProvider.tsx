@@ -792,6 +792,8 @@ export function CopilotProvider({
             }
             clearReconnectTimer();
             capturedSubscription?.close();
+            // Runs queue per session (e.g. batch grading): pick up the next one, if any.
+            void restoreRunRef.current?.(run.sessionId, revisionRef.current);
             if (!freshSession || freshSession.id !== run.sessionId) return;
             replaceSessions(
               sessionsRef.current.map((summary) =>

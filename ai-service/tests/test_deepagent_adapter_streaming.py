@@ -355,3 +355,22 @@ def test_runner_resume_operations_keep_caller_ids(
         "thread_id": str(command.session_id),
         "run_id": str(command.run_id),
     }
+
+
+def test_stream_events_tags_subagent_tool_events_with_parent_task():
+    runner = _build_runner()
+    agent = _FakeAgent(
+        events=[
+            {"event": "on_tool_start", "name": "task", "run_id": "T1",
+             "parent_ids": ["root"], "data": {"input": {"description": "批改 Q3"}}},
+            {"event": "on_tool_start", "name": "echo_tool", "run_id": "C1",
+             "parent_ids": ["root", "T1"], "data": {"input": {}}},
+        ],
+        state=SimpleNamespace(interrupts=()),
+    )
+
+    events = asyncio.run(_collect_events(runner, agent))
+    starts = [e for e in events if e["type"] == "tool_call_started"]
+
+    assert "parent_tool_call_id" not in starts[0]
+    assert starts[1]["parent_tool_call_id"] == "T1"

@@ -10,6 +10,7 @@ import type {
   RunTodoInputItem,
   RunTodoItem,
   RunTodoStatus,
+  SubagentActivity,
   VerificationReport,
 } from "@/core/types/chatbot.types";
 import { httpClient } from "@/infrastructure/api/http.client";
@@ -46,6 +47,9 @@ interface V2StreamEvent {
 
   // agent_message_delta
   content?: string;
+
+  // set on events produced inside a deepagents subagent (`task` tool call id)
+  parent_tool_call_id?: string;
 
   // verification_report
   iteration?: number;
@@ -356,6 +360,18 @@ function extractTodoCommands(text: string): {
   return { displayText, todoItems };
 }
 
+function updateSubagentActivity(
+  message: Partial<ChatMessage>,
+  parentToolCallId: string,
+  patch: Partial<SubagentActivity>,
+): void {
+  const previous = message.subagentActivity?.[parentToolCallId] ?? { text: "" };
+  message.subagentActivity = {
+    ...message.subagentActivity,
+    [parentToolCallId]: { ...previous, ...patch },
+  };
+}
+
 function extractTodoItemsFromEvent(event: V2StreamEvent): RunTodoItem[] | undefined {
   const inputData = event.input_data;
   const result = event.result;
@@ -414,6 +430,9 @@ function convertBackendMessage(
                 ? (t.result as string | Record<string, unknown>)
                 : undefined,
             isError: typeof t.is_error === "boolean" ? t.is_error : undefined,
+            ...(typeof t.parent_tool_call_id === "string"
+              ? { parentToolCallId: t.parent_tool_call_id }
+              : {}),
           };
         })
         .filter((t): t is ToolInfo => t !== null)
@@ -788,10 +807,28 @@ const chatbotRepository: ChatbotRepository = {
     };
     applyRunStatusToCurrentMessage(event, currentMessage);
 
+    const parentToolCallId = event.parent_tool_call_id;
     const todoItems = extractTodoItemsFromEvent(event);
-    if (todoItems) {
+    if (todoItems && parentToolCallId) {
+      updateSubagentActivity(currentMessage, parentToolCallId, { todoItems });
+    } else if (todoItems) {
       currentMessage.todoItems = todoItems;
       notify(callbacks.onTodoItemsUpdate, todoItems);
+    }
+
+    if (
+      parentToolCallId &&
+      (event.type === "agent_message_delta" || event.type === "thinking_delta")
+    ) {
+      // Subagent prose belongs to its task card, never to the main reply.
+      if (event.type === "agent_message_delta" && event.content) {
+        const previous = currentMessage.subagentActivity?.[parentToolCallId]?.text ?? "";
+        updateSubagentActivity(currentMessage, parentToolCallId, {
+          text: previous + event.content,
+        });
+        notify(callbacks.onMessageUpdate, { ...currentMessage });
+      }
+      return;
     }
 
     switch (event.type) {
@@ -878,11 +915,12 @@ const chatbotRepository: ChatbotRepository = {
             }
           }
 
-          currentMessage.toolName = displayToolName;
+          if (!parentToolCallId) currentMessage.toolName = displayToolName;
           notify(callbacks.onToolStarted, {
             toolName: displayToolName,
             ...(event.tool_call_id ? { toolCallId: event.tool_call_id } : {}),
             ...(event.input_data ? { inputData: event.input_data } : {}),
+            ...(parentToolCallId ? { parentToolCallId } : {}),
           });
           notify(callbacks.onMessageUpdate, { ...currentMessage });
         }
@@ -921,12 +959,13 @@ const chatbotRepository: ChatbotRepository = {
           inputData,
           result: event.result,
           isError: event.is_error,
+          ...(parentToolCallId ? { parentToolCallId } : {}),
         };
         currentMessage.toolExecutions = [
           ...(currentMessage.toolExecutions || []),
           toolInfo,
         ];
-        currentMessage.toolName = undefined;
+        if (!parentToolCallId) currentMessage.toolName = undefined;
         notify(callbacks.onMessageUpdate, { ...currentMessage });
         break;
       }

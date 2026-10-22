@@ -274,6 +274,34 @@ describe("CopilotProvider run lifecycle", () => {
     expect(result.current.run.state.status).toBe("ready");
   });
 
+  it("follows the next queued run of the same session after a run completes", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Q1"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    let sent!: Awaited<ReturnType<typeof result.current.composer.send>>;
+    await act(async () => {
+      sent = await result.current.composer.send();
+    });
+    // Another run was queued into the same session outside the composer (batch grading).
+    const queued = await transport.startRun({ sessionId: sent.sessionId, text: "Q2" });
+
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "run-status",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 1,
+        status: "completed",
+      }),
+    );
+
+    await waitFor(() => expect(result.current.run.state.run?.id).toBe(queued.id));
+  });
+
   it("closes the captured subscription before cancelling", async () => {
     const transport = new MemoryCopilotTransport();
     const order: string[] = [];

@@ -26,11 +26,13 @@ class RunStarted:
 @dataclass(slots=True)
 class AgentMessageDelta:
     content: str
+    parent_tool_call_id: str | None = None
 
 
 @dataclass(slots=True)
 class ThinkingDelta:
     content: str
+    parent_tool_call_id: str | None = None
 
 
 @dataclass(slots=True)
@@ -57,6 +59,7 @@ class ToolCallStarted:
     tool_name: str
     tool_call_id: str
     input_data: dict[str, Any] = field(default_factory=dict)
+    parent_tool_call_id: str | None = None
 
 
 @dataclass(slots=True)
@@ -64,6 +67,7 @@ class ToolCallFinished:
     tool_call_id: str
     result: Any = None
     is_error: bool = False
+    parent_tool_call_id: str | None = None
 
 
 @dataclass(slots=True)
@@ -342,5 +346,53 @@ def to_sse_dict(event: InternalEvent) -> dict[str, Any]:
         raise ValueError(f"Unknown internal event type: {type(event).__name__}")
 
     payload = asdict(event)
+    if payload.get("parent_tool_call_id", "") is None:
+        del payload["parent_tool_call_id"]
     payload["type"] = event_type
     return payload
+
+
+_SUBAGENT_TOOL_NAME = "task"
+_ATTRIBUTABLE_EVENTS = (AgentMessageDelta, ThinkingDelta, ToolCallStarted, ToolCallFinished)
+
+
+class SubagentEventTracker:
+    """Attribute stream events to the deepagents `task` call they run under.
+
+    LangGraph propagates callbacks into the subagent invoked by the `task`
+    tool, so its events arrive in the parent stream with the task's run_id in
+    `parent_ids`. Events of the task call itself stay unattributed.
+    """
+
+    def __init__(self) -> None:
+        self._open_tasks: set[str] = set()
+
+    def annotate(
+        self,
+        event: dict[str, Any],
+        internal_events: list[InternalEvent],
+    ) -> list[InternalEvent]:
+        kind = event.get("event")
+        run_id = str(event.get("run_id", ""))
+        is_task = event.get("name") == _SUBAGENT_TOOL_NAME
+        if kind == "on_tool_start" and is_task:
+            self._open_tasks.add(run_id)
+            return internal_events
+        if kind == "on_tool_end" and run_id in self._open_tasks:
+            self._open_tasks.discard(run_id)
+            return internal_events
+
+        parent = next(
+            (
+                str(pid)
+                for pid in reversed(event.get("parent_ids") or [])
+                if str(pid) in self._open_tasks
+            ),
+            None,
+        )
+        if parent is None:
+            return internal_events
+        for internal in internal_events:
+            if isinstance(internal, _ATTRIBUTABLE_EVENTS):
+                internal.parent_tool_call_id = parent
+        return internal_events

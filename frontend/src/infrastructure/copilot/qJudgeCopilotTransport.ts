@@ -31,6 +31,7 @@ import {
   mapChatSessionToCopilotSummary,
   mapCopilotRunToChat,
   mapQJudgeError,
+  mapSubagentActivityToCopilot,
   mapToolInfoToCopilotPart,
 } from "./chatbotCopilotMapper";
 
@@ -312,6 +313,13 @@ export function createQJudgeCopilotTransport(
             }
           }
           emitToolUpdates(update.toolExecutions, sourceSequence);
+          for (const [parentId, activity] of Object.entries(update.subagentActivity ?? {})) {
+            const taskPart = activeToolParts.get(parentId);
+            if (!taskPart) continue;
+            const part = { ...taskPart, activity: mapSubagentActivityToCopilot(activity) };
+            activeToolParts.set(parentId, part);
+            emitToolPart(part, sourceSequence);
+          }
           emitVerificationUpdates(
             update.verificationReports,
             sourceSequence,
@@ -335,6 +343,7 @@ export function createQJudgeCopilotTransport(
             toolName: tool.toolName,
             state: "input-ready",
             ...(tool.inputData ? { input: tool.inputData } : {}),
+            ...(tool.parentToolCallId ? { parentToolCallId: tool.parentToolCallId } : {}),
           };
           activeToolParts.set(part.toolCallId, part);
           emitToolPart(part, resumeSequence);

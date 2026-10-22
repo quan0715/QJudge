@@ -11,6 +11,11 @@ import {
   createTaskSession,
 } from "@/features/ai-tasks/lib/aiTaskRuntime";
 import type { GradingAnswerRow } from "./gradingTypes";
+import {
+  buildSeedGradeCsv,
+  parseCsvContent,
+  serializeCsvRows,
+} from "./gradeCsv";
 
 interface AiSuggestion {
   score: number | null;
@@ -30,18 +35,6 @@ interface AiState {
 
 const MAX_RETRY = 4;
 export const AI_GRADING_TASK_TYPE = "grading.question";
-const GRADE_CSV_COLUMNS = [
-  "index",
-  "exam_answer_id",
-  "username",
-  "answer_text",
-  "original_score",
-  "original_feedback",
-  "score",
-  "reason",
-  "synced",
-] as const;
-
 const toNumberOrNull = (value: unknown): number | null => {
   if (value == null) return null;
   if (typeof value === "string" && value.trim() === "") return null;
@@ -57,108 +50,10 @@ function parseSynced(value: unknown): boolean {
   return ["1", "true", "yes", "y", "synced", "submitted"].includes(normalized);
 }
 
-function stringifyAnswer(answer: Record<string, unknown>): string {
-  const text = answer?.text;
-  if (typeof text === "string" && text.trim()) return text;
-  const selected = answer?.selected;
-  if (typeof selected === "string" || typeof selected === "number") return String(selected);
-  if (Array.isArray(selected)) return selected.join(", ");
-  const code = answer?.code;
-  if (typeof code === "string" && code.trim()) return code;
-
-  try {
-    return JSON.stringify(answer, null, 2);
-  } catch {
-    return "";
-  }
-}
-
-function encodeCsvCell(value: unknown): string {
-  const text = value == null ? "" : String(value);
-  return `"${text.replace(/"/g, '""')}"`;
-}
-
-function buildSeedGradeCsv(rows: GradingAnswerRow[]): string {
-  const lines = [
-    GRADE_CSV_COLUMNS.map(encodeCsvCell).join(","),
-    ...rows.map((row, index) =>
-      GRADE_CSV_COLUMNS.map((column) => {
-        switch (column) {
-          case "index":
-            return encodeCsvCell(index + 1);
-          case "exam_answer_id":
-            return encodeCsvCell(row.id);
-          case "username":
-            return encodeCsvCell(row.studentUsername);
-          case "answer_text":
-            return encodeCsvCell(stringifyAnswer(row.answerContent));
-          case "original_score":
-            return encodeCsvCell(row.score ?? "");
-          case "original_feedback":
-            return encodeCsvCell(row.feedback ?? "");
-          case "score":
-          case "reason":
-          case "synced":
-            return encodeCsvCell("");
-          default:
-            return encodeCsvCell("");
-        }
-      }).join(","),
-    ),
-  ];
-  return `${lines.join("\n")}\n`;
-}
-
 async function seedGradeCsvArtifact(sessionId: string, rows: GradingAnswerRow[]): Promise<void> {
   const csv = buildSeedGradeCsv(rows);
   const file = new File([csv], "grade.csv", { type: "text/csv" });
   await uploadUserArtifact(sessionId, file, { step: "grade" });
-}
-
-function parseCsvContent(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let cur = "";
-  let inQuotes = false;
-  let fieldStarted = false;
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    if (inQuotes) {
-      if (ch === '"' && text[i + 1] === '"') {
-        cur += '"';
-        i += 1;
-      } else if (ch === '"') {
-        inQuotes = false;
-      } else {
-        cur += ch;
-      }
-      continue;
-    }
-    if (ch === ',') {
-      row.push(cur);
-      cur = "";
-      fieldStarted = false;
-    } else if (ch === '\n') {
-      row.push(cur);
-      rows.push(row);
-      row = [];
-      cur = "";
-      fieldStarted = false;
-    } else if (ch === '\r') {
-      // handled by \n or trailing
-    } else if (ch === '"' && !fieldStarted) {
-      inQuotes = true;
-      fieldStarted = true;
-    } else {
-      cur += ch;
-      fieldStarted = true;
-    }
-  }
-  if (cur.length > 0 || row.length > 0) {
-    row.push(cur);
-    rows.push(row);
-  }
-  return rows.filter((r) => !(r.length === 1 && r[0] === ""));
 }
 
 function parseSuggestions(
@@ -254,10 +149,6 @@ function buildRetryPrompt(
 
 function buildTaskContext(contestId: string, questionId: string): Record<string, string> {
   return { contest_id: contestId, question_id: questionId };
-}
-
-function serializeCsvRows(rows: string[][]): string {
-  return `${rows.map((row) => row.map(encodeCsvCell).join(",")).join("\n")}\n`;
 }
 
 function patchSuggestionCsv(

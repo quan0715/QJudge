@@ -617,13 +617,23 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
     def batch_grade(self, request, contest_pk=None):
         """Batch grade multiple answers at once (TA/admin only).
 
-        Request body: {"grades": [{"exam_answer_id": 123, "score": 8.5, "feedback": "..."}]}
+        Request body: {"grades": [{"exam_answer_id": 123, "score": 8.5, "feedback": "..."}],
+                       "only_if_ungraded": false}
+
+        With ``only_if_ungraded`` an answer that already has a score is left
+        untouched and reported as ``skipped`` (used by background AI grading so
+        it never overwrites a TA's score). ``question_id`` limits writes to that
+        question's answers; others are reported as ``not found``.
         """
         contest = self._get_contest(contest_pk)
         if not can_manage_contest(request.user, contest):
             raise PermissionDenied('Only contest staff can grade answers.')
 
         grades = request.data.get('grades', [])
+        only_if_ungraded = request.data.get('only_if_ungraded') is True
+        answer_scope = ExamAnswer.objects.filter(participant__contest=contest)
+        if request.data.get('question_id') is not None:
+            answer_scope = answer_scope.filter(question_id=request.data.get('question_id'))
         if not isinstance(grades, list) or not grades:
             return Response(
                 {'error': 'grades must be a non-empty array'},
@@ -655,19 +665,21 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': {'score': ['Ensure this value is greater than or equal to 0.']}})
                 continue
 
-            answer_obj = ExamAnswer.objects.filter(
-                participant__contest=contest, pk=answer_id,
-            ).first()
-            if not answer_obj:
-                results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': 'not found'})
-                continue
+            with transaction.atomic():
+                answer_obj = answer_scope.select_for_update().filter(pk=answer_id).first()
+                if not answer_obj:
+                    results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': 'not found'})
+                    continue
+                if only_if_ungraded and answer_obj.score is not None:
+                    results.append({'exam_answer_id': answer_id, 'status': 'skipped'})
+                    continue
 
-            answer_obj.score = validated_score
-            answer_obj.feedback = validated_feedback
-            answer_obj.graded_by = request.user
-            answer_obj.graded_at = now
-            answer_obj.is_correct = validated_score > 0
-            answer_obj.save()
+                answer_obj.score = validated_score
+                answer_obj.feedback = validated_feedback
+                answer_obj.graded_by = request.user
+                answer_obj.graded_at = now
+                answer_obj.is_correct = validated_score > 0
+                answer_obj.save()
 
             affected_question_ids.add(answer_obj.question_id)
             results.append({'exam_answer_id': answer_id, 'status': 'ok', 'score': float(validated_score)})

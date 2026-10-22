@@ -283,3 +283,81 @@ def test_second_terminal_transition_is_rejected(run: Run, assistant: Message) ->
 
     with pytest.raises(InvalidRunTransition):
         reduce_run_event(completed, assistant, {"type": "run_completed"})
+
+
+def _reduce_all(run: Run, assistant: Message, events: list[dict[str, object]]):
+    projection = None
+    for event in events:
+        projection = reduce_run_event(run, assistant, event)
+        run, assistant = projection.run, projection.assistant
+    assert projection is not None and projection.assistant is not None
+    return projection.assistant
+
+
+def test_subagent_message_delta_not_appended_to_content(run: Run, assistant: Message) -> None:
+    result = _reduce_all(
+        run,
+        assistant,
+        [
+            {"type": "agent_message_delta", "content": "主"},
+            {"type": "agent_message_delta", "content": "子", "parent_tool_call_id": "T1"},
+        ],
+    )
+
+    assert result.content == "主"
+
+
+def test_subagent_thinking_delta_ignored(run: Run, assistant: Message) -> None:
+    result = _reduce_all(
+        run,
+        assistant,
+        [{"type": "thinking_delta", "content": "想", "parent_tool_call_id": "T1"}],
+    )
+
+    assert "thinking" not in result.metadata
+
+
+def test_subagent_todos_do_not_replace_main_todos(run: Run, assistant: Message) -> None:
+    main_todos = [{"content": "主待辦", "status": "pending"}]
+    sub_todos = [{"content": "子待辦", "status": "pending"}]
+    result = _reduce_all(
+        run,
+        assistant,
+        [
+            {"type": "tool_call_started", "tool_name": "write_todos",
+             "tool_call_id": "M1", "input_data": {"todos": main_todos}},
+            {"type": "tool_call_finished", "tool_call_id": "M1", "result": "ok"},
+            {"type": "tool_call_started", "tool_name": "write_todos",
+             "tool_call_id": "C1", "input_data": {"todos": sub_todos},
+             "parent_tool_call_id": "T1"},
+            {"type": "tool_call_finished", "tool_call_id": "C1", "result": "ok",
+             "parent_tool_call_id": "T1"},
+        ],
+    )
+
+    assert result.metadata["todos"] == main_todos
+
+
+def test_nested_tool_does_not_clobber_task_metadata(run: Run, assistant: Message) -> None:
+    result = _reduce_all(
+        run,
+        assistant,
+        [
+            {"type": "tool_call_started", "tool_name": "task", "tool_call_id": "T1",
+             "input_data": {"description": "批改 Q3"}},
+            {"type": "tool_call_started", "tool_name": "echo", "tool_call_id": "C1",
+             "input_data": {}, "parent_tool_call_id": "T1"},
+            {"type": "tool_call_finished", "tool_call_id": "C1", "result": "hi",
+             "parent_tool_call_id": "T1"},
+            {"type": "tool_call_finished", "tool_call_id": "T1", "result": "done"},
+        ],
+    )
+
+    executed = result.metadata["tools_executed"]
+    assert [tool["tool_call_id"] for tool in executed] == ["C1", "T1"]
+    assert executed[0]["parent_tool_call_id"] == "T1"
+    assert executed[1]["tool_name"] == "task"
+    assert executed[1]["input"] == {"description": "批改 Q3"}
+    assert "parent_tool_call_id" not in executed[1]
+    assert "in_flight_tools" not in result.metadata
+    assert "current_tool" not in result.metadata

@@ -173,4 +173,41 @@ describe("GradingSplitPanelScreen", () => {
 
     expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
   });
+
+  it("follows an outside change to the same answer when the form is untouched", () => {
+    const aiGraded = { ...answer, score: 4, feedback: "AI 理由" };
+    const { rerender } = render(
+      <GradingSplitPanelScreen answer={aiGraded} onGrade={vi.fn()} flowMode="byQuestion" />,
+    );
+    expect(screen.getByLabelText("評語（選填）")).toHaveValue("AI 理由");
+
+    // The batch revert ungraded this answer while it stayed selected.
+    rerender(
+      <GradingSplitPanelScreen
+        answer={{ ...aiGraded, score: null, feedback: "" }}
+        onGrade={vi.fn()}
+        flowMode="byQuestion"
+      />,
+    );
+
+    expect(screen.getByLabelText("評語（選填）")).toHaveValue("");
+    expect(screen.getByRole("spinbutton", { name: "批改成績" })).toHaveValue(0);
+  });
+
+  it("keeps the teacher's unsaved edits when the same answer changes outside", () => {
+    const { rerender } = render(
+      <GradingSplitPanelScreen answer={answer} onGrade={vi.fn()} flowMode="byQuestion" />,
+    );
+    fireEvent.change(screen.getByLabelText("評語（選填）"), { target: { value: "我的評語" } });
+
+    rerender(
+      <GradingSplitPanelScreen
+        answer={{ ...answer, score: 8, feedback: "AI 理由" }}
+        onGrade={vi.fn()}
+        flowMode="byQuestion"
+      />,
+    );
+
+    expect(screen.getByLabelText("評語（選填）")).toHaveValue("我的評語");
+  });
 });

@@ -121,6 +121,11 @@ class Settings(BaseSettings):
 
     # MCP tool source
     qjudge_mcp_url: str = "http://qjudge-mcp:9000/mcp"
+    # Backend API used by the worker to write batch grading results.
+    qjudge_backend_url: str = Field(
+        default="http://backend:8000",
+        validation_alias=AliasChoices("QJUDGE_BACKEND_URL"),
+    )
     qjudge_public_origin: str = Field(
         default="", validation_alias=AliasChoices("QJUDGE_PUBLIC_ORIGIN")
     )
