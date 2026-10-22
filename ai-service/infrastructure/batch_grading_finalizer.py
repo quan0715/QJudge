@@ -27,6 +27,7 @@ from application.batch_grading import (
     upsert_progress_csv,
 )
 from domain.ports import McpReadinessError
+from infrastructure.oauth.backend_transport import backend_auth_headers
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +184,7 @@ class BatchGradingFinalizer:
                 # The AI can rewrite the CSV; never let it grade another question.
                 "question_id": question_id,
             },
-            headers={"Authorization": f"Bearer {token}"},
+            headers={**backend_auth_headers(), "Authorization": f"Bearer {token}"},
         )
         response.raise_for_status()
         by_id = {r.exam_answer_id: r for r in plan.rows}
