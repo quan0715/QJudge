@@ -194,8 +194,8 @@
         "published": "공개됨"
       },
       "grading": {
-    "saveFailed": "채점을 저장하지 못했습니다. 다시 시도해 주세요.",
-    "ungradeFailed": "채점을 취소하지 못했습니다. 다시 시도해 주세요.",
+        "saveFailed": "채점을 저장하지 못했습니다. 다시 시도해 주세요.",
+        "ungradeFailed": "채점을 취소하지 못했습니다. 다시 시도해 주세요.",
         "noAnswers": "아직 답안 데이터 없음",
         "noData": "아직 채점 데이터 없음"
       },
@@ -1199,7 +1199,15 @@
       "regradeTitle": "{{label}} AI로 다시 채점",
       "regradeBody": "이 문제의 AI 점수를 먼저 취소하고(직접 준 점수는 유지) 다시 대기열에 넣습니다.",
       "regradeNote": "AI에게 남길 메모(선택)",
-      "regradeConfirm": "취소 후 다시 채점"
+      "regradeConfirm": "취소 후 다시 채점",
+      "noticeSkippedAtWrite": "{{count}}개 답안은 AI가 기록할 때 이미 점수가 있어(다른 사람 또는 수동 채점) 기존 점수를 유지했습니다.",
+      "files": "AI 파일 보기",
+      "filesTitle": "{{label}}의 AI 파일",
+      "filesRubric": "채점 기준",
+      "filesGrades": "AI 채점 결과",
+      "filesMissing": "아직 이 파일이 없습니다",
+      "filesLoading": "불러오는 중…",
+      "filesNotUsed": "{{count}}개 점수는 이 채점 기준으로 기록되지 않았습니다. AI가 기록할 때 이미 점수가 있었습니다."
     },
     "absent": "미제출",
     "aiGradingProgress": "AI 채점 진행률",

@@ -194,8 +194,8 @@
         "published": "Published"
       },
       "grading": {
-    "saveFailed": "Could not save the grade. Please try again.",
-    "ungradeFailed": "Could not remove the grade. Please try again.",
+        "saveFailed": "Could not save the grade. Please try again.",
+        "ungradeFailed": "Could not remove the grade. Please try again.",
         "noAnswers": "No answer data yet",
         "noData": "No grading data yet"
       },
@@ -1199,7 +1199,15 @@
       "regradeTitle": "Regrade {{label}} with AI",
       "regradeBody": "AI-written scores for this question are reverted first (manual scores stay), then the question is queued again.",
       "regradeNote": "Note for the AI (optional)",
-      "regradeConfirm": "Revert and regrade"
+      "regradeConfirm": "Revert and regrade",
+      "noticeSkippedAtWrite": "{{count}} answers already had a score (from someone else or by hand) when the AI wrote; their scores were kept.",
+      "files": "View AI files",
+      "filesTitle": "AI files for {{label}}",
+      "filesRubric": "Rubric",
+      "filesGrades": "AI grades",
+      "filesMissing": "This file does not exist yet",
+      "filesLoading": "Loading…",
+      "filesNotUsed": "{{count}} scores were not written with this rubric: those answers already had a score when the AI wrote."
     },
     "absent": "Absent",
     "aiGradingProgress": "AI Grading Progress",

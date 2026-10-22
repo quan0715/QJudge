@@ -73,5 +73,16 @@ export function BatchGradingQuestionNotice({ state, onResume }: BatchGradingQues
       />
     );
   }
+  if (state.skippedAtWriteCount) {
+    return (
+      <InlineNotification
+        className={styles.notice}
+        kind="info"
+        lowContrast
+        hideCloseButton
+        title={t("grading.batch.noticeSkippedAtWrite", { count: state.skippedAtWriteCount })}
+      />
+    );
+  }
   return null;
 }

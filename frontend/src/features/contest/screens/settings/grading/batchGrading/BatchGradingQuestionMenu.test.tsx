@@ -3,6 +3,24 @@ import { describe, expect, it, vi } from "vitest";
 import type { BatchQuestionState } from "./batchGradingModel";
 import { BatchGradingQuestionMenu } from "./BatchGradingQuestionMenu";
 
+vi.mock("@/shared/ai/ArtifactPreview", () => ({
+  ArtifactPreview: ({ artifact }: { artifact: { filename: string } }) => <p>{artifact.filename}</p>,
+}));
+
+const artifact = (filename: string) => ({
+  artifact_id: filename,
+  session_id: "s1",
+  produced_by_run_id: null,
+  step: "batch",
+  filename,
+  content_type: "text/plain",
+  size_bytes: 1,
+  checksum: "",
+  metadata: {},
+  created_at: "2026-10-23T00:00:00Z",
+  updated_at: "2026-10-23T00:00:00Z",
+});
+
 const state = (overrides: Partial<BatchQuestionState>): BatchQuestionState => ({
   questionId: "q1",
   label: "Q1",
@@ -74,5 +92,46 @@ describe("BatchGradingQuestionMenu", () => {
       <BatchGradingQuestionMenu state={state({ status: "idle", runId: undefined })} onRevert={vi.fn()} onRegrade={vi.fn()} />,
     );
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("shows the question's rubric and AI grades read-only", async () => {
+    const onLoadFiles = vi.fn().mockResolvedValue({
+      rubric: artifact("rubric_q1.md"),
+      grade: artifact("grade_q1.csv"),
+    });
+    render(
+      <BatchGradingQuestionMenu
+        state={state({})}
+        onRevert={vi.fn()}
+        onRegrade={vi.fn()}
+        onLoadFiles={onLoadFiles}
+      />,
+    );
+
+    openMenu();
+    fireEvent.click(menuItem("grading.batch.files"));
+
+    expect(await screen.findByText("rubric_q1.md")).toBeInTheDocument();
+    expect(onLoadFiles).toHaveBeenCalledWith("q1");
+    fireEvent.click(screen.getByRole("tab", { name: "grading.batch.filesGrades" }));
+    expect(await screen.findByText("grade_q1.csv")).toBeInTheDocument();
+  });
+
+  it("warns that skipped answers were not graded with this rubric", async () => {
+    const onLoadFiles = vi.fn().mockResolvedValue({ rubric: null, grade: null });
+    render(
+      <BatchGradingQuestionMenu
+        state={state({ skippedAtWriteCount: 4 })}
+        onRevert={vi.fn()}
+        onRegrade={vi.fn()}
+        onLoadFiles={onLoadFiles}
+      />,
+    );
+
+    openMenu();
+    fireEvent.click(menuItem("grading.batch.files"));
+
+    expect(await screen.findByText("grading.batch.filesNotUsed")).toBeInTheDocument();
+    expect(screen.getAllByText("grading.batch.filesMissing").length).toBeGreaterThan(0);
   });
 });
