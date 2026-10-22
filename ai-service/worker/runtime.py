@@ -243,29 +243,23 @@ class WorkerCredentialResolver:
                     raise McpAuthFailed("MCP credential lease is missing")
                 lease = initial_lease
 
+            await self._lease_store.delete(key)
             if not retry_exchange_once:
-                await self._lease_store.delete(key)
                 raise McpAuthFailed("MCP credential was rejected")
 
-            try:
-                exchanged = await self._exchange.exchange(lease.subject_token)
-                if "mcp" not in exchanged.scopes:
-                    raise McpAuthFailed("Exchanged token is missing the MCP scope")
-                if exchanged.expires_at - self._now() < self._minimum_validity:
-                    raise McpAuthFailed("Exchanged MCP token expires too soon")
+            exchanged = await self._exchange.exchange(lease.subject_token)
+            if "mcp" not in exchanged.scopes:
+                raise McpAuthFailed("Exchanged token is missing the MCP scope")
+            if exchanged.expires_at - self._now() < self._minimum_validity:
+                raise McpAuthFailed("Exchanged MCP token expires too soon")
 
-                replacement = CredentialLease(
-                    subject_token=lease.subject_token,
-                    mcp_token=exchanged.access_token,
-                    expires_at=exchanged.expires_at,
-                    scopes=exchanged.scopes,
-                )
-                await self._preflight.check(replacement.mcp_token)
-            except McpAuthFailed:
-                await self._lease_store.delete(key)
-                raise
-            # Atomically replace only a validated token. A transient exchange
-            # failure must not erase the still-unexpired renewal material.
+            replacement = CredentialLease(
+                subject_token=lease.subject_token,
+                mcp_token=exchanged.access_token,
+                expires_at=exchanged.expires_at,
+                scopes=exchanged.scopes,
+            )
+            await self._preflight.check(replacement.mcp_token)
             await self._lease_store.put(key, replacement)
             return replacement.mcp_token
 
@@ -756,11 +750,9 @@ class WorkerRuntime:
             return
 
         heartbeat_stop = asyncio.Event()
-        credentials_ready = asyncio.Event()
         heartbeat_task = asyncio.create_task(
             self._heartbeat_loop(
-                run_id, claim.execution_epoch, heartbeat_stop,
-                handoff_key, credentials_ready,
+                run_id, claim.execution_epoch, heartbeat_stop
             )
         )
         terminalized = False
@@ -778,7 +770,6 @@ class WorkerRuntime:
                 handoff_key,
                 retry_exchange_once=True,
             )
-            credentials_ready.set()
             if not await self._runs.execution_active(
                 run_id, claim.execution_epoch
             ):
@@ -846,8 +837,7 @@ class WorkerRuntime:
                     with suppress(asyncio.CancelledError):
                         await close()
             heartbeat_stop.set()
-            # Finish any bounded exchange already in flight before finalization.
-            # Score writeback needs the renewed lease immediately after handoff.
+            heartbeat_task.cancel()
             with suppress(asyncio.CancelledError):
                 await heartbeat_task
             if terminalized:
@@ -860,32 +850,16 @@ class WorkerRuntime:
         run_id: UUID,
         execution_epoch: int,
         stop: asyncio.Event,
-        lease_key: str,
-        credentials_ready: asyncio.Event,
     ) -> None:
-        refresh_credentials = True
         while True:
             try:
                 await asyncio.wait_for(
-                    stop.wait(), timeout=min(self._heartbeat_seconds, 15.0)
+                    stop.wait(), timeout=self._heartbeat_seconds
                 )
                 return
             except TimeoutError:
                 if not await self._runs.heartbeat(run_id, execution_epoch):
                     return
-                # Artifact-only grading may make no MCP calls for several minutes.
-                # Exchange through the existing resolver before Redis drops the
-                # short-lived lease; do not extend token lifetimes or bypass auth.
-                if credentials_ready.is_set() and refresh_credentials:
-                    try:
-                        await self._credentials.worker_token(
-                            lease_key, retry_exchange_once=True,
-                        )
-                    except McpAuthFailed:
-                        refresh_credentials = False
-                        logger.warning("Credential renewal rejected for run %s", run_id)
-                    except McpReadinessError:
-                        logger.warning("Credential renewal unavailable for run %s", run_id)
 
     @staticmethod
     def _command_for(claim: RunClaim, mcp_token: str) -> AgentCommand:

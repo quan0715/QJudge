@@ -341,7 +341,6 @@ class LeaseStore:
 
     async def delete(self, key):
         self.deletes += 1
-        self.lease = None
 
     @asynccontextmanager
     async def refresh_lock(self, key):
@@ -391,7 +390,7 @@ async def test_mcp_401_forces_one_exchange_before_agent() -> None:
     assert token == "replacement-token"
     assert exchange.calls == 1
     assert preflight.tokens == ["expired", "replacement-token"]
-    assert store.deletes == 0
+    assert store.deletes == 1
     assert len(store.puts) == 1
 
 
@@ -498,130 +497,3 @@ async def test_finalizer_error_does_not_block_dispatch() -> None:
     await store.dispatch_next_after_terminal(uuid4(), "lease:subject", TRACE)
 
     assert calls == ["dispatch"]
-
-
-@pytest.mark.asyncio
-async def test_long_artifact_run_renews_lease_before_original_expiry():
-    start = datetime.now(UTC)
-    clock = [start]
-    lease = CredentialLease(
-        subject_token="subject-token", mcp_token="initial-token",
-        expires_at=start + timedelta(seconds=90), scopes=frozenset({"mcp"}),
-    )
-
-    class ExpiringStore(LeaseStore):
-        async def get(self, key):
-            current = await super().get(key)
-            return current if current and current.expires_at > clock[0] else None
-
-    store = ExpiringStore(lease)
-    exchange = Exchange()
-    resolver = WorkerCredentialResolver(store, exchange, Preflight(), now=lambda: clock[0])
-    run = make_run()
-    owner = Principal("issuer", "subject")
-    runs = FakeRuns(run, owner)
-
-    class ArtifactOnlyAgent(FakeAgent):
-        async def execute(self, command):
-            clock[0] = start + timedelta(seconds=80)
-            for _ in range(100):
-                if exchange.calls:
-                    break
-                await asyncio.sleep(0.002)
-            assert exchange.calls == 1
-            clock[0] = start + timedelta(seconds=200)
-            assert await resolver.worker_token(
-                resolver.key_for(owner).value, retry_exchange_once=True,
-            ) == "replacement-token"
-            yield {"type": "run_completed"}
-
-    runtime = WorkerRuntime(runs, resolver, ArtifactOnlyAgent(), FakeCheckpoints(), heartbeat_seconds=0.005)
-    await runtime.execute(run.id, resolver.key_for(owner).value, TRACE)
-    assert runs.run.status is RunStatus.COMPLETED
-    assert exchange.calls == 1
-    assert len(store.puts) == 1
-
-
-@pytest.mark.asyncio
-async def test_rejected_renewal_does_not_bypass_auth_or_stop_run_heartbeats():
-    class RevokedCredentials(FakeCredentials):
-        async def worker_token(self, lease_key, *, retry_exchange_once):
-            token = await super().worker_token(lease_key, retry_exchange_once=retry_exchange_once)
-            if self.calls > 1:
-                raise McpAuthFailed("revoked")
-            return token
-
-    run = make_run()
-    runs = FakeRuns(run, Principal("issuer", "subject"))
-    credentials = RevokedCredentials()
-    runtime = WorkerRuntime(runs, credentials, SlowAgent(), FakeCheckpoints(), heartbeat_seconds=0.005)
-    await runtime.execute(run.id, "lease:subject", TRACE)
-    assert credentials.calls == 2
-    assert runs.heartbeats >= 2
-    count = credentials.calls
-    await asyncio.sleep(0.02)
-    assert credentials.calls == count
-
-
-@pytest.mark.asyncio
-async def test_terminal_handoff_waits_for_inflight_credential_renewal():
-    renewing, release = asyncio.Event(), asyncio.Event()
-
-    class RenewingCredentials(FakeCredentials):
-        async def worker_token(self, lease_key, *, retry_exchange_once):
-            token = await super().worker_token(lease_key, retry_exchange_once=retry_exchange_once)
-            if self.calls == 2:
-                renewing.set()
-                await release.wait()
-                self.token = "renewed-token"
-            return token
-
-    class FinishesDuringRenewal(FakeAgent):
-        async def execute(self, command):
-            await renewing.wait()
-            yield {"type": "run_completed"}
-
-    credentials = RenewingCredentials()
-    run = make_run()
-    runs = FakeRuns(run, Principal("issuer", "subject"))
-    runtime = WorkerRuntime(runs, credentials, FinishesDuringRenewal(), FakeCheckpoints(), heartbeat_seconds=0.005)
-    execution = asyncio.create_task(runtime.execute(run.id, "lease:subject", TRACE))
-    await asyncio.wait_for(renewing.wait(), timeout=1)
-    await asyncio.sleep(0.01)
-    assert runs.dispatches == []
-    assert not execution.done()
-    release.set()
-    await asyncio.wait_for(execution, timeout=1)
-    assert credentials.token == "renewed-token"
-    assert len(runs.dispatches) == 1
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("error", [McpUnavailable("temporary"), McpAuthFailed("revoked")])
-async def test_renewal_preserves_unexpired_material_only_for_transient_failure(error):
-    lease = CredentialLease(
-        subject_token="subject-token", mcp_token="old-token",
-        expires_at=datetime.now(UTC) + timedelta(seconds=20), scopes=frozenset({"mcp"}),
-    )
-    store = LeaseStore(lease)
-
-    class FailingOnceExchange(Exchange):
-        async def exchange(self, subject_token):
-            if not self.calls:
-                self.calls += 1
-                raise error
-            return await super().exchange(subject_token)
-
-    exchange = FailingOnceExchange()
-    resolver = WorkerCredentialResolver(store, exchange, Preflight())
-    with pytest.raises(type(error)):
-        await resolver.worker_token("lease-key", retry_exchange_once=True)
-    if isinstance(error, McpAuthFailed):
-        assert store.lease is None
-        with pytest.raises(McpAuthFailed):
-            await resolver.worker_token("lease-key", retry_exchange_once=True)
-        assert exchange.calls == 1
-    else:
-        assert store.lease == lease
-        assert await resolver.worker_token("lease-key", retry_exchange_once=True) == "replacement-token"
-        assert exchange.calls == 2

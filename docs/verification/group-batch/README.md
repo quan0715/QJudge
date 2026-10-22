@@ -13,4 +13,10 @@ The baseline SOP uses question and teacher requirements as the authority. It can
 - Private dev/staging fixtures use formal source questions and eight simulated students: correct, incorrect, partial, missing shared requirement, prohibited operation, and equivalent solution cases. They are not teacher-approved answer keys or point allocations.
 - Formal exam text, student answer fixtures, and detailed screenshots remain outside this public repository. Public screenshots show the grading matrix only.
 
-Live verification status and limitations are recorded in the PR and the existing Notion task. The worker renews its short-lived delegated lease through the existing token exchange while a run is active, so artifact-only work can outlast one token. Revoked credentials still pause writeback; token lifetimes and authorization checks are unchanged. A completed AI run alone is not proof of saved grades.
+Live verification status and limitations are recorded in the PR and the existing Notion task. A completed AI run alone is not proof of saved grades.
+
+## Dev verification
+
+Eight simulated students completed 24 answer grades after retrying rejected draft structures. The original 24 answers remained unchanged; API scores matched the rendered matrix. The standalone question and the two-child group each have an accepted rubric, and criterion totals match the separate child scores. All-correct, incorrect, single-part, missing shared behavior, prohibited-operation and equivalent-solution cases were exercised; precise model point allocations are observations, not hardcoded acceptance assertions.
+
+![Dev grading matrix](./dev-grading-matrix.png)

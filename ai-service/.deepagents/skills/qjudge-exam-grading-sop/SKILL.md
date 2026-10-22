@@ -76,6 +76,9 @@ Read the COMPLETE context and save JSON with `artifact_write`, **step
   prohibited operations). Assign each to ONE explicit criterion and owning child
   in `shared_requirements`. Do not say another child will handle it without making
   the assignment here. Do not deduct the same shared violation twice.
+- A `shared_requirements.source_quote` must occur verbatim in EVERY sibling's
+  complete prompt. A requirement present only in one child belongs in that child's
+  criteria, not in this shared inventory. One criterion may own several quotes.
 - If shared text is only background/data with no independently assessable requirement,
   use an empty shared_requirements list and explain this in shared_requirements_note.
   Never use this exception to omit explicit behavioral constraints.
@@ -114,3 +117,7 @@ Before finishing, check all writable rows, every sibling, the shared-requirement
 mapping and per-child totals. Missing rubric, incomplete results, invalid source
 quotes, stale versions or inconsistent scores block the WHOLE unit before writes.
 Never call batch_grade; the worker validates and writes. No manual scores change.
+
+On a retry, read `progress.csv` if it exists and resolve the unit's recorded
+validation errors before resubmitting. A missing progress file is normal on the
+first run. Repair unaccepted draft structure; never alter an accepted rubric.

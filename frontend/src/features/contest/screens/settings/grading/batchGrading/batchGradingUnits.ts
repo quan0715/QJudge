@@ -104,6 +104,7 @@ export function buildBatchRunPrompt(input: { contestId: string; units: BatchUnit
     `batch_units: ${JSON.stringify(input.units)}`,
     `整批批改 contest_id: ${input.contestId}。每個 unit 一個 general-purpose 子代理，可平行處理不同 unit，但同一題組絕不可拆成每子題一個代理。`,
     "先讀 /app/.deepagents/skills/qjudge-exam-grading-sop/SKILL.md 的 Batch v2 contract。所有 artifact 均用 step=batch。",
+    "若 progress.csv 存在，先讀取此 unit 上次驗證錯誤並修正未接受的草稿；首次尚無 progress.csv 屬正常。shared_requirements 的原文必須同時出現在每個子題完整 prompt，單一子題的要求只放在該子題 criteria。",
     ...input.units.map((u) => `- ${u.id}: 完整題幹、所有子題及每位學生整組原始作答在 ${u.context_file}；唯一 rubric 在 ${u.rubric_file}（版本 ${u.rubric_version}）。輸出 ${u.question_ids.map(gradeCsvFilename).join(', ')}。`),
     "只填 writable 作答的 score、reason、rubric_version、criterion_scores；其他子題作答僅供上下文，不可改人工分數或替缺交補答案。整組先制定規準，再逐學生一起判讀，最後核對共同要求沒有漏評或重複扣分。",
     "先保存完整 JSON rubric；manifest 含 rubric_sha256 表示規準已驗證，必須原樣沿用。沒有 rubric_sha256 且 rubric 不存在時是首次批改，請依 context 建立規準，不要因尚未建立而停止。未驗證的草稿可修正格式或配分後再驗證。題目要求優先於參考解的額外細節；參考解不是唯一合法寫法。不得新增題目未要求的輸出或格式扣分。",
