@@ -1188,6 +1188,7 @@
       "noticeFailed": "이 문제에서 일괄 채점이 중단되었습니다",
       "noticeIncomplete": "AI가 완료했지만 {{count}}개 답안이 기록되지 않았습니다",
       "finalizeTimeout": "AI가 끝났지만 성적 기록 결과가 돌아오지 않았습니다",
+      "noticeStopped": "AI가 중지되었습니다. 이 문제에 미채점 답안 {{count}}개가 남아 있습니다",
       "noticeAwaitingApproval": "AI가 허용되지 않은 기록을 시도했습니다. AI 사이드바에서 거부한 뒤 계속하세요.",
       "menu": "AI 일괄 채점",
       "revert": "이 문제의 AI 점수 취소",

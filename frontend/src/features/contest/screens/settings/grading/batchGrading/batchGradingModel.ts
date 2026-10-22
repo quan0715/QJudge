@@ -83,7 +83,7 @@ export function selectBatchQuestions(rows: readonly GradingAnswerRow[]): BatchQu
     if (!BATCH_QUESTION_TYPES.includes(row.questionType) || row.isAbsent) continue;
     const question = byQuestion.get(row.questionId) ?? {
       questionId: row.questionId,
-      label: row.questionLabel ?? `Q${row.questionIndex}`,
+      label: `Q${row.questionLabel ?? row.questionIndex}`,
       index: row.questionIndex,
       maxScore: row.maxScore,
       ungradedRows: [],

@@ -382,9 +382,6 @@ export default function GradingByQuestionTabScreen({
       }
     >
       <div ref={cardListRef}>
-        {batch && batchState && (
-          <BatchGradingQuestionNotice state={batchState} onResume={batch.onResume} />
-        )}
         {currentAnswers.length === 0 ? (
           <EmptyState
             title={
@@ -477,6 +474,11 @@ export default function GradingByQuestionTabScreen({
         questionContent={sidebarContent}
         studentContent={middlePaneContent}
       />
+      {batch && batchState && (
+        <div className={styles.batchNotice}>
+          <BatchGradingQuestionNotice state={batchState} onResume={batch.onResume} />
+        </div>
+      )}
       <GradingSplitPanelScreen
         answer={selectedAnswer}
         onGrade={onGrade}

@@ -82,6 +82,11 @@ describe("selectBatchQuestions", () => {
       ]);
     expect(questions[0]).toMatchObject({ label: "Q1", index: 1, maxScore: 10 });
   });
+
+  it("prefixes the question label like the grading page does", () => {
+    const [question] = selectBatchQuestions([row({ questionLabel: "2-1", questionIndex: 3 })]);
+    expect(question.label).toBe("Q2-1");
+  });
 });
 
 describe("buildBatchRunPrompt", () => {

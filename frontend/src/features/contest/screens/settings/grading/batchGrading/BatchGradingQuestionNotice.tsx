@@ -62,7 +62,11 @@ export function BatchGradingQuestionNotice({ state, onResume }: BatchGradingQues
         lowContrast
         inline
         hideCloseButton
-        title={t("grading.batch.noticeIncomplete", { count: state.ungradedCount })}
+        title={
+          state.status === "completed"
+            ? t("grading.batch.noticeIncomplete", { count: state.ungradedCount })
+            : t("grading.batch.noticeStopped", { count: state.ungradedCount })
+        }
         subtitle={errorText}
         actionButtonLabel={t("grading.batch.fill", { count: state.ungradedCount })}
         onActionButtonClick={onResume}

@@ -62,6 +62,18 @@ describe("BatchGradingQuestionNotice", () => {
     expect(onResume).toHaveBeenCalled();
   });
 
+  it("says the batch stopped for a stopped question, not that it completed", () => {
+    render(
+      <BatchGradingQuestionNotice
+        state={state({ status: "cancelled", ungradedCount: 2 })}
+        onResume={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("grading.batch.noticeStopped")).toBeInTheDocument();
+    expect(screen.queryByText("grading.batch.noticeIncomplete")).not.toBeInTheDocument();
+  });
+
   it("explains a finalize timeout", () => {
     render(
       <BatchGradingQuestionNotice

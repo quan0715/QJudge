@@ -58,6 +58,11 @@
   opacity: 0.7;
 }
 
+.batchNotice:not(:empty) {
+  flex-shrink: 0;
+  padding: layout.$spacing-03 layout.$spacing-05 0;
+}
+
 .answerListActions {
   display: flex;
   align-items: center;

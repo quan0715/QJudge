@@ -1188,6 +1188,7 @@
       "noticeFailed": "AI 整批在這題中斷",
       "noticeIncomplete": "AI 已完成，但還有 {{count}} 份沒有寫入成績",
       "finalizeTimeout": "AI 已結束，但寫入成績的步驟沒有回報結果",
+      "noticeStopped": "AI 已停止，這題還有 {{count}} 份未批改",
       "noticeAwaitingApproval": "AI 嘗試執行未允許的寫入，請在 AI 側欄拒絕後繼續。",
       "menu": "AI 整批批改",
       "revert": "撤回此題 AI 分數",
