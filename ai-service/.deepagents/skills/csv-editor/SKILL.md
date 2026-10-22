@@ -48,32 +48,13 @@ Read the next grading batch:
 ```text
 batch = artifact_csv_to_json(
   filename="grade.csv",
-  columns=["exam_answer_id", "score", "reason"],
-  where={"synced": ""},
+  columns=["exam_answer_id", "answer_text"],
+  where={"score": ""},
   limit=20,
 )
 ```
 
-For QJudge write-back, resolve `contest_id=<X>` first and map the local `reason` column to API `feedback`:
-
-```text
-grades = [
-  {
-    "exam_answer_id": row["exam_answer_id"],
-    "score": row["score"],
-    "feedback": row["reason"],
-  }
-  for row in batch["records"]
-]
-
-ack = qjudge_grading(
-  action="batch_grade",
-  contest_id=<X>,
-  grades=grades,
-)
-```
-
-The acknowledgement has only `status`, `graded_count`, and `error_count`. Mark every row in the batch `synced="yes"` only when `error_count == 0` and `graded_count == len(grades)`; otherwise mark none, stop, and report aggregate counts. Follow `qjudge-exam-grading-sop` for confirmation and retry rules.
+Writing scores back to QJudge follows `qjudge-exam-grading-sop`.
 
 Patch existing rows without replacing the file:
 
@@ -93,4 +74,3 @@ Every update must contain the key column. Inspect `missing`; unknown update colu
 - Use pagination to find the next logical batch.
 - Call `artifact_write_csv` with only changed rows; it replaces the whole file.
 - Treat `exam_answer_id` or `username` as a row index.
-- Pass raw `grade.csv` records directly to `batch_grade`.
