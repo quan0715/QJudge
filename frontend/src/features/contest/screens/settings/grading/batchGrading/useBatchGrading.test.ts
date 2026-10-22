@@ -212,7 +212,9 @@ describe("useBatchGrading", () => {
 
     await act(() => result.current.revertQuestion("q1"));
 
-    expect(mocks.ungradeExamAnswer.mock.calls).toEqual([["c1", "a1"]]);
+    expect(mocks.ungradeExamAnswer.mock.calls).toEqual([
+      ["c1", "a1", { score: 8, feedback: "AI" }],
+    ]);
     const rewritten = mocks.uploadUserArtifact.mock.calls.at(-1)?.[1] as File;
     expect(rewritten.name).toBe("written_q1.csv");
     const text = await new Promise<string>((resolve) => {
@@ -244,6 +246,47 @@ describe("useBatchGrading", () => {
 
     expect(reverted).toEqual([]);
     expect(mocks.ungradeExamAnswer).not.toHaveBeenCalled();
+  });
+
+  it("revert keeps an answer the server reports as changed after the reload", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.listArtifacts.mockResolvedValue([
+      { artifact_id: "w", filename: "written_q1.csv", updated_at: "2026-10-22T00:00:00Z" },
+    ]);
+    mocks.fetchArtifactContent.mockResolvedValue({
+      content: "exam_answer_id,score,feedback\na1,8.0,AI\n",
+      contentType: "text/csv",
+    });
+    const rows = [row({ id: "a1", questionId: "q1", score: 8, feedback: "AI" })];
+    // Another teacher saved a grade between the reload and the ungrade request.
+    mocks.ungradeExamAnswer.mockRejectedValue(Object.assign(new Error("changed"), { status: 409 }));
+    const { result } = render(rows, vi.fn().mockResolvedValue(rows));
+    await waitFor(() => expect(result.current.sessionId).toBe("s1"));
+    mocks.uploadUserArtifact.mockClear();
+
+    const reverted = await act(() => result.current.revertQuestion("q1"));
+
+    expect(reverted).toEqual([]);
+    expect(mocks.uploadUserArtifact).not.toHaveBeenCalled();
+    expect(result.current.error).toBeUndefined();
+  });
+
+  it("drops the batch session started in another contest when the contest changes", async () => {
+    mocks.createTaskSession.mockResolvedValue({ sessionId: "s1" });
+    const reloadAnswers = vi.fn().mockResolvedValue(ROWS);
+    const { result, rerender } = renderHook(
+      ({ contestId }) =>
+        useBatchGrading(contestId, ROWS, { resultsPublished: false, reloadAnswers }),
+      { initialProps: { contestId: "c1" } },
+    );
+    await act(() => result.current.start());
+    expect(result.current.sessionId).toBe("s1");
+
+    rerender({ contestId: "c2" });
+
+    expect(result.current.sessionId).toBeNull();
+    expect(result.current.canStart).toBe(true);
+    expect(result.current.questions.every((q) => q.status !== "running")).toBe(true);
   });
 
   it("stop reports a failure instead of throwing", async () => {

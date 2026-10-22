@@ -1,6 +1,6 @@
 """ExamAnswerViewSet — student answer submission and TA grading."""
 import json
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.utils import timezone
 from django.core.cache import cache
@@ -692,22 +692,48 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
     @action(detail=True, methods=['post'], url_path='ungrade')
     def ungrade_answer(self, request, contest_pk=None, pk=None):
-        """Revoke grading for a single answer (TA/admin only)."""
+        """Revoke grading for a single answer (TA/admin only).
+
+        With ``expected_score`` (and optionally ``expected_feedback``) the grade
+        is cleared only if it still matches; otherwise the answer is left as is
+        and 409 is returned. Batch AI revert uses this so it never clears a
+        grade another teacher saved after the AI wrote it.
+        """
         contest = self._get_contest(contest_pk)
         if not can_manage_contest(request.user, contest):
             raise PermissionDenied('Only contest staff can revoke grading.')
 
-        answer_obj = get_object_or_404(
-            ExamAnswer.objects.filter(participant__contest=contest),
-            pk=pk
-        )
+        expected_score = request.data.get('expected_score')
+        expected_feedback = request.data.get('expected_feedback')
+        if expected_score is not None:
+            if isinstance(expected_score, bool):
+                raise ValidationError({'expected_score': ['A number is required.']})
+            try:
+                expected_score = Decimal(str(expected_score))
+            except InvalidOperation:
+                raise ValidationError({'expected_score': ['A number is required.']})
 
-        answer_obj.score = None
-        answer_obj.feedback = ''
-        answer_obj.graded_by = None
-        answer_obj.graded_at = None
-        answer_obj.is_correct = None
-        answer_obj.save()
+        with transaction.atomic():
+            answer_obj = get_object_or_404(
+                ExamAnswer.objects.select_for_update().filter(participant__contest=contest),
+                pk=pk
+            )
+            if expected_score is not None and (
+                answer_obj.score is None
+                or answer_obj.score != expected_score
+                or (expected_feedback is not None and answer_obj.feedback != expected_feedback)
+            ):
+                return Response(
+                    {'error': 'The grade changed since it was read; nothing was revoked.'},
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            answer_obj.score = None
+            answer_obj.feedback = ''
+            answer_obj.graded_by = None
+            answer_obj.graded_at = None
+            answer_obj.is_correct = None
+            answer_obj.save()
         self._invalidate_dashboard_cache(contest.id, answer_obj.question_id)
 
         return Response(ExamAnswerDetailSerializer(answer_obj).data)
