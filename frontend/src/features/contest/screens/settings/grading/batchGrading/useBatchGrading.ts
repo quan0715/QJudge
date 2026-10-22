@@ -25,6 +25,7 @@ import {
   buildBatchRunPrompt,
   deriveBatchState,
   gradeCsvFilename,
+  groupForRuns,
   isUnfinished,
   parseWrittenCsv,
   selectBatchQuestions,
@@ -237,20 +238,25 @@ export function useBatchGrading(
     };
   }, [questionStates]);
 
+  /** Queue the questions' ungraded answers, a few questions per run so they grade in parallel. */
   const enqueue = useCallback(
-    async (id: string, question: BatchQuestion, answers: GradingAnswerRow[], note?: string) => {
-      await uploadBatchFile(id, gradeCsvFilename(question.questionId), buildSeedGradeCsv(answers), "text/csv");
-      await startBatchRun(
-        id,
-        buildBatchRunPrompt({
-          contestId,
-          questionId: question.questionId,
-          label: question.label,
-          maxScore: question.maxScore,
-          regradeNote: note,
-        }),
-        modelRef.current,
-      );
+    async (id: string, toGrade: readonly BatchQuestion[], note?: string) => {
+      const pending = toGrade.filter((q) => q.ungradedRows.length > 0);
+      for (const group of groupForRuns(pending)) {
+        for (const question of group) {
+          await uploadBatchFile(
+            id,
+            gradeCsvFilename(question.questionId),
+            buildSeedGradeCsv(question.ungradedRows),
+            "text/csv",
+          );
+        }
+        await startBatchRun(
+          id,
+          buildBatchRunPrompt({ contestId, questions: group, regradeNote: note }),
+          modelRef.current,
+        );
+      }
     },
     [contestId],
   );
@@ -297,11 +303,7 @@ export function useBatchGrading(
           }),
           "application/json",
         );
-        for (const question of questions) {
-          if (question.ungradedRows.length > 0) {
-            await enqueue(id, question, question.ungradedRows);
-          }
-        }
+        await enqueue(id, questions);
         setCreated({ contestId, sessionId: id });
         await refreshSessions();
       }, true);
@@ -326,12 +328,8 @@ export function useBatchGrading(
   const resume = useCallback(async () => {
     await guard(async () => {
       if (!sessionId) return;
-      for (const state of questionStates.filter(isUnfinished)) {
-        const question = questions.find((q) => q.questionId === state.questionId);
-        if (question && question.ungradedRows.length > 0) {
-          await enqueue(sessionId, question, question.ungradedRows);
-        }
-      }
+      const unfinished = new Set(questionStates.filter(isUnfinished).map((q) => q.questionId));
+      await enqueue(sessionId, questions.filter((q) => unfinished.has(q.questionId)));
       await refreshSnapshot(sessionId);
     }, false);
   }, [enqueue, guard, questionStates, questions, refreshSnapshot, sessionId]);
@@ -395,12 +393,8 @@ export function useBatchGrading(
         setRegradingId(questionId);
         try {
           await revertAnswers(sessionId, questionId);
-          const question = selectBatchQuestions(await reloadAnswers()).find(
-            (q) => q.questionId === questionId,
-          );
-          if (question && question.ungradedRows.length > 0) {
-            await enqueue(sessionId, question, question.ungradedRows, note);
-          }
+          const reloaded = selectBatchQuestions(await reloadAnswers());
+          await enqueue(sessionId, reloaded.filter((q) => q.questionId === questionId), note);
           await refreshSnapshot(sessionId);
         } finally {
           setRegradingId(null);

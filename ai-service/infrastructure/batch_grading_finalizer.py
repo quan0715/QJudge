@@ -1,7 +1,7 @@
 """Write a finished batch grading run's scores through the QJudge backend.
 
-The AI only fills ``grade_<qid>.csv``. When the run ends, this hook validates
-the CSV, writes scores with the initiator's MCP token (never overwriting an
+The AI only fills ``grade_<qid>.csv`` for each question of the run. When the
+run ends, this hook validates each CSV, writes scores with the initiator's MCP token (never overwriting an
 existing score) and records the outcome in ``progress.csv`` and
 ``written_<qid>.csv`` of the same session.
 """
@@ -21,7 +21,7 @@ from application.batch_grading import (
     BATCH_TASK_TYPE,
     GradeRow,
     append_written_csv,
-    parse_batch_question_id,
+    parse_batch_question_ids,
     plan_grades,
     progress_status,
     upsert_progress_csv,
@@ -77,18 +77,15 @@ class BatchGradingFinalizer:
         manifest = info.session_context.get("task_manifest") or {}
         if manifest.get("task_type") != BATCH_TASK_TYPE:
             return
-        question_id = parse_batch_question_id(info.user_message)
-        if question_id is None:
-            return
-
-        try:
-            await self._finalize(info, run_id, question_id, lease_key)
-        except Exception as exc:  # the teacher must see it; never leave the question "running"
-            logger.exception("Batch grading finalize failed for run %s", run_id)
-            await self._write_progress(
-                info.session_id, run_id, question_id, status="failed",
-                error=f"收尾失敗：{exc}",
-            )
+        for question_id in parse_batch_question_ids(info.user_message):
+            try:
+                await self._finalize(info, run_id, question_id, lease_key)
+            except Exception as exc:  # the teacher must see it; never leave the question "running"
+                logger.exception("Batch grading finalize failed for run %s", run_id)
+                await self._write_progress(
+                    info.session_id, run_id, question_id, status="failed",
+                    error=f"收尾失敗：{exc}",
+                )
 
     async def _finalize(self, info: Any, run_id: UUID, question_id: str, lease_key: str) -> None:
         session_id = info.session_id

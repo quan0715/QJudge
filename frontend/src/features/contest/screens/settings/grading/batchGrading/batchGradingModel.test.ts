@@ -4,6 +4,7 @@ import type { GradingAnswerRow } from "../gradingTypes";
 import {
   applyFinalizeTimeout,
   buildBatchRunPrompt,
+  groupForRuns,
   deriveBatchState,
   isUnfinished,
   selectBatchQuestions,
@@ -90,24 +91,36 @@ describe("selectBatchQuestions", () => {
 });
 
 describe("buildBatchRunPrompt", () => {
-  const input = { contestId: "c1", questionId: "q7", label: "Q7", maxScore: 15 };
+  const q7 = { questionId: "q7", label: "Q7", maxScore: 15 };
+  const q8 = { questionId: "q8", label: "Q8", maxScore: 10 };
+  const input = { contestId: "c1", questions: [q7, q8] };
 
-  it("run prompt starts with batch_question_id line and names the question's files", () => {
+  it("run prompt lists every question id on the first line and names each question's files", () => {
     const prompt = buildBatchRunPrompt(input);
 
-    expect(prompt.split("\n")[0]).toBe("batch_question_id: q7");
+    expect(prompt.split("\n")[0]).toBe("batch_question_id: q7,q8");
     expect(prompt).toContain("c1");
-    expect(prompt).toContain("grade_q7.csv");
-    expect(prompt).toContain("rubric_q7.md");
+    for (const id of ["q7", "q8"]) {
+      expect(prompt).toContain(`grade_${id}.csv`);
+      expect(prompt).toContain(`rubric_${id}.md`);
+    }
   });
 
   it("adds the regrade note as one extra line only when given", () => {
-    const plain = buildBatchRunPrompt(input);
-    const noted = buildBatchRunPrompt({ ...input, regradeNote: "  英文不扣分  " });
+    const single = { contestId: "c1", questions: [q7] };
+    const plain = buildBatchRunPrompt(single);
+    const noted = buildBatchRunPrompt({ ...single, regradeNote: "  英文不扣分  " });
 
-    expect(buildBatchRunPrompt({ ...input, regradeNote: "   " })).toBe(plain);
+    expect(buildBatchRunPrompt({ ...single, regradeNote: "   " })).toBe(plain);
     expect(noted.split("\n")).toHaveLength(plain.split("\n").length + 1);
     expect(noted).toContain("英文不扣分");
+  });
+});
+
+describe("groupForRuns", () => {
+  it("splits questions into runs of at most three", () => {
+    expect(groupForRuns([1, 2, 3, 4, 5, 6, 7])).toEqual([[1, 2, 3], [4, 5, 6], [7]]);
+    expect(groupForRuns([])).toEqual([]);
   });
 });
 
@@ -122,6 +135,21 @@ describe("deriveBatchState", () => {
     });
 
     expect(state.map((q) => q.status)).toEqual(["running", "queued"]);
+  });
+
+  it("maps every question of a multi-question run, each with its own progress row", () => {
+    const state = deriveBatchState({
+      questions: [question({ questionId: "q1" }), question({ questionId: "q2", index: 2 })],
+      messages: [userMessage("q1,q2", "r1"), assistantMessage("r1", "completed")],
+      activeRuns: [],
+      progressCsv: `${PROGRESS_HEADER}q1,r1,completed,1,0,0,,x\nq2,r1,failed,0,0,0,boom,x\n`,
+      writtenCounts: {},
+    });
+
+    expect(state.map((q) => [q.status, q.runId])).toEqual([
+      ["completed", "r1"],
+      ["failed", "r1"],
+    ]);
   });
 
   it("derives completed from progress row of the same run", () => {

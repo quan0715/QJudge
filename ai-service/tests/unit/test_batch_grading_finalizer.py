@@ -73,13 +73,18 @@ class Credentials:
         return "mcp-token"
 
 
-def _info(status: str = "completed", error_code: str | None = None, context=BATCH_CONTEXT):
+def _info(
+    status: str = "completed",
+    error_code: str | None = None,
+    context=BATCH_CONTEXT,
+    question_ids: str = "q3",
+):
     return TerminalRunInfo(
         session_id=SESSION_ID,
         status=status,
         error_code=error_code,
         error_message="boom" if status == "failed" else None,
-        user_message="batch_question_id: q3\n請批改",
+        user_message=f"batch_question_id: {question_ids}\n請批改",
         session_context=context,
     )
 
@@ -303,3 +308,30 @@ async def test_non_batch_session_is_ignored() -> None:
     assert posted == []
     assert artifacts.reads == []
     assert "progress.csv" not in artifacts.files
+
+
+@pytest.mark.asyncio
+async def test_run_with_several_questions_finalizes_each_one() -> None:
+    files = _batch_files()
+    batch = json.loads(files["batch.json"])
+    batch["questions"] += [
+        {"question_id": "q4", "label": "Q4", "index": 4, "max_score": 10},
+        {"question_id": "q5", "label": "Q5", "index": 5, "max_score": 10},
+    ]
+    files["batch.json"] = json.dumps(batch)
+    files["grade_q4.csv"] = GRADE_CSV.replace("a1,", "b1,").replace("a2,", "b2,").replace("a3,", "b3,")
+    # q5 has no grade CSV: it fails alone without blocking the others.
+    artifacts = FakeArtifacts(files)
+    finalizer, posted = _finalizer(FakeRuns(_info(question_ids="q3,q4,q5")), artifacts)
+
+    await finalizer(RUN_ID, "lease:teacher")
+
+    assert [p["body"]["question_id"] for p in posted] == ["q3", "q4"]
+    assert _csv(artifacts.files["written_q4.csv"])[0]["exam_answer_id"] == "b1"
+    progress = {row["question_id"]: row for row in _csv(artifacts.files["progress.csv"])}
+    assert {qid: row["status"] for qid, row in progress.items()} == {
+        "q3": "completed",
+        "q4": "completed",
+        "q5": "failed",
+    }
+    assert {row["run_id"] for row in progress.values()} == {str(RUN_ID)}

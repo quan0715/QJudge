@@ -1,8 +1,9 @@
 """Framework-free planning for finalizing one batch grading run.
 
-A batch grading session (task_type ``grading.batch``) runs one question per
-run. The AI only fills ``grade_<qid>.csv``; after the run ends the worker turns
-that CSV into backend grade writes and records the outcome in artifacts.
+A batch grading session (task_type ``grading.batch``) runs a few questions per
+run, one subagent each. The AI only fills ``grade_<qid>.csv``; after the run
+ends the worker turns each CSV into backend grade writes and records the
+outcome in artifacts.
 """
 
 from __future__ import annotations
@@ -27,7 +28,7 @@ PROGRESS_COLUMNS = (
 )
 WRITTEN_COLUMNS = ("exam_answer_id", "score", "feedback")
 
-_QUESTION_LINE = re.compile(r"^\s*batch_question_id:\s*(\S+)\s*$")
+_QUESTION_LINE = re.compile(r"^\s*batch_question_id:\s*(.+?)\s*$")
 
 
 @dataclass(frozen=True)
@@ -43,10 +44,13 @@ class GradePlan:
     out_of_range_count: int
 
 
-def parse_batch_question_id(message: str) -> str | None:
+def parse_batch_question_ids(message: str) -> list[str]:
+    """Question ids from the first line: ``batch_question_id: q1,q2``."""
     first_line = message.split("\n", 1)[0] if message else ""
     match = _QUESTION_LINE.match(first_line)
-    return match.group(1) if match else None
+    if not match:
+        return []
+    return [part.strip() for part in match.group(1).split(",") if part.strip()]
 
 
 def plan_grades(grade_csv: str, max_score: float) -> GradePlan:

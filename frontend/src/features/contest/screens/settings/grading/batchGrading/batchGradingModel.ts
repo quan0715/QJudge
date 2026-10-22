@@ -96,19 +96,30 @@ export function selectBatchQuestions(rows: readonly GradingAnswerRow[]): BatchQu
   return [...byQuestion.values()].sort((a, b) => a.index - b.index);
 }
 
+/** Questions sharing one run; each gets its own subagent, so they are graded in parallel. */
+export const BATCH_PARALLEL_QUESTIONS = 3;
+
+export function groupForRuns<T>(items: readonly T[], size = BATCH_PARALLEL_QUESTIONS): T[][] {
+  const groups: T[][] = [];
+  for (let i = 0; i < items.length; i += size) groups.push(items.slice(i, i + size));
+  return groups;
+}
+
 export function buildBatchRunPrompt(input: {
   contestId: string;
-  questionId: string;
-  label: string;
-  maxScore: number;
+  questions: readonly { questionId: string; label: string; maxScore: number }[];
   regradeNote?: string;
 }): string {
-  const { contestId, questionId, label, maxScore, regradeNote } = input;
+  const { contestId, questions, regradeNote } = input;
   const note = regradeNote?.trim();
   return [
-    `batch_question_id: ${questionId}`,
-    `整批批改 ${label}（滿分 ${maxScore}），contest_id: ${contestId}。用 task 工具（general-purpose）交給子代理，你只轉述它回的一行摘要。`,
-    `子代理依 qjudge-exam-grading-sop 批改：學生作答已在 \`${gradeCsvFilename(questionId)}\`，rubric 用 \`rubric_${questionId}.md\`；完成後回一行：已填幾份、平均分。`,
+    `batch_question_id: ${questions.map((q) => q.questionId).join(",")}`,
+    `整批批改，contest_id: ${contestId}。在同一則回覆裡同時呼叫 task 工具（general-purpose），每題一個子代理平行執行；把該題的檔名${note ? "與老師註記" : ""}寫進子代理的任務說明，你只轉述各子代理回的一行摘要。`,
+    "每個子代理依 qjudge-exam-grading-sop 批改一題，完成後回一行：已填幾份、平均分。",
+    ...questions.map(
+      (q) =>
+        `- ${q.label}（滿分 ${q.maxScore}）：作答在 \`${gradeCsvFilename(q.questionId)}\`，rubric 用 \`rubric_${q.questionId}.md\``,
+    ),
     "不要寫回或發布成績，系統會自動寫入。",
     note ? `老師註記：${note}` : "",
   ]
@@ -116,9 +127,9 @@ export function buildBatchRunPrompt(input: {
     .join("\n");
 }
 
-function batchQuestionIdOf(message: ChatMessage): string | null {
-  const match = /^\s*batch_question_id:\s*(\S+)\s*$/.exec(message.content.split("\n", 1)[0] ?? "");
-  return match ? match[1] : null;
+function batchQuestionIdsOf(message: ChatMessage): string[] {
+  const match = /^\s*batch_question_id:\s*(.+?)\s*$/.exec(message.content.split("\n", 1)[0] ?? "");
+  return match ? match[1].split(",").map((id) => id.trim()).filter(Boolean) : [];
 }
 
 function statusFromActiveRun(status: ChatRunStatus): BatchQuestionStatus {
@@ -148,16 +159,18 @@ export function deriveBatchState(input: {
   for (const message of input.messages) {
     if (!message.runId) continue;
     if (message.role === "user") {
-      const questionId = batchQuestionIdOf(message);
-      if (questionId) latestRunByQuestion.set(questionId, message.runId);
+      for (const questionId of batchQuestionIdsOf(message)) {
+        latestRunByQuestion.set(questionId, message.runId);
+      }
     } else {
       assistantStatusByRun.set(message.runId, message.runStatus);
     }
   }
   const activeById = new Map(input.activeRuns.map((run) => [run.id, run.status]));
-  const progressByRun = new Map(
+  // One row per question; it belongs to the question's latest run only if run ids match.
+  const progressByQuestion = new Map(
     (input.progressCsv ? parseCsvRecords(input.progressCsv) : []).map((record) => [
-      record.run_id,
+      record.question_id,
       record,
     ]),
   );
@@ -177,7 +190,8 @@ export function deriveBatchState(input: {
     const active = activeById.get(runId);
     if (active) return { ...base, runId, status: statusFromActiveRun(active) };
 
-    const progress = progressByRun.get(runId);
+    const row = progressByQuestion.get(question.questionId);
+    const progress = row?.run_id === runId ? row : undefined;
     const progressStatus = progress?.status as BatchQuestionStatus | undefined;
     if (progressStatus && PROGRESS_STATUSES.includes(progressStatus)) {
       return {
