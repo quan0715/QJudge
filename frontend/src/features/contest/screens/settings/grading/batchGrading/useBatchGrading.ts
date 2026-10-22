@@ -11,12 +11,14 @@ import { buildSeedGradeCsv, serializeCsvRows } from "../gradeCsv";
 import {
   cancelBatchRun,
   fetchBatchRemoteState,
+  listQuestionFiles,
   listSessionActiveRuns,
   readBatchModelId,
   readBatchWritten,
   defaultBatchModelId,
   startBatchRun,
   uploadBatchFile,
+  type BatchQuestionFiles,
   type BatchRemoteState,
 } from "./batchGradingApi";
 import {
@@ -81,6 +83,8 @@ export interface UseBatchGradingResult {
   resume(): Promise<void>;
   revertQuestion(questionId: string): Promise<string[]>;
   regradeQuestion(questionId: string, note?: string): Promise<void>;
+  /** The AI's rubric and grade CSV for one question (read-only viewer). */
+  loadQuestionFiles(questionId: string): Promise<BatchQuestionFiles>;
   error?: string;
 }
 
@@ -418,6 +422,14 @@ export function useBatchGrading(
     [batchModelId, enqueue, guard, refreshSnapshot, reloadAnswers, revertAnswers, sessionId],
   );
 
+  const loadQuestionFiles = useCallback(
+    async (questionId: string): Promise<BatchQuestionFiles> => {
+      if (!sessionId) return { rubric: null, grade: null };
+      return listQuestionFiles(sessionId, questionId);
+    },
+    [sessionId],
+  );
+
   return {
     sessionId,
     questions: questionStates,
@@ -429,6 +441,7 @@ export function useBatchGrading(
     resume,
     revertQuestion,
     regradeQuestion,
+    loadQuestionFiles,
     error: actionError ?? pollError,
   };
 }

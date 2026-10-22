@@ -18,6 +18,7 @@ import {
   parseWrittenCsv,
   writtenCsvFilename,
   PROGRESS_CSV_FILENAME,
+  gradeCsvFilename,
   type BatchActiveRun,
 } from "./batchGradingModel";
 
@@ -47,6 +48,23 @@ export async function readBatchFile(sessionId: string, filename: string): Promis
     await listArtifacts({ sessionId, step: BATCH_ARTIFACT_STEP }),
   ).get(filename);
   return artifact ? (await fetchArtifactContent(artifact.artifact_id)).content : null;
+}
+
+export interface BatchQuestionFiles {
+  rubric: ArtifactRecord | null;
+  grade: ArtifactRecord | null;
+}
+
+/** The AI's own files for one question; the rubric is written outside the batch step. */
+export async function listQuestionFiles(
+  sessionId: string,
+  questionId: string,
+): Promise<BatchQuestionFiles> {
+  const latest = latestByFilename(await listArtifacts({ sessionId }));
+  return {
+    rubric: latest.get(`rubric_${questionId}.md`) ?? null,
+    grade: latest.get(gradeCsvFilename(questionId)) ?? null,
+  };
 }
 
 export async function uploadBatchFile(

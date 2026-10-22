@@ -59,6 +59,8 @@ export interface BatchQuestionState {
   runId?: string;
   /** The run ended but its finalize step has not written progress yet. */
   finalizing?: boolean;
+  /** Answers that already had a score (another grader) when the run wrote its grades. */
+  skippedAtWriteCount?: number;
 }
 
 export interface BatchActiveRun {
@@ -199,6 +201,9 @@ export function deriveBatchState(input: {
         runId,
         status: progressStatus,
         ...(progress?.error ? { error: progress.error } : {}),
+        ...(Number(progress?.skipped_count) > 0
+          ? { skippedAtWriteCount: Number(progress?.skipped_count) }
+          : {}),
       };
     }
     const finished = assistantStatusByRun.get(runId);

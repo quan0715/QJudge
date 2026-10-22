@@ -194,8 +194,8 @@
         "published": "公開済み"
       },
       "grading": {
-    "saveFailed": "採点を保存できませんでした。もう一度お試しください。",
-    "ungradeFailed": "採点を取り消せませんでした。もう一度お試しください。",
+        "saveFailed": "採点を保存できませんでした。もう一度お試しください。",
+        "ungradeFailed": "採点を取り消せませんでした。もう一度お試しください。",
         "noAnswers": "回答データはまだありません",
         "noData": "採点データはまだありません"
       },
@@ -1199,7 +1199,15 @@
       "regradeTitle": "{{label}} を AI で再採点",
       "regradeBody": "この設問の AI 点数を先に取り消し（手動の点数はそのまま）、再度キューに追加します。",
       "regradeNote": "AI へのメモ（任意）",
-      "regradeConfirm": "取り消して再採点"
+      "regradeConfirm": "取り消して再採点",
+      "noticeSkippedAtWrite": "{{count}} 件は AI の書き込み時にすでに採点済み（他の人または手動）のため、元の点数を残しました。",
+      "files": "AI ファイルを表示",
+      "filesTitle": "{{label}} の AI ファイル",
+      "filesRubric": "採点基準",
+      "filesGrades": "AI の採点結果",
+      "filesMissing": "このファイルはまだありません",
+      "filesLoading": "読み込み中…",
+      "filesNotUsed": "{{count}} 件の点数はこの採点基準で書き込まれていません。AI の書き込み時にすでに採点済みでした。"
     },
     "absent": "未提出",
     "aiGradingProgress": "AI 採点進捗",

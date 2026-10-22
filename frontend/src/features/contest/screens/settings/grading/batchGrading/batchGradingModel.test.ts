@@ -152,6 +152,18 @@ describe("deriveBatchState", () => {
     ]);
   });
 
+  it("reports answers that already had a score when the run wrote its grades", () => {
+    const state = deriveBatchState({
+      questions: [question()],
+      messages: [userMessage("q1", "r1"), assistantMessage("r1", "completed")],
+      activeRuns: [],
+      progressCsv: `${PROGRESS_HEADER}q1,r1,completed,2,4,0,,x\n`,
+      writtenCounts: {},
+    });
+
+    expect(state[0]).toMatchObject({ status: "completed", skippedAtWriteCount: 4 });
+  });
+
   it("derives completed from progress row of the same run", () => {
     const state = deriveBatchState({
       questions: [question()],
