@@ -147,6 +147,33 @@ async def test_completed_run_posts_grades_and_records_written() -> None:
 
 
 @pytest.mark.asyncio
+async def test_grade_write_survives_backend_https_redirect() -> None:
+    # Production Django redirects plain-HTTP requests unless the proxy header says HTTPS.
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.headers.get("x-forwarded-proto") != "https":
+            return httpx.Response(301, headers={"location": "https://backend:8000/"})
+        body = json.loads(request.content)
+        return httpx.Response(
+            200, json={"results": [{"exam_answer_id": g["exam_answer_id"], "status": "ok"} for g in body["grades"]]}
+        )
+
+    artifacts = FakeArtifacts(_batch_files())
+    finalizer = BatchGradingFinalizer(
+        runs=FakeRuns(_info()),
+        artifacts=artifacts,
+        credentials=Credentials(),
+        http=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+        backend_url="http://backend:8000",
+    )
+
+    await finalizer(RUN_ID, "lease:teacher")
+
+    progress = _csv(artifacts.files["progress.csv"])
+    assert progress[0]["status"] == "completed"
+    assert progress[0]["written_count"] == "1"
+
+
+@pytest.mark.asyncio
 async def test_skipped_rows_not_recorded() -> None:
     artifacts = FakeArtifacts(_batch_files())
     finalizer, _ = _finalizer(
