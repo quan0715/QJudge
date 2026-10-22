@@ -289,6 +289,30 @@ describe("useBatchGrading", () => {
     expect(result.current.questions.every((q) => q.status !== "running")).toBe(true);
   });
 
+  it("shows a regrading question as queued until its new run is in place", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.getSession.mockResolvedValue({ messages: [userMessage("q1", "r1")] });
+    let releaseRun: () => void = () => undefined;
+    mocks.startRun.mockImplementation(
+      () => new Promise((resolve) => (releaseRun = () => resolve({ id: "r2" }))),
+    );
+    const { result } = render();
+    await waitFor(() => expect(result.current.sessionId).toBe("s1"));
+
+    let regrade: Promise<void> = Promise.resolve();
+    act(() => {
+      regrade = result.current.regradeQuestion("q1", "註記");
+    });
+    await waitFor(() => expect(mocks.startRun).toHaveBeenCalled());
+
+    // Reverted answers are ungraded but the new run is not queued yet: no "finish the rest" prompt.
+    expect(result.current.questions[0]?.status).toBe("queued");
+    await act(async () => {
+      releaseRun();
+      await regrade;
+    });
+  });
+
   it("stop reports a failure instead of throwing", async () => {
     mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
     mocks.getActiveRuns.mockResolvedValue([{ id: "r1", sessionId: "s1", status: "running" }]);

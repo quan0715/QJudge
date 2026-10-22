@@ -133,6 +133,8 @@ export function useBatchGrading(
   const [actionError, setActionError] = useState<string>();
   const [pollError, setPollError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  /** Question being reverted and re-queued; its old run must not read as unfinished meanwhile. */
+  const [regradingId, setRegradingId] = useState<string | null>(null);
   const modelRef = useRef<string | undefined>(undefined);
   const writtenTotalRef = useRef(0);
   const snapshotRef = useRef(snapshot);
@@ -216,8 +218,12 @@ export function useBatchGrading(
         new Map(Object.entries(currentSnapshot.finalizingSince)),
         currentSnapshot.fetchedAt,
         FINALIZE_TIMEOUT_MS,
+      ).map((state) =>
+        state.questionId === regradingId
+          ? { ...state, status: "queued" as const, finalizing: false, error: undefined }
+          : state,
       ),
-    [questions, currentSnapshot],
+    [questions, regradingId, currentSnapshot],
   );
 
   const overall = useMemo<BatchGradingOverall>(() => {
@@ -386,14 +392,19 @@ export function useBatchGrading(
     async (questionId: string, note?: string) => {
       await guard(async () => {
         if (!sessionId) return;
-        await revertAnswers(sessionId, questionId);
-        const question = selectBatchQuestions(await reloadAnswers()).find(
-          (q) => q.questionId === questionId,
-        );
-        if (question && question.ungradedRows.length > 0) {
-          await enqueue(sessionId, question, question.ungradedRows, note);
+        setRegradingId(questionId);
+        try {
+          await revertAnswers(sessionId, questionId);
+          const question = selectBatchQuestions(await reloadAnswers()).find(
+            (q) => q.questionId === questionId,
+          );
+          if (question && question.ungradedRows.length > 0) {
+            await enqueue(sessionId, question, question.ungradedRows, note);
+          }
+          await refreshSnapshot(sessionId);
+        } finally {
+          setRegradingId(null);
         }
-        await refreshSnapshot(sessionId);
       }, true);
     },
     [enqueue, guard, refreshSnapshot, reloadAnswers, revertAnswers, sessionId],
