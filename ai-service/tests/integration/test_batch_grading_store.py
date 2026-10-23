@@ -159,7 +159,6 @@ async def test_terminal_commit_recovers_after_worker_loss_and_serializes_replays
     assert dispatched == [queued]
     await scheduler.recover_pending_finalizations()
     assert calls == [run_id, run_id, run_id]
-    async with session_factory.begin() as db:
-        await SqlAlchemyRunRepository(db).append_event(run_id, {"type": "run_completed"})
+    assert not await recovered_store.append_event(run_id, 0, {"type": "run_completed"})
     assert await recovered_store.pending_finalizations() == []
     assert await recovered_store.claim_for_execution(queued) is not None
