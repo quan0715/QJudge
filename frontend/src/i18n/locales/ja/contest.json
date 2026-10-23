@@ -24,7 +24,8 @@
       "proctoring": "監視",
       "settings": "設定",
       "standings": "ランキング",
-      "statistics": "統計"
+      "statistics": "統計",
+      "gradingWorkbench": "採点"
     },
     "title": "管理ダッシュボード"
   },

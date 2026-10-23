@@ -24,7 +24,8 @@
       "proctoring": "Proctoring",
       "settings": "Settings",
       "standings": "Leaderboard",
-      "statistics": "Statistics"
+      "statistics": "Statistics",
+      "gradingWorkbench": "Grading"
     },
     "title": "Admin Dashboard"
   },

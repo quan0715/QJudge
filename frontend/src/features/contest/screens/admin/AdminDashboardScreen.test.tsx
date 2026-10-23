@@ -56,6 +56,7 @@ vi.mock("@/features/contest/modules/registry", () => ({
         contest
           ? ["overview", "problem_editor", "participants", "logs", "grading"]
           : ["overview", "problem_editor"],
+      getHiddenPanels: () => ["ai-grading"],
     },
   }),
 }));
@@ -96,6 +97,27 @@ describe("AdminDashboardScreen", () => {
     mockRefreshAdminData.mockReset();
     mockPanelMount.mockReset();
     mockContestState = { contest: mockContest, loading: false };
+  });
+
+  it("hidden panels stay routable", () => {
+    render(
+      <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/admin?panel=ai-grading"]}>
+        <Routes>
+          <Route
+            path="/classrooms/:classroomId/contest/:contestId/admin"
+            element={(
+              <>
+                <AdminDashboardScreen />
+                <LocationProbe />
+              </>
+            )}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId("admin-panel-slot")).toBeInTheDocument();
+    expect(screen.getByTestId("location-search")).toHaveTextContent("panel=ai-grading");
   });
 
   it("does not remount the active panel when the dashboard rerenders", () => {

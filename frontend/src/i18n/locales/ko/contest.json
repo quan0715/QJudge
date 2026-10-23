@@ -24,7 +24,8 @@
       "proctoring": "감독",
       "settings": "설정",
       "standings": "순위표",
-      "statistics": "통계"
+      "statistics": "통계",
+      "gradingWorkbench": "채점"
     },
     "title": "관리 대시보드"
   },

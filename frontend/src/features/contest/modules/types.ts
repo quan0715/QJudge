@@ -8,6 +8,7 @@ export type AdminPanelId =
   | "proctoring"
   | "problem_editor"
   | "grading"
+  | "grading-workbench"
   | "standings"
   | "ai-grading"
   | "statistics"
@@ -58,6 +59,8 @@ export interface ContestStudentModule {
 export interface ContestAdminModule {
   editorKind: ContestAdminEditorKind;
   getAvailablePanels: (contest?: ContestDetail | null) => AdminPanelId[];
+  /** Panels reachable by URL but left out of the navigation (retiring pages). */
+  getHiddenPanels?: (contest?: ContestDetail | null) => AdminPanelId[];
   getPanelRenderers?: () => Partial<Record<AdminPanelId, AdminPanelRenderer>>;
   getExportTargets: (contest?: ContestDetail | null) => ContestExportTarget[];
 }

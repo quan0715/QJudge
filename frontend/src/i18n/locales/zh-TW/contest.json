@@ -24,7 +24,8 @@
       "proctoring": "監考",
       "settings": "設定",
       "standings": "排行榜",
-      "statistics": "統計"
+      "statistics": "統計",
+      "gradingWorkbench": "批改"
     },
     "title": "管理後台"
   },
