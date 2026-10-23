@@ -854,7 +854,7 @@ class TestImportFromQuestionBank:
         source_contest = create_contest_in_classroom(
             name="Source exam", owner=teacher, contest_type="paper_exam",
         )
-        document = {"version": 1, "blocks": [{"id": "answer", "type": "paragraph", "text": "Reference"}]}
+        document = {"version": 1, "nodes": [{"type": "paragraph", "children": [{"type": "text", "text": "Reference"}]}]}
         content = {
             "prompt": "Explain your answer" if document_answer else "Choose the answer",
             "question_type": "essay" if document_answer else "single_choice",
