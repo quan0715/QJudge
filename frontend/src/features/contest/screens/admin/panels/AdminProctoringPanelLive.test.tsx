@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   requestToken: vi.fn(),
   createTransport: vi.fn(),
 }));
-const translate = vi.hoisted(() => (_key: string, fallback: string) => fallback);
+const translate = vi.hoisted(() => (_key: string, fallback: string, values?: Record<string, unknown>) => fallback.replace(/{{(\w+)}}/g, (_, key) => String(values?.[key] ?? key)));
 
 vi.mock("@/infrastructure/api/repositories/liveMonitoring.repository", () => ({
   getLiveMonitoringConfig: mocks.getConfig,
@@ -74,6 +74,8 @@ beforeEach(() => {
   mocks.createTransport.mockReset().mockImplementation(() => ({
     connect: vi.fn().mockResolvedValue(undefined),
     selectTarget: vi.fn(),
+    selectTargets: vi.fn(),
+    bindTargetVideo: vi.fn(),
     bindVideo: vi.fn(),
     onState: vi.fn(() => () => undefined),
     close: vi.fn().mockResolvedValue(undefined),
@@ -81,6 +83,63 @@ beforeEach(() => {
 });
 
 describe("MinimalLiveStage", () => {
+  it("shows a screen grid, focuses a student and returns without reconnecting", async () => {
+    const onSelect = vi.fn();
+    const onLayout = vi.fn();
+    const rows = [participant("7"), participant("8")];
+    const props = { contestId: "contest-1", participant: rows[0], participants: rows,
+      discoveryRefreshKey: 0, lockActionBusy: false, monitoringAvailable: true,
+      onSelectParticipant: onSelect, onLayoutChange: onLayout };
+    const view = render(<MinimalLiveStage {...props} layout={4} />);
+    await waitFor(() => expect(view.getByRole("button", { name: "放大 Student 7" })).toBeInTheDocument());
+    await waitFor(() => expect(mocks.createTransport).toHaveBeenCalledOnce());
+    const transport = mocks.createTransport.mock.results[0].value;
+    await waitFor(() => expect(transport.selectTargets).toHaveBeenCalledWith([
+      { identity: "qj-student-a", sources: ["screen_share"] },
+    ]));
+    fireEvent.click(view.getByRole("button", { name: "放大 Student 7" }));
+    expect(onSelect).toHaveBeenCalledWith("7");
+    expect(onLayout).toHaveBeenCalledWith(1);
+    view.rerender(<MinimalLiveStage {...props} layout={1} />);
+    await waitFor(() => expect(transport.selectTarget).toHaveBeenLastCalledWith("qj-student-a"));
+    fireEvent.click(view.getByRole("button", { name: "4 人" }));
+    expect(onLayout).toHaveBeenCalledWith(4);
+    view.rerender(<MinimalLiveStage {...props} layout={4} />);
+    expect(mocks.createTransport).toHaveBeenCalledOnce();
+    view.unmount();
+  });
+
+  it("keeps the last grid subscriptions when discovery returns a stale empty snapshot", async () => {
+    const props = { contestId: "contest-1", participant: participant("7"), participants: [participant("7")],
+      lockActionBusy: false, monitoringAvailable: true, layout: 4 as const };
+    const view = render(<MinimalLiveStage {...props} discoveryRefreshKey={0} />);
+    await waitFor(() => expect(mocks.createTransport).toHaveBeenCalledOnce());
+    const transport = mocks.createTransport.mock.results[0].value;
+    await waitFor(() => expect(transport.selectTargets).toHaveBeenLastCalledWith([
+      { identity: "qj-student-a", sources: ["screen_share"] },
+    ]));
+    mocks.getTargets.mockResolvedValue({ stale: true, targets: [], observedAt: null });
+    view.rerender(<MinimalLiveStage {...props} discoveryRefreshKey={1} />);
+    await waitFor(() => expect(view.getByText("來源狀態暫時無法確認，保留目前畫面。")).toBeInTheDocument());
+    expect(transport.selectTargets).toHaveBeenLastCalledWith([{ identity: "qj-student-a", sources: ["screen_share"] }]);
+  });
+
+  it("ignores discovery responses for a previously selected student", async () => {
+    const pending: Array<(value: unknown) => void> = [];
+    mocks.getTargets.mockImplementationOnce(() => new Promise(resolve => pending.push(resolve)))
+      .mockImplementationOnce(() => new Promise(resolve => pending.push(resolve)));
+    const props = { contestId: "contest-1", discoveryRefreshKey: 0, lockActionBusy: false, monitoringAvailable: true };
+    const view = render(<MinimalLiveStage {...props} participant={participant("7")} />);
+    await waitFor(() => expect(pending).toHaveLength(2));
+    view.rerender(<MinimalLiveStage {...props} participant={participant("8")} />);
+    await waitFor(() => expect(view.getByText("Webcam")).toBeInTheDocument());
+    await act(async () => pending.forEach(resolve => resolve({ stale: false, targets: [
+      { userId: "7", identity: "qj-student-a", sources: ["screen_share"] },
+    ] })));
+    expect(view.getByText("Webcam")).toBeInTheDocument();
+    expect(view.queryByText("Screen")).not.toBeInTheDocument();
+  });
+
   it("retries a transient subscriber connection failure with a fresh token", async () => {
     const firstTransport = {
       connect: vi.fn().mockRejectedValueOnce(new Error("signaling unavailable")),
@@ -118,6 +177,18 @@ describe("MinimalLiveStage", () => {
 
     expect(mocks.requestToken).toHaveBeenCalledTimes(2);
     expect(firstTransport.close).toHaveBeenCalledOnce();
+  });
+
+  it("reconnects with a fresh token after an established connection is lost", async () => {
+    const view = render(<MinimalLiveStage contestId="contest-1" participant={participant("7")}
+      discoveryRefreshKey={0} lockActionBusy={false} monitoringAvailable />);
+    await waitFor(() => expect(mocks.createTransport).toHaveBeenCalledOnce());
+    const first = mocks.createTransport.mock.results[0].value;
+    await waitFor(() => expect(first.connect).toHaveBeenCalledOnce());
+    await act(async () => first.onState.mock.calls[0][0]("unavailable"));
+    await waitFor(() => expect(mocks.requestToken).toHaveBeenCalledTimes(2), { timeout: 2000 });
+    expect(first.close).toHaveBeenCalledOnce();
+    view.unmount();
   });
 
   it("does not retry a subscriber token conflict", async () => {

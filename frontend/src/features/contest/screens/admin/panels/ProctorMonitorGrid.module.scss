@@ -1,0 +1,28 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.root { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(14rem, 1fr);
+  grid-template-rows: repeat(2, minmax(14rem, 1fr));
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-04;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.grid[data-size="9"] { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(14rem, 1fr)); }
+.tile { display: flex; flex-direction: column; align-items: stretch; min-width: 0; min-height: 0; overflow: hidden; padding: layout.$spacing-03; }
+.identity { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: layout.$spacing-02; padding-bottom: layout.$spacing-03; }
+.name { @include type.type-style("heading-compact-01"); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.name small { @include type.type-style("label-01"); display: block; color: var(--cds-text-secondary); overflow: hidden; text-overflow: ellipsis; }
+// Neutral black preserves the contrast and letterboxing of captured screen content.
+.screen { position: relative; flex: 1; min-height: 0; background: #000; }
+.screen video { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
+.placeholder { @include type.type-style("label-01"); position: absolute; inset: 0; display: grid; place-items: center; color: #fff; }
+.attention { flex: 0 0 auto; @include type.type-style("label-01"); display: block; padding-top: layout.$spacing-03; color: var(--cds-text-error); }
+.pagination { @include type.type-style("label-01"); display: flex; align-items: center; justify-content: flex-end; gap: layout.$spacing-03; padding: layout.$spacing-03 layout.$spacing-04; border-top: 1px solid var(--cds-border-subtle); }
+@media (max-width: 66rem) { .grid[data-size="9"] { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; } }
+@media (max-width: 42rem) { .grid, .grid[data-size="9"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-auto-rows: 18rem; } }
