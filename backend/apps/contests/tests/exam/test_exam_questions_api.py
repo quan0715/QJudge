@@ -879,6 +879,13 @@ class TestImportFromQuestionBank:
         )
         assert ingest.status_code == status.HTTP_200_OK
         membership = bank.asset_memberships.get()
+        content.update(prompt="Edited in the bank", score=9)
+        edit = api_client.patch(
+            f"/api/v1/question-banks/{bank.uuid}/questions/{membership.id}/",
+            {"prompt": content["prompt"], "score": content["score"]},
+            format="json",
+        )
+        assert edit.status_code == status.HTTP_200_OK
         response = api_client.post(
             url(contest.id) + "import-from-bank/",
             {"items": [{"question_bank_id": str(bank.uuid), "question_id": str(membership.id)}]},
