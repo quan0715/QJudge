@@ -164,14 +164,6 @@
   white-space: nowrap;
 }
 
-.rosterUsername {
-  overflow: hidden;
-  color: var(--cds-text-secondary);
-  font-size: 0.75rem;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 .rosterSignals {
   display: inline-flex;
@@ -366,13 +358,6 @@
   white-space: nowrap;
 }
 
-.monitorUsername {
-  overflow: hidden;
-  color: var(--cds-text-secondary);
-  font-size: 0.75rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 .monitorActions {
   display: inline-flex;

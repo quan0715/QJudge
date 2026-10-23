@@ -355,7 +355,6 @@ export const MinimalLiveStage = ({
           ) : null}
           <div className={styles.monitorIdentity}>
             <span className={styles.monitorName}>{participantName}</span>
-            <span className={styles.monitorUsername}>@{participant?.username}</span>
           </div>
         </div>
         <div className={styles.monitorActions}>
@@ -823,7 +822,6 @@ export default function AdminProctoringPanel({
         </span>
         <span className={styles.rosterIdentity}>
           <span className={styles.rosterName}>{displayName}</span>
-          <span className={styles.rosterUsername}>@{participant.username}</span>
         </span>
         <span className={styles.rosterSignals}>
           {participant.violationCount > 0 ? (

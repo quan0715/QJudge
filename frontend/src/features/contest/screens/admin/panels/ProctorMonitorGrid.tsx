@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, ClickableTile, Tag } from "@carbon/react";
-import { ChevronLeft, ChevronRight } from "@carbon/icons-react";
+import { Button, ClickableTile } from "@carbon/react";
+import { CheckmarkFilled, ChevronLeft, ChevronRight, WarningFilled } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ContestParticipant } from "@/core/entities/contest.entity";
 import type { LiveState, LiveTargetSnapshot } from "@/core/entities/liveMonitoring.entity";
@@ -27,28 +27,31 @@ function ScreenTile({ participant, identity, transport, state, onFocus }: {
       if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onFocus(participant.userId); }
     }} className={styles.tile} onClick={() => onFocus(participant.userId)}
       aria-label={t("proctoringPanel.focusStudent", "放大 {{name}}", { name })}>
-      <div className={styles.identity}>
-        <span className={styles.name}>{name}<small>@{participant.username}</small></span>
-        <Tag type={connected ? "green" : "cool-gray"} size="sm">
-          {connected ? t("liveView.connected", "已連線")
-            : connecting ? t("action.loading", "連線中...")
-              : t("proctoringPanel.noSignal", "No signal")}
-        </Tag>
-      </div>
       <div className={styles.screen}>
         <video ref={bindVideo} autoPlay playsInline muted
           onPlaying={() => setPlaying({ identity, transport })} onPause={() => setPlaying(null)}
           onEnded={() => setPlaying(null)} onEmptied={() => setPlaying(null)}
           onWaiting={() => setPlaying(null)} />
-        {!connected && <span className={styles.placeholder}>
-          {connecting ? t("action.loading", "連線中...")
-            : identity ? t("proctoringPanel.waitingScreen", "等待螢幕畫面")
-              : t("proctoringPanel.noScreen", "尚無螢幕分享")}
-        </span>}
+        <div className={styles.topOverlay}>
+          {participant.violationCount > 0 && <span className={styles.attention}>
+            <WarningFilled size={16} aria-hidden="true" />
+            {t("proctoringPanel.violationCount", "違規 {{count}} 次", { count: participant.violationCount })}
+          </span>}
+          <span className={styles.connection}>
+            {connected ? <span className={styles.connected} role="img"
+              aria-label={t("liveView.connected", "已連線")} title={t("liveView.connected", "已連線")}>
+              <CheckmarkFilled size={16} />
+            </span> : <span className={styles.status}>
+              {connecting ? t("action.loading", "連線中...")
+                : identity ? t("proctoringPanel.waitingScreen", "等待螢幕畫面")
+                  : t("proctoringPanel.noScreen", "尚無螢幕分享")}
+            </span>}
+          </span>
+        </div>
+        <div className={styles.bottomOverlay}>
+          <span className={styles.name} title={name}>{name}</span>
+        </div>
       </div>
-      {participant.violationCount > 0 && <span className={styles.attention}>
-        {t("proctoringPanel.violationCount", "違規 {{count}} 次", { count: participant.violationCount })}
-      </span>}
     </ClickableTile>
   );
 }
