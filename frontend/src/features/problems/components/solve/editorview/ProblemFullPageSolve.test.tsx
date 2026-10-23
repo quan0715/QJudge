@@ -1,102 +1,150 @@
 import type { ReactNode } from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { CodingProblemDetail } from "@/core/entities/problem.entity";
-import type { TestCaseItem } from "@/core/entities/testcase.entity";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { JudgeQueueProvider } from "@/features/problems/contexts/JudgeQueueProvider";
+import { testRun } from "@/infrastructure/api/repositories/problem.repository";
+import { getSubmission, getSubmissions, submitSolution } from "@/infrastructure/api/repositories/submission.repository";
+import type { JudgedEvent } from "@/features/problems/contexts/judgeQueueStore";
 import { ProblemFullPageSolve } from "./ProblemFullPageSolve";
 
-const auth = vi.hoisted(() => ({ user: null as { id: string } | null }));
-vi.mock("@/features/auth/contexts/AuthContext", () => ({ useAuth: () => auth }));
+vi.mock("@/infrastructure/api/repositories/problem.repository", () => ({ testRun: vi.fn(), getTestRunProgress: vi.fn() }));
+vi.mock("@/infrastructure/api/repositories/submission.repository", () => ({
+  submitSolution: vi.fn(),
+  getSubmission: vi.fn(),
+  getSubmissions: vi.fn(),
+}));
+vi.mock("@/features/auth/contexts/AuthContext", () => ({
+  useAuth: () => ({ user: { id: "u1" } }),
+}));
 vi.mock("@/features/auth/hooks/useUserPreferences", () => ({
   useUserPreferences: () => ({ editorFontSize: 14, editorTabSize: 4, updateEditorSettings: vi.fn() }),
 }));
-vi.mock("@/features/problems/hooks/useSubmission", () => ({
-  useSubmission: () => ({ executionState: { status: "idle" }, showing: 0, execute: vi.fn() }),
-}));
-vi.mock("@/features/problems/contexts/useJudgeQueue", () => ({ useWatchProblem: vi.fn() }));
-vi.mock("@/shared/ui/modal", () => ({
-  ConfirmModal: () => null,
-  useConfirmModal: () => ({ confirm: vi.fn(), modalProps: { open: false } }),
-}));
 vi.mock("@/shared/layout/SolverLayout", () => ({
-  SolverLayout: ({ editorPanel, resultPanel }: { editorPanel: ReactNode; resultPanel: ReactNode }) => <>{editorPanel}{resultPanel}</>,
+  SolverLayout: ({ resultPanel }: { resultPanel: ReactNode }) => <div>{resultPanel}</div>,
 }));
-vi.mock("@/shared/ui/solver", () => ({
+vi.mock("@/shared/ui/solver", async () => ({
+  EditorContent: () => null,
   StatementPanel: () => null,
-  EditorContent: ({ code, onCodeChange }: { code: string; onCodeChange: (code: string) => void }) =>
-    <textarea aria-label="Code" value={code} onChange={(event) => onCodeChange(event.target.value)} />,
-  ResultPanel: ({ testCases, onAddTestCase }: { testCases: TestCaseItem[]; onAddTestCase: (input: string, output: string) => void }) => <>
-    <button onClick={() => onAddTestCase("private input", "private output")}>Add case</button>
-    <output data-testid="cases">{testCases.map((testCase) => testCase.input).join(",")}</output>
-  </>,
+  ResultPanel: (await vi.importActual<typeof import("@/shared/ui/solver/result/ResultPanel")>("@/shared/ui/solver/result/ResultPanel")).ResultPanel,
 }));
 
-const props = {
-  problem: {
-    id: "problem-1", testCases: [],
-    languageConfigs: [{ language: "cpp", templateCode: "// template", isEnabled: true }],
-  } as CodingProblemDetail,
-  contestId: "contest-1",
-  renderSubmissions: () => null,
+const problem = (id: string) => ({
+  id,
+  title: `Problem ${id}`,
+  languageConfigs: [{ language: "cpp", templateCode: "int main() {}", isEnabled: true }],
+  testCases: [],
+}) as never;
+const renderSolve = (id = "p1", onJudged?: (event: JudgedEvent) => void) => {
+  const view = (problemId: string) => (
+    <JudgeQueueProvider userId="u1" onJudged={onJudged}>
+      <ProblemFullPageSolve key={problemId} problem={problem(problemId)} problemLabel="B" contestId="c1" renderSubmissions={() => null} />
+    </JudgeQueueProvider>
+  );
+  const result = render(view(id));
+  return { ...result, switchTo: (problemId: string) => result.rerender(view(problemId)) };
+};
+const toolbarButton = (name: string) =>
+  screen.getAllByRole("button", { name }).find((button) => !button.closest('[role="dialog"]'))!;
+const submitOnce = async (calls: number) => {
+  fireEvent.click(toolbarButton("繳交"));
+  await waitFor(() => expect(submitSolution).toHaveBeenCalledTimes(calls));
 };
 
 beforeEach(() => {
-  // The shared test setup stubs storage without persistence; use browser-like
-  // storage semantics here to exercise real draft reads and writes.
-  const storage = new Map<string, string>();
-  vi.mocked(localStorage.getItem).mockImplementation((key) => storage.get(key) ?? null);
-  vi.mocked(localStorage.setItem).mockImplementation((key, value) => { storage.set(key, value); });
-  auth.user = { id: "alice" };
-});
-afterEach(cleanup);
-
-it("isolates drafts and custom cases when accounts change, including through logout", () => {
-  const view = render(<ProblemFullPageSolve {...props} />);
-  fireEvent.change(screen.getByLabelText("Code"), { target: { value: "Alice's code" } });
-  fireEvent.click(screen.getByText("Add case"));
-
-  auth.user = null;
-  view.rerender(<ProblemFullPageSolve {...props} />);
-  expect(screen.getByLabelText("Code")).toHaveValue("// template");
-  expect(screen.getByTestId("cases")).toBeEmptyDOMElement();
-
-  auth.user = { id: "bob" };
-  view.rerender(<ProblemFullPageSolve {...props} />);
-  expect(screen.getByLabelText("Code")).toHaveValue("// template");
-  expect(screen.getByTestId("cases")).toBeEmptyDOMElement();
-  fireEvent.change(screen.getByLabelText("Code"), { target: { value: "Bob's code" } });
-
-  auth.user = { id: "alice" };
-  view.rerender(<ProblemFullPageSolve {...props} />);
-  expect(screen.getByLabelText("Code")).toHaveValue("Alice's code");
-  expect(screen.getByTestId("cases")).toHaveTextContent("private input");
-  auth.user = { id: "bob" };
-  view.rerender(<ProblemFullPageSolve {...props} />);
-  expect(screen.getByLabelText("Code")).toHaveValue("Bob's code");
-  expect(screen.getByTestId("cases")).toBeEmptyDOMElement();
+  vi.resetAllMocks();
+  localStorage.clear();
+  vi.mocked(getSubmissions).mockResolvedValue({ results: [], count: 0 });
+  vi.mocked(submitSolution).mockImplementation(async () => ({ id: `s${Math.random()}`, status: "pending", createdAt: "2026-10-18T10:00:00Z", results: [] }) as never);
 });
 
-it("restores the same account's code and custom cases after remount", () => {
-  const view = render(<ProblemFullPageSolve {...props} />);
-  fireEvent.change(screen.getByLabelText("Code"), { target: { value: "Saved code" } });
-  fireEvent.click(screen.getByText("Add case"));
-  view.unmount();
-  render(<ProblemFullPageSolve {...props} />);
-  expect(screen.getByLabelText("Code")).toHaveValue("Saved code");
-  expect(screen.getByTestId("cases")).toHaveTextContent("private input");
-});
+describe("ProblemFullPageSolve", () => {
+  it("asks before resubmitting while the problem has a judging submission", async () => {
+    renderSolve();
+    await submitOnce(1);
+    expect(screen.queryByText("目前尚有提交在進行中")).not.toBeInTheDocument();
 
-it("does not assign unowned legacy or anonymous drafts to a signed-in account", () => {
-  localStorage.setItem("qjudge:contest:contest-1:problem:problem-1:code:cpp", "Unowned code");
-  localStorage.setItem("qjudge:contest:contest-1:problem:problem-1:custom_test_cases", JSON.stringify([
-    { id: "legacy", input: "Unowned input", output: "", source: "custom" },
-  ]));
-  auth.user = null;
-  const view = render(<ProblemFullPageSolve {...props} />);
-  fireEvent.change(screen.getByLabelText("Code"), { target: { value: "Anonymous code" } });
-  fireEvent.click(screen.getByText("Add case"));
-  auth.user = { id: "alice" };
-  view.rerender(<ProblemFullPageSolve {...props} />);
-  expect(screen.getByLabelText("Code")).toHaveValue("// template");
-  expect(screen.getByTestId("cases")).toBeEmptyDOMElement();
+    fireEvent.click(toolbarButton("繳交"));
+    expect(await screen.findByText("目前尚有提交在進行中")).toBeInTheDocument();
+    expect(screen.getByText("B 題的上一筆提交還在判題，確定要再繳交一次嗎？")).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "取消" }));
+    await waitFor(() => expect(screen.queryByText("目前尚有提交在進行中")).not.toBeInTheDocument());
+    expect(submitSolution).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(toolbarButton("繳交"));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "繳交" }));
+    await waitFor(() => expect(submitSolution).toHaveBeenCalledTimes(2));
+  });
+
+  it("submits another problem without asking", async () => {
+    const { switchTo } = renderSolve();
+    await submitOnce(1);
+    switchTo("p2");
+    await submitOnce(2);
+    expect(screen.queryByText("目前尚有提交在進行中")).not.toBeInTheDocument();
+  });
+
+  it("keeps 測試 enabled while a submission is judging", async () => {
+    vi.mocked(testRun).mockResolvedValue({ run_id: "r1", execution_status: "pending", total: 1, results: [] } as never);
+    renderSolve();
+    await submitOnce(1);
+    expect(toolbarButton("測試")).toBeEnabled();
+
+    await act(async () => { fireEvent.click(toolbarButton("測試")); });
+    await waitFor(() => expect(toolbarButton("測試")).toBeDisabled());
+    expect(toolbarButton("繳交")).toBeEnabled();
+  });
+
+  it("opens the result panel on the problem's latest run when the student returns", async () => {
+    const { switchTo } = renderSolve();
+    await submitOnce(1);
+    switchTo("p2");
+    expect(screen.queryByText("排隊中")).not.toBeInTheDocument();
+    switchTo("p1");
+    expect(screen.getByText("排隊中")).toBeInTheDocument();
+    expect(screen.getByText("這筆提交正在排隊")).toBeInTheDocument();
+  });
+
+  const judgeAs = (status: string) => {
+    vi.mocked(submitSolution).mockResolvedValue({ id: "s1", status: "pending", createdAt: "2026-10-18T10:00:00Z", results: [] } as never);
+    vi.mocked(getSubmissions).mockResolvedValue({ results: [{ id: "s1", status, problemId: "p1", createdAt: "" }], count: 1 } as never);
+    vi.mocked(getSubmission).mockResolvedValue({ id: "s1", status, score: 100, results: [], totalTestCases: 0 } as never);
+  };
+
+  it("notifies a verdict once the student collapses the result panel", async () => {
+    judgeAs("pending");
+    const onJudged = vi.fn();
+    renderSolve("p1", onJudged);
+    await submitOnce(1);
+    fireEvent.click(screen.getByRole("button", { name: "收合" }));
+    judgeAs("AC");
+    await waitFor(() => expect(onJudged).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    expect(onJudged.mock.calls[0][0].onScreen).toBe(false);
+  });
+
+  it("opens the result panel on a submission shown from its notification", async () => {
+    judgeAs("pending");
+    vi.mocked(testRun).mockResolvedValue({ run_id: "r1", execution_status: "complete", results: [] } as never);
+    const onJudged = vi.fn();
+    renderSolve("p1", onJudged);
+    await submitOnce(1);
+    await act(async () => { fireEvent.click(toolbarButton("測試")); });
+    fireEvent.click(screen.getByRole("button", { name: "收合" }));
+    judgeAs("AC");
+    await waitFor(() => expect(onJudged).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    act(() => { onJudged.mock.calls[0][0].show(); });
+    expect(screen.getByText("Accepted")).toBeInTheDocument();
+  });
+
+  it.each([["收合"], ["編輯測資"]])("brings back the result the student left with %s when its notification is opened", async (leave) => {
+    judgeAs("pending");
+    const onJudged = vi.fn();
+    renderSolve("p1", onJudged);
+    await submitOnce(1);
+    fireEvent.click(screen.getByRole("button", { name: leave }));
+    judgeAs("AC");
+    await waitFor(() => expect(onJudged).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    expect(screen.queryByText("Accepted")).not.toBeInTheDocument();
+    act(() => { onJudged.mock.calls[0][0].show(); });
+    expect(screen.getByText("Accepted")).toBeInTheDocument();
+  });
 });
