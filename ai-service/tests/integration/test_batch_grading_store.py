@@ -99,3 +99,67 @@ async def test_cancel_queued_in_session_cancels_only_queued_runs(session_factory
     assert running_row.status == RunStatus.RUNNING.value
     assert queued_row.status == RunStatus.CANCELLED.value
     assert assistant.metadata_["run_status"] == RunStatus.CANCELLED.value
+
+
+@pytest.mark.asyncio
+async def test_terminal_commit_recovers_after_worker_loss_and_serializes_replays(session_factory):
+    import asyncio
+    from domain.ports import CredentialLeaseKey, TraceContext
+    from worker.runtime import TerminalHookRunStore
+    from worker.scheduler import WorkerScheduler
+    from infrastructure.database.repositories import SqlAlchemyRunRepository
+
+    session = await add_session(session_factory)
+    run_id = await add_run(session_factory, session.id, RunStatus.RUNNING)
+    queued = await add_run(session_factory, session.id, RunStatus.QUEUED, ordinal=3)
+    dispatched = []
+    class RecordingDispatcher:
+        async def dispatch(self, run_id, *args):
+            dispatched.append(run_id)
+    store = SqlAlchemyWorkerRunStore(session_factory, RecordingDispatcher())
+    assert await store.append_event(run_id, 0, {"type": "run_completed"})
+    # Simulate worker loss immediately after terminal commit, before any hook.
+    async with session_factory() as db:
+        row = await db.get(RunRow, run_id)
+        assert row.status == "completed" and row.finalization_pending
+        assert await SqlAlchemyRunRepository(db).has_blocking_run(session.id)
+    assert await store.claim_for_execution(queued) is None
+    assert await store.unblocked_queued_runs() == []
+
+    entered, release = asyncio.Event(), asyncio.Event()
+    calls = []
+    async def hook(run_id, key):
+        calls.append(run_id)
+        if len(calls) == 1:
+            raise OSError("storage unavailable")
+        entered.set()
+        await release.wait()
+    class Credentials:
+        def key_for(self, owner):
+            return CredentialLeaseKey("lease:teacher")
+    recovered_store = SqlAlchemyWorkerRunStore(session_factory, RecordingDispatcher())
+    wrapped = TerminalHookRunStore(recovered_store, hook)
+    scheduler = WorkerScheduler(wrapped, None, Credentials(), stale_after_seconds=60)
+    await scheduler.recover_pending_finalizations()
+    assert len(await recovered_store.pending_finalizations()) == 1
+    assert dispatched == []
+    retry = asyncio.create_task(scheduler.recover_pending_finalizations())
+    await asyncio.wait_for(entered.wait(), timeout=5)
+    await wrapped.dispatch_next_after_terminal(run_id, "lease:teacher", TraceContext())
+    assert calls == [run_id, run_id]
+    assert dispatched == []
+    # Losing the worker during the hook also releases its lock and keeps pending.
+    retry.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await retry
+    assert len(await recovered_store.pending_finalizations()) == 1
+    release.set()
+    await scheduler.recover_pending_finalizations()
+    assert await recovered_store.pending_finalizations() == []
+    assert dispatched == [queued]
+    await scheduler.recover_pending_finalizations()
+    assert calls == [run_id, run_id, run_id]
+    async with session_factory.begin() as db:
+        await SqlAlchemyRunRepository(db).append_event(run_id, {"type": "run_completed"})
+    assert await recovered_store.pending_finalizations() == []
+    assert await recovered_store.claim_for_execution(queued) is not None

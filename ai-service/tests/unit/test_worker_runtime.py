@@ -468,6 +468,10 @@ class _DispatchRecorder:
         self.calls = calls
         self.other_attribute = "delegated"
 
+    async def finalize_terminal(self, run_id, lease_key, hook):
+        await hook(run_id, lease_key)
+        return True
+
     async def dispatch_next_after_terminal(self, run_id, lease_key, trace):
         self.calls.append("dispatch")
 
@@ -487,7 +491,7 @@ async def test_hook_runs_before_dispatch() -> None:
 
 
 @pytest.mark.asyncio
-async def test_finalizer_error_does_not_block_dispatch() -> None:
+async def test_finalizer_error_waits_for_recovery_before_dispatch() -> None:
     calls: list[str] = []
 
     async def hook(run_id, lease_key):
@@ -496,4 +500,4 @@ async def test_finalizer_error_does_not_block_dispatch() -> None:
     store = TerminalHookRunStore(_DispatchRecorder(calls), hook)
     await store.dispatch_next_after_terminal(uuid4(), "lease:subject", TRACE)
 
-    assert calls == ["dispatch"]
+    assert calls == []

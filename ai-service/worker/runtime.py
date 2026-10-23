@@ -12,7 +12,7 @@ from enum import StrEnum
 from typing import Any, Protocol
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from domain.model_catalog import ModelConfigInvalid, ModelNotAvailable
@@ -95,9 +95,8 @@ TerminalHook = Callable[[UUID, str], Awaitable[None]]
 class TerminalHookRunStore:
     """Run a hook after a run ends, before its session's next run is dispatched.
 
-    Every terminal path (normal end, cancel repair, stale recovery) hands off
-    through ``dispatch_next_after_terminal``. A failing hook is logged and
-    never blocks the session queue.
+    Failed batch finalization remains durable and blocks the next run until
+    reconciliation retries it. Ordinary chat runs do not need finalization.
     """
 
     def __init__(self, runs: Any, hook: TerminalHook) -> None:
@@ -114,9 +113,11 @@ class TerminalHookRunStore:
         trace_context: TraceContext,
     ) -> None:
         try:
-            await self._hook(run_id, credential_lease_key)
+            if not await self._runs.finalize_terminal(run_id, credential_lease_key, self._hook):
+                return
         except Exception:
-            logger.exception("Terminal hook failed for run %s", run_id)
+            logger.exception("Terminal hook pending retry for run %s", run_id)
+            return
         await self._runs.dispatch_next_after_terminal(
             run_id, credential_lease_key, trace_context
         )
@@ -331,7 +332,7 @@ class SqlAlchemyWorkerRunStore:
                 .where(
                     RunRow.session_id == row.session_id,
                     RunRow.run_id != row.run_id,
-                    RunRow.status.in_(_ACTIVE),
+                    RunRow.status.in_(_ACTIVE) | RunRow.finalization_pending.is_(True),
                 )
                 .limit(1)
             )
@@ -535,6 +536,48 @@ class SqlAlchemyWorkerRunStore:
                 trace_context,
             )
 
+    async def finalize_terminal(
+        self, run_id: UUID, lease_key: str, hook: TerminalHook,
+    ) -> bool:
+        # Transaction-scoped advisory locking survives neither a crash nor a
+        # disconnected worker. Unlike a row FOR UPDATE lock it does not block
+        # the hook's artifact FK inserts through its own DB connections.
+        async with self._session_factory.begin() as session:
+            session_id = await session.scalar(select(RunRow.session_id).where(RunRow.run_id == run_id))
+            if session_id is None:
+                return False
+            lock_key = int.from_bytes(session_id.bytes[:8], "big", signed=True)
+            if not await session.scalar(select(func.pg_try_advisory_xact_lock(lock_key))):
+                return False
+            row = await session.get(RunRow, run_id)
+            if row is None:
+                return False
+            if not row.finalization_pending:
+                return True
+            try:
+                await hook(run_id, lease_key)
+            except Exception:
+                # Rotate failed attempts behind other pending sessions on the
+                # next bounded scan while retaining their durable retry marker.
+                row.updated_at = self._now()
+                logger.exception("Batch finalization pending retry for run %s", run_id)
+                return False
+            row.finalization_pending = False
+        return True
+
+    async def pending_finalizations(self) -> list[RecoveryRun]:
+        async with self._session_factory() as session:
+            rows = (await session.execute(
+                select(RunRow, SessionRow)
+                .join(SessionRow, SessionRow.session_id == RunRow.session_id)
+                .where(RunRow.finalization_pending.is_(True))
+                .order_by(RunRow.updated_at, RunRow.run_id)
+                .limit(100)
+            )).all()
+            return [RecoveryRun(row.run_id, row.session_id,
+                                Principal(owner.owner_issuer, owner.owner_subject))
+                    for row, owner in rows]
+
     async def load_terminal_run(self, run_id: UUID) -> TerminalRunInfo | None:
         async with self._session_factory() as session:
             row = await session.get(RunRow, run_id)
@@ -667,6 +710,7 @@ class SqlAlchemyWorkerRunStore:
                         select(RunRow.session_id).where(
                             (RunRow.status.in_(_ACTIVE))
                             | (RunRow.repair_pending.is_(True))
+                            | (RunRow.finalization_pending.is_(True))
                         )
                     )
                 ).all()

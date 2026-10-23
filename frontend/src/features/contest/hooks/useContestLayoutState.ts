@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getContest, getContestStandings } from "@/infrastructure/api/repositories";
 import type { ContestDetail, ScoreboardData } from "@/core/entities/contest.entity";
@@ -25,10 +25,14 @@ export function useContestLayoutState() {
   const location = useLocation();
 
   const [loadedContest, setContest] = useState<ContestDetail | null>(null);
-  const runtime = useExamRuntimeState(loadedContest?.hasJoined ? contestId : undefined);
-  const contest = useMemo(() => mergeExamRuntimeState(loadedContest, runtime.state, runtime.confirmedStatus), [loadedContest, runtime.state, runtime.confirmedStatus]);
+  const currentContest = loadedContest?.id === contestId ? loadedContest : null;
+  const runtime = useExamRuntimeState(currentContest?.hasJoined ? contestId : undefined);
+  const { refresh: refreshRuntime } = runtime;
+  const contest = useMemo(() => mergeExamRuntimeState(currentContest, runtime.state, runtime.confirmedStatus), [currentContest, runtime.state, runtime.confirmedStatus]);
   const [contestLoading, setContestLoading] = useState(true);
   const [contestNotFound, setContestNotFound] = useState(false);
+  const [contestError, setContestError] = useState<Error | null>(null);
+  const requestVersion = useRef(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [scoreboardData, setScoreboardData] = useState<ScoreboardData | null>(null);
@@ -59,21 +63,31 @@ export function useContestLayoutState() {
   ) ?? 0;
 
   const refreshContest = useCallback(async () => {
-    if (contestId) {
-      setIsRefreshing(true);
-      try {
-        const c = await getContest(contestId);
-        // Only update if we got valid data — a transient API failure must not
-        // null-out the contest, which would kill monitoring flags and streams.
-        if (c) {
-          setContest(c);
-        }
-        void runtime.refresh();
-      } finally {
+    if (!contestId) return;
+    const version = ++requestVersion.current;
+    setIsRefreshing(true);
+    setContestError(null);
+    try {
+      const c = await getContest(contestId);
+      if (version !== requestVersion.current) return;
+      if (c) {
+        setContest(c);
+        setContestNotFound(false);
+      } else if (!currentContest) {
+        setContestNotFound(true);
+      }
+      void refreshRuntime();
+    } catch (err) {
+      if (version === requestVersion.current) {
+        setContestError(err instanceof Error ? err : new Error("Failed to fetch contest"));
+      }
+    } finally {
+      if (version === requestVersion.current) {
         setIsRefreshing(false);
+        setContestLoading(false);
       }
     }
-  }, [contestId, runtime.refresh]);
+  }, [contestId, currentContest, refreshRuntime]);
 
   const fetchStandings = useCallback(async () => {
     if (!contestId) return;
@@ -85,40 +99,39 @@ export function useContestLayoutState() {
     }
   }, [contestId]);
 
-  // Fetch contest on mount and when navigating back (path changes)
+  // Keep loaded monitoring state during same-contest refreshes; discard replies
+  // belonging to an earlier route or request.
   useEffect(() => {
-    if (contestId) {
-      // Only show loading spinner on initial load, not on path change refreshes.
-      // This prevents monitoring flags from flickering during navigation.
-      setContest((prev) => {
-        if (!prev) setContestLoading(true);
-        return prev;
-      });
-      setContestNotFound(false);
-      getContest(contestId)
-        .then((c) => {
-          if (c) {
-            setContest(c);
-            setContestNotFound(false);
-          } else {
-            setContest((prev) => {
-              // Only null-out if we never had data (genuine 404),
-              // not on transient API failures during navigation.
-              if (!prev) setContestNotFound(true);
-              return prev ?? null;
-            });
-          }
-        })
-        .catch(() => {
-          setContest((prev) => {
-            if (!prev) setContestNotFound(true);
-            return prev ?? null;
-          });
-        })
-        .finally(() => {
-          setContestLoading(false);
+    if (!contestId) return;
+    const version = ++requestVersion.current;
+    setContest((previous) => {
+      const current = previous?.id === contestId ? previous : null;
+      setContestLoading(!current);
+      return current;
+    });
+    setContestNotFound(false);
+    setContestError(null);
+    getContest(contestId)
+      .then((c) => {
+        if (version !== requestVersion.current) return;
+        if (c) setContest(c);
+        else setContest(previous => {
+          if (!previous) setContestNotFound(true);
+          return previous;
         });
-    }
+      })
+      .catch((err) => {
+        if (version === requestVersion.current) {
+          setContestError(err instanceof Error ? err : new Error("Failed to fetch contest"));
+        }
+      })
+      .finally(() => {
+        if (version === requestVersion.current) {
+          setContestLoading(false);
+          setIsRefreshing(false);
+        }
+      });
+    return () => { requestVersion.current += 1; };
   }, [contestId, location.pathname]);
 
   // Redirect to 404 if not found
@@ -209,6 +222,7 @@ export function useContestLayoutState() {
     contest,
     contestLoading,
     contestNotFound,
+    contestError,
     isFullscreen,
     isRefreshing,
     isSolvePage,

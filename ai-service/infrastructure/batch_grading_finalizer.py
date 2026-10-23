@@ -105,9 +105,9 @@ class BatchGradingFinalizer:
                             content_type="application/json", metadata={"validated": True},
                             worker_owned=True,
                         )
-                    except Exception as exc:
+                    except ValueError as exc:
                         invalid.update({qid: str(exc) for qid in unit["question_ids"]})
-        except Exception as exc:
+        except ValueError as exc:
             invalid = {qid: str(exc) for qid in parse_batch_question_ids(info.user_message)}
         for question_id in parse_batch_question_ids(info.user_message):
             try:
@@ -126,9 +126,10 @@ class BatchGradingFinalizer:
             except Exception as exc:  # the teacher must see it; never leave the question "running"
                 logger.exception("Batch grading finalize failed for run %s", run_id)
                 await self._write_progress(
-                    info.session_id, run_id, question_id, status="failed",
-                    error=f"收尾失敗：{exc}",
+                    info.session_id, run_id, question_id, status="running",
+                    error=f"收尾暫時失敗，將重試：{exc}",
                 )
+                raise
 
     async def _finalize(self, info: Any, run_id: UUID, question_id: str, lease_key: str, *, validated_plan=None) -> str:
         session_id = info.session_id
@@ -147,11 +148,12 @@ class BatchGradingFinalizer:
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code in (401, 403):
                     status, error = "paused", "寫入成績的授權已失效，請確認權限後繼續"
+                elif exc.response.status_code >= 500 or exc.response.status_code in (408, 429):
+                    raise
                 else:
                     status, error = "failed", f"寫入成績失敗：{exc}"
-            except Exception as exc:  # recorded for the teacher, not raised
-                logger.exception("Batch grading write failed for run %s", run_id)
-                status, error = "failed", f"寫入成績失敗：{exc}"
+            except ValueError as exc:
+                status, error = "failed", f"批改資料無效：{exc}"
 
         if status == "paused":
             await self._runs.cancel_queued_in_session(session_id)

@@ -299,10 +299,13 @@ async def _recover_stale_runs() -> int:
 
 
 async def _dispatch_unblocked_sessions() -> int:
-    scheduler, checkpoints, redis, engine = await _scheduler()
+    http = httpx.AsyncClient(timeout=_BACKEND_TIMEOUT_SECONDS)
+    scheduler, checkpoints, redis, engine = await _scheduler(http)
     try:
+        await scheduler.recover_pending_finalizations()
         return await scheduler.dispatch_unblocked_sessions()
     finally:
+        await http.aclose()
         await checkpoints.close()
         await redis.aclose()
         await engine.dispose()
