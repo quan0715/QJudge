@@ -1401,7 +1401,8 @@
     "trackName": "track",
     "unavailable": "Unavailable",
     "unknownError": "Live monitoring connection failed",
-    "userId": "User ID"
+    "userId": "User ID",
+    "reconnect": "Reconnect"
   },
   "logs": {
     "capture": {
@@ -1789,7 +1790,21 @@
     "searchPlaceholder": "Search monitored participants...",
     "sourceScreen": "Screen",
     "sourceWebcam": "Webcam",
-    "title": "Proctoring"
+    "title": "Proctoring",
+    "focusStudent": "Focus on {{name}}",
+    "waitingScreen": "Waiting for screen",
+    "noScreen": "No screen shared",
+    "violationCount": "{{count}} violations",
+    "noMatches": "No matching participants",
+    "pageCount": "Page {{page}} of {{pages}} · {{count}} participants",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "layout": "Monitoring layout",
+    "focusView": "Focus",
+    "fourView": "4 students",
+    "nineView": "9 students",
+    "previousStudent": "Previous student",
+    "nextStudent": "Next student"
   },
   "progress": "Progress",
   "public": "Public",

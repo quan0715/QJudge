@@ -4,6 +4,8 @@ import { Button, Modal, TableToolbarSearch, Tag, TextArea } from "@carbon/react"
 import {
   ArrowLeft,
   CheckmarkFilled,
+  ChevronLeft,
+  ChevronRight,
   InProgress,
   Locked,
   PauseFilled,
@@ -20,7 +22,6 @@ import { useTranslation } from "react-i18next";
 import type { ContestDetail, ContestParticipant, EventFeedItem, ParticipantDashboard } from "@/core/entities/contest.entity";
 import type {
   LiveSource,
-  LiveState,
   LiveTargetSnapshot,
 } from "@/core/entities/liveMonitoring.entity";
 import type { AdminPanelProps } from "@/features/contest/modules/types";
@@ -33,26 +34,21 @@ import {
   updateParticipant,
 } from "@/infrastructure/api/repositories";
 import {
-  getLiveMonitoringConfig,
   getLiveMonitoringTargets,
-  requestLiveMonitoringToken,
 } from "@/infrastructure/api/repositories/liveMonitoring.repository";
-import {
-  createLiveKitTransport,
-  type LiveTransport,
-} from "@/infrastructure/realtime/livekitTransport";
+import { useLiveMonitoringConnection } from "@/features/contest/hooks/useLiveMonitoringConnection";
 import { useMediaQuery } from "@/shared/hooks";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 
+import ProctorMonitorGrid from "./ProctorMonitorGrid";
 import styles from "./AdminProctoringPanel.module.scss";
 
 const SOURCE_ORDER: LiveSource[] = ["screen_share", "webcam"];
 const EMPTY_EVENT_FEED: EventFeedItem[] = [];
 const AUTO_REFRESH_MS = 30000;
 const LIVE_STATUS_REFRESH_MS = 10000;
-const LIVE_CONNECT_RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 15000] as const;
 const PANEL_TRANSITION = {
   duration: 0.22,
   ease: [0.2, 0, 0.38, 0.9] as const,
@@ -100,37 +96,6 @@ const isContestInExamWindow = (contest: ContestDetail | null | undefined, now: n
   return now >= start && now <= end;
 };
 
-const liveErrorStatus = (error: unknown): number | undefined => {
-  if (typeof error !== "object" || error === null) return undefined;
-  const status = (error as { status?: unknown }).status;
-  return typeof status === "number" ? status : undefined;
-};
-
-const shouldRetryLiveConnection = (error: unknown): boolean => {
-  const status = liveErrorStatus(error);
-  return status === undefined || status >= 500;
-};
-
-const waitForLiveConnectionRetry = (
-  signal: AbortSignal,
-  delayMs: number,
-): Promise<boolean> => {
-  if (signal.aborted) return Promise.resolve(false);
-
-  return new Promise((resolve) => {
-    const timeoutId = window.setTimeout(() => {
-      signal.removeEventListener("abort", onAbort);
-      resolve(true);
-    }, delayMs);
-    const onAbort = () => {
-      window.clearTimeout(timeoutId);
-      signal.removeEventListener("abort", onAbort);
-      resolve(false);
-    };
-    signal.addEventListener("abort", onAbort, { once: true });
-  });
-};
-
 const getParticipantSearchText = (participant: ContestParticipant) =>
   [
     participant.username,
@@ -150,6 +115,10 @@ interface MinimalLiveStageProps {
   monitoringAvailable: boolean;
   onToggleLock?: () => void;
   onBackToRoster?: () => void;
+  participants?: ContestParticipant[];
+  layout?: 1 | 4 | 9;
+  onLayoutChange?: (layout: 1 | 4 | 9) => void;
+  onSelectParticipant?: (userId: string) => void;
 }
 
 export const MinimalLiveStage = ({
@@ -160,17 +129,20 @@ export const MinimalLiveStage = ({
   monitoringAvailable,
   onToggleLock,
   onBackToRoster,
+  participants, layout = 1, onLayoutChange, onSelectParticipant,
 }: MinimalLiveStageProps) => {
   const { t } = useTranslation("contest");
   const videoRefs = useRef<Record<LiveSource, HTMLVideoElement | null>>({
     screen_share: null,
     webcam: null,
   });
-  const transportRef = useRef<LiveTransport | null>(null);
-  const transportGenerationRef = useRef(0);
+  const discoveryControllerRef = useRef<AbortController | null>(null);
+  const [gridPage, setGridPage] = useState(0);
   const selectedIdentityRef = useRef<string | null>(null);
   const discoveredSourcesRef = useRef<LiveSource[]>([]);
-  const [transportState, setTransportState] = useState<LiveState>("idle");
+  const { transportRef, transport, state: transportState, reconnect } = useLiveMonitoringConnection({
+    contestId, enabled: monitoringAvailable, role: "subscriber",
+  });
   const [snapshot, setSnapshot] = useState<LiveTargetSnapshot>({
     observedAt: null,
     stale: true,
@@ -203,116 +175,19 @@ export const MinimalLiveStage = ({
         transportRef.current?.bindVideo("webcam", node);
       },
     }),
-    [],
+    [transportRef],
   );
-
-  useEffect(() => {
-    const generation = ++transportGenerationRef.current;
-    const controller = new AbortController();
-    let candidate: LiveTransport | null = null;
-    let unsubscribe: (() => void) | null = null;
-
-    if (!contestId || !monitoringAvailable) {
-      const previous = transportRef.current;
-      transportRef.current = null;
-      void previous?.close();
-      setTransportState(monitoringAvailable ? "idle" : "unavailable");
-      return () => {
-        controller.abort();
-        transportGenerationRef.current += 1;
-      };
-    }
-
-    setTransportState("connecting");
-    void (async () => {
-      let retryAttempt = 0;
-
-      const isCurrent = () =>
-        !controller.signal.aborted && transportGenerationRef.current === generation;
-
-      const closeCandidate = async () => {
-        const current = candidate;
-        candidate = null;
-        unsubscribe?.();
-        unsubscribe = null;
-        try {
-          await current?.close();
-        } catch {
-          // A failed signaling attempt is already unavailable; cleanup is best effort.
-        }
-      };
-
-      while (isCurrent()) {
-        try {
-          const config = await getLiveMonitoringConfig(contestId, controller.signal);
-          if (!isCurrent()) return;
-          if (!config.enabled || !config.configured || config.provider !== "livekit") {
-            setTransportState("unavailable");
-            return;
-          }
-
-          const grant = await requestLiveMonitoringToken(contestId, {
-            role: "subscriber",
-            signal: controller.signal,
-          });
-          if (!isCurrent()) return;
-
-          candidate = createLiveKitTransport();
-          unsubscribe = candidate.onState((nextState) => {
-            if (isCurrent()) setTransportState(nextState);
-          });
-          const connectedCandidate = candidate;
-          await connectedCandidate.connect(grant);
-          if (!isCurrent()) {
-            await closeCandidate();
-            return;
-          }
-          connectedCandidate.selectTarget(selectedIdentityRef.current);
-          SOURCE_ORDER.forEach((source) => connectedCandidate.bindVideo(source, videoRefs.current[source]));
-          transportRef.current = connectedCandidate;
-          candidate = null;
-          return;
-        } catch (error) {
-          if (!isCurrent()) return;
-          await closeCandidate();
-          if (!shouldRetryLiveConnection(error)) {
-            setTransportState("unavailable");
-            return;
-          }
-
-          setTransportState("connecting");
-          const delayIndex = Math.min(
-            retryAttempt,
-            LIVE_CONNECT_RETRY_DELAYS_MS.length - 1,
-          );
-          retryAttempt += 1;
-          const shouldContinue = await waitForLiveConnectionRetry(
-            controller.signal,
-            LIVE_CONNECT_RETRY_DELAYS_MS[delayIndex],
-          );
-          if (!shouldContinue) return;
-        }
-      }
-    })();
-
-    return () => {
-      controller.abort();
-      transportGenerationRef.current += 1;
-      unsubscribe?.();
-      unsubscribe = null;
-      const previous = transportRef.current;
-      transportRef.current = null;
-      void previous?.close();
-      if (candidate && candidate !== previous) void candidate.close();
-    };
-  }, [contestId, monitoringAvailable]);
 
   const refreshTargets = useCallback(async () => {
     if (!contestId || !monitoringAvailable) return;
+    discoveryControllerRef.current?.abort();
+    const controller = new AbortController();
+    discoveryControllerRef.current = controller;
     setDiscovering(true);
     try {
-      const next = await getLiveMonitoringTargets(contestId);
-      setSnapshot(next);
+      const next = await getLiveMonitoringTargets(contestId, controller.signal);
+      if (controller.signal.aborted) return;
+      setSnapshot((current) => next.stale ? { ...current, stale: true } : next);
       setPanelError("");
       if (next.stale) return;
       const target = next.targets.find((item) => item.userId === userId);
@@ -330,35 +205,43 @@ export const MinimalLiveStage = ({
           return nextPlaying.length === current.length ? current : nextPlaying;
         });
       }
-      if (identityChanged || sourcesChanged) {
+      if (layout === 1 && (identityChanged || sourcesChanged)) {
         transportRef.current?.selectTarget(nextIdentity);
       }
     } catch (error) {
+      if (controller.signal.aborted) return;
       setSnapshot((current) => ({ ...current, stale: true }));
       setPanelError(error instanceof Error ? error.message : t("liveView.discoveryError", "無法取得目前可監看的來源"));
     } finally {
-      setDiscovering(false);
+      if (!controller.signal.aborted) setDiscovering(false);
     }
-  }, [contestId, monitoringAvailable, t, userId]);
+  }, [contestId, monitoringAvailable, t, userId, layout, transportRef]);
+
+  useEffect(() => {
+    setSnapshot({ observedAt: null, stale: true, targets: [] });
+  }, [contestId, monitoringAvailable]);
 
   useEffect(() => {
     selectedIdentityRef.current = null;
     discoveredSourcesRef.current = [];
     setVisibleSources([]);
     setPlayingSources([]);
-    transportRef.current?.selectTarget(null);
+    if (layout === 1) transportRef.current?.selectTarget(null);
     SOURCE_ORDER.forEach((source) => {
       const video = videoRefs.current[source];
       if (video) video.srcObject = null;
     });
     setPanelError("");
-  }, [userId]);
+  }, [contestId, monitoringAvailable, userId, layout, transportRef]);
 
   useEffect(() => {
     void refreshTargets();
     if (!monitoringAvailable) return;
     const intervalId = window.setInterval(() => void refreshTargets(), LIVE_STATUS_REFRESH_MS);
-    return () => window.clearInterval(intervalId);
+    return () => {
+      window.clearInterval(intervalId);
+      discoveryControllerRef.current?.abort();
+    };
   }, [monitoringAvailable, refreshTargets]);
 
   useEffect(() => {
@@ -367,10 +250,13 @@ export const MinimalLiveStage = ({
   }, [discoveryRefreshKey, monitoringAvailable, refreshTargets, userId]);
 
   useEffect(() => {
-    const transport = transportRef.current;
-    if (!transport) return;
+    if (!transport || layout !== 1) return;
     transport.selectTarget(selectedIdentityRef.current);
     SOURCE_ORDER.forEach((source) => transport.bindVideo(source, videoRefs.current[source]));
+  }, [transport, layout, transportState]);
+
+  useEffect(() => {
+    if (transportState === "unavailable" || transportState === "closed" || transportState === "connecting") setPlayingSources([]);
   }, [transportState]);
 
   const markPlaying = useCallback((source: LiveSource) => {
@@ -382,7 +268,7 @@ export const MinimalLiveStage = ({
   }, []);
 
   const renderSource = (source: LiveSource) => {
-    const connected = playingSources.includes(source);
+    const connected = transportState === "connected" && playingSources.includes(source);
     const waiting = !connected && (transportState === "connecting" || transportState === "reconnecting");
 
     return (
@@ -409,6 +295,8 @@ export const MinimalLiveStage = ({
           onPlaying={() => markPlaying(source)}
           onPause={() => markNotPlaying(source)}
           onEnded={() => markNotPlaying(source)}
+          onEmptied={() => markNotPlaying(source)}
+          onWaiting={() => markNotPlaying(source)}
         />
         {!connected ? (
           <div className={styles.blankVideo}>
@@ -419,7 +307,7 @@ export const MinimalLiveStage = ({
     );
   };
 
-  if (!participant) {
+  if (!participant && !participants) {
     return (
       <div className={styles.monitorStage}>
         <div className={styles.noSelection}>
@@ -431,7 +319,29 @@ export const MinimalLiveStage = ({
 
   return (
     <div className={styles.monitorStage}>
-      <div className={styles.monitorHeader}>
+      {participants && <div className={styles.monitorViewToolbar}>
+        <div className={styles.monitorActions} role="group" aria-label={t("proctoringPanel.layout", "監看版面")}>
+          {([1, 4, 9] as const).map((size) => <Button key={size} size="sm"
+            kind={layout === size ? "primary" : "ghost"} aria-pressed={layout === size}
+            onClick={() => onLayoutChange?.(size)}>
+            {size === 1 ? t("proctoringPanel.focusView", "單人") : size === 4
+              ? t("proctoringPanel.fourView", "4 人") : t("proctoringPanel.nineView", "9 人")}
+          </Button>)}
+        </div>
+        {layout === 1 && <div className={styles.monitorActions}>
+          <Button kind="ghost" size="sm" renderIcon={ChevronLeft} hasIconOnly
+            iconDescription={t("proctoringPanel.previousStudent", "上一位")}
+            disabled={!participant || participants.findIndex((row) => row.userId === userId) <= 0}
+            onClick={() => { const index = participants.findIndex((row) => row.userId === userId); if (index > 0) onSelectParticipant?.(participants[index - 1].userId); }} />
+          <Button kind="ghost" size="sm" renderIcon={ChevronRight} hasIconOnly
+            iconDescription={t("proctoringPanel.nextStudent", "下一位")}
+            disabled={!participant || participants.findIndex((row) => row.userId === userId) >= participants.length - 1}
+            onClick={() => { const index = participants.findIndex((row) => row.userId === userId); if (index >= 0 && index + 1 < participants.length) onSelectParticipant?.(participants[index + 1].userId); }} />
+        </div>}
+        {layout !== 1 && <Button kind="ghost" size="sm" renderIcon={Renew} hasIconOnly
+          iconDescription={t("liveView.reconnect", "重新連線")} disabled={!monitoringAvailable} onClick={reconnect} />}
+      </div>}
+      {layout === 1 && <div className={styles.monitorHeader}>
         <div className={styles.monitorHeaderLeft}>
           {onBackToRoster ? (
             <Button
@@ -445,7 +355,6 @@ export const MinimalLiveStage = ({
           ) : null}
           <div className={styles.monitorIdentity}>
             <span className={styles.monitorName}>{participantName}</span>
-            <span className={styles.monitorUsername}>@{participant.username}</span>
           </div>
         </div>
         <div className={styles.monitorActions}>
@@ -462,18 +371,25 @@ export const MinimalLiveStage = ({
               onClick={onToggleLock}
             />
           ) : null}
+          <Button kind="ghost" size="sm" renderIcon={Renew} hasIconOnly
+            iconDescription={t("liveView.reconnect", "重新連線")} onClick={reconnect}
+            disabled={!monitoringAvailable} />
           <Tag type={playingSources.length > 0 ? "green" : "cool-gray"} size="sm">
             {playingSources.length}/{visibleSources.length}
           </Tag>
         </div>
-      </div>
+      </div>}
       {panelError ? <div className={styles.monitorError}>{panelError}</div> : null}
-      {snapshot.stale && visibleSources.length > 0 ? (
+      {snapshot.stale && (visibleSources.length > 0 || layout !== 1) ? (
         <div className={styles.monitorError}>
           {t("liveView.staleSources", "來源狀態暫時無法確認，保留目前畫面。")}
         </div>
       ) : null}
-      {visibleSources.length > 0 ? (
+      {layout !== 1 && participants ? <ProctorMonitorGrid
+        participants={participants} snapshot={snapshot} transport={transport}
+        state={transportState} size={layout} page={gridPage} onPageChange={setGridPage} onFocus={(id) => {
+          onSelectParticipant?.(id); onLayoutChange?.(1);
+        }} /> : visibleSources.length > 0 ? (
         <div
           className={[
             styles.videoGrid,
@@ -592,6 +508,7 @@ export default function AdminProctoringPanel({
   const searchQuery = searchParams.get("q") || "";
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [rosterPaneOpen, setRosterPaneOpen] = useState(true);
+  const [monitorLayout, setMonitorLayout] = useState<1 | 4 | 9>(() => searchParams.get("user") ? 1 : 4);
   const [eventsPaneOpen, setEventsPaneOpen] = useState(true);
   const [eventDetailOpen, setEventDetailOpen] = useState(false);
   const [lastSeenEventAt, setLastSeenEventAt] = useState(0);
@@ -687,9 +604,9 @@ export default function AdminProctoringPanel({
       null,
     [eventFeed, selectedIncidentKey],
   );
-  const showRosterPane = isMobile ? !selectedUserId : rosterPaneOpen;
-  const showMonitorPane = !isMobile || !!selectedUserId;
-  const showEventsPane = !isMobile && eventsPaneOpen;
+  const showRosterPane = isMobile ? monitorLayout === 1 && !selectedUserId : rosterPaneOpen;
+  const showMonitorPane = monitorLayout !== 1 || !isMobile || !!selectedUserId;
+  const showEventsPane = monitorLayout === 1 && !isMobile && eventsPaneOpen;
   const panelTransition = prefersReducedMotion ? { duration: 0 } : PANEL_TRANSITION;
 
   const refreshDashboard = useCallback(async () => {
@@ -898,14 +815,13 @@ export default function AdminProctoringPanel({
           attentionLevel === "medium" && styles.rosterItemMedium,
           attentionLevel === "high" && styles.rosterItemHigh,
         ].filter(Boolean).join(" ")}
-        onClick={() => updateParams({ user: participant.userId })}
+        onClick={() => { updateParams({ user: participant.userId }); setMonitorLayout(1); }}
       >
         <span className={styles.rosterStatusIcon}>
           <StatusIcon size={16} />
         </span>
         <span className={styles.rosterIdentity}>
           <span className={styles.rosterName}>{displayName}</span>
-          <span className={styles.rosterUsername}>@{participant.username}</span>
         </span>
         <span className={styles.rosterSignals}>
           {participant.violationCount > 0 ? (
@@ -980,7 +896,7 @@ export default function AdminProctoringPanel({
                 {t("proctoringPanel.newEventCount", "新事件 {{count}}", { count: newCollapsedEventCount })}
               </Tag>
             ) : null}
-            {!isMobile ? (
+            {!isMobile && monitorLayout === 1 ? (
               <Button
                 kind={eventsPaneOpen ? "primary" : "ghost"}
                 size="md"
@@ -1056,6 +972,10 @@ export default function AdminProctoringPanel({
               <MinimalLiveStage
                 contestId={contestId}
                 participant={selectedParticipant}
+                participants={filteredParticipants}
+                layout={monitorLayout}
+                onLayoutChange={setMonitorLayout}
+                onSelectParticipant={(userId) => updateParams({ user: userId })}
                 discoveryRefreshKey={liveDiscoveryRefreshKey}
                 lockActionBusy={lockActionBusy}
                 monitoringAvailable={inExamWindow}

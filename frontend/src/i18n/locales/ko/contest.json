@@ -1401,7 +1401,8 @@
     "trackName": "track",
     "unavailable": "연결할 수 없음",
     "unknownError": "실시간 감독 연결 실패",
-    "userId": "사용자 ID"
+    "userId": "사용자 ID",
+    "reconnect": "다시 연결"
   },
   "logs": {
     "capture": {
@@ -1789,7 +1790,21 @@
     "searchPlaceholder": "감독 대상 검색...",
     "sourceScreen": "화면",
     "sourceWebcam": "Webcam",
-    "title": "감독"
+    "title": "감독",
+    "focusStudent": "{{name}} 확대",
+    "waitingScreen": "화면 대기 중",
+    "noScreen": "공유된 화면 없음",
+    "violationCount": "위반 {{count}}회",
+    "noMatches": "일치하는 응시자가 없습니다",
+    "pageCount": "{{page}}／{{pages}} 페이지 · {{count}}명",
+    "previousPage": "이전 페이지",
+    "nextPage": "다음 페이지",
+    "layout": "모니터링 레이아웃",
+    "focusView": "개별",
+    "fourView": "4명",
+    "nineView": "9명",
+    "previousStudent": "이전 응시자",
+    "nextStudent": "다음 응시자"
   },
   "progress": "진행률",
   "public": "공개",
