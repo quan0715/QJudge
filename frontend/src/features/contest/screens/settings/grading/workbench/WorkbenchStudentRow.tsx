@@ -6,7 +6,8 @@ import { isSubjectiveType, type GradingAnswerRow } from "../gradingTypes";
 import { correctOptionIndexes, selectedOptionIndexes } from "../objectiveRegrade";
 import type { GradeDraft } from "./gradingWorkbenchModel";
 import type { AnswerSource, WorkbenchStudentRow as Row } from "./workbenchRowModel";
-import { WorkbenchScoreField, compactScore } from "./WorkbenchScoreField";
+import { WorkbenchScoreField } from "./WorkbenchScoreField";
+import { compactScore } from "./workbenchStatsModel";
 import styles from "./GradingWorkbench.module.scss";
 
 interface WorkbenchStudentRowProps {
@@ -75,17 +76,17 @@ export function WorkbenchStudentRow({
     const indexes = selectedOptionIndexes(answer);
     return indexes.length
       ? t("workbench.picked", "選 {{options}}", {
-          options: indexes.map((index) => `${optionLabel(answer, index)}　${texts[index] ?? ""}`).join("、"),
+          options: indexes.map((index) => `${optionLabel(answer, index)}\u3000${texts[index] ?? ""}`).join("、"),
         })
       : t("workbench.noAnswer", "未作答");
   };
   const summary = objective
-    ? row.answers.map(picked).join("　")
+    ? row.answers.map(picked).join("\u3000")
     : row.source === "none" && !row.answers.some((answer) => answer.feedback)
       ? t("workbench.ungradedSummary", "尚未批改")
       : row.answers
           .map((answer) => `${prefix(answer)}${suggestionScores[answer.id]?.feedback ?? answer.feedback}`)
-          .join("　");
+          .join("\u3000");
   const sourceText: Record<AnswerSource, string> = {
     auto: t("workbench.source.auto", "自動"),
     suggestion: t("workbench.source.suggestion", "建議"),

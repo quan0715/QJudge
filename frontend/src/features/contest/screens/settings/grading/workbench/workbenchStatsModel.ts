@@ -1,4 +1,8 @@
+import { roundScore } from "@/shared/utils/scoreFormat";
 import type { GradingAnswerRow } from "../gradingTypes";
+
+/** Scores read as plain numbers in the workbench: 12, 3.5, 2.75. */
+export const compactScore = (value: number) => String(roundScore(value));
 import { correctOptionIndexes, selectedOptionIndexes } from "../objectiveRegrade";
 import type { WorkbenchStudentRow } from "./workbenchRowModel";
 

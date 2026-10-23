@@ -56,7 +56,7 @@ export function WorkbenchQuestionRail({
             <div className={styles.railRunningLine}>
               <span>
                 {t("workbench.aiRunning", "AI 批改中")}
-                {examAi.progressText ? `　${examAi.progressText}` : ""}
+                {examAi.progressText ? `\u3000${examAi.progressText}` : ""}
               </span>
               <Button kind="ghost" size="sm" onClick={onStopExam}>
                 {t("workbench.stop", "停止")}
@@ -90,7 +90,7 @@ export function WorkbenchQuestionRail({
           hideLabel
           label={t("workbench.questions", "題目")}
           items={units}
-          itemToString={(unit) => (unit ? `${unit.label}　${right(unit)}` : "")}
+          itemToString={(unit) => (unit ? `${unit.label}\u3000${right(unit)}` : "")}
           selectedItem={units.find((unit) => unit.id === activeId)}
           disabled={disabled}
           onChange={({ selectedItem }) => selectedItem && onSelect(selectedItem.id)}

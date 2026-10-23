@@ -1,395 +1,150 @@
 @use "@carbon/layout";
 @use "@carbon/type";
 
+/* Page layout */
 .root {
   display: grid;
-  grid-template-columns: 18rem minmax(0, 1fr);
+  grid-template-columns: 16rem minmax(0, 1fr);
   height: 100%;
   min-height: 0;
   overflow: hidden;
+  background: var(--cds-background);
 }
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  background: var(--cds-layer-01);
-  border-right: 1px solid var(--cds-border-subtle);
-}
-.controls {
+.main {
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-05;
-  padding: layout.$spacing-05;
+  min-width: 0;
+  padding: layout.$spacing-06 layout.$spacing-06 layout.$spacing-09;
+  overflow-y: auto;
 }
-.titleRow,
-.listHeading,
-.cardHeader,
-.workspaceHeader,
-.workFooter {
+.empty {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: layout.$spacing-03;
-}
-.titleRow h2 {
-  @include type.type-style("heading-compact-01");
-  margin: 0;
-}
-.modeSwitch {
-  display: flex;
-  margin-inline: -1rem;
-}
-.modeSwitch > button {
-  flex: 1;
-  max-width: none;
-}
-.listHeading {
-  @include type.type-style("label-01");
+  flex-direction: column;
+  align-items: flex-start;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-07;
 }
 .muted {
   @include type.type-style("label-01");
+  margin: 0;
   color: var(--cds-text-secondary);
+}
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-04;
+}
+.header h1 {
+  @include type.type-style("heading-04");
+  min-width: 0;
   margin: 0;
 }
-.aiControls {
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+}
+.suggestionBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03 layout.$spacing-05;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+  @include type.type-style("body-compact-01");
+}
+.suggestionBar > span {
+  margin-right: auto;
+}
+
+/* Statistics */
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-09;
+  padding: layout.$spacing-05 0;
+  border-top: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+.stat {
   display: flex;
   flex-direction: column;
-  gap: layout.$spacing-03;
+  gap: layout.$spacing-01;
 }
-.studentList {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
+.statLabel {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
 }
-.sidebarFooter {
+.statValue {
+  @include type.type-style("heading-03");
+  font-variant-numeric: tabular-nums;
+}
+.statMax {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+}
+
+/* Filters and list */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: layout.$spacing-04;
+}
+.filters > :first-child {
+  flex: 1 1 14rem;
+  max-width: 20rem;
+}
+.count {
+  @include type.type-style("body-compact-01");
+  margin-left: auto;
+  padding-bottom: layout.$spacing-03;
+  color: var(--cds-text-secondary);
+}
+.list {
   display: flex;
   flex-direction: column;
   border-top: 1px solid var(--cds-border-subtle);
-  padding: 0;
 }
-.sidebarFooter > button {
-  max-width: none;
-}
-.workspace {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  background: var(--cds-background);
-}
-.workspaceHeader {
-  min-height: 5rem;
-  padding: layout.$spacing-04 layout.$spacing-06;
+.listHead {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) 7.5rem minmax(0, 3fr) 4rem;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-03 layout.$spacing-05;
   border-bottom: 1px solid var(--cds-border-subtle);
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
 }
-.workspaceHeader h2 {
-  @include type.type-style("heading-compact-02");
-  margin: layout.$spacing-02 0 0;
-}
-.workScroll {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  padding: layout.$spacing-06;
-}
-.paper {
-  max-width: 72rem;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-06;
+.scoreMax {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  font-weight: 400;
 }
 .questionContext {
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-06;
 }
-.questionContext h2,
 .questionContext h3 {
-  @include type.type-style("heading-compact-01");
-  margin: 0 0 layout.$spacing-04;
+  @include type.type-style("heading-compact-02");
+  margin: 0 0 layout.$spacing-03;
 }
-.answerCard {
-  min-width: 0;
-  background: var(--cds-layer-01);
-  border: 1px solid var(--cds-border-subtle-01);
-  container-type: inline-size;
-}
-.cardHeader {
-  justify-content: flex-start;
-  padding: layout.$spacing-05 layout.$spacing-06;
-  border-bottom: 1px solid var(--cds-border-subtle);
-}
-.cardHeader h3 {
-  @include type.type-style("heading-compact-01");
-  margin: 0;
-}
-.cardStatus {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-}
-.cardBody {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(20rem, 1fr);
-}
-.answerContent {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-05;
-  min-width: 0;
-  padding: layout.$spacing-06;
-}
-.gradeForm {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-07;
-  min-width: 0;
-  padding: layout.$spacing-07;
-  background: var(--cds-layer-02);
-  border-left: 1px solid var(--cds-border-subtle-01);
-}
-.scoreRow {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-  min-height: 3.5rem;
-  margin-top: layout.$spacing-03;
-}
-.scoreInput {
-  width: 8rem;
-}
-.scoreValue {
-  @include type.type-style("heading-05");
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-.scoreMax {
-  @include type.type-style("heading-02");
-  color: var(--cds-text-secondary);
-}
-.feedback {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-03;
-}
-.feedback p {
-  margin: 0;
-  white-space: pre-wrap;
-}
-.workFooter {
-  flex-shrink: 0;
-  padding: 0;
-  gap: 0;
-}
-.actions {
-  display: flex;
-  width: 100%;
-  gap: 0;
-}
-.actions > button {
-  flex: 1;
-  max-width: none;
-}
-@container (max-width: 760px) {
-  .cardBody {
+
+@media (max-width: 47.99rem) {
+  .root {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
-  .gradeForm {
-    border-left: 0;
-    border-top: 1px solid var(--cds-border-subtle);
+  .main {
+    padding: layout.$spacing-05;
   }
-}
-.empty {
-  padding: layout.$spacing-06;
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-05;
-}
-
-@media (max-width: 900px) {
-  .root {
-    grid-template-columns: 15rem minmax(0, 1fr);
+  .listHead {
+    display: none;
   }
-  .controls,
-  .workScroll,
-  .workspaceHeader {
-    padding: layout.$spacing-04;
-  }
-  .modeSwitch {
-    margin-inline: -0.75rem;
-  }
-}
-@media (max-width: 640px) {
-  .root {
-    display: flex;
-    flex-direction: column;
-    overflow: auto;
-  }
-  .sidebar {
-    flex-shrink: 0;
-    border-right: 0;
-    border-bottom: 1px solid var(--cds-border-subtle);
-  }
-  .controls {
-    gap: layout.$spacing-03;
-  }
-  .studentList {
-    flex: 0 0 auto;
-    max-height: 10rem;
-  }
-  .sidebarFooter {
-    flex-direction: row;
-  }
-  .workspace {
-    flex: 1 0 auto;
-    overflow: visible;
-  }
-  .workScroll {
-    overflow: visible;
-  }
-  .workFooter {
-    position: sticky;
-    bottom: 0;
-    padding: 0;
-    background: var(--cds-layer-02);
-  }
-  .actions {
-    width: 100%;
-  }
-  .actions > button {
-    flex: 1;
-    max-width: none;
-  }
-}
-
-.questionTitle {
-  margin: layout.$spacing-02 0;
-  color: var(--cds-text-secondary);
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-.childStats {
-  display: flex;
-  gap: layout.$spacing-05;
-  margin-top: layout.$spacing-03;
-  @include type.type-style("label-01");
-}
-.workspaceHeader h2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.answerToolbar {
-  display: flex;
-  gap: layout.$spacing-03;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.answerToolbar > :first-child {
-  flex: 1;
-  min-width: 12rem;
-}
-.studentCard {
-  border: 1px solid var(--cds-border-subtle-01);
-  background: var(--cds-layer-01);
-  scroll-margin-top: layout.$spacing-05;
-}
-.studentCardToggle {
-  width: 100%;
-  max-width: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: layout.$spacing-05;
-  gap: layout.$spacing-05;
-  color: var(--cds-text-primary);
-}
-.studentCardToggle small {
-  display: block;
-  color: var(--cds-text-secondary);
-  margin-top: layout.$spacing-02;
-}
-.summaryScores {
-  display: flex;
-  gap: layout.$spacing-06;
-}
-.summaryScores b {
-  @include type.type-style("heading-03");
-  margin-left: layout.$spacing-03;
-  font-variant-numeric: tabular-nums;
-}
-.summaryScores small {
-  display: inline;
-}
-.resultPreview {
-  border-top: 1px solid var(--cds-border-subtle-01);
-  padding: layout.$spacing-05;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: layout.$spacing-06;
-}
-.resultPreview p {
-  margin: layout.$spacing-03 0 0;
-  white-space: pre-wrap;
-}
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: layout.$spacing-05;
-}
-.metrics section,
-.analysis {
-  background: var(--cds-layer-01);
-  padding: layout.$spacing-06;
-  border: 1px solid var(--cds-border-subtle-01);
-}
-.metrics strong {
-  @include type.type-style("heading-03");
-}
-.distributionRow {
-  width: 100%;
-  max-width: none;
-  display: flex;
-  gap: layout.$spacing-05;
-  align-items: center;
-}
-.barTrack {
-  flex: 1;
-  background: var(--cds-layer-02);
-  height: 1rem;
-}
-.barFill {
-  display: block;
-  height: 100%;
-  background: var(--cds-interactive);
-}
-@media (max-width: 640px) {
-  .metrics {
-    grid-template-columns: 1fr;
-  }
-  .summaryScores {
-    gap: layout.$spacing-03;
-  }
-}
-
-.answerPreview {
-  max-height: 4.5rem;
-  overflow: hidden;
-  margin-top: layout.$spacing-03;
-  color: var(--cds-text-secondary);
-}
-
-.studentCard .answerCard {
-  border-width: 1px 0 0;
-}
-.scoreEditor {
-  flex: 0 0 9rem;
-  width: 9rem;
 }
 
 /* Student list row */
@@ -634,4 +389,15 @@
 .aiModalBody p {
   @include type.type-style("body-01");
   margin: 0;
+}
+
+@media (max-width: 47.99rem) {
+  .rowButton {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    padding: layout.$spacing-03 layout.$spacing-05;
+  }
+  .rowSummary {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
 }

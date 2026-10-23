@@ -1,12 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button, TextInput } from "@carbon/react";
 import { Add, Subtract } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { roundScore } from "@/shared/utils/scoreFormat";
+import { compactScore } from "./workbenchStatsModel";
 import styles from "./GradingWorkbench.module.scss";
-
-/** Scores read as plain numbers in the workbench: 12, 3.5, 2.75. */
-export const compactScore = (value: number) => String(roundScore(value));
 
 interface WorkbenchScoreFieldProps {
   label: string;
@@ -23,9 +21,11 @@ interface WorkbenchScoreFieldProps {
 export function WorkbenchScoreField({ label, max, step, value, aiValue, disabled, onChange }: WorkbenchScoreFieldProps) {
   const { t } = useTranslation("contest");
   const [text, setText] = useState(value === null ? "" : compactScore(value));
-  useEffect(() => {
+  const [shownValue, setShownValue] = useState(value);
+  if (value !== shownValue) {
+    setShownValue(value);
     setText(value === null ? "" : compactScore(value));
-  }, [value]);
+  }
   const emit = (next: number) => onChange(Math.min(max, Math.max(0, roundScore(next))));
   return (
     <div className={styles.scoreField}>
