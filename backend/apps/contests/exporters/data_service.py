@@ -197,7 +197,7 @@ class ContestDataService:
             if p_stat.status == 'AC':
                 continue
 
-            if sub.status in ['pending', 'judging']:
+            if sub.status in ['SE', 'pending', 'judging']:
                 continue
 
             p_stat.tries += 1

@@ -614,50 +614,44 @@ class TestStudentReportScoreCalculation:
             started_at=timezone.now() - timedelta(hours=1)
         )
     
-    def test_both_use_same_score_calculation(
-        self, api_client, teacher, contest, student, problem, participant
+    @pytest.mark.parametrize(
+        "attempts, expected_score, expected_solved, expected_penalty",
+        [
+            ([("SE", 0, 5), ("AC", 100, 10)], 100, 1, 10),
+            ([("pending", 0, 2), ("judging", 0, 5), ("AC", 100, 10)], 100, 1, 10),
+            ([("WA", 0, 5), ("AC", 100, 10)], 100, 1, 30),
+            ([("WA", 30, 5), ("WA", 60, 10)], 60, 0, 0),
+        ],
+    )
+    def test_standings_and_report_agree(
+        self, api_client, teacher, contest, student, problem, participant,
+        attempts, expected_score, expected_solved, expected_penalty,
     ):
-        """
-        Test that standings and report use the same score calculation logic.
-        
-        This test creates multiple submissions and verifies consistency.
-        """
-        # Normal submission: WA 30 points
-        Submission.objects.create(
-            user=student,
-            problem=problem,
-            contest=contest,
-            language='python',
-            code='normal1',
-            status='WA',
-            score=30,
-        )
-        
-        # Normal submission: WA 60 points (higher, should be used)
-        Submission.objects.create(
-            user=student,
-            problem=problem,
-            contest=contest,
-            language='python',
-            code='normal2',
-            status='WA',
-            score=60,
-        )
-        
+        from apps.contests.exporters.data_service import ContestDataService
+
+        other = User.objects.create_user(username="other", role="student")
+        enrol_candidates(contest, other)
+        ContestParticipant.objects.create(contest=contest, user=other)
+        for user, entries in ((student, attempts), (other, [("AC", 100, 20)])):
+            for verdict, score, minutes in entries:
+                submission = Submission.objects.create(
+                    user=user, problem=problem, contest=contest,
+                    language="python", code="print(1)", status=verdict, score=score,
+                )
+                Submission.objects.filter(pk=submission.pk).update(
+                    created_at=contest.start_time + timedelta(minutes=minutes),
+                )
+
         api_client.force_authenticate(user=teacher)
-        
-        # Get standings score
-        standings_response = api_client.get(
-            f'/api/v1/contests/{contest.id}/standings/'
-        )
-        standings = standings_response.data.get('standings', [])
-        student_standing = next(
-            (s for s in standings if s['user']['id'] == student.id),
-            None
-        )
-        
-        # Should use highest normal submission score (60)
-        assert student_standing['total_score'] == 60
-        
-        # Solved count should be 0 (no AC in normal submissions)
-        assert student_standing['solved'] == 0
+        response = api_client.get(f"/api/v1/contests/{contest.id}/standings/")
+        assert response.status_code == status.HTTP_200_OK
+        standings = response.data["standings"]
+        report = ContestDataService(contest).calculate_standings(student.id)
+        assert [str(row["user"]["id"]) for row in standings] == [
+            str(row.user_id) for row in report.standings
+        ]
+        standing = next(row for row in standings if str(row["user"]["id"]) == str(student.id))
+        assert standing["total_score"] == report.user_stats.total_score == expected_score
+        assert standing["solved"] == report.user_stats.solved == expected_solved
+        assert standing["time"] == report.user_stats.penalty == expected_penalty
+        assert standing["rank"] == report.rank
