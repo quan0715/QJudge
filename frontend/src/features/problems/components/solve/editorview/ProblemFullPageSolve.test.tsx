@@ -13,6 +13,9 @@ vi.mock("@/infrastructure/api/repositories/submission.repository", () => ({
   getSubmission: vi.fn(),
   getSubmissions: vi.fn(),
 }));
+vi.mock("@/features/auth/contexts/AuthContext", () => ({
+  useAuth: () => ({ user: { id: "u1" } }),
+}));
 vi.mock("@/features/auth/hooks/useUserPreferences", () => ({
   useUserPreferences: () => ({ editorFontSize: 14, editorTabSize: 4, updateEditorSettings: vi.fn() }),
 }));
