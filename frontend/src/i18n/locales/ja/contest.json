@@ -2244,6 +2244,7 @@
     "comment": "コメント",
     "sourceHeader": "採点元",
     "questionAiTitle": "AI で第 {{number}} 問を採点",
-    "points": "{{count}} 点"
+    "points": "{{count}} 点",
+    "nothingToRegrade": "この問題には再採点できる AI の点数がありません"
   }
 }

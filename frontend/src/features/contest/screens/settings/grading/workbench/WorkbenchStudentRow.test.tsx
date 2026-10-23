@@ -178,4 +178,42 @@ describe("WorkbenchStudentRow", () => {
     expect(screen.getByText("正解")).toBeTruthy();
     expect(screen.getByRole("button", { name: "分數 加 1 分" })).toBeTruthy();
   });
+
+  it("mixed group renders each child by its own type", () => {
+    const pick = answer({
+      id: "m1",
+      questionId: "q1",
+      questionType: "single_choice",
+      questionOptions: ["Yes", "No"],
+      correctAnswer: 0,
+      answerContent: { selected: 0 },
+      score: 2,
+      maxScore: 2,
+      isAutoGraded: true,
+    });
+    const essay = answer({ id: "m2", questionId: "q2", score: null, feedback: "", maxScore: 5 });
+    render(
+      <WorkbenchStudentRow
+        {...baseProps}
+        labels={new Map([["q1", { label: "1(a)" }], ["q2", { label: "1(b)" }]])}
+        maxScore={7}
+        row={studentRow([pick, essay], { source: "none" })}
+        questions={[question({ id: "q1", questionType: "single_choice", score: 2 }), question({ id: "q2", score: 5 })]}
+        expanded
+      />,
+    );
+    expect(screen.getByText("student answer")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "1(a) 加 1 分" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "1(b) 加 0.5 分" })).toBeTruthy();
+  });
+});
+
+describe("WorkbenchScoreField input", () => {
+  it("shows the kept value again after an out-of-range entry", () => {
+    render(<WorkbenchScoreField label="分數" max={5} step={0.5} value={1} aiValue={null} onChange={vi.fn()} />);
+    const input = screen.getByRole("textbox", { name: "分數" });
+    fireEvent.change(input, { target: { value: "10" } });
+    fireEvent.blur(input);
+    expect((input as HTMLInputElement).value).toBe("1");
+  });
 });

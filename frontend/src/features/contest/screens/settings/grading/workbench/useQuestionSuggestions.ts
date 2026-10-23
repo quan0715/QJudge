@@ -75,15 +75,21 @@ export function useQuestionSuggestions(
     const refresh = () => void refreshSuggestions(sessionId, questionId, [...rows]);
     refresh();
     if (!running) return;
-    const timer = window.setInterval(refresh, POLL_MS);
+    // The suggestion session is not the chat's active one, so its run status
+    // only updates through the session list.
+    const timer = window.setInterval(() => {
+      refresh();
+      void refreshSessions();
+    }, POLL_MS);
     return () => window.clearInterval(timer);
-  }, [questionId, refreshSuggestions, rows, running, sessionId]);
+  }, [questionId, refreshSessions, refreshSuggestions, rows, running, sessionId]);
 
   const start = useCallback(
     async (targetRows: readonly GradingAnswerRow[], modelId?: string) => {
       if (!questionId || targetRows.length === 0) return;
       const label = targetRows[0].questionLabel ?? String(targetRows[0].questionIndex);
-      await ai.start(contestId, questionId, [...targetRows], { modelId, title: `AI 建議 · Q${label}` });
+      const started = await ai.start(contestId, questionId, [...targetRows], { modelId, title: `AI 建議 · Q${label}` });
+      if (!started) throw new Error("AI 建議啟動失敗，請稍後再試");
       await refreshSessions();
     },
     [ai, contestId, questionId, refreshSessions],

@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   getExamPaper: vi.fn(),
   batch: {
     questions: [],
-    sessionId: null,
+    sessionId: null as string | null,
     aiWrittenAnswerIds: new Set<string>(),
     overall: { ungradedTotal: 0 },
     canStart: true,
@@ -151,6 +151,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.suggestions = {};
   mocks.batch.aiWrittenAnswerIds = new Set(["s2-c"]);
+  mocks.batch.sessionId = null;
+  mocks.batch.start.mockResolvedValue(undefined);
+  mocks.batch.regradeQuestion.mockResolvedValue(undefined);
   mocks.getExamPaper.mockResolvedValue(paper);
   mocks.gradeAnswer.mockResolvedValue(undefined);
   mocks.suggest.adopt.mockResolvedValue(undefined);
@@ -252,5 +255,56 @@ describe("grading workbench", () => {
     fireEvent.click(screen.getByRole("button", { name: "AI 批改這題" }));
     fireEvent.click(await screen.findByRole("button", { name: "開始" }));
     await waitFor(() => expect(mocks.batch.startQuestion).toHaveBeenCalledWith(["a", "b"], "m1"));
+  });
+
+  it("regrade without anything AI-written explains instead of doing nothing", async () => {
+    mocks.batch.aiWrittenAnswerIds = new Set();
+    // An adopted suggestion reads as "AI" but the batch session cannot revert it.
+    mocks.suggestions = { "s1-c": { score: 10, reason: "ok", synced: true } };
+    await setup("grading_question=c");
+    fireEvent.click(screen.getByRole("button", { name: "AI 批改這題" }));
+    fireEvent.click(await screen.findByRole("button", { name: "開始" }));
+    expect(await screen.findByText("這題沒有 AI 寫入的分數可以重改")).toBeInTheDocument();
+    expect(mocks.batch.regradeQuestion).not.toHaveBeenCalled();
+  });
+
+  it("regrade reverts and requeues when the batch session has AI writes", async () => {
+    mocks.batch.sessionId = "s1";
+    await setup("grading_question=c");
+    fireEvent.click(screen.getByRole("button", { name: "AI 批改這題" }));
+    fireEvent.click(await screen.findByRole("button", { name: "開始" }));
+    await waitFor(() => expect(mocks.batch.regradeQuestion).toHaveBeenCalledWith("c"));
+  });
+
+  it("whole-exam AI reuses an existing batch session", async () => {
+    mocks.batch.sessionId = "s1";
+    await setup("grading_question=c");
+    fireEvent.click(screen.getByRole("button", { name: "AI 批改整份考卷" }));
+    fireEvent.click(await screen.findByRole("button", { name: "開始" }));
+    await waitFor(() => expect(mocks.batch.startQuestion).toHaveBeenCalledWith(["a", "b"], "m1"));
+    expect(mocks.batch.start).not.toHaveBeenCalled();
+  });
+
+  it("saving one graded child leaves the other ungraded child untouched", async () => {
+    await setup();
+    edit("1(a)", 3, "Complete", 0);
+    fireEvent.click(screen.getByRole("button", { name: "儲存並下一位" }));
+    await waitFor(() =>
+      expect(mocks.showToast).toHaveBeenCalledWith(expect.objectContaining({ kind: "success" })),
+    );
+    expect(mocks.gradeAnswer.mock.calls).toEqual([["s1-a", 3, "Complete"]]);
+  });
+
+  it("uses the redistributed max score for stats", async () => {
+    const targets = rows.filter((row) => row.questionId === "c");
+    targets.forEach((row) => (row.effectiveMaxScore = 20));
+    try {
+      await setup("grading_question=c");
+      const stats = within(screen.getByRole("region", { name: "作答統計" }));
+      expect(stats.getByText("63%")).toBeInTheDocument();
+      expect(stats.getByText("/ 20", { exact: false })).toBeInTheDocument();
+    } finally {
+      targets.forEach((row) => delete row.effectiveMaxScore);
+    }
   });
 });

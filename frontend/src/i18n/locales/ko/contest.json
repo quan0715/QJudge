@@ -2244,6 +2244,7 @@
     "comment": "피드백",
     "sourceHeader": "출처",
     "questionAiTitle": "AI로 {{number}}번 문항 채점",
-    "points": "{{count}}점"
+    "points": "{{count}}점",
+    "nothingToRegrade": "이 문항에는 다시 채점할 AI 점수가 없습니다"
   }
 }

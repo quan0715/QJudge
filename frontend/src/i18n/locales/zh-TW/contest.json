@@ -2244,6 +2244,7 @@
     "comment": "評語",
     "questionAiTitle": "AI 批改第 {{number}} 題",
     "points": "{{count}} 分",
-    "sourceHeader": "來源"
+    "sourceHeader": "來源",
+    "nothingToRegrade": "這題沒有 AI 寫入的分數可以重改"
   }
 }

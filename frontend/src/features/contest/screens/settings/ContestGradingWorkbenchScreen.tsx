@@ -106,8 +106,12 @@ export default function ContestGradingWorkbenchScreen() {
   const unit = units.find((item) => item.questions.some((q) => q.id === params.get("grading_question"))) ?? units[0];
   const unitIds = useMemo(() => new Set(unit?.questions.map((q) => q.id)), [unit]);
   const isGroup = (unit?.questions.length ?? 0) > 1;
-  const objective = unit ? !isSubjectiveType(unit.questions[0].questionType) : false;
-  const maxScore = unit?.questions.reduce((sum, q) => sum + q.score, 0) ?? 0;
+  const objective = unit ? unit.questions.every((q) => !isSubjectiveType(q.questionType)) : false;
+  const maxScore =
+    unit?.questions.reduce(
+      (sum, q) => sum + (data.answers.find((row) => row.questionId === q.id)?.effectiveMaxScore ?? q.score),
+      0,
+    ) ?? 0;
   const unitAnswers = useMemo(
     () => data.answers.filter((row) => unitIds.has(row.questionId) && !row.isAbsent),
     [data.answers, unitIds],
@@ -196,10 +200,9 @@ export default function ContestGradingWorkbenchScreen() {
   const save = (row: StudentRow) =>
     run(async () => {
       const next = nextOf(row);
-      for (const answer of row.answers) {
-        const draft = drafts[answer.id];
-        if (!draft && answer.score !== null) continue;
-        const value = draft ?? { score: 0, feedback: answer.feedback };
+      const edited = row.answers.filter((answer) => drafts[answer.id]);
+      for (const answer of edited) {
+        const value = drafts[answer.id];
         await data.gradeAnswer(answer.id, value.score, value.feedback);
         setDrafts((previous) => {
           const rest = { ...previous };
@@ -207,7 +210,7 @@ export default function ContestGradingWorkbenchScreen() {
           return rest;
         });
       }
-      showToast({ kind: "success", title: t("workbench.saved", "評分已儲存") });
+      if (edited.length) showToast({ kind: "success", title: t("workbench.saved", "評分已儲存") });
       openRow(next?.studentId ?? null);
     });
 
@@ -249,7 +252,13 @@ export default function ContestGradingWorkbenchScreen() {
 
   const startAi = async ({ mode, range, modelId }: { mode: AiMode; range: AiRange; modelId?: string }) => {
     if (!unit) return;
-    if (aiScope === "exam") return batch.start(modelId);
+    if (aiScope === "exam") {
+      if (!batch.sessionId) return batch.start(modelId);
+      return batch.startQuestion(
+        batchQuestions.filter((q) => q.ungradedRows.length > 0).map((q) => q.questionId),
+        modelId,
+      );
+    }
     if (mode === "suggest") {
       const targets =
         range === "ungraded"
@@ -257,8 +266,15 @@ export default function ContestGradingWorkbenchScreen() {
           : unitAnswers.filter((row) => resolveAnswerSource(row, ctx) !== "manual");
       return suggestions.start(targets, modelId);
     }
-    if (range === "ungraded") return batch.startQuestion(unit.questions.map((q) => q.id), modelId);
-    return batch.regradeQuestion(unit.questions[0].id);
+    const questionIds = unit.questions.map((q) => q.id);
+    if (range === "ungraded") return batch.startQuestion(questionIds, modelId);
+    const revertable = unitAnswers.filter((row) => batch.aiWrittenAnswerIds.has(row.id)).length;
+    const ungraded = unitAnswers.filter((row) => row.score === null).length;
+    if (revertable + ungraded === 0) {
+      throw new Error(t("workbench.nothingToRegrade", "這題沒有 AI 寫入的分數可以重改"));
+    }
+    if (!batch.sessionId) return batch.startQuestion(questionIds, modelId);
+    return batch.regradeQuestion(questionIds[0]);
   };
 
   const railUnits: RailUnit[] = units.map((item) => {

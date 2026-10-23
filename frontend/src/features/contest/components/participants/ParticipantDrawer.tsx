@@ -282,7 +282,7 @@ export default function ParticipantDrawer({
       onAssistedAttendance={contest?.attendanceCheckEnabled ? handleAssistedAttendance : undefined}
       onResetExamRecord={() => void handleResetExamRecord()}
       onOpenDetail={setActiveParticipantDetail}
-      onOpenGrading={() => onOpenPanel(contest?.contestType === "coding" ? "standings" : "grading")}
+      onOpenGrading={() => onOpenPanel(contest?.contestType === "coding" ? "standings" : "grading-workbench")}
       onOpenProctoring={() => onOpenPanel("proctoring")}
       showViolationKpi={antiCheatEnabled}
     />
@@ -353,7 +353,7 @@ export default function ParticipantDrawer({
                   onEditStatus={openEditModal}
                   onUnlock={() => void handleUnlock()}
                   onReopenExam={() => void handleReopenExam()}
-                  onOpenGrading={() => onOpenPanel(contest?.contestType === "coding" ? "standings" : "grading")}
+                  onOpenGrading={() => onOpenPanel(contest?.contestType === "coding" ? "standings" : "grading-workbench")}
                   onRefreshEvents={participantDashboard.refresh}
                 />
               </div>

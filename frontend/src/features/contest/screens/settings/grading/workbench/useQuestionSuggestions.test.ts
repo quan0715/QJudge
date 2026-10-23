@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   },
   gradeExamAnswer: vi.fn(),
   refreshSessions: vi.fn(),
+  runActive: false,
 }));
 
 vi.mock("../useAiQuestionGrading", () => ({
@@ -33,6 +34,9 @@ vi.mock("@copilot", () => ({
 }));
 vi.mock("@/features/ai-tasks/hooks/useTaskSession", () => ({
   useTaskSession: () => ({ pendingBindSessionId: "", setPendingBindSessionId: vi.fn(), resolving: false }),
+}));
+vi.mock("../../copilotGradingSelectors", () => ({
+  selectEffectiveGradingRun: () => (mocks.runActive ? { id: "r", status: "running" } : null),
 }));
 vi.mock("@/infrastructure/api/repositories/examAnswers.repository", () => ({
   gradeExamAnswer: mocks.gradeExamAnswer,
@@ -52,6 +56,7 @@ beforeEach(() => {
   mocks.ai.markAnswersSynced.mockResolvedValue(true);
   mocks.ai.refreshSuggestions.mockResolvedValue(undefined);
   mocks.gradeExamAnswer.mockResolvedValue({});
+  mocks.runActive = false;
 });
 
 describe("useQuestionSuggestions", () => {
@@ -114,5 +119,34 @@ describe("useQuestionSuggestions", () => {
 
     expect(result.current.suggestions).toEqual({});
     expect(mocks.ai.start).not.toHaveBeenCalled();
+  });
+
+  it("start reports a failure instead of closing silently", async () => {
+    mocks.ai.start.mockResolvedValue(null);
+    const { result } = renderHook(() => useQuestionSuggestions("c1", "q1", ROWS));
+    let error: unknown;
+    await act(async () => {
+      try {
+        await result.current.start(ROWS);
+      } catch (err) {
+        error = err;
+      }
+    });
+    expect(error).toBeInstanceOf(Error);
+  });
+
+  it("refreshes the session list while a suggestion run is active", async () => {
+    vi.useFakeTimers();
+    try {
+      mocks.runActive = true;
+      renderHook(() => useQuestionSuggestions("c1", "q1", ROWS));
+      mocks.refreshSessions.mockClear();
+      await act(async () => {
+        vi.advanceTimersByTime(5_000);
+      });
+      expect(mocks.refreshSessions).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

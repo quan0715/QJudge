@@ -2244,6 +2244,7 @@
     "comment": "Feedback",
     "sourceHeader": "Source",
     "questionAiTitle": "AI grade question {{number}}",
-    "points": "{{count}} pts"
+    "points": "{{count}} pts",
+    "nothingToRegrade": "This question has no AI-written scores to regrade"
   }
 }

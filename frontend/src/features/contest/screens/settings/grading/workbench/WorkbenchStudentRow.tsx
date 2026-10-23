@@ -57,7 +57,8 @@ export function WorkbenchStudentRow({
 }: WorkbenchStudentRowProps) {
   const { t } = useTranslation("contest");
   const isGroup = questions.length > 1;
-  const objective = !isSubjectiveType(questions[0]?.questionType ?? "short_answer");
+  const isObjective = (answer: GradingAnswerRow) => !isSubjectiveType(answer.questionType);
+  const objective = questions.every((question) => !isSubjectiveType(question.questionType));
   const pending = row.source === "suggestion";
   const valueOf = (answer: GradingAnswerRow): GradeDraft | null => {
     const draft = drafts[answer.id] ?? suggestionScores[answer.id];
@@ -85,7 +86,11 @@ export function WorkbenchStudentRow({
     : row.source === "none" && !row.answers.some((answer) => answer.feedback)
       ? t("workbench.ungradedSummary", "尚未批改")
       : row.answers
-          .map((answer) => `${prefix(answer)}${suggestionScores[answer.id]?.feedback ?? answer.feedback}`)
+          .map((answer) =>
+            isObjective(answer)
+              ? `${prefix(answer)}${picked(answer)}`
+              : `${prefix(answer)}${suggestionScores[answer.id]?.feedback ?? answer.feedback}`,
+          )
           .join("\u3000");
   const sourceText: Record<AnswerSource, string> = {
     auto: t("workbench.source.auto", "自動"),
@@ -116,7 +121,7 @@ export function WorkbenchStudentRow({
         <div className={styles.rowDetail}>
           <div className={styles.rowAnswer}>
             {row.answers.map((answer) =>
-              objective ? (
+              isObjective(answer) ? (
                 <ul key={answer.id} className={styles.optionList}>
                   {optionTexts(answer).map((text, index) => {
                     const isPicked = selectedOptionIndexes(answer).includes(index);
@@ -177,7 +182,7 @@ export function WorkbenchStudentRow({
                   <WorkbenchScoreField
                     label={label}
                     max={answer.maxScore}
-                    step={objective ? 1 : 0.5}
+                    step={isObjective(answer) ? 1 : 0.5}
                     value={value?.score ?? null}
                     aiValue={aiValue}
                     disabled={busy}

@@ -48,6 +48,7 @@ export function WorkbenchScoreField({ label, max, step, value, aiValue, disabled
         value={text}
         disabled={disabled}
         onFocus={(event) => event.currentTarget.select()}
+        onBlur={() => setText(value === null ? "" : compactScore(value))}
         onChange={(event) => {
           setText(event.target.value);
           const parsed = Number(event.target.value);
