@@ -683,6 +683,13 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 if not answer_obj:
                     results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': 'not found'})
                     continue
+                # A committed run must never restore a grade later revoked by
+                # a teacher, even after a newer run has written the same answer.
+                if batch_ids and ExamBatchGradeWrite.objects.filter(
+                    answer=answer_obj, session_id=batch_ids[0], run_id=batch_ids[1],
+                ).exists():
+                    results.append({'exam_answer_id': answer_id, 'status': 'skipped'})
+                    continue
                 if only_if_ungraded and answer_obj.score is not None:
                     results.append({'exam_answer_id': answer_id, 'status': 'skipped'})
                     continue
@@ -694,13 +701,11 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 answer_obj.is_correct = validated_score > 0
                 answer_obj.save()
                 if batch_ids:
-                    ExamBatchGradeWrite.objects.update_or_create(
+                    ExamBatchGradeWrite.objects.create(
                         answer=answer_obj,
-                        defaults={
-                            'session_id': batch_ids[0], 'run_id': batch_ids[1],
-                            'grader': request.user, 'score': validated_score,
-                            'feedback': validated_feedback, 'graded_at': now,
-                        },
+                        session_id=batch_ids[0], run_id=batch_ids[1],
+                        grader=request.user, score=validated_score,
+                        feedback=validated_feedback, graded_at=now,
                     )
 
             affected_question_ids.add(answer_obj.question_id)
@@ -726,7 +731,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             answer__participant__contest=contest,
             grader=request.user,
             session_id=session_id,
-        ).select_related('answer')
+        ).select_related('answer').order_by('answer_id', '-graded_at', '-pk').distinct('answer_id')
         return Response({'writes': [
             {
                 'exam_answer_id': str(receipt.answer_id),
