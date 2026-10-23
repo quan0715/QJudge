@@ -21,6 +21,7 @@ from ..models import (
     ExamQuestion,
     ExamStatus,
     ExamQuestionType,
+    ExamQuestionAnswerFormat,
 )
 from ..serializers import (
     ExamQuestionSerializer,
@@ -393,6 +394,10 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 prompt=prompt,
                 options=options,
                 correct_answer=payload.get("correct_answer"),
+                answer_format=payload.get("answer_format", ExamQuestionAnswerFormat.PLAIN_TEXT),
+                reference_answer_document=payload.get("reference_answer_document"),
+                explanation=payload.get("explanation", ""),
+                explanation_document=payload.get("explanation_document"),
                 score=max(1, int(payload.get("score") or 1)),
                 order=next_order,
                 source_bank_id=bank.uuid,
