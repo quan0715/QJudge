@@ -235,9 +235,15 @@ async def test_expired_token_pauses_batch() -> None:
 
 
 @pytest.mark.asyncio
-async def test_backend_error_records_failed_progress() -> None:
+async def test_backend_error_remains_retryable_until_grades_are_written() -> None:
     artifacts = FakeArtifacts(_batch_files())
-    http = httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(500)))
+    attempts = []
+    def handler(request):
+        attempts.append(request)
+        if len(attempts) == 1:
+            return httpx.Response(500)
+        return httpx.Response(200, json={"results": [{"exam_answer_id": "a1", "status": "ok"}]})
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     finalizer = BatchGradingFinalizer(
         runs=FakeRuns(_info()),
         artifacts=artifacts,
@@ -246,11 +252,14 @@ async def test_backend_error_records_failed_progress() -> None:
         backend_url="http://backend:8000",
     )
 
-    await finalizer(RUN_ID, "lease:teacher")
-
+    with pytest.raises(httpx.HTTPStatusError):
+        await finalizer(RUN_ID, "lease:teacher")
     progress = _csv(artifacts.files["progress.csv"])[0]
-    assert progress["status"] == "failed"
+    assert progress["status"] == "running"
     assert "500" in progress["error"]
+    await finalizer(RUN_ID, "lease:teacher")
+    assert _csv(artifacts.files["progress.csv"])[0]["status"] == "completed"
+    assert len(attempts) == 2
 
 
 @pytest.mark.asyncio
@@ -400,3 +409,25 @@ async def test_v2_missing_rubric_blocks_entire_group_then_validates_child_scores
     artifacts.files['rubric.json']=json.dumps(r)
     await finalizer(RUN_ID,'lease')
     assert [p['body']['grades'][0]['score'] for p in posted]==[2,4]
+
+
+@pytest.mark.asyncio
+async def test_progress_storage_failure_replays_write_with_same_receipt_identity():
+    class FailProgressOnce(FakeArtifacts):
+        failed = False
+        async def put_for_run(self, *, filename, **kwargs):
+            if filename == "progress.csv" and not self.failed:
+                self.failed = True
+                raise OSError("storage unavailable")
+            return await super().put_for_run(filename=filename, **kwargs)
+
+    artifacts = FailProgressOnce(_batch_files())
+    finalizer, posted = _finalizer(FakeRuns(_info()), artifacts)
+    with pytest.raises(OSError):
+        await finalizer(RUN_ID, "lease:teacher")
+    await finalizer(RUN_ID, "lease:teacher")
+    assert len(posted) == 2
+    assert posted[0]["body"] == posted[1]["body"]
+    assert posted[1]["body"]["only_if_ungraded"] is True
+    assert posted[1]["body"]["batch_run_id"] == str(RUN_ID)
+    assert _csv(artifacts.files["progress.csv"])[0]["status"] == "completed"

@@ -47,7 +47,7 @@ class BatchGradeReceiptTests(ExamAnswerTestBase):
         self.assertEqual(self._roster_total(), 8)
 
     def test_receipt_failure_rolls_back_the_grade(self):
-        with patch('apps.contests.views.exam_answer.ExamBatchGradeWrite.objects.update_or_create',
+        with patch('apps.contests.views.exam_answer.ExamBatchGradeWrite.objects.create',
                    side_effect=IntegrityError('receipt failed')):
             with self.assertRaises(IntegrityError):
                 self.grade()
@@ -68,10 +68,23 @@ class BatchGradeReceiptTests(ExamAnswerTestBase):
         self.assertFalse(self.writes().data['writes'][0]['current'])
         self.client.post(self.base + f'{self.answer.id}/ungrade/', {}, format='json')
         self.assertFalse(self.writes().data['writes'][0]['current'])
+        old_run = self.run_id
+        self.assertEqual(self.grade().data['results'][0]['status'], 'skipped')
+        self.answer.refresh_from_db()
+        self.assertIsNone(self.answer.score)
+
         self.run_id = uuid4()
-        self.grade()
+        self.assertEqual(self.grade().data['results'][0]['status'], 'ok')
         self.assertTrue(self.writes().data['writes'][0]['current'])
-        self.assertEqual(ExamBatchGradeWrite.objects.get(answer=self.answer).run_id, self.run_id)
+        self.assertEqual(len(self.writes().data['writes']), 1)
+        self.assertEqual(ExamBatchGradeWrite.objects.filter(answer=self.answer).count(), 2)
+        self.client.post(self.base + f'{self.answer.id}/ungrade/', {}, format='json')
+        for run_id in (old_run, self.run_id):
+            with self.subTest(run_id=run_id):
+                self.assertEqual(self.grade(batch_run_id=str(run_id)).data['results'][0]['status'], 'skipped')
+                self.answer.refresh_from_db()
+                self.assertIsNone(self.answer.score)
+        self.assertFalse(self.writes().data['writes'][0]['current'])
 
     def test_receipts_are_scoped_to_owner_session_and_contest(self):
         self.grade()

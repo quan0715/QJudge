@@ -45,8 +45,9 @@ export const getContests = async (scope?: string): Promise<Contest[]> => {
 export const getContest = async (
   id: string
 ): Promise<ContestDetail | undefined> => {
-  const res = await httpClient.get(`/api/v1/contests/${id}/`);
-  if (!res.ok) return undefined;
+  const res = await httpClient.get(`/api/v1/contests/${id}/`, { suppressGlobalError: true });
+  if (res.status === 404) return undefined;
+  await ensureOk(Promise.resolve(res), "Failed to fetch contest");
   const data = await res.json() as ContestDetailDto;
   return mapContestDetailDto(data);
 };
