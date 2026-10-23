@@ -469,3 +469,57 @@ it("opens the same versioned group rubric from either child and retains legacy f
   expect(await listQuestionFiles("s1", "q2", "g1")).toEqual({ rubric: files[1], grade: null });
   expect(await listQuestionFiles("s1", "q3")).toEqual({ rubric: files[2], grade: null });
 });
+
+describe("useBatchGrading single question", () => {
+  it("startQuestion enqueues only the requested questions into a new session", async () => {
+    mocks.createTaskSession.mockResolvedValue({ sessionId: "s1" });
+    const { result } = render();
+
+    await act(() => result.current.startQuestion(["q2"], "model-x"));
+
+    expect(mocks.createTaskSession).toHaveBeenCalledTimes(1);
+    expect(mocks.startRun.mock.calls.map(([, prompt]) => (prompt as string).split("\n")[0])).toEqual([
+      "batch_question_id: q2",
+    ]);
+  });
+
+  it("startQuestion reuses the existing session", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    const { result } = render();
+    await waitFor(() => expect(result.current.sessionId).toBe("s1"));
+
+    await act(() => result.current.startQuestion(["q1"]));
+
+    expect(mocks.createTaskSession).not.toHaveBeenCalled();
+    expect(mocks.startRun.mock.calls.map(([, prompt]) => (prompt as string).split("\n")[0])).toEqual([
+      "batch_question_id: q1",
+    ]);
+  });
+
+  it("startQuestion rejects when results are published", async () => {
+    const { result } = renderHook(() =>
+      useBatchGrading("c1", ROWS, { resultsPublished: true, reloadAnswers: vi.fn().mockResolvedValue(ROWS) }),
+    );
+
+    await expect(act(() => result.current.startQuestion(["q1"]))).rejects.toThrow("成績已公布");
+    expect(mocks.startRun).not.toHaveBeenCalled();
+  });
+
+  it("aiWrittenAnswerIds lists unchanged AI writes only", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.listArtifacts.mockResolvedValue([
+      { artifact_id: "w", filename: "written_q1.csv", updated_at: "2026-10-22T00:00:00Z" },
+    ]);
+    mocks.fetchArtifactContent.mockResolvedValue({
+      content: "exam_answer_id,score,feedback\n1,8.0,AI\n2,3.0,AI\n",
+      contentType: "text/csv",
+    });
+    const rows = [
+      row({ id: "1", questionId: "q1", score: 8, feedback: "AI" }),
+      row({ id: "2", questionId: "q1", score: 4, feedback: "TA 改過" }),
+    ];
+    const { result } = render(rows);
+
+    await waitFor(() => expect([...result.current.aiWrittenAnswerIds]).toEqual(["1"]));
+  });
+});

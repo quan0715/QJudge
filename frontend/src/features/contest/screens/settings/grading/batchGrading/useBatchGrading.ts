@@ -80,6 +80,10 @@ export interface UseBatchGradingResult {
   /** An action (start, stop, resume, revert, regrade) is in flight. */
   busy: boolean;
   start(modelId?: string): Promise<void>;
+  /** Grade only these questions (a whole group for a group), reusing the batch session when one exists. */
+  startQuestion(questionIds: readonly string[], modelId?: string): Promise<void>;
+  /** Answers whose current grade is still this session's unchanged AI write. */
+  aiWrittenAnswerIds: ReadonlySet<string>;
   /** Never throws; failures surface through `error`. */
   stop(): Promise<void>;
   /** Never throws; failures surface through `error`. */
@@ -307,40 +311,76 @@ export function useBatchGrading(
     [],
   );
 
+  const createBatchSession = useCallback(
+    async (modelId?: string): Promise<string> => {
+      const selectedModelId = modelId ?? await defaultBatchModelId();
+      const { sessionId: id } = await createTaskSession({
+        taskType: BATCH_GRADING_TASK_TYPE,
+        context: { contest_id: contestId },
+        title: "AI 整批批改",
+      });
+      modelRef.current = { sessionId: id, modelId: selectedModelId };
+      await uploadBatchFile(
+        id,
+        BATCH_JSON_FILENAME,
+        JSON.stringify({
+          schema_version: 2,
+          contest_id: contestId,
+          model_id: selectedModelId,
+          questions: questions.map((q) => ({
+            question_id: q.questionId,
+            group_id: q.groupId,
+            label: q.label,
+            index: q.index,
+            max_score: q.maxScore,
+          })),
+        }),
+        "application/json",
+      );
+      return id;
+    },
+    [contestId, questions],
+  );
+
   const start = useCallback(
     async (modelId?: string) => {
       await guard(async () => {
         if (resultsPublished) throw new Error("成績已公布，無法啟動整批批改");
-        const selectedModelId = modelId ?? await defaultBatchModelId();
-        const { sessionId: id } = await createTaskSession({
-          taskType: BATCH_GRADING_TASK_TYPE,
-          context: { contest_id: contestId },
-          title: "AI 整批批改",
-        });
-        modelRef.current = { sessionId: id, modelId: selectedModelId };
-        await uploadBatchFile(
-          id,
-          BATCH_JSON_FILENAME,
-          JSON.stringify({
-            schema_version: 2,
-            contest_id: contestId,
-            model_id: selectedModelId,
-            questions: questions.map((q) => ({
-              question_id: q.questionId,
-              group_id: q.groupId,
-              label: q.label,
-              index: q.index,
-              max_score: q.maxScore,
-            })),
-          }),
-          "application/json",
-        );
+        const id = await createBatchSession(modelId);
         await enqueue(id, questions);
         setCreated({ contestId, sessionId: id });
         await refreshSessions();
       }, true);
     },
-    [contestId, enqueue, guard, questions, refreshSessions, resultsPublished],
+    [contestId, createBatchSession, enqueue, guard, questions, refreshSessions, resultsPublished],
+  );
+
+  const startQuestion = useCallback(
+    async (questionIds: readonly string[], modelId?: string) => {
+      await guard(async () => {
+        if (resultsPublished) throw new Error("成績已公布，無法啟動整批批改");
+        const id = sessionId ?? await createBatchSession(modelId);
+        await enqueue(id, questions.filter((q) => questionIds.includes(q.questionId)));
+        if (!sessionId) {
+          setCreated({ contestId, sessionId: id });
+          await refreshSessions();
+        } else {
+          await refreshSnapshot(id);
+        }
+      }, true);
+    },
+    [contestId, createBatchSession, enqueue, guard, questions, refreshSessions, refreshSnapshot, resultsPublished, sessionId],
+  );
+
+  const aiWrittenAnswerIds = useMemo(
+    () =>
+      new Set(
+        selectRevertableAnswers(
+          Object.values(currentSnapshot.writtenCsv).flatMap((csv) => parseWrittenCsv(csv)),
+          rows,
+        ),
+      ),
+    [currentSnapshot.writtenCsv, rows],
   );
 
   const stop = useCallback(async () => {
@@ -459,6 +499,8 @@ export function useBatchGrading(
     canStart: !sessionId && !resultsPublished && overall.ungradedTotal > 0,
     busy,
     start,
+    startQuestion,
+    aiWrittenAnswerIds,
     stop,
     resume,
     revertQuestion,
