@@ -755,7 +755,9 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         With ``expected_score`` (and optionally ``expected_feedback``) the grade
         is cleared only if it still matches; otherwise the answer is left as is
         and 409 is returned. Batch AI revert uses this so it never clears a
-        grade another teacher saved after the AI wrote it.
+        grade another teacher saved after the AI wrote it. With
+        ``expected_batch_session_id``, also verify the persisted receipt's
+        grader and timestamp while holding the answer lock, even for same-value saves.
         """
         contest = self._get_contest(contest_pk)
         if not can_manage_contest(request.user, contest):
@@ -763,6 +765,12 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         expected_score = request.data.get('expected_score')
         expected_feedback = request.data.get('expected_feedback')
+        batch_session_id = request.data.get('expected_batch_session_id')
+        if 'expected_batch_session_id' in request.data:
+            try:
+                batch_session_id = UUID(str(batch_session_id))
+            except (ValueError, TypeError):
+                raise ValidationError({'expected_batch_session_id': ['A valid session_id is required.']})
         if expected_score is not None:
             if isinstance(expected_score, bool):
                 raise ValidationError({'expected_score': ['A number is required.']})
@@ -776,6 +784,19 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 ExamAnswer.objects.select_for_update().filter(participant__contest=contest),
                 pk=pk
             )
+            if batch_session_id is not None and not ExamBatchGradeWrite.objects.filter(
+                answer=answer_obj,
+                session_id=batch_session_id,
+                grader=request.user,
+                grader_id=answer_obj.graded_by_id,
+                graded_at=answer_obj.graded_at,
+                score=answer_obj.score,
+                feedback=answer_obj.feedback,
+            ).exists():
+                return Response(
+                    {'error': 'The batch grade is no longer current; nothing was revoked.'},
+                    status=status.HTTP_409_CONFLICT,
+                )
             if expected_score is not None and (
                 answer_obj.score is None
                 or answer_obj.score != expected_score

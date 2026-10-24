@@ -41,6 +41,15 @@ def points(value) -> Decimal:
 
 
 def validate_unit(manifest: dict, context_text: str, rubric_text: str, csvs: dict[str, str]) -> dict[str, GradePlan]:
+    # Generated artifacts can be valid JSON with missing fields or wrong types.
+    # Report these as terminal validation failures, not retryable worker errors.
+    try:
+        return _validate_unit(manifest, context_text, rubric_text, csvs)
+    except (KeyError, TypeError, AttributeError) as exc:
+        raise ValueError("評分資料結構不完整或欄位型別錯誤，請修正後重新批改") from exc
+
+
+def _validate_unit(manifest: dict, context_text: str, rubric_text: str, csvs: dict[str, str]) -> dict[str, GradePlan]:
     if digest(context_text) != manifest["context_sha256"]:
         raise ValueError("題組上下文已變動，請重新啟動批改")
     if manifest.get("rubric_sha256") and digest(rubric_text) != manifest["rubric_sha256"]:

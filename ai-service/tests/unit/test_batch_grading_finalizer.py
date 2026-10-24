@@ -394,13 +394,15 @@ async def test_auth_rejection_also_pauses_other_questions_in_the_same_run(http_s
 
 
 @pytest.mark.asyncio
-async def test_v2_missing_rubric_blocks_entire_group_then_validates_child_scores():
+@pytest.mark.parametrize("malformed_rubric", [None, {"version": "v1", "criteria": [{}]}, []])
+async def test_v2_missing_rubric_blocks_entire_group_then_validates_child_scores(malformed_rubric):
     from dataclasses import replace
     from test_batch_grading_contract import fixture
     m,c,r,files = fixture()
     m.update(context_file='context.json',rubric_file='rubric.json')
     batch={'contest_id':'c1','questions':[{'question_id':'a','max_score':3},{'question_id':'b','max_score':5}]}
     stored={'batch.json':json.dumps(batch),'context.json':json.dumps(c),**{f'grade_{qid}.csv':content for qid,content in files.items()}}
+    if malformed_rubric is not None: stored['rubric.json'] = json.dumps(malformed_rubric)
     info=replace(_info(question_ids='a,b'),user_message='batch_question_id: a,b\nbatch_units: '+json.dumps([m]))
     artifacts=FakeArtifacts(stored); finalizer,posted=_finalizer(FakeRuns(info),artifacts)
     await finalizer(RUN_ID,'lease')

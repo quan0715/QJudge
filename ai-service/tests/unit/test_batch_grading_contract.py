@@ -92,3 +92,16 @@ def test_one_criterion_can_own_several_verifiable_shared_requirements():
     # inventory independently quotes another shared sentence in the same prompt.
     r['shared_requirements'][1]['criterion_id']='loop'
     assert len(validate(m,c,r,f))==2
+
+
+@pytest.mark.parametrize("change", ["missing_id", "missing_question_id", "missing_points", "null_criterion", "list_question_id", "null_rubric", "bad_shared"])
+def test_malformed_rubric_is_a_validation_error(change):
+    m, c, r, files = fixture()
+    if change.startswith("missing_"):
+        del r["criteria"][0][change.removeprefix("missing_")]
+    elif change == "null_criterion": r["criteria"][0] = None
+    elif change == "list_question_id": r["criteria"][0]["question_id"] = []
+    elif change == "null_rubric": r = None
+    elif change == "bad_shared": r["shared_requirements"][0] = {}
+    with pytest.raises(ValueError):
+        validate(m, c, r, files)

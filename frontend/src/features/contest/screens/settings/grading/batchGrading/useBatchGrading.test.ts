@@ -227,7 +227,7 @@ describe("useBatchGrading", () => {
     await act(() => result.current.revertQuestion("q1"));
 
     expect(mocks.ungradeExamAnswer.mock.calls).toEqual([
-      ["c1", "a1", { score: 8, feedback: "AI" }],
+      ["c1", "a1", { score: 8, feedback: "AI", batchSessionId: "s1" }],
     ]);
     const rewritten = mocks.uploadUserArtifact.mock.calls.at(-1)?.[1] as File;
     expect(rewritten.name).toBe("written_q1.csv");
@@ -417,7 +417,7 @@ describe("batch grading recovery", () => {
     const { result } = render(rows);
     await waitFor(() => expect(result.current.overall.writtenCount).toBe(1));
     await act(() => result.current.revertQuestion("q1"));
-    expect(mocks.ungradeExamAnswer).toHaveBeenCalledWith("c1", "a1", { score: 8, feedback: "AI" });
+    expect(mocks.ungradeExamAnswer).toHaveBeenCalledWith("c1", "a1", { score: 8, feedback: "AI", batchSessionId: "s1" });
   });
 
   it("does not resurrect a revoked receipt from an old CSV copy", async () => {
