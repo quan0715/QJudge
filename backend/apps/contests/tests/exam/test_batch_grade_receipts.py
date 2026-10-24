@@ -117,8 +117,8 @@ class BatchGradeReceiptTests(ExamAnswerTestBase):
         self.assertEqual(self.grade().data['results'][0]['status'], 'ok')
         self.answer.refresh_from_db()
         self.assertEqual(self.answer.score, 8)
-        receipt.refresh_from_db()
-        self.assertEqual(receipt.run_id, self.run_id)
+        # Receipts are immutable per run: the new run adds its own.
+        self.assertTrue(ExamBatchGradeWrite.objects.filter(answer=self.answer, run_id=self.run_id).exists())
         self.assertTrue(self.writes().data['writes'][0]['current'])
 
     def test_receipts_are_scoped_to_owner_session_and_contest(self):

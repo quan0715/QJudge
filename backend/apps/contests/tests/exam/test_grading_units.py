@@ -101,7 +101,7 @@ class GradingUnitTests(ExamAnswerTestBase):
     def test_receipt_failure_rolls_back_grade_and_keeps_draft(self):
         self.post('grading-unit')
         self.draft()
-        with patch('apps.contests.views.exam_grading_unit.ExamBatchGradeWrite.objects.update_or_create', side_effect=IntegrityError('receipt unavailable')):
+        with patch('apps.contests.views.exam_grading_unit.ExamBatchGradeWrite.objects.create', side_effect=IntegrityError('receipt unavailable')):
             self.assertEqual(self.post('grading-submit').data['failed'], 1)
         self.answer.refresh_from_db()
         self.assertIsNone(self.answer.score)
@@ -116,14 +116,14 @@ class GradingUnitTests(ExamAnswerTestBase):
         self.post('grading-unit')
         self.draft()
         self.post('grading-draft', grades=[{'exam_answer_id': str(second.pk), 'score': 4, 'feedback': 'Partial credit'}])
-        original = ExamBatchGradeWrite.objects.update_or_create
+        original = ExamBatchGradeWrite.objects.create
 
         def fail_one(*args, **kwargs):
             if kwargs['answer'].pk == self.answer.pk:
                 raise IntegrityError('one receipt failed')
             return original(*args, **kwargs)
 
-        with patch('apps.contests.views.exam_grading_unit.ExamBatchGradeWrite.objects.update_or_create', side_effect=fail_one):
+        with patch('apps.contests.views.exam_grading_unit.ExamBatchGradeWrite.objects.create', side_effect=fail_one):
             result = self.post('grading-submit').data
         self.assertEqual((result['written'], result['failed']), (1, 1))
         self.answer.refresh_from_db()
