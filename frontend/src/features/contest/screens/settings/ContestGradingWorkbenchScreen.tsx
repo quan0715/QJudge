@@ -254,10 +254,20 @@ export default function ContestGradingWorkbenchScreen() {
       showToast({ kind: "success", title: t("workbench.adoptedAll", "已採用 {{count}} 份建議", { count: pendingAnswers.length }) });
     });
 
-  const startAi = async ({ mode, range, modelId }: { mode: AiMode; range: AiRange; modelId?: string }) => {
+  const startAi = async ({
+    mode,
+    range,
+    modelId,
+    newSession,
+  }: {
+    mode: AiMode;
+    range: AiRange;
+    modelId?: string;
+    newSession: boolean;
+  }) => {
     if (!unit) return;
     if (aiScope === "exam") {
-      if (!batch.sessionId) return batch.start(modelId);
+      if (!batch.sessionId || newSession) return batch.start(modelId);
       return batch.startQuestion(
         batchQuestions.filter((q) => q.ungradedRows.length > 0).map((q) => q.questionId),
         modelId,
@@ -271,7 +281,11 @@ export default function ContestGradingWorkbenchScreen() {
       return suggestions.start(targets, modelId);
     }
     const questionIds = unit.questions.map((q) => q.id);
-    if (range === "ungraded") return batch.startQuestion(questionIds, modelId);
+    if (range === "ungraded") {
+      return newSession
+        ? batch.startQuestion(questionIds, modelId, { newSession: true })
+        : batch.startQuestion(questionIds, modelId);
+    }
     const revertable = unitAnswers.filter((row) => batch.aiWrittenAnswerIds.has(row.id)).length;
     const ungraded = unitAnswers.filter((row) => row.score === null).length;
     if (revertable + ungraded === 0) {
@@ -621,6 +635,7 @@ export default function ContestGradingWorkbenchScreen() {
         ungradedCount={ungradedCount}
         regradeCount={regradeCount}
         suggestAvailable={!isGroup}
+        hasSession={Boolean(batch.sessionId)}
         onClose={() => setAiScope(null)}
         onConfirm={startAi}
       />

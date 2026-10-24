@@ -17,8 +17,10 @@ interface WorkbenchAiModalProps {
   regradeCount: number;
   /** False for question groups: suggestions grade one question at a time. */
   suggestAvailable: boolean;
+  /** A batch grading session exists that this run could reuse. */
+  hasSession?: boolean;
   onClose(): void;
-  onConfirm(choice: { mode: AiMode; range: AiRange; modelId?: string }): Promise<void>;
+  onConfirm(choice: { mode: AiMode; range: AiRange; modelId?: string; newSession: boolean }): Promise<void>;
 }
 
 export function WorkbenchAiModal({
@@ -29,6 +31,7 @@ export function WorkbenchAiModal({
   ungradedCount,
   regradeCount,
   suggestAvailable,
+  hasSession = false,
   onClose,
   onConfirm,
 }: WorkbenchAiModalProps) {
@@ -37,16 +40,21 @@ export function WorkbenchAiModal({
   const [mode, setMode] = useState<AiMode>("grade");
   const [range, setRange] = useState<AiRange>(ungradedCount > 0 ? "ungraded" : "all");
   const [modelId, setModelId] = useState<string | null>(null);
+  const [newSession, setNewSession] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   useEffect(() => {
     if (!open) return;
     setMode("grade");
     setRange(ungradedCount > 0 ? "ungraded" : "all");
+    setNewSession(false);
     setError(undefined);
   }, [open, ungradedCount]);
   const effectiveModelId = modelId ?? selectedModelId ?? models[0]?.id ?? undefined;
   const question = scope === "question";
+  // Suggestions always open their own session; a full regrade must revert the current session's writes.
+  const sessionChoice = hasSession && (!question || (mode === "grade" && range === "ungraded"));
+  const opensSession = !hasSession || (sessionChoice && newSession) || (question && mode === "suggest");
   const submit = async () => {
     setBusy(true);
     setError(undefined);
@@ -55,6 +63,7 @@ export function WorkbenchAiModal({
         mode: question ? mode : "grade",
         range: question ? range : "ungraded",
         modelId: effectiveModelId,
+        newSession: sessionChoice && newSession,
       });
       onClose();
     } catch (err) {
@@ -123,7 +132,20 @@ export function WorkbenchAiModal({
             </RadioButtonGroup>
           </>
         )}
-        {models.length > 0 && (
+        {sessionChoice && (
+          <RadioButtonGroup
+            legendText={t("workbench.session", "Session")}
+            name="workbench-ai-session"
+            orientation="vertical"
+            valueSelected={newSession ? "new" : "reuse"}
+            onChange={(value) => setNewSession(value === "new")}
+          >
+            <RadioButton id="workbench-ai-session-reuse" value="reuse" labelText={t("workbench.sessionReuse", "沿用目前的批改 session")} />
+            <RadioButton id="workbench-ai-session-new" value="new" labelText={t("workbench.sessionNew", "開新的 session")} />
+          </RadioButtonGroup>
+        )}
+        {/* A reused session keeps the model it was created with. */}
+        {models.length > 0 && opensSession && (
           <Dropdown<CopilotModel>
             id="workbench-ai-model"
             titleText={t("workbench.model", "批改模型")}

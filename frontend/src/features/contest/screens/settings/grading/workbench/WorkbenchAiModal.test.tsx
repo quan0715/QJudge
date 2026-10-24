@@ -39,7 +39,7 @@ describe("WorkbenchAiModal", () => {
     expect(radio("建議：審查採用後才寫入")).toBeNull();
     expect(radio("只批未評分的 2 份")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "開始" }));
-    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith({ mode: "grade", range: "ungraded", modelId: "m1" }));
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith({ mode: "grade", range: "ungraded", modelId: "m1", newSession: false }));
   });
 
   it("question scope defaults to grade + ungraded", () => {
@@ -67,6 +67,30 @@ describe("WorkbenchAiModal", () => {
     fireEvent.click(screen.getByText("建議：審查採用後才寫入"));
     fireEvent.click(screen.getByText("全部重改 14 份，人工調整的不動"));
     fireEvent.click(screen.getByRole("button", { name: "開始" }));
-    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith({ mode: "suggest", range: "all", modelId: "m1" }));
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith({ mode: "suggest", range: "all", modelId: "m1", newSession: false }));
+  });
+
+  it("with a batch session, grading asks whether to reuse it", async () => {
+    const onConfirm = vi.fn().mockResolvedValue(undefined);
+    render(<WorkbenchAiModal {...props} scope="question" hasSession onConfirm={onConfirm} />);
+    expect(radio("沿用目前的批改 session")?.checked).toBe(true);
+    expect(screen.queryByText("批改模型")).toBeNull();
+
+    fireEvent.click(screen.getByText("開新的 session"));
+    expect(screen.getAllByText("批改模型").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "開始" }));
+
+    await waitFor(() =>
+      expect(onConfirm).toHaveBeenCalledWith({ mode: "grade", range: "ungraded", modelId: "m1", newSession: true }),
+    );
+  });
+
+  it("a full regrade or suggestions do not offer a session choice", () => {
+    render(<WorkbenchAiModal {...props} scope="question" hasSession onConfirm={vi.fn()} />);
+    fireEvent.click(screen.getByText("全部重改 14 份，人工調整的不動"));
+    expect(radio("沿用目前的批改 session")).toBeNull();
+    fireEvent.click(screen.getByText("只批未評分的 2 份"));
+    fireEvent.click(screen.getByText("建議：審查採用後才寫入"));
+    expect(radio("沿用目前的批改 session")).toBeNull();
   });
 });

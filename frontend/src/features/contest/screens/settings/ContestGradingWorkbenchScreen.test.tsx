@@ -384,6 +384,17 @@ describe("grading workbench", () => {
     expect(screen.getByText("停止失敗：連線逾時")).toBeInTheDocument();
   });
 
+  it("starting AI on a question can open a new batch session", async () => {
+    mocks.batch.sessionId = "sess";
+    await setup("grading_question=a");
+    fireEvent.click(screen.getByRole("button", { name: "AI 批改這題" }));
+    fireEvent.click(await screen.findByText("開新的 session"));
+    fireEvent.click(screen.getByRole("button", { name: "開始" }));
+    await waitFor(() =>
+      expect(mocks.batch.startQuestion).toHaveBeenCalledWith(["a", "b"], "m1", { newSession: true }),
+    );
+  });
+
   it("rail progress counts fully graded students", async () => {
     await setup("grading_question=c");
     const rail = within(screen.getByRole("navigation", { name: "題目" }));
