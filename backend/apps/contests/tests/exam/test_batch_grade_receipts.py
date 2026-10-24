@@ -108,3 +108,32 @@ class BatchGradeReceiptTests(ExamAnswerTestBase):
         self.assertEqual(self.grade(only_if_ungraded=False).status_code, 400)
         self.answer.refresh_from_db()
         self.assertIsNone(self.answer.score)
+
+
+    def test_batch_revoke_rejects_same_value_manual_save_after_receipt_read(self):
+        self.grade()
+        self.assertTrue(self.writes().data['writes'][0]['current'])
+        self.client.post(self.base + f'{self.answer.id}/grade/', {'score': 8, 'feedback': 'AI'}, format='json')
+        response = self.client.post(self.base + f'{self.answer.id}/ungrade/', {
+            'expected_score': 8, 'expected_feedback': 'AI',
+            'expected_batch_session_id': str(self.session_id),
+        }, format='json')
+        self.assertEqual(response.status_code, 409)
+        self.answer.refresh_from_db()
+        self.assertEqual(self.answer.score, 8)
+        self.assertEqual(self.answer.feedback, 'AI')
+
+    def test_batch_revoke_requires_matching_receipt_owner_and_session(self):
+        self.grade()
+        url = self.base + f'{self.answer.id}/ungrade/'
+        for session in ('invalid', str(uuid4())):
+            response = self.client.post(url, {'expected_batch_session_id': session}, format='json')
+            self.assertEqual(response.status_code, 400 if session == 'invalid' else 409)
+        from django.contrib.auth import get_user_model
+        other = get_user_model().objects.create_user(username='revoke-admin', role='admin', is_staff=True)
+        self.client.force_authenticate(user=other)
+        self.assertEqual(self.client.post(url, {'expected_batch_session_id': str(self.session_id)}, format='json').status_code, 409)
+        self.client.force_authenticate(user=self.teacher)
+        self.assertEqual(self.client.post(url, {'expected_batch_session_id': str(self.session_id)}, format='json').status_code, 200)
+        self.answer.refresh_from_db()
+        self.assertIsNone(self.answer.score)

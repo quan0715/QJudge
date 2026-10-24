@@ -384,6 +384,7 @@ export function useBatchGrading(
           await ungradeExamAnswer(contestId, record.examAnswerId, {
             score: record.score,
             feedback: record.feedback,
+            batchSessionId: id,
           });
           reverted.push(record.examAnswerId);
         } catch (err) {

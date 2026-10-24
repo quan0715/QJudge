@@ -344,13 +344,14 @@ export const gradeExamAnswer = async (
 export const ungradeExamAnswer = async (
   contestId: string,
   answerId: string,
-  expected?: { score: number; feedback: string }
+  expected?: { score: number; feedback: string; batchSessionId?: string }
 ): Promise<ExamAnswerDetail> => {
   const dto = await requestJson<ExamAnswerDetailDto>(
     httpClient.post(
       `/api/v1/contests/${contestId}/exam-answers/${answerId}/ungrade/`,
       expected
-        ? { expected_score: expected.score, expected_feedback: expected.feedback }
+        ? { expected_score: expected.score, expected_feedback: expected.feedback,
+            expected_batch_session_id: expected.batchSessionId }
         : undefined
     ),
     "Failed to ungrade answer"
