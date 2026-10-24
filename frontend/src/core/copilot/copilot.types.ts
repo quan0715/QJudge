@@ -192,6 +192,8 @@ export interface CopilotError {
     | "upload-attachment";
   message?: string;
   recoverable: boolean;
+  /** Minimum reconnect delay requested by the server. */
+  retryAfterMs?: number;
   cause?: unknown;
 }
 

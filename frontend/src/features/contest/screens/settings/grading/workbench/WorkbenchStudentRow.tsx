@@ -19,6 +19,7 @@ interface WorkbenchStudentRowProps {
   drafts: Record<string, GradeDraft>;
   /** Pending AI suggestions keyed by answer id. */
   suggestionScores: Record<string, { score: number; feedback: string }>;
+  aiDraftScores?: Record<string, GradeDraft>;
   busy: boolean;
   /** The AI is grading this row's unit; ungraded rows show it is working on them. */
   aiRunning?: boolean;
@@ -51,6 +52,7 @@ export function WorkbenchStudentRow({
   expanded,
   drafts,
   suggestionScores,
+  aiDraftScores = {},
   busy,
   aiRunning = false,
   onToggle,
@@ -63,18 +65,23 @@ export function WorkbenchStudentRow({
   const isObjective = (answer: GradingAnswerRow) => !isSubjectiveType(answer.questionType);
   const objective = questions.every((question) => !isSubjectiveType(question.questionType));
   const pending = row.source === "suggestion";
-  const aiGrading = aiRunning && row.source === "none";
+  const previewOf = (answer: GradingAnswerRow) => answer.score === null ? aiDraftScores[answer.id] : undefined;
+  const hasAiDraft = !pending && row.answers.some((answer) => previewOf(answer));
+  const aiGrading = aiRunning && row.source === "none" && !hasAiDraft;
+  const previewScores = row.answers.map((answer) => answer.score ?? previewOf(answer)?.score);
+  const previewTotal = previewScores.every((score) => score !== undefined)
+    ? compactScore(previewScores.reduce<number>((sum, score) => sum + (score ?? 0), 0)) : "—";
   const valueOf = (answer: GradingAnswerRow): GradeDraft | null => {
     const draft = drafts[answer.id] ?? suggestionScores[answer.id];
     if (draft) return draft;
-    return answer.score === null ? null : { score: answer.score, feedback: answer.feedback };
+    return answer.score === null ? previewOf(answer) ?? null : { score: answer.score, feedback: answer.feedback };
   };
   const suggestedTotal = row.answers.reduce(
     (sum, answer) => sum + (suggestionScores[answer.id]?.score ?? answer.score ?? 0),
     0,
   );
   const current = row.total === null ? "—" : compactScore(row.total);
-  const scoreText = pending ? `${current} → ${compactScore(suggestedTotal)}` : current;
+  const scoreText = pending ? `${current} → ${compactScore(suggestedTotal)}` : hasAiDraft ? previewTotal : current;
   const prefix = (answer: GradingAnswerRow) => (isGroup ? `${labels.get(answer.questionId)?.label ?? ""} ` : "");
   const picked = (answer: GradingAnswerRow) => {
     const texts = optionTexts(answer);
@@ -87,13 +94,13 @@ export function WorkbenchStudentRow({
   };
   const summary = objective
     ? row.answers.map(picked).join("\u3000")
-    : row.source === "none" && !row.answers.some((answer) => answer.feedback)
+    : row.source === "none" && !hasAiDraft && !row.answers.some((answer) => answer.feedback)
       ? t("workbench.ungradedSummary", "尚未批改")
       : row.answers
           .map((answer) =>
             isObjective(answer)
               ? `${prefix(answer)}${picked(answer)}`
-              : `${prefix(answer)}${suggestionScores[answer.id]?.feedback ?? answer.feedback}`,
+              : `${prefix(answer)}${suggestionScores[answer.id]?.feedback ?? previewOf(answer)?.feedback ?? answer.feedback}`,
           )
           .join("\u3000");
   const sourceText: Record<AnswerSource, string> = {
@@ -133,11 +140,11 @@ export function WorkbenchStudentRow({
           </Tag>
         ) : (
           <Tag
-            type={TAG_TYPE[row.source]}
+            type={hasAiDraft ? "purple" : TAG_TYPE[row.source]}
             size="sm"
             className={row.source === "suggestion" ? styles.suggestionTag : undefined}
           >
-            {sourceText[row.source]}
+            {hasAiDraft ? t("workbench.source.aiDraft", "AI 草稿") : sourceText[row.source]}
           </Tag>
         )}
       </button>
@@ -152,7 +159,7 @@ export function WorkbenchStudentRow({
             const value = valueOf(answer);
             const subLabel = labels.get(answer.questionId)?.label ?? "";
             const label = isGroup ? subLabel : t("workbench.scoreLabel", "分數");
-            const aiValue = suggestionScores[answer.id]?.score ?? (row.source === "ai" ? answer.score : null);
+            const aiValue = suggestionScores[answer.id]?.score ?? previewOf(answer)?.score ?? (row.source === "ai" ? answer.score : null);
             const update = (next: Partial<GradeDraft>) =>
               onDraftChange(answer.id, {
                 score: value?.score ?? 0,

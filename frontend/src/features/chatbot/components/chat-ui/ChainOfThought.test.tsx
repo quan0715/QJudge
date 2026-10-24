@@ -77,6 +77,24 @@ describe("ChainOfThought subagents", () => {
     expect(screen.getByText("Q3 完成 36 份")).toBeVisible();
   });
 
+  it("renders clean subagent output as Markdown", () => {
+    render(<ChainOfThought steps={[task({ output: "## 批改完成\n\n**已提交**\n\n- 16 份作答" })]} isProcessing={false} />);
+    fireEvent.click(screen.getByText("批改 Q3 TCP 三向交握"));
+    expect(screen.getByRole("heading", { name: "批改完成" })).toBeVisible();
+    expect(screen.getByText("已提交").tagName).toBe("STRONG");
+    expect(screen.getByText("16 份作答").tagName).toBe("LI");
+  });
+
+  it("extracts old Command ToolMessage content safely and renders Markdown", () => {
+    const output = String.raw`Command(update={'files': {}, 'messages': [ToolMessage(content='\n## 完成\n\n**Teacher\'s notes**\n\n<script>throw Error("bad")</script>', name='task', tool_call_id='T1')]})`;
+    const { container } = render(<ChainOfThought steps={[task({ output })]} isProcessing={false} />);
+    fireEvent.click(screen.getByText("批改 Q3 TCP 三向交握"));
+    expect(screen.getByRole("heading", { name: "完成" })).toBeVisible();
+    expect(screen.getByText("Teacher's notes").tagName).toBe("STRONG");
+    expect(screen.queryByText(/Command\(update/)).not.toBeInTheDocument();
+    expect(container.querySelector("script")).toBeNull();
+  });
+
   it("opens the running subagent with its activity and todos", () => {
     render(
       <ChainOfThought

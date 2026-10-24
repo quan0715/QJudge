@@ -64,6 +64,9 @@ export function createQJudgeCopilotTransport(
   uploadArtifact: UploadArtifact,
 ): CopilotTransport {
   const repositoryRuns = new Map<string, ChatRun>();
+  const assistantSnapshots = new Map<string, Map<string, ChatMessage>>();
+  const snapshotRequests = new Map<string, number>();
+  const toolPartsByRun = new Map<string, Map<string, CopilotToolPart>>();
   const normalizedSequenceByRun = new Map<string, number>();
 
   const rememberRun = (run: ChatRun): CopilotRun => {
@@ -107,8 +110,30 @@ export function createQJudgeCopilotTransport(
     },
 
     async getSession(id): Promise<CopilotSession> {
+      const request = (snapshotRequests.get(id) ?? 0) + 1;
+      snapshotRequests.set(id, request);
       try {
-        return mapChatSessionToCopilot(await repository.getSession(id));
+        const session = await repository.getSession(id);
+        if (snapshotRequests.get(id) === request) {
+          const snapshots = new Map(session.messages
+            .filter((message) => message.role === "assistant" && message.runId)
+            .map((message) => [message.runId!, message]));
+          assistantSnapshots.set(id, snapshots);
+          // This snapshot replaces UI state, so reconnect-only cached activity
+          // must not be prepended to events replayed against the fresh snapshot.
+          for (const [runId, knownRun] of repositoryRuns) {
+            if (knownRun.sessionId === id) toolPartsByRun.delete(runId);
+          }
+          for (const [runId, message] of snapshots) {
+            const parts = new Map<string, CopilotToolPart>();
+            for (const [index, tool] of (message.toolExecutions ?? []).entries()) {
+              const part = mapToolInfoToCopilotPart(tool, index);
+              parts.set(part.toolCallId, part);
+            }
+            toolPartsByRun.set(runId, parts);
+          }
+        }
+        return mapChatSessionToCopilot(session);
       } catch (error) {
         throw mapQJudgeError("load-session", error);
       }
@@ -168,7 +193,15 @@ export function createQJudgeCopilotTransport(
         const run = (await repository.getActiveRuns()).find(
           (candidate) => candidate.sessionId === sessionId,
         );
-        return run ? rememberRun(run) : null;
+        if (!run) return null;
+        const snapshot = assistantSnapshots.get(sessionId)?.get(run.id);
+        // The run may advance after getSession. Only its loaded message tells us
+        // which events the UI already has; newer events must still be replayed.
+        return rememberRun({
+          ...run,
+          assistantMessageId: snapshot?.id ?? run.assistantMessageId,
+          lastEventSeq: snapshot?.lastEventSeq ?? 0,
+        });
       } catch (error) {
         throw mapQJudgeError("subscribe-run", error);
       }
@@ -190,7 +223,10 @@ export function createQJudgeCopilotTransport(
       let terminalObserved = false;
       let terminalResumeSequence: number | undefined;
       const toolFingerprints = new Map<string, string>();
-      const activeToolParts = new Map<string, CopilotToolPart>();
+      // Keep starts/input/activity across reconnects that resume after those events.
+      const knownToolParts = toolPartsByRun.get(run.id) ?? new Map<string, CopilotToolPart>();
+      toolPartsByRun.set(run.id, knownToolParts);
+      const activityPrefixes = new Map([...knownToolParts].map(([id, part]) => [id, part.activity?.text ?? ""]));
       const verificationIterations = new Set<number>();
       const legacyRun = {
         ...(repositoryRuns.get(run.id) ?? mapCopilotRunToChat(run)),
@@ -243,15 +279,16 @@ export function createQJudgeCopilotTransport(
       ) => {
         for (const [index, tool] of (tools ?? []).entries()) {
           const mappedPart = mapToolInfoToCopilotPart(tool, index);
-          const activePart = activeToolParts.get(mappedPart.toolCallId);
+          const activePart = knownToolParts.get(mappedPart.toolCallId);
           const part = activePart
             ? {
                 ...activePart,
                 ...mappedPart,
+                toolName: mappedPart.toolName || activePart.toolName,
                 input: mappedPart.input ?? activePart.input,
               }
             : mappedPart;
-          activeToolParts.delete(part.toolCallId);
+          knownToolParts.set(part.toolCallId, part);
           emitToolPart(part, resumeSequence);
         }
       };
@@ -283,6 +320,7 @@ export function createQJudgeCopilotTransport(
           }
         },
         onMessageUpdate(update: Partial<ChatMessage>, resumeSequence) {
+          if (closed) return;
           const sourceSequence = resumeSequence ?? update.lastEventSeq;
           if (update.runStatus) latestStatus = update.runStatus;
           if (typeof update.runError === "string" && update.runError.length > 0) {
@@ -314,10 +352,14 @@ export function createQJudgeCopilotTransport(
           }
           emitToolUpdates(update.toolExecutions, sourceSequence);
           for (const [parentId, activity] of Object.entries(update.subagentActivity ?? {})) {
-            const taskPart = activeToolParts.get(parentId);
+            const taskPart = knownToolParts.get(parentId);
             if (!taskPart) continue;
-            const part = { ...taskPart, activity: mapSubagentActivityToCopilot(activity) };
-            activeToolParts.set(parentId, part);
+            const part = { ...taskPart, activity: {
+              ...taskPart.activity,
+              ...mapSubagentActivityToCopilot(activity),
+              text: (activityPrefixes.get(parentId) ?? "") + activity.text,
+            } };
+            knownToolParts.set(parentId, part);
             emitToolPart(part, sourceSequence);
           }
           emitVerificationUpdates(
@@ -336,7 +378,7 @@ export function createQJudgeCopilotTransport(
           }
         },
         onToolStarted(tool, resumeSequence) {
-          if (!tool.toolCallId) return;
+          if (closed || !tool.toolCallId) return;
           const part: CopilotToolPart = {
             type: "tool",
             toolCallId: tool.toolCallId,
@@ -345,7 +387,7 @@ export function createQJudgeCopilotTransport(
             ...(tool.inputData ? { input: tool.inputData } : {}),
             ...(tool.parentToolCallId ? { parentToolCallId: tool.parentToolCallId } : {}),
           };
-          activeToolParts.set(part.toolCallId, part);
+          knownToolParts.set(part.toolCallId, part);
           emitToolPart(part, resumeSequence);
         },
         onVerificationReport(report, resumeSequence) {
@@ -391,6 +433,8 @@ export function createQJudgeCopilotTransport(
           }, resumeSequence);
         },
         onComplete(session, resumeSequence) {
+          if (closed) return;
+          toolPartsByRun.delete(run.id);
           const status = ["completed", "cancelled", "failed"].includes(latestStatus)
             ? mapChatRunStatusToCopilot(latestStatus)
             : "completed";
@@ -410,6 +454,7 @@ export function createQJudgeCopilotTransport(
         onError(message) {
           if (closed) return;
           if (latestStatus === "failed") {
+            toolPartsByRun.delete(run.id);
             const synchronizationError = mapQJudgeError(
               "subscribe-run",
               message,

@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
+from sqlalchemy.exc import OperationalError, TimeoutError as PoolTimeoutError
 
 from domain.model_catalog import ModelNotAvailable
 from domain.models import Principal, Run, RunKind, RunStatus
@@ -23,7 +24,6 @@ from infrastructure.agent.deepagent_adapter import AgentOperation
 from worker.runtime import (
     ClaimMode,
     RunClaim,
-    TerminalHookRunStore,
     WorkerCredentialResolver,
     WorkerRuntime,
 )
@@ -463,37 +463,56 @@ async def test_chat_command_without_page_context_keeps_prompt() -> None:
     assert agent.commands[0].prompt == "hello"
 
 
-class _DispatchRecorder:
-    def __init__(self, calls: list[str]) -> None:
-        self.calls = calls
-        self.other_attribute = "delegated"
+@pytest.mark.asyncio
+@pytest.mark.parametrize("error", [
+    OperationalError("UPDATE runs", {}, RuntimeError("deadlock detected")),
+    PoolTimeoutError("connection pool temporarily exhausted"),
+])
+async def test_heartbeat_database_failure_recovers_and_dispatches_terminal_run(error) -> None:
+    run = make_run()
+    recovered = asyncio.Event()
 
-    async def dispatch_next_after_terminal(self, run_id, lease_key, trace):
-        self.calls.append("dispatch")
+    class RecoveringRuns(FakeRuns):
+        async def heartbeat(self, run_id, execution_epoch):
+            assert run_id == run.id
+            assert execution_epoch == 0
+            self.heartbeats += 1
+            if self.heartbeats == 1:
+                raise error
+            recovered.set()
+            return True
+
+    class WaitingAgent(FakeAgent):
+        async def execute(self, command):
+            await asyncio.wait_for(recovered.wait(), timeout=0.5)
+            yield {"type": "run_completed"}
+
+    runs = RecoveringRuns(run, Principal("issuer", "subject"))
+    runtime = WorkerRuntime(
+        runs, FakeCredentials(), WaitingAgent(), FakeCheckpoints(),
+        heartbeat_seconds=0.001,
+    )
+    await runtime.execute(run.id, "lease:subject", TRACE)
+
+    assert recovered.is_set()
+    assert runs.run.status is RunStatus.COMPLETED
+    assert runs.dispatches == [(run.id, "lease:subject", TRACE)]
 
 
 @pytest.mark.asyncio
-async def test_hook_runs_before_dispatch() -> None:
-    calls: list[str] = []
+async def test_heartbeat_stops_when_execution_epoch_is_rejected() -> None:
+    run = make_run()
 
-    async def hook(run_id, lease_key):
-        calls.append(f"hook:{lease_key}")
+    class RejectedRuns(FakeRuns):
+        async def heartbeat(self, run_id, execution_epoch):
+            assert execution_epoch == 7
+            self.heartbeats += 1
+            return False
 
-    store = TerminalHookRunStore(_DispatchRecorder(calls), hook)
-    await store.dispatch_next_after_terminal(uuid4(), "lease:subject", TRACE)
-
-    assert calls == ["hook:lease:subject", "dispatch"]
-    assert store.other_attribute == "delegated"
-
-
-@pytest.mark.asyncio
-async def test_finalizer_error_does_not_block_dispatch() -> None:
-    calls: list[str] = []
-
-    async def hook(run_id, lease_key):
-        raise RuntimeError("backend down")
-
-    store = TerminalHookRunStore(_DispatchRecorder(calls), hook)
-    await store.dispatch_next_after_terminal(uuid4(), "lease:subject", TRACE)
-
-    assert calls == ["dispatch"]
+    runs = RejectedRuns(run, Principal("issuer", "subject"))
+    runtime = WorkerRuntime(
+        runs, FakeCredentials(), FakeAgent(), FakeCheckpoints(),
+        heartbeat_seconds=0.001,
+    )
+    await asyncio.wait_for(runtime._heartbeat_loop(run.id, 7, asyncio.Event()), 0.5)
+    assert runs.heartbeats == 1

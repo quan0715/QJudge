@@ -232,3 +232,15 @@ describe("WorkbenchScoreField input", () => {
     expect((input as HTMLInputElement).value).toBe("1");
   });
 });
+
+it("previews zero-point AI drafts and replaces them with official scores", () => {
+  const props = {...baseProps, questions: [question()], expanded: true, aiRunning: true,
+    aiDraftScores: {a1: {score: 0, feedback: "草稿評語"}}};
+  const {rerender} = render(<WorkbenchStudentRow {...props} row={studentRow([answer({score: null, feedback: ""})], {source: "none"})} />);
+  expect(screen.getByText("AI 草稿")).toBeInTheDocument();
+  expect(screen.getByRole("textbox", {name: "分數"})).toHaveValue("0");
+  expect(screen.getByText("草稿評語", {selector: "span"})).toBeInTheDocument();
+  rerender(<WorkbenchStudentRow {...props} row={studentRow([answer({score: 2, feedback: "正式評語"})], {source: "ai"})} />);
+  expect(screen.queryByText("AI 草稿")).not.toBeInTheDocument();
+  expect(screen.getByRole("textbox", {name: "分數"})).toHaveValue("2");
+});

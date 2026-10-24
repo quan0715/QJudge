@@ -86,7 +86,8 @@
         "participants": "參與者",
         "questionStats": "作答分佈",
         "standings": "排行榜",
-        "submissions": "提交列表"
+        "submissions": "提交列表",
+        "scoreMatrix": "成績總覽"
       },
       "eventLog": "事件紀錄",
       "examStatusSummary": "考試狀態摘要",

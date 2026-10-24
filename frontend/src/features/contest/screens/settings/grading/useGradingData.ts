@@ -73,43 +73,93 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
   }, [participantMap]);
 
   const isPaperExam = Boolean(contestId) && contest?.contestType === "paper_exam";
+  const scopeRef = useRef({ contestId, isPaperExam });
+  if (scopeRef.current.contestId !== contestId || scopeRef.current.isPaperExam !== isPaperExam) {
+    scopeRef.current = { contestId, isPaperExam };
+  }
+  const loadSequence = useRef(0);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
-  /** Fetch and apply the latest answers without touching `loading`. */
-  const loadRows = useCallback(async (): Promise<GradingAnswerRow[]> => {
+  const questionRequestRef = useRef<{
+    scope: typeof scopeRef.current;
+    promise: Promise<ExamQuestion[]>;
+    settled: boolean;
+  } | null>(null);
+  const rowsRequestRef = useRef<{
+    scope: typeof scopeRef.current;
+    promise: Promise<GradingAnswerRow[]>;
+  } | null>(null);
+
+  /** Poll scores without reloading unchanged definitions or overlapping reads. */
+  const loadRows = useCallback((refreshQuestions = false): Promise<GradingAnswerRow[]> => {
+    if (scopeRef.current.contestId !== contestId || scopeRef.current.isPaperExam !== isPaperExam) return Promise.resolve([]);
+    const scope = scopeRef.current;
     if (!contestId || !isPaperExam) {
       setAnswers([]);
       setQuestions([]);
-      return [];
+      return Promise.resolve([]);
     }
-    const [{ data: allAnswers }, questions] = await Promise.all([
-      getAllExamAnswersForGrading(contestId),
-      getExamQuestions(contestId),
-    ]);
-    const sortedQuestions = questions
-      .slice()
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    setQuestions(sortedQuestions);
-    const rows = buildGradingRows(allAnswers, questions, participantMapRef.current);
-    setAnswers(rows);
-    return rows;
+    const pending = rowsRequestRef.current;
+    if (!refreshQuestions && pending?.scope === scope) return pending.promise;
+    const sequence = ++loadSequence.current;
+    let definition = questionRequestRef.current;
+    if (!definition || definition.scope !== scope || (refreshQuestions && definition.settled)) {
+      const request = { scope, promise: getExamQuestions(contestId), settled: false };
+      request.promise = request.promise.then((value) => {
+        request.settled = true;
+        return value;
+      }, (error: unknown) => {
+        if (questionRequestRef.current === request) questionRequestRef.current = null;
+        throw error;
+      });
+      questionRequestRef.current = request;
+      definition = request;
+    }
+    const questionsPromise = definition.promise;
+    const promise = (async () => {
+      const [{ data: allAnswers }, questions] = await Promise.all([
+        getAllExamAnswersForGrading(contestId), questionsPromise,
+      ]);
+      const sortedQuestions = questions.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      const rows = buildGradingRows(allAnswers, questions, participantMapRef.current);
+      if (mountedRef.current && scopeRef.current === scope && sequence === loadSequence.current) {
+        setQuestions(sortedQuestions);
+        setAnswers(rows);
+      }
+      return rows;
+    })().finally(() => {
+      if (rowsRequestRef.current?.promise === promise) rowsRequestRef.current = null;
+    });
+    rowsRequestRef.current = { scope, promise };
+    return promise;
   }, [contestId, isPaperExam]);
 
   // Fetch real data
   const fetchData = useCallback(async () => {
+    const scope = scopeRef.current;
+    const current = () => mountedRef.current && scopeRef.current === scope;
     if (!isPaperExam) {
       await loadRows();
-      setLoading(false);
+      if (current()) setLoading(false);
       return;
     }
     setLoading(true);
+    const loadingRows = loadRows(true);
+    const sequence = loadSequence.current;
     try {
-      await loadRows();
+      await loadingRows;
     } catch (err) {
-      console.error("Failed to fetch grading data:", err);
-      setAnswers([]);
-      setQuestions([]);
+      if (current() && sequence === loadSequence.current) {
+        console.error("Failed to fetch grading data:", err);
+        setAnswers([]);
+        setQuestions([]);
+      }
     } finally {
-      setLoading(false);
+      if (current()) setLoading(false);
     }
   }, [isPaperExam, loadRows]);
 

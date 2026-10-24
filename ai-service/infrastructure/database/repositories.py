@@ -1,4 +1,8 @@
-"""SQLAlchemy repository adapters for the AI domain."""
+"""SQLAlchemy repository adapters for the AI domain.
+
+Non-key mutations use FOR NO KEY UPDATE (key_share=True) to serialize writers
+without blocking artifact FK checks. DELETE acquires its stronger lock itself.
+"""
 
 from __future__ import annotations
 
@@ -213,7 +217,7 @@ class SqlAlchemySessionRepository:
                 SessionRow.owner_issuer == principal.issuer,
                 SessionRow.owner_subject == principal.subject,
             )
-            .with_for_update()
+            .with_for_update(key_share=True)
         )
         return _session_from_row(row) if row is not None else None
 
@@ -337,7 +341,7 @@ class SqlAlchemyRunRepository:
                 SessionRow.owner_issuer == principal.issuer,
                 SessionRow.owner_subject == principal.subject,
             )
-            .with_for_update(of=RunRow)
+            .with_for_update(of=RunRow, key_share=True)
         )
         return _run_from_row(row) if row is not None else None
 
@@ -414,7 +418,7 @@ class SqlAlchemyRunRepository:
         await self._session.scalar(
             select(SessionRow.session_id)
             .where(SessionRow.session_id == terminal.session_id)
-            .with_for_update()
+            .with_for_update(key_share=True)
         )
         if await self.has_blocking_run(terminal.session_id, excluding=run_id):
             return None
@@ -451,7 +455,7 @@ class SqlAlchemyRunRepository:
         self, run_id: UUID, event: dict[str, Any]
     ) -> StreamEvent:
         run_row = await self._session.scalar(
-            select(RunRow).where(RunRow.run_id == run_id).with_for_update()
+            select(RunRow).where(RunRow.run_id == run_id).with_for_update(key_share=True)
         )
         if run_row is None:
             raise LookupError(f"Run not found: {run_id}")
@@ -476,7 +480,7 @@ class SqlAlchemyRunRepository:
         assistant = (
             None if assistant_row is None else _message_from_row(assistant_row)
         )
-        projection = reduce_run_event(_run_from_row(run_row), assistant, event)
+        projection = reduce_run_event(_run_from_row(run_row), assistant, {**event, "seq": sequence})
         _apply_run_projection(run_row, assistant_row, projection, sequence)
 
         payload = {
@@ -569,7 +573,7 @@ class SqlAlchemyMessageRepository:
         session_row = await self._session.scalar(
             select(SessionRow)
             .where(SessionRow.session_id == session.id)
-            .with_for_update()
+            .with_for_update(key_share=True)
         )
         if session_row is None:
             raise LookupError(f"Session not found: {session.id}")

@@ -81,8 +81,13 @@
 
 .subagentText {
   @include type.type-style("body-compact-01");
-  white-space: pre-wrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
   margin: layout.$spacing-03 0;
+
+  pre {
+    overflow-wrap: normal;
+  }
 }
 
 .processingText {

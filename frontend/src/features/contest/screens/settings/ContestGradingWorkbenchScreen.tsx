@@ -36,6 +36,8 @@ import { BatchGradingQuestionNotice } from "./grading/batchGrading/BatchGradingQ
 import type { BatchQuestionFiles } from "./grading/batchGrading/batchGradingApi";
 import { BATCH_ACTIVE_STATUSES, selectBatchQuestions } from "./grading/batchGrading/batchGradingModel";
 import { buildWorkbenchUnits, type GradeDraft } from "./grading/workbench/gradingWorkbenchModel";
+
+import { useAiGradingDrafts } from "./grading/workbench/useAiGradingDrafts";
 import { useWorkbenchDrafts } from "./grading/workbench/useWorkbenchDrafts";
 import { useQuestionSuggestions } from "./grading/workbench/useQuestionSuggestions";
 import {
@@ -107,6 +109,8 @@ export default function ContestGradingWorkbenchScreen() {
   const labels = useMemo(() => buildPaperQuestionLabels(paper?.questions ?? []), [paper]);
   const unit = units.find((item) => item.questions.some((q) => q.id === params.get("grading_question"))) ?? units[0];
   const unitIds = useMemo(() => new Set(unit?.questions.map((q) => q.id)), [unit]);
+  const aiDrafts = useAiGradingDrafts(contestId, batch.sessionId,
+    batch.units.find((item) => item.question_ids.some((id) => unitIds.has(id))));
   const isGroup = (unit?.questions.length ?? 0) > 1;
   const objective = unit ? unit.questions.every((q) => !isSubjectiveType(q.questionType)) : false;
   const maxScore =
@@ -204,9 +208,9 @@ export default function ContestGradingWorkbenchScreen() {
   const save = (row: StudentRow) =>
     run(async () => {
       const next = nextOf(row);
-      const edited = row.answers.filter((answer) => drafts[answer.id]);
+      const edited = row.answers.filter((answer) => drafts[answer.id] || (answer.score === null && aiDrafts.scores[answer.id]));
       for (const answer of edited) {
-        const value = drafts[answer.id];
+        const value = drafts[answer.id] ?? aiDrafts.scores[answer.id];
         await data.gradeAnswer(answer.id, value.score, value.feedback);
         setDrafts((previous) => {
           const rest = { ...previous };
@@ -292,7 +296,7 @@ export default function ContestGradingWorkbenchScreen() {
       throw new Error(t("workbench.nothingToRegrade", "這題沒有 AI 寫入的分數可以重改"));
     }
     if (!batch.sessionId) return batch.startQuestion(questionIds, modelId);
-    return batch.regradeQuestion(questionIds[0]);
+    return batch.regradeQuestion(questionIds[0], undefined, modelId);
   };
 
   const railUnits: RailUnit[] = units.map((item) => {
@@ -305,18 +309,24 @@ export default function ContestGradingWorkbenchScreen() {
         : states.some((state) => state.status === "failed")
           ? "failed"
           : undefined;
-    const running = states.filter((state) => BATCH_ACTIVE_STATUSES.includes(state.status));
-    const toGrade = running.reduce((sum, state) => sum + state.ungradedCount, 0);
-    const scored = running.reduce((sum, state) => sum + (batch.draftCounts[state.questionId] ?? 0), 0);
+    const draft = batch.units?.find((entry) => item.questions.some((q) => entry.question_ids.includes(q.id))
+      && states.every((state) => !state.runId || state.runId === entry.run_id));
+    const progress = `${students.filter((row) => row.total !== null).length}/${students.length}`;
     return {
       id: item.id,
       label: t("workbench.questionNumber", "第 {{number}} 題", { number: item.label }),
-      aiProgress: toGrade ? `${Math.min(scored, toGrade)}/${toGrade}` : undefined,
-      progress: `${students.filter((row) => row.total !== null).length}/${students.length}`,
+      aiProgress: progress,
+      activity: { progress: draft?.total_count ? draft.draft_count / draft.total_count * 100 : 0, label: draft ? `草稿已完成 ${draft.draft_count}/${draft.total_count}` : "等待批改草稿" },
+      progress,
       aiStatus,
     };
   });
-  const startedStates = batch.questions.filter((state) => state.status !== "idle" && state.status !== "skipped");
+  const startedUnits = units.map((item) =>
+    batch.questions.filter((state) => item.questions.some((q) => q.id === state.questionId)),
+  ).filter((states) => states.some((state) => state.status !== "idle" && state.status !== "skipped"));
+  const completedUnits = startedUnits.filter((states) =>
+    states.every((state) => state.status === "completed" || state.status === "skipped"),
+  ).length;
 
   if (error)
     return (
@@ -390,10 +400,12 @@ export default function ContestGradingWorkbenchScreen() {
         disabled={saving}
         examAi={{
           state: examRunning ? "running" : "idle",
-          progressText: startedStates.length
+          completedUnits,
+          totalUnits: startedUnits.length,
+          progressText: startedUnits.length
             ? t("workbench.examProgress", "{{done}}/{{total}} 題", {
-                done: startedStates.filter((state) => state.status === "completed").length,
-                total: startedStates.length,
+                done: completedUnits,
+                total: startedUnits.length,
               })
             : "",
           canStart: !aiBlocked && examSummary.answers > 0,
@@ -493,8 +505,8 @@ export default function ContestGradingWorkbenchScreen() {
             title={tChatbot(MODEL_NOTICE_I18N_KEY[modelNotice.kind])}
           />
         )}
-        {(batch.error || suggestions.error) && (
-          <InlineNotification kind="error" lowContrast hideCloseButton title={batch.error ?? suggestions.error ?? ""} />
+        {(batch.error || suggestions.error || aiDrafts.error) && (
+          <InlineNotification kind="error" lowContrast hideCloseButton title={batch.error ?? suggestions.error ?? aiDrafts.error ?? ""} />
         )}
         {noticeState && <BatchGradingQuestionNotice state={noticeState} />}
         {suggestions.running && (
@@ -603,6 +615,7 @@ export default function ContestGradingWorkbenchScreen() {
               expanded={expanded === row.studentId}
               drafts={drafts}
               suggestionScores={suggestionScores}
+              aiDraftScores={aiDrafts.scores}
               busy={saving}
               aiRunning={unitRunning}
               onToggle={() => openRow(expanded === row.studentId ? null : row.studentId)}

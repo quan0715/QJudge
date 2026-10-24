@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { ChatMessage } from "@/core/types/chatbot.types";
+import type { GradingUnitProgress } from "@/infrastructure/api/repositories/examAnswers.repository";
 import type { GradingAnswerRow } from "../gradingTypes";
-import { countScoredRows,
-  applyFinalizeTimeout,
-  groupForRuns,
+import {
+  currentWrites,
   deriveBatchState,
   isUnfinished,
   selectBatchQuestions,
@@ -36,242 +36,112 @@ const question = (overrides: Partial<BatchQuestion> = {}): BatchQuestion => ({
   ...overrides,
 });
 
-const userMessage = (questionId: string, runId: string): ChatMessage => ({
+const request = (runId: string, questionIds: string[]): ChatMessage => ({
   id: `u-${runId}`,
   role: "user",
-  content: `batch_question_id: ${questionId}\n請批改`,
+  content: `batch_units: ${JSON.stringify([{ id: "u", label: "第 1 題", question_ids: questionIds }])}\n請批改第 1 題。`,
   timestamp: new Date(0),
   runId,
 });
 
-const assistantMessage = (runId: string, runStatus: ChatMessage["runStatus"]): ChatMessage => ({
+const ended = (runId: string, runStatus: ChatMessage["runStatus"], runError?: string): ChatMessage => ({
   id: `a-${runId}`,
   role: "assistant",
   content: "",
   timestamp: new Date(0),
   runId,
   runStatus,
+  runError,
 });
 
-const stateOf = (status: BatchQuestionState["status"]): BatchQuestionState => ({
-  questionId: "q1",
-  label: "Q1",
-  index: 1,
-  status,
-  ungradedCount: 0,
-  writtenCount: 0,
+const unit = (overrides: Partial<GradingUnitProgress>): GradingUnitProgress => ({
+  unit_id: "u",
+  question_ids: ["q1"],
+  run_id: "r1",
+  total_count: 1,
+  draft_count: 1,
+  written_count: 1,
+  skipped_count: 0,
+  status: "completed",
+  ...overrides,
 });
 
-const PROGRESS_HEADER =
-  "question_id,run_id,status,written_count,skipped_count,out_of_range_count,error,updated_at\n";
+const derive = (input: Partial<Parameters<typeof deriveBatchState>[0]>) =>
+  deriveBatchState({ questions: [question()], messages: [], activeRuns: [], units: [], written: [], ...input });
 
 describe("selectBatchQuestions", () => {
-  it("selects only ungraded short answer and essay rows", () => {
+  it("selects ungraded short answer and essay rows", () => {
     const questions = selectBatchQuestions([
-      row({ id: "a1", questionId: "q1", questionIndex: 1, questionType: "essay" }),
-      row({ id: "a2", questionId: "q1", questionIndex: 1, questionType: "essay", score: 4 }),
-      row({ id: "a3", questionId: "q2", questionIndex: 2, questionType: "short_answer" }),
-      row({ id: "a4", questionId: "q3", questionIndex: 3, questionType: "single_choice" }),
-      row({ id: "a5", questionId: "q2", questionIndex: 2, questionType: "short_answer", isAbsent: true }),
+      row({ id: "a1" }),
+      row({ id: "a2", score: 3 }),
+      row({ id: "c1", questionId: "q2", questionType: "single_choice" }),
     ]);
-
-    expect(questions.map((q) => [q.questionId, q.ungradedRows.map((r) => r.id), q.skippedCount]))
-      .toEqual([
-        ["q1", ["a1"], 1],
-        ["q2", ["a3"], 0],
-      ]);
-    expect(questions[0]).toMatchObject({ label: "Q1", index: 1, maxScore: 10 });
-  });
-
-  it("prefixes the question label like the grading page does", () => {
-    const [question] = selectBatchQuestions([row({ questionLabel: "2-1", questionIndex: 3 })]);
-    expect(question.label).toBe("Q2-1");
-  });
-});
-
-describe("groupForRuns", () => {
-  it("splits questions into runs of at most three", () => {
-    expect(groupForRuns([1, 2, 3, 4, 5, 6, 7])).toEqual([[1, 2, 3], [4, 5, 6], [7]]);
-    expect(groupForRuns([])).toEqual([]);
+    expect(questions.map((q) => [q.questionId, q.ungradedRows.length, q.skippedCount])).toEqual([["q1", 1, 1]]);
   });
 });
 
 describe("deriveBatchState", () => {
-  it("derives queued and running from active runs", () => {
-    const state = deriveBatchState({
-      questions: [question({ questionId: "q1" }), question({ questionId: "q2", index: 2 })],
-      messages: [userMessage("q1", "r1"), userMessage("q2", "r2")],
-      activeRuns: [{ id: "r1", status: "running" }, { id: "r2", status: "queued" }],
-      progressCsv: null,
-      writtenCounts: {},
-    });
-
-    expect(state.map((q) => q.status)).toEqual(["running", "queued"]);
+  it("is idle until a run asks for the question", () => {
+    expect(derive({})[0].status).toBe("idle");
   });
 
-  it("maps every question of a multi-question run, each with its own progress row", () => {
-    const state = deriveBatchState({
-      questions: [question({ questionId: "q1" }), question({ questionId: "q2", index: 2 })],
-      messages: [userMessage("q1,q2", "r1"), assistantMessage("r1", "completed")],
-      activeRuns: [],
-      progressCsv: `${PROGRESS_HEADER}q1,r1,completed,1,0,0,,x\nq2,r1,failed,0,0,0,boom,x\n`,
-      writtenCounts: {},
-    });
-
-    expect(state.map((q) => [q.status, q.runId])).toEqual([
-      ["completed", "r1"],
-      ["failed", "r1"],
-    ]);
+  it("follows the active run that asked for the question", () => {
+    const messages = [request("r1", ["q1"])];
+    expect(derive({ messages, activeRuns: [{ id: "r1", status: "queued" }] })[0].status).toBe("queued");
+    expect(derive({ messages, activeRuns: [{ id: "r1", status: "running" }] })[0].status).toBe("running");
+    expect(derive({ messages, activeRuns: [{ id: "r1", status: "awaiting_approval" }] })[0].status).toBe("awaiting-approval");
   });
 
-  it("reports answers that already had a score when the run wrote its grades", () => {
-    const state = deriveBatchState({
-      questions: [question()],
-      messages: [userMessage("q1", "r1"), assistantMessage("r1", "completed")],
-      activeRuns: [],
-      progressCsv: `${PROGRESS_HEADER}q1,r1,completed,2,4,0,,x\n`,
-      writtenCounts: {},
-    });
-
-    expect(state[0]).toMatchObject({ status: "completed", skippedAtWriteCount: 4 });
+  it("is completed once the run's unit was submitted", () => {
+    const state = derive({ messages: [request("r1", ["q1"])], units: [unit({})] })[0];
+    expect(state).toMatchObject({ status: "completed", runId: "r1" });
   });
 
-  it("derives completed from progress row of the same run", () => {
-    const state = deriveBatchState({
-      questions: [question()],
-      messages: [userMessage("q1", "r1"), assistantMessage("r1", "completed")],
-      activeRuns: [],
-      progressCsv: `${PROGRESS_HEADER}q1,r1,completed,1,0,0,,2026-10-22\n`,
-      writtenCounts: { q1: 3 },
-    });
-
-    expect(state[0]).toMatchObject({ status: "completed", writtenCount: 3, runId: "r1" });
+  it("ignores a unit from an older run", () => {
+    const state = derive({ messages: [request("r1", ["q1"]), request("r2", ["q1"]), ended("r2", "completed")], units: [unit({})] })[0];
+    expect(state).toMatchObject({ status: "failed", runId: "r2" });
   });
 
-  it("ignores a progress row from an older run", () => {
-    const state = deriveBatchState({
-      questions: [question()],
-      messages: [userMessage("q1", "r1"), userMessage("q1", "r2"), assistantMessage("r2", "completed")],
-      activeRuns: [],
-      progressCsv: `${PROGRESS_HEADER}q1,r1,failed,0,0,0,boom,2026-10-22\n`,
-      writtenCounts: {},
+  it("reports how a run ended without submitting", () => {
+    expect(derive({ messages: [request("r1", ["q1"]), ended("r1", "cancelled")] })[0].status).toBe("cancelled");
+    expect(derive({ messages: [request("r1", ["q1"]), ended("r1", "failed", "boom")] })[0]).toMatchObject({
+      status: "failed",
+      error: "boom",
     });
-
-    expect(state[0].status).toBe("running");
   });
 
-  it("treats terminal run without progress row as running", () => {
-    const state = deriveBatchState({
-      questions: [question()],
-      messages: [userMessage("q1", "r1"), assistantMessage("r1", "failed")],
-      activeRuns: [],
-      progressCsv: null,
-      writtenCounts: {},
-    });
-
-    expect(state[0]).toMatchObject({ status: "running", finalizing: true });
+  it("marks a question without ungraded answers as skipped", () => {
+    expect(derive({ questions: [question({ ungradedRows: [] })] })[0].status).toBe("skipped");
   });
 
-  it("treats a cancelled queued run as cancelled", () => {
-    const state = deriveBatchState({
-      questions: [question()],
-      messages: [userMessage("q1", "r1"), assistantMessage("r1", "queued")],
-      activeRuns: [],
-      progressCsv: null,
-      writtenCounts: {},
-    });
-
-    expect(state[0].status).toBe("cancelled");
-  });
-
-  it("surfaces failure errors", () => {
-    const state = deriveBatchState({
-      questions: [question()],
-      messages: [userMessage("q1", "r1")],
-      activeRuns: [],
-      progressCsv: `${PROGRESS_HEADER}q1,r1,failed,0,0,0,模型逾時,2026-10-22\n`,
-      writtenCounts: {},
-    });
-
-    expect(state[0]).toMatchObject({ status: "failed", error: "模型逾時" });
-  });
-
-  it("marks question without ungraded answers as skipped", () => {
-    const state = deriveBatchState({
-      questions: [question({ ungradedRows: [], skippedCount: 4 })],
-      messages: [],
-      activeRuns: [],
-      progressCsv: null,
-      writtenCounts: {},
-    });
-
-    expect(state[0].status).toBe("skipped");
-  });
-
-  it("maps paused approvals to awaiting-approval", () => {
-    const state = deriveBatchState({
-      questions: [question()],
-      messages: [userMessage("q1", "r1")],
-      activeRuns: [{ id: "r1", status: "awaiting_approval" }],
-      progressCsv: null,
-      writtenCounts: {},
-    });
-
-    expect(state[0].status).toBe("awaiting-approval");
+  it("counts the AI's current writes per question", () => {
+    const written = [{ examAnswerId: "a1", questionId: "q1", score: 3, feedback: "" }];
+    expect(derive({ written })[0].writtenCount).toBe(1);
   });
 });
 
 describe("isUnfinished", () => {
-  it("counts completed questions that still have ungraded answers", () => {
-    expect(isUnfinished({ ...stateOf("completed"), ungradedCount: 2 })).toBe(true);
-    expect(isUnfinished({ ...stateOf("completed"), ungradedCount: 0 })).toBe(false);
-    expect(isUnfinished({ ...stateOf("running"), ungradedCount: 2 })).toBe(false);
-    expect(isUnfinished({ ...stateOf("skipped"), ungradedCount: 0 })).toBe(false);
+  it("counts finished questions that still have ungraded answers", () => {
+    const state = { status: "completed", ungradedCount: 2 } as BatchQuestionState;
+    expect(isUnfinished(state)).toBe(true);
+    expect(isUnfinished({ ...state, status: "running" })).toBe(false);
   });
 });
 
-describe("applyFinalizeTimeout", () => {
-  it("turns a run stuck in finalizing into a failure after the timeout", () => {
-    const firstSeen = new Map<string, number>();
-    const finalizing = { ...stateOf("running"), runId: "r1", finalizing: true };
-
-    const early = applyFinalizeTimeout([finalizing], firstSeen, 1_000, 60_000);
-    const late = applyFinalizeTimeout([finalizing], firstSeen, 70_000, 60_000);
-
-    expect(early[0].status).toBe("running");
-    expect(late[0]).toMatchObject({ status: "failed", error: "finalizeTimeout" });
+describe("AI writes", () => {
+  it("keeps only receipts the backend reports as current", () => {
+    expect(currentWrites([
+      { exam_answer_id: "a1", question_id: "q1", score: 3, feedback: "ok", current: true },
+      { exam_answer_id: "a2", question_id: "q1", score: 2, feedback: "ok", current: false },
+    ])).toEqual([{ examAnswerId: "a1", questionId: "q1", score: 3, feedback: "ok" }]);
   });
 
-  it("leaves active runs alone", () => {
-    const running = { ...stateOf("running"), runId: "r1" };
-    expect(applyFinalizeTimeout([running], new Map([["r1", 0]]), 999_999, 60_000)[0].status)
-      .toBe("running");
-  });
-});
-
-describe("selectRevertableAnswers", () => {
-  it("revert skips answers changed after AI write", () => {
-    const ids = selectRevertableAnswers(
-      [
-        { examAnswerId: "a1", score: 8, feedback: "AI 理由" },
-        { examAnswerId: "a2", score: 6, feedback: "AI 理由" },
-        { examAnswerId: "a3", score: 5, feedback: "AI 理由" },
-      ],
-      [
-        row({ id: "a1", score: 8, feedback: "AI 理由" }),
-        row({ id: "a2", score: 7, feedback: "AI 理由" }),
-        row({ id: "a3", score: null, feedback: "" }),
-      ],
-    );
-
-    expect(ids).toEqual(["a1"]);
-  });
-});
-
-describe("countScoredRows", () => {
-  it("counts rows the AI has already scored in its working grade CSV", () => {
-    const csv = "exam_answer_id,score,reason\na1,3,ok\na2,,\na3,0,none\n";
-    expect(countScoredRows(csv)).toBe(2);
-    expect(countScoredRows("")).toBe(0);
+  it("reverts only answers still holding the AI's grade", () => {
+    const written = [
+      { examAnswerId: "a1", questionId: "q1", score: 3, feedback: "AI" },
+      { examAnswerId: "a2", questionId: "q1", score: 3, feedback: "AI" },
+    ];
+    const rows = [row({ id: "a1", score: 3, feedback: "AI" }), row({ id: "a2", score: 4, feedback: "TA" })];
+    expect(selectRevertableAnswers(written, rows)).toEqual(["a1"]);
   });
 });

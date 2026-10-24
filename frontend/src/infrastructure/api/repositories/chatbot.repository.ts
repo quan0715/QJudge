@@ -411,11 +411,25 @@ function convertBackendMessage(
     typeof metadata.error_code === "string" ? metadata.error_code : undefined;
   const lastEventSeq =
     typeof metadata.last_event_seq === "number" ? metadata.last_event_seq : undefined;
-  const tools = Array.isArray(metadata.tools_executed)
-    ? metadata.tools_executed
-        .map((tool): ToolInfo | null => {
+  const inFlight = metadata.in_flight_tools;
+  const toolRecords = [
+    ...(Array.isArray(metadata.tools_executed) ? metadata.tools_executed : [])
+      .map((tool) => ({ tool, isRunning: false })),
+    ...(inFlight && typeof inFlight === "object" ? Object.values(inFlight) : [])
+      .map((tool) => ({ tool, isRunning: true })),
+  ];
+  // Keep launch order after reload; completed tasks must not jump above their siblings.
+  toolRecords.sort((a, b) => {
+    const sequence = (value: unknown) => value && typeof value === "object" && "start_sequence" in value && typeof value.start_sequence === "number"
+      ? value.start_sequence : Number.MAX_SAFE_INTEGER;
+    return sequence(a.tool) - sequence(b.tool);
+  });
+  const tools = toolRecords.length
+    ? toolRecords
+        .map(({ tool, isRunning }): ToolInfo | null => {
           if (!tool || typeof tool !== "object") return null;
           const t = tool as Record<string, unknown>;
+          const interrupted = isRunning && ["cancelled", "failed", "completed"].includes(runStatus ?? "");
           const originalToolName = typeof t.tool_name === "string" ? t.tool_name : "";
           const inputData = typeof t.input === "object" && t.input !== null
                 ? (t.input as Record<string, unknown>)
@@ -423,13 +437,15 @@ function convertBackendMessage(
           return {
             toolName: formatDisplayToolName(originalToolName, inputData),
             toolCallId: typeof t.tool_call_id === "string" ? t.tool_call_id : "",
+            ...(isRunning && !interrupted ? { isRunning: true } : {}),
             inputData,
-            result:
-              typeof t.result === "string" ||
+            result: interrupted
+              ? (runStatus === "cancelled" ? "執行已取消，工具未完成" : runErrorRaw ?? "執行已結束，工具未完成")
+              : typeof t.result === "string" ||
               (typeof t.result === "object" && t.result !== null)
                 ? (t.result as string | Record<string, unknown>)
                 : undefined,
-            isError: typeof t.is_error === "boolean" ? t.is_error : undefined,
+            isError: interrupted ? true : typeof t.is_error === "boolean" ? t.is_error : undefined,
             ...(typeof t.parent_tool_call_id === "string"
               ? { parentToolCallId: t.parent_tool_call_id }
               : {}),
@@ -473,6 +489,14 @@ function convertBackendRun(run: BackendRun): ChatRun {
     questionPayload: run.status === "awaiting_user_answer" ? run.pause_payload : undefined,
     error: run.error_message,
   };
+}
+
+function responseRetryAfterMs(response: Response): number | undefined {
+  const header = response.headers.get("Retry-After");
+  if (!header) return undefined;
+  const seconds = Number(header);
+  const delay = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(header) - Date.now();
+  return Number.isFinite(delay) ? Math.max(0, delay) : undefined;
 }
 
 async function requestJson<T>(
@@ -524,13 +548,16 @@ async function requestJson<T>(
       throw Object.assign(new Error(localizedMessage), { status });
     }
     if (status !== undefined) {
-      Object.assign(httpError, { status });
+      Object.assign(httpError, { status, retryAfterMs: responseRetryAfterMs(httpError.response!) });
     }
     throw error;
   }
 }
 
 // ===== Repository Implementation =====
+// Share only pending reads; each later poll still fetches current run state.
+let activeRunsInFlight: Promise<ChatRun[]> | null = null;
+
 const chatbotRepository: ChatbotRepository = {
   async getSessions(): Promise<ChatSession[]> {
     const sessions: BackendSessionListItem[] = [];
@@ -660,18 +687,25 @@ const chatbotRepository: ChatbotRepository = {
       ),
       "無法建立 AI 任務"
     );
+    // A pending read may have observed the session before this run existed.
+    activeRunsInFlight = null;
     return convertBackendRun(data);
   },
 
-  async getActiveRuns(): Promise<ChatRun[]> {
-    const response = await requestJson<PaginatedResponse<BackendRun>>(
+  getActiveRuns(): Promise<ChatRun[]> {
+    if (activeRunsInFlight) return activeRunsInFlight;
+    const pending = requestJson<PaginatedResponse<BackendRun>>(
       httpClient.get(
         `${AI_BASE}/runs/?status=active`,
         OPTIONAL_AI_READ_OPTIONS,
       ),
       "無法載入進行中的 AI 任務"
-    );
-    return (response.results || []).map(convertBackendRun);
+    ).then((response) => (response.results || []).map(convertBackendRun))
+      .finally(() => {
+        if (activeRunsInFlight === pending) activeRunsInFlight = null;
+      });
+    activeRunsInFlight = pending;
+    return pending;
   },
 
   async subscribeRunEvents(
@@ -685,6 +719,7 @@ const chatbotRepository: ChatbotRepository = {
         {
           method: "GET",
           headers: { "X-QJudge-Agent-Contract": "v2" },
+          suppressGlobalError: true,
           signal: options?.signal,
         }
       );
@@ -699,7 +734,9 @@ const chatbotRepository: ChatbotRepository = {
           return;
         }
         const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        throw Object.assign(new Error(`HTTP ${response.status}: ${errorText}`), {
+          status: response.status, retryAfterMs: responseRetryAfterMs(response),
+        });
       }
 
       const reader = response.body?.getReader();
@@ -756,9 +793,8 @@ const chatbotRepository: ChatbotRepository = {
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      callbacks.onError?.(`任務訂閱失敗: ${errorMessage}`);
+      // Preserve HTTP status and Retry-After for the transport's reconnect path.
+      throw error;
     }
   },
 
@@ -1096,10 +1132,3 @@ const chatbotRepository: ChatbotRepository = {
 
 export default chatbotRepository;
 
-
-/** Read a historical run to recover the actual model used by a saved task. */
-export async function getChatRun(runId: string): Promise<ChatRun> {
-  return convertBackendRun(await requestJson<BackendRun>(
-    httpClient.get(`${AI_BASE}/runs/${runId}/`), "無法載入 AI 任務",
-  ));
-}

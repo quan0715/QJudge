@@ -1267,3 +1267,112 @@ describe("createQJudgeCopilotTransport", () => {
     expect(subscription.closed).toBe(true);
   });
 });
+
+
+describe("restoring externally started runs", () => {
+  it("targets the loaded assistant identity and replays from its snapshot cursor", async () => {
+    const message: ChatMessage = {id: "session-1:2", role: "assistant", content: "", timestamp: new Date(), runId: "run-1", lastEventSeq: 7};
+    const repository = createRepository({
+      getSession: vi.fn().mockResolvedValue({...legacySession, messages: [message]}),
+      getActiveRuns: vi.fn().mockResolvedValue([{...legacyRun, assistantMessageId: undefined, lastEventSeq: 12}]),
+      subscribeRunEvents: vi.fn(async (_run, callbacks) => {
+        callbacks.onToolStarted?.({toolName: "read_file", toolCallId: "read-1"}, 8);
+        await new Promise<void>(() => {});
+      }),
+    });
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    await transport.getSession(legacySession.id);
+    const run = await transport.getActiveRun!(legacySession.id);
+    expect(run).toMatchObject({assistantMessageId: message.id, lastSequence: 7});
+    const events: CopilotRunEvent[] = [];
+    const subscription = transport.subscribeRun(run!, {next: event => events.push(event), error: vi.fn(), complete: vi.fn()});
+    expect(repository.subscribeRunEvents).toHaveBeenCalledWith(expect.objectContaining({lastEventSeq: 7}), expect.any(Object), expect.any(Object));
+    expect(events[0]).toMatchObject({type: "part-upsert", messageId: message.id, part: {toolCallId: "read-1"}});
+    subscription.close();
+  });
+  it("replays from zero when the loaded session predates the assistant message", async () => {
+    const repository = createRepository({getActiveRuns: vi.fn().mockResolvedValue([{...legacyRun, assistantMessageId: undefined, lastEventSeq: 12}])});
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    await transport.getSession(legacySession.id);
+    expect(await transport.getActiveRun!(legacySession.id)).toMatchObject({lastSequence: 0});
+  });
+});
+
+
+it("keeps a restored in-flight task live until its completion event", async () => {
+  const message: ChatMessage = {id: "session-1:2", role: "assistant", content: "", timestamp: new Date(), runId: "run-1", lastEventSeq: 7,
+    toolExecutions: [{toolName: "task", toolCallId: "T1", isRunning: true, inputData: {description: "Grade Q1"}}]};
+  const repository = createRepository({
+    getSession: vi.fn().mockResolvedValue({...legacySession, messages: [message]}),
+    subscribeRunEvents: vi.fn(async (_run, callbacks) => {
+      callbacks.onMessageUpdate?.({subagentActivity: {T1: {text: "Checking rubric"}}}, 8);
+      callbacks.onMessageUpdate?.({toolExecutions: [{toolName: "task", toolCallId: "T1", result: "Submitted"}]}, 9);
+      await new Promise<void>(() => {});
+    }),
+  });
+  const transport = createQJudgeCopilotTransport(repository, vi.fn());
+  const session = await transport.getSession(legacySession.id);
+  expect(session.messages[0].parts).toContainEqual(expect.objectContaining({type: "tool", toolCallId: "T1", state: "input-ready"}));
+  const run = await transport.getActiveRun!(legacySession.id);
+  const events: CopilotRunEvent[] = [];
+  const subscription = transport.subscribeRun(run!, {next: event => events.push(event), error: vi.fn(), complete: vi.fn()});
+  expect(events).toMatchObject([
+    {type: "part-upsert", part: {toolCallId: "T1", state: "input-ready", activity: {text: "Checking rubric"}}},
+    {type: "part-upsert", part: {toolCallId: "T1", state: "output-ready", output: "Submitted", activity: {text: "Checking rubric"}}},
+  ]);
+  subscription.close();
+});
+
+
+it("preserves tasks started after the session snapshot across a transient stream reconnect", async () => {
+  const callbacks: StreamCallbacks[] = [];
+  const repository = createRepository({subscribeRunEvents: vi.fn(async (_run, next) => {
+    callbacks.push(next);
+    await new Promise<void>(() => {});
+  })});
+  const transport = createQJudgeCopilotTransport(repository, vi.fn());
+  await transport.getSession(legacySession.id);
+  const run = await transport.getActiveRun!(legacySession.id);
+  const events: CopilotRunEvent[] = [];
+  const observer = {next: (event: CopilotRunEvent) => events.push(event), error: vi.fn(), complete: vi.fn()};
+  const first = transport.subscribeRun(run!, observer);
+  callbacks[0].onToolStarted?.({toolName: "task", toolCallId: "T1", inputData: {description: "Grade Q1"}}, 5);
+  callbacks[0].onMessageUpdate?.({subagentActivity: {T1: {text: "Checking"}}}, 6);
+  first.close();
+  const second = transport.subscribeRun(run!, observer, {fromSequence: 6});
+  events.length = 0;
+  callbacks[1].onMessageUpdate?.({subagentActivity: {T1: {text: " rubric"}}}, 7);
+  callbacks[1].onMessageUpdate?.({toolExecutions: [{toolName: "", toolCallId: "T1", result: "Submitted"}]}, 8);
+  // Repository projections repeat completed tools on later message updates.
+  callbacks[1].onMessageUpdate?.({toolExecutions: [{toolName: "", toolCallId: "T1", result: "Submitted"}]}, 9);
+  expect(events).toMatchObject([
+    {type: "part-upsert", part: {toolCallId: "T1", state: "input-ready", input: {description: "Grade Q1"}, activity: {text: "Checking rubric"}}},
+    {type: "part-upsert", part: {toolCallId: "T1", toolName: "task", state: "output-ready", input: {description: "Grade Q1"}, output: "Submitted", activity: {text: "Checking rubric"}}},
+  ]);
+  second.close();
+});
+
+it("does not let an older session request overwrite a newer snapshot cursor", async () => {
+  let resolveOld: (session: ChatSession) => void = () => undefined;
+  let resolveRun: (runs: ChatRun[]) => void = () => undefined;
+  const snapshot = (sequence: number): ChatSession => ({...legacySession, messages: [{
+    id: "session-1:2", role: "assistant", runId: "run-1", content: "", timestamp: new Date(), lastEventSeq: sequence,
+  }]});
+  const repository = createRepository({
+    getSession: vi.fn().mockImplementationOnce(() => new Promise(resolve => {resolveOld = resolve;})).mockResolvedValue(snapshot(20)),
+    getActiveRuns: vi.fn().mockImplementation(() => new Promise(resolve => {resolveRun = resolve;})),
+  });
+  const transport = createQJudgeCopilotTransport(repository, vi.fn());
+  const first = transport.getSession(legacySession.id);
+  await transport.getSession(legacySession.id);
+  const active = transport.getActiveRun!(legacySession.id);
+  resolveOld(snapshot(10));
+  await first;
+  resolveRun([{...legacyRun, lastEventSeq: 25}]);
+  expect(await active).toMatchObject({assistantMessageId: "session-1:2", lastSequence: 20});
+});
+
+it("passes Retry-After through transport errors", () => {
+  const cause = Object.assign(new Error("throttled"), { status: 429, retryAfterMs: 5000 });
+  expect(mapQJudgeError("subscribe-run", cause)).toMatchObject({ recoverable: true, retryAfterMs: 5000 });
+});

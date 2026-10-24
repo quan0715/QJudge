@@ -1,0 +1,203 @@
+"""AI grading units: a frozen scope, durable drafts, and per-answer grade writes.
+
+Grading judgment (rubric, deductions, feedback) belongs to the agent; this API only
+keeps the scope, stores drafts and writes grades without overwriting a teacher's.
+"""
+from uuid import UUID
+
+from django.db import DatabaseError, transaction
+from django.db.models import Q
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.response import Response
+
+from ..models import Contest, ExamAnswer, ExamBatchGradeWrite, ExamGradingUnit, ExamQuestion
+from ..permissions import can_manage_contest
+from ..serializers import ExamAnswerGradeSerializer
+
+
+def identifier(data, name):
+    try:
+        return UUID(str(data.get(name)))
+    except (ValueError, TypeError, AttributeError):
+        raise ValidationError({name: 'A valid UUID is required.'})
+
+
+def summary(unit):
+    return unit.progress
+
+
+def detail(unit):
+    return {**unit.snapshot, **summary(unit), 'rubric': unit.rubric, 'grades': list(unit.drafts.values())}
+
+
+class ExamGradingUnitMixin:
+    def _grading_scope(self, request, contest_pk, data, write=False):
+        contest = self._get_contest(contest_pk)
+        if not can_manage_contest(request.user, contest):
+            raise PermissionDenied('Only contest staff can access grading drafts.')
+        if write and contest.results_published:
+            raise ValidationError('Published results cannot be graded.')
+        session_id = identifier(data, 'session_id')
+        if ExamGradingUnit.objects.filter(contest=contest, session_id=session_id).exclude(grader=request.user).exists():
+            raise PermissionDenied('This grading session belongs to another teacher.')
+        return contest, ExamGradingUnit.objects.filter(contest=contest, grader=request.user, session_id=session_id)
+
+    def _grading_attempt(self, request, contest_pk):
+        contest, units = self._grading_scope(request, contest_pk, request.data, write=True)
+        unit = get_object_or_404(units, run_id=identifier(request.data, 'run_id'), unit_id=request.data.get('unit_id'))
+        return contest, unit
+
+    @action(detail=False, methods=['get', 'post'], url_path='grading-unit')
+    def grading_unit(self, request, contest_pk=None):
+        data = request.query_params if request.method == 'GET' else request.data
+        contest, units = self._grading_scope(request, contest_pk, data, write=request.method == 'POST')
+        unit_id = data.get('unit_id')
+        if not isinstance(unit_id, str) or not unit_id.strip() or len(unit_id) > 255:
+            raise ValidationError('unit_id must be a non-empty string up to 255 characters.')
+        if request.method == 'GET':
+            if data.get('run_id'):
+                units = units.filter(run_id=identifier(data, 'run_id'))
+            return Response(detail(get_object_or_404(units.filter(unit_id=unit_id).order_by('-created_at', '-pk')[:1])))
+        run_id = identifier(data, 'run_id')
+        ids = data.get('question_ids')
+        if not isinstance(ids, list) or not ids:
+            raise ValidationError('question_ids must be a non-empty array.')
+        try:
+            ids = list(dict.fromkeys(str(UUID(str(q))) for q in ids))
+        except (ValueError, TypeError):
+            raise ValidationError('question_ids must contain UUIDs.')
+        # Contest lock serializes session ownership and lazy snapshot creation.
+        with transaction.atomic():
+            Contest.objects.select_for_update().get(pk=contest.pk)
+            if ExamGradingUnit.objects.filter(contest=contest, session_id=identifier(data, 'session_id')).exclude(grader=request.user).exists():
+                raise PermissionDenied('This grading session belongs to another teacher.')
+            existing = units.filter(run_id=run_id, unit_id=unit_id).first()
+            if existing:
+                if set(existing.snapshot['question_ids']) != set(ids):
+                    raise ValidationError('The existing unit has a different question scope.')
+                return Response(detail(existing))
+            selected = list(ExamQuestion.objects.filter(contest=contest, pk__in=ids).select_related('group'))
+            if len(selected) != len(ids):
+                raise ValidationError('A question is outside this contest.')
+            groups = {q.group_id for q in selected if q.group_id}
+            questions = list(ExamQuestion.objects.filter(contest=contest).filter(Q(pk__in=ids) | Q(group_id__in=groups)).select_related('group').order_by('order', 'created_at'))
+            answers = ExamAnswer.objects.filter(participant__contest=contest, question__in=questions).order_by('participant_id', 'question__order', 'pk')
+            snapshot = {
+                'question_ids': ids, 'teacher_note': data.get('teacher_note', ''),
+                'questions': [{
+                    'question_id': str(q.pk), 'label': str(q.order + 1), 'prompt': q.prompt,
+                    'reference_answer': q.correct_answer, 'reference_answer_document': q.reference_answer_document,
+                    'explanation': q.explanation, 'explanation_document': q.explanation_document,
+                    'max_score': q.score, 'question_type': q.question_type, 'answer_format': q.answer_format,
+                    'score_policy': q.score_policy, 'score_policy_config': q.score_policy_config,
+                    'options': q.options, 'group_id': str(q.group_id) if q.group_id else None,
+                    'shared_stem': q.group.shared_stem_markdown if q.group else '',
+                } for q in questions],
+                'answers': [{
+                    'exam_answer_id': str(a.pk), 'question_id': str(a.question_id),
+                    'participant_id': str(a.participant_id), 'answer': a.answer,
+                    'writable': a.score is None and str(a.question_id) in ids,
+                    'original_score': float(a.score) if a.score is not None else None,
+                    'original_feedback': a.feedback,
+                } for a in answers],
+            }
+            unit = units.create(contest=contest, grader=request.user, session_id=identifier(data, 'session_id'), run_id=run_id, unit_id=unit_id, snapshot=snapshot)
+        return Response(detail(unit))
+
+    @action(detail=False, methods=['post'], url_path='grading-draft')
+    def grading_draft(self, request, contest_pk=None):
+        contest, unit = self._grading_attempt(request, contest_pk)
+        grades = request.data.get('grades', [])
+        if not isinstance(grades, list):
+            raise ValidationError('grades must be an array.')
+        with transaction.atomic():
+            if Contest.objects.select_for_update().get(pk=contest.pk).results_published:
+                raise ValidationError('Published results cannot be graded.')
+            unit = ExamGradingUnit.objects.select_for_update().get(pk=unit.pk)
+            targets = {a['exam_answer_id']: a for a in unit.snapshot['answers'] if a['writable']}
+            max_scores = {q['question_id']: q['max_score'] for q in unit.snapshot['questions']}
+            for entry in grades:
+                aid = str(entry.get('exam_answer_id')) if isinstance(entry, dict) else None
+                if aid not in targets:
+                    raise ValidationError('Each grade needs a writable exam_answer_id of this unit.')
+                if unit.results.get(aid, {}).get('status') in ('ok', 'skipped'):
+                    raise ValidationError('This answer was already submitted.')
+                if isinstance(entry.get('score'), bool):
+                    raise ValidationError('score must be a number.')
+                serializer = ExamAnswerGradeSerializer(data=entry)
+                serializer.is_valid(raise_exception=True)
+                score = serializer.validated_data['score']
+                if score < 0 or score > max_scores[targets[aid]['question_id']]:
+                    raise ValidationError('Score must be between zero and the question maximum.')
+                unit.drafts[aid] = {'exam_answer_id': aid, 'score': float(score), 'feedback': serializer.validated_data['feedback']}
+            if 'rubric' in request.data:
+                unit.rubric = request.data['rubric']
+            unit.save(update_fields=['drafts', 'rubric', 'updated_at'])
+        return Response(summary(unit))
+
+    @action(detail=False, methods=['post'], url_path='grading-submit')
+    def grading_submit(self, request, contest_pk=None):
+        contest, unit = self._grading_attempt(request, contest_pk)
+        targets = [a for a in unit.snapshot['answers'] if a['writable']]
+        if any(a['exam_answer_id'] not in unit.drafts for a in targets):
+            raise ValidationError('Every target answer requires a saved draft before submission.')
+        for target in targets:
+            aid = target['exam_answer_id']
+            try:
+                with transaction.atomic():
+                    # A fresh publication check and lock avoids writing after publish.
+                    current_contest = Contest.objects.select_for_update().get(pk=contest.pk)
+                    if current_contest.results_published:
+                        raise ValidationError('Published results cannot be graded.')
+                    unit = ExamGradingUnit.objects.select_for_update().get(pk=unit.pk)
+                    if unit.results.get(aid, {}).get('status') in ('ok', 'skipped'):
+                        continue
+                    answer = ExamAnswer.objects.select_for_update().filter(pk=aid, participant__contest=contest, question_id=target['question_id']).first()
+                    result = {'exam_answer_id': aid}
+                    if answer is None:
+                        result.update(status='error', detail='Answer no longer exists.')
+                    elif answer.score is not None or ExamBatchGradeWrite.objects.filter(answer=answer, session_id=unit.session_id, run_id=unit.run_id).exists():
+                        # A teacher's grade, or one this run already wrote and a teacher later cleared.
+                        result.update(status='skipped')
+                    else:
+                        grade = unit.drafts[aid]
+                        now = timezone.now()
+                        answer.score, answer.feedback = grade['score'], grade['feedback']
+                        answer.graded_by, answer.graded_at = request.user, now
+                        answer.is_correct = grade['score'] > 0
+                        answer.save()
+                        ExamBatchGradeWrite.objects.update_or_create(answer=answer, defaults={
+                            'session_id': unit.session_id, 'run_id': unit.run_id, 'grader': request.user,
+                            'score': grade['score'], 'feedback': grade['feedback'], 'graded_at': now,
+                        })
+                        result.update(status='ok', score=grade['score'])
+                        transaction.on_commit(lambda qid=answer.question_id: self._invalidate_dashboard_cache(contest.pk, qid))
+                    unit.results[aid] = result
+                    unit.save(update_fields=['results', 'updated_at'])
+            except DatabaseError:
+                # The row transaction rolled back; durable drafts remain retryable.
+                with transaction.atomic():
+                    unit = ExamGradingUnit.objects.select_for_update().get(pk=unit.pk)
+                    if unit.results.get(aid, {}).get('status') not in ('ok', 'skipped'):
+                        unit.results[aid] = {'exam_answer_id': aid, 'status': 'error', 'detail': 'Grade write failed; retry submission.'}
+                        unit.save(update_fields=['results', 'updated_at'])
+        with transaction.atomic():
+            unit = ExamGradingUnit.objects.select_for_update().get(pk=unit.pk)
+            unit.snapshot['submitted'] = True
+            unit.save(update_fields=['snapshot', 'updated_at'])
+        results = list(unit.results.values())
+        failed = sum(r['status'] == 'error' for r in results)
+        return Response({'unit_id': unit.unit_id, 'written': sum(r['status'] == 'ok' for r in results),
+                         'skipped': sum(r['status'] == 'skipped' for r in results), 'failed': failed,
+                         'results': results, 'is_error': failed > 0})
+
+    @action(detail=False, methods=['get'], url_path='grading-progress')
+    def grading_progress(self, request, contest_pk=None):
+        _, units = self._grading_scope(request, contest_pk, request.query_params)
+        latest = {}
+        for unit in units.only('unit_id', 'progress').order_by('-created_at', '-pk'):
+            latest.setdefault(unit.unit_id, summary(unit))
+        return Response({'units': list(latest.values())})

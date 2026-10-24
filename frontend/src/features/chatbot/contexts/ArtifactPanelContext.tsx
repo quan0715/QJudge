@@ -22,7 +22,7 @@ import {
   type ArtifactRecord,
 } from "@/infrastructure/api/repositories/artifact.repository";
 import { useCopilotSessions } from "@copilot";
-import { selectFinishedArtifactToolIds } from "../adapters/qJudgeCopilotMessageData";
+import { isArtifactMutationTool, selectFinishedArtifactToolIds } from "../adapters/qJudgeCopilotMessageData";
 
 interface ArtifactPanelContextValue {
   isOpen: boolean;
@@ -37,7 +37,7 @@ interface ArtifactPanelContextValue {
   error: string | null;
   refresh: () => Promise<void>;
 
-  /** Hint from ChainOfThought: a new artifact_write/read finished. */
+  /** Hint from ChainOfThought: an artifact mutation finished. */
   markToolFinished: (toolName: string) => void;
 }
 
@@ -45,10 +45,6 @@ const ArtifactPanelContext = createContext<ArtifactPanelContextValue | null>(nul
 
 interface ArtifactPanelProviderProps {
   children: ReactNode;
-}
-
-function isArtifactToolName(toolName: string): boolean {
-  return toolName.startsWith("artifact_");
 }
 
 // Trailing-edge debounce for burst refreshes triggered by the agent firing
@@ -135,17 +131,13 @@ export function ArtifactPanelProvider({
 
   const markToolFinished = useCallback(
     (toolName: string) => {
-      if (!isArtifactToolName(toolName)) return;
+      if (!isArtifactMutationTool(toolName)) return;
       scheduleRefresh();
     },
     [scheduleRefresh],
   );
 
-  // Auto-watch the current session's messages for finished artifact_* tool calls.
-  // Previously this was done inside ChatContainerBody, which is only mounted when
-  // the right chat panel is open. Consumers like AI Grading read `artifacts` for
-  // progress tracking even when the chat panel is closed — so the refresh trigger
-  // must live here, where the provider stays mounted for the whole session.
+  // Keep artifact previews current after writes, even while the panel is closed.
   useEffect(() => {
     const messages = activeSession.status === "ready" ? activeSession.data.messages : [];
     for (const toolCallId of selectFinishedArtifactToolIds(messages)) {

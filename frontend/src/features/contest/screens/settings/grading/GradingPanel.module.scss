@@ -44,6 +44,14 @@
   white-space: nowrap;
 }
 
+.panelStudent {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .panelHeaderActions {
   display: inline-flex;
   align-items: center;

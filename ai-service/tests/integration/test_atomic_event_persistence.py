@@ -11,8 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from domain.errors import InvalidRunTransition
 from domain.models import RunStatus
-from infrastructure.database.models import MessageRow, RunRow, SessionRow
+from infrastructure.database.models import ArtifactRow, MessageRow, RunRow, SessionRow
 from infrastructure.database.repositories import SqlAlchemyRunRepository
+from worker.runtime import SqlAlchemyWorkerRunStore
 
 
 @pytest_asyncio.fixture
@@ -320,3 +321,35 @@ async def test_cancelled_run_rejects_late_terminal_event_without_persisting(
 
     assert run is not None and run.last_sequence == 1
     assert [event.event_type for event in events] == ["run_cancelled"]
+
+
+async def test_worker_events_and_heartbeat_progress_during_artifact_transaction(
+    session_factory, seeded_run
+) -> None:
+    """An uncommitted artifact holds FK key-share locks on both parent rows."""
+    run_id, session_id = seeded_run
+    store = SqlAlchemyWorkerRunStore(session_factory, None)
+    async with session_factory.begin() as artifact_session:
+        artifact_session.add(ArtifactRow(
+            artifact_id=uuid4(),
+            session_id=session_id,
+            produced_by_run_id=run_id,
+            step="grading",
+            filename="report.csv",
+            content_type="text/csv",
+        ))
+        await artifact_session.flush()
+
+        # These operations must finish before the artifact transaction commits.
+        # FOR UPDATE blocks here; NO KEY UPDATE still serializes writers while
+        # remaining compatible with the FK locks acquired by the INSERT.
+        async with asyncio.timeout(2):
+            assert await store.append_event(
+                run_id, 0, {"type": "agent_message_delta", "content": "progress"}
+            )
+            assert await store.heartbeat(run_id, 0)
+
+    async with session_factory() as db_session:
+        events = await SqlAlchemyRunRepository(db_session).list_events(run_id)
+        assert [event.sequence for event in events] == [1]
+        assert events[0].payload["content"] == "progress"

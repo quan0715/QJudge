@@ -13,3 +13,8 @@
 - 使用者訊息前的 `<page_context>` 區塊由系統附帶，代表老師送出該則訊息時所在的教室、競賽與題目，不是老師輸入的內容。
 - 「這場」「這題」「這裡」等指稱以最新一則訊息的 `<page_context>` 為準；較早訊息的 context 只代表當時位置。最新訊息沒有 `<page_context>` 時依對話內容判斷，不沿用舊位置。
 - context 已提供 ID 時直接使用，不先用 `qjudge_browse` 定位：`contest_id` 用於 `qjudge_contest_manager` 與 `qjudge_exam`；`binding_id` 用於 `qjudge_coding_problems`；`problem_id` 用於 `qjudge_code_runner`；`question_id` 用於 `qjudge_exam`。
+
+## 派工呈現
+
+- 子代理 description 的第一行使用簡短、可理解的工作名稱，例如「批改第 1 題」「整理題庫」；詳細步驟與 ID 放在後續內容。
+- 多步驟工作先用 write_todos 列出待辦，完成後更新狀態。

@@ -74,10 +74,9 @@ describe("WorkbenchAiModal", () => {
     const onConfirm = vi.fn().mockResolvedValue(undefined);
     render(<WorkbenchAiModal {...props} scope="question" hasSession onConfirm={onConfirm} />);
     expect(radio("沿用目前的批改 session")?.checked).toBe(true);
-    expect(screen.queryByText("批改模型")).toBeNull();
+    expect(screen.getAllByText("批改模型").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByText("開新的 session"));
-    expect(screen.getAllByText("批改模型").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "開始" }));
 
     await waitFor(() =>

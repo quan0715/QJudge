@@ -26,6 +26,7 @@ export interface AnswerDisplayProps {
   explanationDocument?: OpenAnswerDocument | null;
   answerFormat?: ExamQuestionAnswerFormat;
   showCorrectness?: boolean;
+  showAnswerContent?: boolean;
 }
 
 function isSelected(
@@ -75,6 +76,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
   explanationDocument,
   answerFormat = "plain_text",
   showCorrectness = true,
+  showAnswerContent = true,
 }) => {
   const { t } = useTranslation("contest");
   const subjective = isSubjectiveType(questionType);
@@ -95,7 +97,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
         : MarkdownContent.Rich;
     return (
       <div className={styles.root}>
-        <ExamQuestionPreviewSection
+        {showAnswerContent && <ExamQuestionPreviewSection
           label={t("grading.answerContent", "作答內容")}
         >
           {openDocumentAnswer ? (
@@ -107,7 +109,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
               {t("dashboard.noAnswer", "未作答")}
             </span>
           )}
-        </ExamQuestionPreviewSection>
+        </ExamQuestionPreviewSection>}
         {referenceAnswerDocument ? (
           <ExamQuestionPreviewSection
             label={t("grading.referenceAnswer", "參考答案")}
@@ -156,7 +158,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
 
   return (
     <div className={styles.root}>
-      <ExamQuestionPreviewSection
+      {showAnswerContent && <ExamQuestionPreviewSection
         label={t("grading.answerContent", "作答內容")}
       >
         <div className={styles.optionsList}>
@@ -205,7 +207,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
             );
           })}
         </div>
-      </ExamQuestionPreviewSection>
+      </ExamQuestionPreviewSection>}
       {showCorrectness && correctAnswer != null && (
         <ExamQuestionPreviewSection label={t("grading.correctAnswer", "正確答案")}>
           <span className={styles.correctValues}>

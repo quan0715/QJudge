@@ -14,6 +14,8 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from application.artifacts import ArtifactService
+from application.batch_grading import BATCH_TASK_TYPE, parse_batch_units
+from infrastructure.tool_grading import ToolGrading
 from config import get_settings
 from domain.models import Artifact, Principal
 from domain.ports import TraceContext
@@ -25,7 +27,6 @@ from infrastructure.artifacts.s3_artifact_store import (
     S3ArtifactStore,
     SqlAlchemyArtifactRepository,
 )
-from infrastructure.batch_grading_finalizer import BatchGradingFinalizer
 from infrastructure.checkpoints.langgraph_store import LangGraphCheckpointStore
 from infrastructure.database.base import async_session_factory
 from infrastructure.mcp.credential_lease import RedisCredentialLeaseStore
@@ -35,7 +36,6 @@ from infrastructure.queue.celery_dispatcher import CeleryRunDispatcher
 from .celery_app import celery_app
 from .runtime import (
     SqlAlchemyWorkerRunStore,
-    TerminalHookRunStore,
     WorkerCredentialResolver,
     WorkerRuntime,
 )
@@ -160,28 +160,6 @@ def _credentials(
     )
 
 
-def _batch_grading_store(
-    runs: SqlAlchemyWorkerRunStore,
-    session_factory: async_sessionmaker[AsyncSession],
-    credentials: WorkerCredentialResolver,
-    http: httpx.AsyncClient,
-) -> TerminalHookRunStore:
-    settings = get_settings()
-    artifacts = ArtifactService(
-        _WorkerArtifactRepository(session_factory),
-        _artifact_store(),
-        max_bytes=settings.artifact_max_bytes,
-    )
-    finalizer = BatchGradingFinalizer(
-        runs=runs,
-        artifacts=artifacts,
-        credentials=credentials,
-        http=http,
-        backend_url=settings.qjudge_backend_url,
-    )
-    return TerminalHookRunStore(runs, finalizer)
-
-
 def _artifact_store() -> S3ArtifactStore:
     settings = get_settings()
     return S3ArtifactStore(
@@ -214,24 +192,45 @@ async def _execute_run(
             _artifact_store(),
             max_bytes=settings.artifact_max_bytes,
         )
+        raw_runs = SqlAlchemyWorkerRunStore(session_factory, CeleryRunDispatcher(celery_app))
+
+        async def run_tools(command):
+            # Scope comes from the teacher's persisted request, never from model arguments.
+            info = await raw_runs.load_terminal_run(command.run_id)
+            manifest = (info.session_context.get("task_manifest") or {}) if info else {}
+            units = parse_batch_units(info.user_message) if info else None
+            if manifest.get("task_type") != BATCH_TASK_TYPE or not units:
+                return []
+            contest_id = str((manifest.get("context") or {}).get("contest_id") or "")
+            if not contest_id:
+                raise ValueError("批改任務缺少考試")
+
+            async def token():
+                return await credentials.worker_token(credential_lease_key, retry_exchange_once=True)
+
+            async def is_active():
+                return (await raw_runs.execution_active(command.run_id, command.execution_epoch)
+                        and not await raw_runs.cancel_requested(command.run_id))
+
+            return ToolGrading(
+                session_id=command.session_id, run_id=command.run_id, contest_id=contest_id,
+                units=units, http=http, backend_url=settings.qjudge_backend_url,
+                token=token, is_active=is_active,
+            ).tools()
+
         agent = DeepAgentAdapter(
             mcp_provider=McpToolConnectionProvider(
                 server_url=settings.qjudge_mcp_url
             ),
             artifact_service=artifacts,
             checkpoint_store=checkpoints,
+            run_tools=run_tools,
             skills_paths=settings.deepagent_skills_paths,
             memory_paths=settings.deepagent_memory_paths,
         )
         await agent.setup()
-        runs = _batch_grading_store(
-            SqlAlchemyWorkerRunStore(session_factory, CeleryRunDispatcher(celery_app)),
-            session_factory,
-            credentials,
-            http,
-        )
         runtime = WorkerRuntime(
-            runs,
+            raw_runs,
             credentials,
             agent,
             checkpoints,
@@ -250,9 +249,7 @@ async def _execute_run(
         await engine.dispose()
 
 
-async def _scheduler(
-    http: httpx.AsyncClient | None = None,
-) -> tuple[
+async def _scheduler() -> tuple[
     WorkerScheduler,
     LangGraphCheckpointStore,
     Redis,
@@ -266,13 +263,10 @@ async def _scheduler(
     credentials = _credentials(lease_store)
     checkpoints = LangGraphCheckpointStore(database_url=settings.ai_database_url)
     await checkpoints.setup()
-    runs: Any = SqlAlchemyWorkerRunStore(
+    runs = SqlAlchemyWorkerRunStore(
         session_factory,
         CeleryRunDispatcher(celery_app),
     )
-    if http is not None:
-        # Stale recovery terminalizes runs, so batch grading must finalize them too.
-        runs = _batch_grading_store(runs, session_factory, credentials, http)
     return (
         WorkerScheduler(
             runs,
@@ -287,12 +281,10 @@ async def _scheduler(
 
 
 async def _recover_stale_runs() -> int:
-    http = httpx.AsyncClient(timeout=_BACKEND_TIMEOUT_SECONDS)
-    scheduler, checkpoints, redis, engine = await _scheduler(http)
+    scheduler, checkpoints, redis, engine = await _scheduler()
     try:
         return await scheduler.recover_stale_runs()
     finally:
-        await http.aclose()
         await checkpoints.close()
         await redis.aclose()
         await engine.dispose()

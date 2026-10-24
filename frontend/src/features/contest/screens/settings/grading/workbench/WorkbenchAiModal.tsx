@@ -54,7 +54,6 @@ export function WorkbenchAiModal({
   const question = scope === "question";
   // Suggestions always open their own session; a full regrade must revert the current session's writes.
   const sessionChoice = hasSession && (!question || (mode === "grade" && range === "ungraded"));
-  const opensSession = !hasSession || (sessionChoice && newSession) || (question && mode === "suggest");
   const submit = async () => {
     setBusy(true);
     setError(undefined);
@@ -144,8 +143,7 @@ export function WorkbenchAiModal({
             <RadioButton id="workbench-ai-session-new" value="new" labelText={t("workbench.sessionNew", "開新的 session")} />
           </RadioButtonGroup>
         )}
-        {/* A reused session keeps the model it was created with. */}
-        {models.length > 0 && opensSession && (
+        {models.length > 0 && (
           <Dropdown<CopilotModel>
             id="workbench-ai-model"
             titleText={t("workbench.model", "批改模型")}

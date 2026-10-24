@@ -532,3 +532,35 @@
     grid-row: 2;
   }
 }
+
+.railFooter {
+  padding: layout.$spacing-05;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+
+.railLabel {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.railRing {
+  display: inline-flex;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+.railRingTrack,
+.railRingValue {
+  fill: none;
+  stroke-width: 3;
+}
+.railRingTrack { stroke: var(--cds-border-subtle); }
+.railRingValue {
+  stroke: var(--cds-interactive);
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  transition: stroke-dashoffset 1.2s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .railRingValue { transition: none; }
+}

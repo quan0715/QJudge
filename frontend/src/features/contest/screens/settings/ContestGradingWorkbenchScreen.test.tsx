@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   batch: {
     questions: [] as { questionId: string; status: string; ungradedCount: number; writtenCount: number; label: string; index: number }[],
     sessionId: null as string | null,
-    draftCounts: {} as Record<string, number>,
+    units: [] as {unit_id: string; question_ids: string[]; run_id: string; total_count: number; draft_count: number; written_count: number; skipped_count: number; status: string}[],
     aiWrittenAnswerIds: new Set<string>(),
     overall: { ungradedTotal: 0 },
     canStart: true,
@@ -144,9 +145,9 @@ vi.mock("./grading/useGradingData", () => ({
 
 async function setup(query = "grading_question=a&grading_student=s1") {
   const result = render(
-    <MemoryRouter initialEntries={[`/?${query}`]}>
+    <QueryClientProvider client={new QueryClient({defaultOptions: {queries: {retry: false}}})}><MemoryRouter initialEntries={[`/?${query}`]}>
       <ContestGradingWorkbenchScreen />
-    </MemoryRouter>,
+    </MemoryRouter></QueryClientProvider>,
   );
   await screen.findByRole("heading", { level: 1 });
   return result;
@@ -168,7 +169,7 @@ beforeEach(() => {
   mocks.batch.questions = [];
   mocks.batch.error = undefined;
   mocks.batch.sessionId = null;
-  mocks.batch.draftCounts = {};
+  mocks.batch.units = [];
   mocks.batch.start.mockResolvedValue(undefined);
   mocks.batch.regradeQuestion.mockResolvedValue(undefined);
   mocks.getExamPaper.mockResolvedValue(paper);
@@ -290,7 +291,7 @@ describe("grading workbench", () => {
     await setup("grading_question=c");
     fireEvent.click(screen.getByRole("button", { name: "AI 批改這題" }));
     fireEvent.click(await screen.findByRole("button", { name: "開始" }));
-    await waitFor(() => expect(mocks.batch.regradeQuestion).toHaveBeenCalledWith("c"));
+    await waitFor(() => expect(mocks.batch.regradeQuestion).toHaveBeenCalledWith("c", undefined, "m1"));
   });
 
   it("whole-exam AI reuses an existing batch session", async () => {
@@ -352,9 +353,9 @@ describe("grading workbench", () => {
     expect(screen.getByRole("button", { name: /^s2/ })).toHaveTextContent("AI 批改中");
   });
 
-  it("rail shows the AI's progress and todos while the batch runs", async () => {
+  it("rail reads durable draft counts independently of submitted grades", async () => {
     mocks.batch.sessionId = "sess";
-    mocks.batch.draftCounts = { a: 1 };
+    mocks.batch.units = [{unit_id: "group_g", question_ids: ["a", "b"], run_id: "r1", total_count: 4, draft_count: 3, written_count: 0, skipped_count: 0, status: "draft"}];
     mocks.batch.questions = ["a", "b"].map((questionId, index) => ({
       questionId,
       status: "running",
@@ -365,8 +366,22 @@ describe("grading workbench", () => {
     }));
     await setup("grading_question=c");
     const rail = within(screen.getByRole("navigation", { name: "題目" }));
-    expect(rail.getByRole("button", { name: /第 1 題/ })).toHaveTextContent("AI 批改中 1/4");
+    expect(rail.getByRole("progressbar", { name: "第 1 題草稿完成進度" })).toHaveAttribute("title", "草稿已完成 3/4 · 已寫入 0/2");
+    expect(rail.getByRole("progressbar", { name: "第 1 題草稿完成進度" })).toHaveAttribute("aria-valuenow", "75");
     expect(screen.getByText("Read the SOP")).toBeInTheDocument();
+  });
+
+  it("rail counts only fully saved students while a group is running", async () => {
+    mocks.batch.questions = ["a", "b"].map((questionId, index) => ({questionId, status: "running", ungradedCount: 2, writtenCount: 0, label: `Q${index+1}`, index}));
+    const saved = rows.filter(row => row.studentId === "s1" && ["a", "b"].includes(row.questionId));
+    saved.forEach(row => { row.score = 1; });
+    try {
+      await setup("grading_question=c");
+      const rail = within(screen.getByRole("navigation", {name: "題目"}));
+      expect(rail.getByRole("progressbar", { name: "第 1 題草稿完成進度" })).toHaveAttribute("title", "等待批改草稿 · 已寫入 1/2");
+    } finally {
+      saved.forEach(row => { row.score = null; });
+    }
   });
 
   it("a single question has one header menu holding the AI actions", async () => {
@@ -401,3 +416,5 @@ describe("grading workbench", () => {
     expect(rail.getByRole("button", { name: /第 1 題/ })).toHaveTextContent("0/2");
   });
 });
+
+vi.mock("./grading/workbench/useGradeCsvProgress", () => ({ useGradeCsvProgress: () => ({progress: {}}) }));

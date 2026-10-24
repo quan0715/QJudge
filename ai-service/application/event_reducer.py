@@ -107,6 +107,7 @@ def reduce_run_event(
 
     elif event_type == "tool_call_started":
         started = {
+            **({"start_sequence": event["seq"]} if isinstance(event.get("seq"), int) else {}),
             "tool_name": event.get("tool_name"),
             "tool_call_id": event.get("tool_call_id"),
             "input": event.get("input_data"),

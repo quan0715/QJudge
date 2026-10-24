@@ -86,7 +86,8 @@
         "participants": "참가자",
         "questionStats": "답안 분포",
         "standings": "순위표",
-        "submissions": "제출 목록"
+        "submissions": "제출 목록",
+        "scoreMatrix": "성적 개요"
       },
       "eventLog": "이벤트 기록",
       "examStatusSummary": "시험 상태 요약",

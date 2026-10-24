@@ -86,7 +86,8 @@
         "participants": "Participants",
         "questionStats": "Answer distribution",
         "standings": "Leaderboard",
-        "submissions": "Submissions"
+        "submissions": "Submissions",
+        "scoreMatrix": "Score overview"
       },
       "eventLog": "Event log",
       "examStatusSummary": "Exam status summary",

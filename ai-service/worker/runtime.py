@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Callable
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -13,6 +13,7 @@ from typing import Any, Protocol
 from uuid import UUID
 
 from sqlalchemy import select, update
+from sqlalchemy.exc import DBAPIError, TimeoutError as PoolTimeoutError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from domain.model_catalog import ModelConfigInvalid, ModelNotAvailable
@@ -87,39 +88,6 @@ class TerminalRunInfo:
     error_message: str | None
     user_message: str
     session_context: dict[str, Any]
-
-
-TerminalHook = Callable[[UUID, str], Awaitable[None]]
-
-
-class TerminalHookRunStore:
-    """Run a hook after a run ends, before its session's next run is dispatched.
-
-    Every terminal path (normal end, cancel repair, stale recovery) hands off
-    through ``dispatch_next_after_terminal``. A failing hook is logged and
-    never blocks the session queue.
-    """
-
-    def __init__(self, runs: Any, hook: TerminalHook) -> None:
-        self._runs = runs
-        self._hook = hook
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._runs, name)
-
-    async def dispatch_next_after_terminal(
-        self,
-        run_id: UUID,
-        credential_lease_key: str,
-        trace_context: TraceContext,
-    ) -> None:
-        try:
-            await self._hook(run_id, credential_lease_key)
-        except Exception:
-            logger.exception("Terminal hook failed for run %s", run_id)
-        await self._runs.dispatch_next_after_terminal(
-            run_id, credential_lease_key, trace_context
-        )
 
 
 class WorkerRunOperations(Protocol):
@@ -274,7 +242,12 @@ class WorkerCredentialResolver:
 
 
 class SqlAlchemyWorkerRunStore:
-    """Worker-only database operations, each bounded by its own transaction."""
+    """Worker-only database operations, each bounded by its own transaction.
+
+    Session/run mutations use FOR NO KEY UPDATE (key_share=True): their keys
+    never change, so artifact FK checks can proceed without a lock-order cycle.
+    This lock still excludes concurrent writers and preserves epoch fencing.
+    """
 
     def __init__(
         self,
@@ -297,12 +270,12 @@ class SqlAlchemyWorkerRunStore:
             owner_row = await session.scalar(
                 select(SessionRow)
                 .where(SessionRow.session_id == session_id)
-                .with_for_update()
+                .with_for_update(key_share=True)
             )
             row = await session.scalar(
                 select(RunRow)
                 .where(RunRow.run_id == run_id)
-                .with_for_update()
+                .with_for_update(key_share=True)
             )
             if row is None or owner_row is None:
                 return None
@@ -431,12 +404,12 @@ class SqlAlchemyWorkerRunStore:
             await session.scalar(
                 select(SessionRow.session_id)
                 .where(SessionRow.session_id == session_id)
-                .with_for_update()
+                .with_for_update(key_share=True)
             )
             row = await session.scalar(
                 select(RunRow)
                 .where(RunRow.run_id == run_id)
-                .with_for_update()
+                .with_for_update(key_share=True)
             )
             if (
                 row is None
@@ -465,12 +438,12 @@ class SqlAlchemyWorkerRunStore:
             await session.scalar(
                 select(SessionRow.session_id)
                 .where(SessionRow.session_id == session_id)
-                .with_for_update()
+                .with_for_update(key_share=True)
             )
             row = await session.scalar(
                 select(RunRow)
                 .where(RunRow.run_id == run_id)
-                .with_for_update()
+                .with_for_update(key_share=True)
             )
             if (
                 row is None
@@ -496,12 +469,12 @@ class SqlAlchemyWorkerRunStore:
             await session.scalar(
                 select(SessionRow.session_id)
                 .where(SessionRow.session_id == session_id)
-                .with_for_update()
+                .with_for_update(key_share=True)
             )
             row = await session.scalar(
                 select(RunRow)
                 .where(RunRow.run_id == run_id)
-                .with_for_update()
+                .with_for_update(key_share=True)
             )
             if (
                 row is None
@@ -565,7 +538,7 @@ class SqlAlchemyWorkerRunStore:
                         RunRow.session_id == session_id,
                         RunRow.status == RunStatus.QUEUED.value,
                     )
-                    .with_for_update()
+                    .with_for_update(key_share=True)
                 )
             ).all()
             repository = SqlAlchemyRunRepository(session)
@@ -591,14 +564,14 @@ class SqlAlchemyWorkerRunStore:
                 owner_row = await session.scalar(
                     select(SessionRow)
                     .where(SessionRow.session_id == session_id)
-                    .with_for_update()
+                    .with_for_update(key_share=True)
                 )
                 if owner_row is None:
                     continue
                 row = await session.scalar(
                     select(RunRow)
                     .where(RunRow.run_id == run_id)
-                    .with_for_update(skip_locked=True)
+                    .with_for_update(skip_locked=True, key_share=True)
                 )
                 if (
                     row is None
@@ -629,12 +602,12 @@ class SqlAlchemyWorkerRunStore:
             await session.scalar(
                 select(SessionRow.session_id)
                 .where(SessionRow.session_id == recovery.session_id)
-                .with_for_update()
+                .with_for_update(key_share=True)
             )
             row = await session.scalar(
                 select(RunRow)
                 .where(RunRow.run_id == recovery.run_id)
-                .with_for_update()
+                .with_for_update(key_share=True)
             )
             if (
                 row is None
@@ -859,8 +832,19 @@ class WorkerRuntime:
                 )
                 return
             except TimeoutError:
+                pass
+            try:
                 if not await self._runs.heartbeat(run_id, execution_epoch):
                     return
+            except (DBAPIError, PoolTimeoutError) as error:
+                # Each heartbeat owns its transaction; its failed transaction
+                # has rolled back before the next normal interval retries it.
+                # Never revive a stale epoch: a rejected update still stops us.
+                logger.warning(
+                    "Heartbeat for run %s failed (%s); retrying next interval",
+                    run_id,
+                    type(error).__name__,
+                )
 
     @staticmethod
     def _command_for(claim: RunClaim, mcp_token: str) -> AgentCommand:
@@ -879,6 +863,7 @@ class WorkerRuntime:
                 mcp_token=mcp_token,
                 approval=None,
                 answer=None,
+                execution_epoch=claim.execution_epoch,
             )
 
         payload = run.pause_payload.get("command")
@@ -909,4 +894,5 @@ class WorkerRuntime:
             mcp_token=mcp_token,
             approval=approval,
             answer=answer,
+            execution_epoch=claim.execution_epoch,
         )

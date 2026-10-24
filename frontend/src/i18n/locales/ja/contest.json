@@ -86,7 +86,8 @@
         "participants": "参加者",
         "questionStats": "回答分布",
         "standings": "ランキング",
-        "submissions": "提出一覧"
+        "submissions": "提出一覧",
+        "scoreMatrix": "成績一覧"
       },
       "eventLog": "イベント記録",
       "examStatusSummary": "試験状態サマリー",

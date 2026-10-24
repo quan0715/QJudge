@@ -27,8 +27,8 @@ describe("WorkbenchQuestionRail", () => {
   it("rail shows status instead of progress", () => {
     render(<WorkbenchQuestionRail {...base} examAi={{ state: "idle", progressText: "", canStart: true }} />);
     expect(screen.getByText("16/16")).toBeTruthy();
-    expect(screen.getByText("AI 批改中")).toBeTruthy();
-    expect(screen.getByText("AI 失敗")).toBeTruthy();
+    expect(screen.getByRole("progressbar", { name: "第 3 題草稿完成進度" })).toBeTruthy();
+    expect(screen.getByLabelText("AI 失敗")).toBeTruthy();
     expect(screen.queryByText("14/16")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /第 6 題/ }));
     expect(base.onSelect).toHaveBeenCalledWith("u6");
@@ -42,13 +42,24 @@ describe("WorkbenchQuestionRail", () => {
       <WorkbenchQuestionRail
         {...base}
         onStopExam={onStopExam}
-        examAi={{ state: "running", progressText: "1/5 題", canStart: false }}
+        examAi={{ state: "running", progressText: "1/5 題", canStart: false, completedUnits: 1, totalUnits: 5 }}
       />,
     );
     expect(screen.queryByRole("button", { name: "AI 批改整份考卷" })).toBeNull();
     expect(screen.getByText((_, node) => node?.tagName === "SPAN" && node.textContent === "AI 批改中　1/5 題")).toBeTruthy();
+    expect(screen.getByRole("progressbar", { name: "已完成寫分" })).toHaveAttribute("aria-valuenow", "1");
+    expect(screen.getByRole("progressbar", { name: "已完成寫分" })).toHaveAttribute("aria-valuemax", "5");
     fireEvent.click(screen.getByRole("button", { name: "停止" }));
     expect(onStopExam).toHaveBeenCalled();
+  });
+
+  it("retains confirmed submission progress after the run finishes", () => {
+    const { rerender } = render(<WorkbenchQuestionRail {...base} examAi={{ state: "running", progressText: "0/1 題", canStart: false, completedUnits: 0, totalUnits: 1 }} />);
+    expect(screen.getByRole("progressbar", { name: "已完成寫分" })).toHaveAttribute("aria-valuenow", "0");
+    rerender(<WorkbenchQuestionRail {...base} examAi={{ state: "idle", progressText: "1/1 題", canStart: true, completedUnits: 1, totalUnits: 1 }} />);
+    expect(screen.getByRole("progressbar", { name: "已完成寫分" })).toHaveAttribute("aria-valuenow", "1");
+    expect(screen.getByText("1/1 題")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "停止" })).not.toBeInTheDocument();
   });
 
   it("running rail shows the AI's todos and how many answers it has scored", () => {
@@ -66,6 +77,7 @@ describe("WorkbenchQuestionRail", () => {
       />,
     );
     expect(screen.getByText("制定第 3 題規準")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /第 3 題/ })).toHaveTextContent("AI 批改中 3/16");
+    expect(screen.getByRole("button", { name: /第 3 題/ })).not.toHaveTextContent("AI 批改中");
+    expect(screen.getByRole("progressbar", { name: "第 3 題草稿完成進度" })).toHaveAttribute("title", "AI 批改中 · 已寫入 3/16");
   });
 });

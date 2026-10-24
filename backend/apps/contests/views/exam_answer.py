@@ -41,7 +41,10 @@ from .exam_validation_response import (
 from ..services.participation import NO_ATTEMPT_MESSAGE, attempted_participants
 
 
-class ExamAnswerViewSet(viewsets.GenericViewSet):
+from .exam_grading_unit import ExamGradingUnitMixin
+
+
+class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
     """
     ViewSet for exam answer operations.
     Students submit/retrieve answers; TAs grade answers and view results.
@@ -684,6 +687,16 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                     results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': 'not found'})
                     continue
                 if only_if_ungraded and answer_obj.score is not None:
+                    results.append({'exam_answer_id': answer_id, 'status': 'skipped'})
+                    continue
+                # The answer lock serializes retries with grading and ungrading.
+                # Keep a same-run receipt authoritative even after a teacher
+                # clears the score; only a new run may grade that answer again.
+                if batch_ids and ExamBatchGradeWrite.objects.filter(
+                    answer=answer_obj,
+                    session_id=batch_ids[0],
+                    run_id=batch_ids[1],
+                ).exists():
                     results.append({'exam_answer_id': answer_id, 'status': 'skipped'})
                     continue
 

@@ -73,6 +73,41 @@ class BatchGradeReceiptTests(ExamAnswerTestBase):
         self.assertTrue(self.writes().data['writes'][0]['current'])
         self.assertEqual(ExamBatchGradeWrite.objects.get(answer=self.answer).run_id, self.run_id)
 
+    def test_same_run_retry_does_not_restore_a_teacher_revoked_grade(self):
+        self.assertEqual(self.grade().data['results'][0]['status'], 'ok')
+        receipt = ExamBatchGradeWrite.objects.get(answer=self.answer)
+        original_graded_at = receipt.graded_at
+
+        response = self.client.post(
+            self.base + f'{self.answer.id}/ungrade/', {}, format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        # Another question can fail after this answer committed. Replaying the
+        # unit must not undo the teacher's intervening decision to clear it.
+        replay = self.grade(grades=[{
+            'exam_answer_id': self.answer.id, 'score': 9, 'feedback': 'retry',
+        }])
+        self.assertEqual(replay.status_code, 200)
+        self.assertEqual(replay.data['results'][0]['status'], 'skipped')
+        self.assertEqual(replay.data['graded_count'], 0)
+        self.answer.refresh_from_db()
+        self.assertIsNone(self.answer.score)
+        receipt.refresh_from_db()
+        self.assertEqual(receipt.run_id, self.run_id)
+        self.assertEqual(receipt.score, 8)
+        self.assertEqual(receipt.feedback, 'AI')
+        self.assertEqual(receipt.graded_at, original_graded_at)
+        self.assertFalse(self.writes().data['writes'][0]['current'])
+
+        # A teacher-authorized new run may grade the now-ungraded answer.
+        self.run_id = uuid4()
+        self.assertEqual(self.grade().data['results'][0]['status'], 'ok')
+        self.answer.refresh_from_db()
+        self.assertEqual(self.answer.score, 8)
+        receipt.refresh_from_db()
+        self.assertEqual(receipt.run_id, self.run_id)
+        self.assertTrue(self.writes().data['writes'][0]['current'])
+
     def test_receipts_are_scoped_to_owner_session_and_contest(self):
         self.grade()
         self.assertEqual(self.writes(uuid4()).data['writes'], [])

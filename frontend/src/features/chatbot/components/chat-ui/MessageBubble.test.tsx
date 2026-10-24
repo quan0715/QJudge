@@ -32,6 +32,16 @@ describe("MessageBubble", () => {
     expect(screen.queryByText("ui.processing")).not.toBeInTheDocument();
   });
 
+  it("shows a batch request as the teacher's words without its units line", () => {
+    const message: CopilotMessage = {
+      id: "batch-user", role: "user", createdAt: new Date(),
+      parts: [{ type: "text", text: 'batch_units: [{"id":"private-unit"}]\n請批改第 1 題。' }],
+    };
+    render(<MessageBubble message={message} />);
+    expect(screen.getByText("請批改第 1 題。")).toBeVisible();
+    expect(screen.queryByText(/private-unit|batch_units/)).not.toBeInTheDocument();
+  });
+
   it("renders an in-progress tool part as one chain step", () => {
     const message: CopilotMessage = {
       id: "assistant-active-tool",
