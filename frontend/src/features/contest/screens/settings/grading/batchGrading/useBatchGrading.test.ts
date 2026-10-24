@@ -376,13 +376,13 @@ describe("useBatchGrading sync", () => {
     mocks.runState = { status: "streaming", run: { id: "r1", sessionId: "s1", status: "running" } };
     const { result, rerender } = render();
     await waitFor(() => expect(result.current.sessionId).toBe("s1"));
-    await waitFor(() => expect(mocks.getSession).toHaveBeenCalled());
-    mocks.getSession.mockClear();
+    await waitFor(() => expect(mocks.getActiveRuns).toHaveBeenCalled());
+    mocks.getActiveRuns.mockClear();
 
     mocks.runState = { status: "ready", run: null };
     rerender();
 
-    await waitFor(() => expect(mocks.getSession).toHaveBeenCalled());
+    await waitFor(() => expect(mocks.getActiveRuns).toHaveBeenCalled());
   });
 });
 
@@ -394,22 +394,36 @@ describe("useBatchGrading polling", () => {
     mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
     render();
     await vi.advanceTimersByTimeAsync(0);
-    expect(mocks.getSession).toHaveBeenCalledTimes(1);
+    expect(mocks.getActiveRuns).toHaveBeenCalledTimes(1);
 
     await vi.advanceTimersByTimeAsync(6_000);
-    expect(mocks.getSession).toHaveBeenCalledTimes(1);
+    expect(mocks.getActiveRuns).toHaveBeenCalledTimes(1);
 
     await vi.advanceTimersByTimeAsync(30_000);
-    expect(mocks.getSession).toHaveBeenCalledTimes(2);
+    expect(mocks.getActiveRuns).toHaveBeenCalledTimes(2);
   });
 
-  it("polls every five seconds while a run is active", async () => {
+  it("polls every five seconds while a run is active without re-reading the session", async () => {
     mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
     mocks.getSession.mockResolvedValue({ messages: [userMessage("q1", "r1")] });
     mocks.getActiveRuns.mockResolvedValue([{ id: "r1", sessionId: "s1", status: "running" }]);
     render();
     await vi.advanceTimersByTimeAsync(0);
 
+    await vi.advanceTimersByTimeAsync(5_100);
+    expect(mocks.getActiveRuns).toHaveBeenCalledTimes(2);
+    expect(mocks.getSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-reads the session once the set of active runs changes", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.getSession.mockResolvedValue({ messages: [userMessage("q1", "r1")] });
+    mocks.getActiveRuns.mockResolvedValue([{ id: "r1", sessionId: "s1", status: "running" }]);
+    render();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(mocks.getSession).toHaveBeenCalledTimes(1);
+
+    mocks.getActiveRuns.mockResolvedValue([]);
     await vi.advanceTimersByTimeAsync(5_100);
     expect(mocks.getSession).toHaveBeenCalledTimes(2);
   });

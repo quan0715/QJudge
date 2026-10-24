@@ -127,7 +127,11 @@ async function loadSnapshot(
   previous: BatchSnapshot,
 ): Promise<BatchSnapshot> {
   const next: BatchSnapshot = {
-    ...(await fetchBatchRemoteState(contestId, sessionId)),
+    ...(await fetchBatchRemoteState(
+      contestId,
+      sessionId,
+      previous.sessionId === sessionId ? previous : undefined,
+    )),
     sessionId,
     finalizingSince: {},
     fetchedAt: Date.now(),

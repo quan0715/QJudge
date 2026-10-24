@@ -105,13 +105,28 @@ export async function cancelBatchRun(runId: string): Promise<void> {
   await chatbotRepository.cancelRun(runId);
 }
 
-export async function fetchBatchRemoteState(contestId: string, sessionId: string): Promise<BatchRemoteState> {
-  const [session, activeRuns, artifacts, writes] = await Promise.all([
-    chatbotRepository.getSession(sessionId),
+const sameRunIds = (a: readonly BatchActiveRun[], b: readonly BatchActiveRun[]) =>
+  a.length === b.length && a.every((run) => b.some((other) => other.id === run.id));
+
+/**
+ * `previous` is the last state read for this session. Its messages only map runs to
+ * questions and record how finished runs ended, so they are re-read only when the
+ * set of active runs changes.
+ */
+export async function fetchBatchRemoteState(
+  contestId: string,
+  sessionId: string,
+  previous?: Pick<BatchRemoteState, "messages" | "activeRuns">,
+): Promise<BatchRemoteState> {
+  const [activeRuns, artifacts, writes] = await Promise.all([
     listSessionActiveRuns(sessionId),
     listArtifacts({ sessionId, step: BATCH_ARTIFACT_STEP }),
     getBatchGradeWrites(contestId, sessionId),
   ]);
+  const messages =
+    previous && sameRunIds(previous.activeRuns, activeRuns)
+      ? previous.messages
+      : (await chatbotRepository.getSession(sessionId)).messages;
   const latest = latestByFilename(artifacts);
   const read = async (artifact: ArtifactRecord | undefined) =>
     artifact ? (await fetchArtifactContent(artifact.artifact_id)).content : null;
@@ -134,7 +149,7 @@ export async function fetchBatchRemoteState(contestId: string, sessionId: string
       )
     : [];
   return {
-    messages: session.messages,
+    messages,
     activeRuns,
     draftCounts: Object.fromEntries(draftEntries),
     progressCsv: await read(latest.get(PROGRESS_CSV_FILENAME)),
