@@ -9,7 +9,8 @@ import styles from "./BatchGrading.module.scss";
 
 interface BatchGradingQuestionNoticeProps {
   state: BatchQuestionState;
-  onResume(): void;
+  /** Offer to grade what is left. Without it, failures show only their reason and stopped runs no reminder. */
+  onResume?(): void;
 }
 
 export function BatchGradingQuestionNotice({ state, onResume }: BatchGradingQuestionNoticeProps) {
@@ -39,6 +40,18 @@ export function BatchGradingQuestionNotice({ state, onResume }: BatchGradingQues
   }
   const errorText =
     state.error === FINALIZE_TIMEOUT_ERROR ? t("grading.batch.finalizeTimeout") : state.error;
+  if ((state.status === "failed" || state.status === "paused") && !onResume) {
+    return (
+      <InlineNotification
+        className={styles.notice}
+        kind="error"
+        lowContrast
+        hideCloseButton
+        title={t("grading.batch.noticeFailed")}
+        subtitle={errorText}
+      />
+    );
+  }
   if (state.status === "failed" || state.status === "paused") {
     return (
       <ActionableNotification
@@ -54,7 +67,7 @@ export function BatchGradingQuestionNotice({ state, onResume }: BatchGradingQues
       />
     );
   }
-  if (isUnfinished(state)) {
+  if (isUnfinished(state) && onResume) {
     return (
       <ActionableNotification
         className={styles.notice}

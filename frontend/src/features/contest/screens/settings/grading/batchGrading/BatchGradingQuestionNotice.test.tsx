@@ -93,4 +93,16 @@ describe("BatchGradingQuestionNotice", () => {
     );
     expect(screen.getByText("grading.batch.noticeSkippedAtWrite")).toBeInTheDocument();
   });
+
+  it("without a resume action, a failure shows its reason and no fill button", () => {
+    render(<BatchGradingQuestionNotice state={state({ status: "failed", error: "模型逾時", ungradedCount: 4 })} />);
+    expect(screen.getByText("grading.batch.noticeFailed")).toBeInTheDocument();
+    expect(screen.getByText("模型逾時")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("without a resume action, a stopped run leaves no reminder", () => {
+    const { container } = render(<BatchGradingQuestionNotice state={state({ status: "cancelled", ungradedCount: 11 })} />);
+    expect(container).toBeEmptyDOMElement();
+  });
 });

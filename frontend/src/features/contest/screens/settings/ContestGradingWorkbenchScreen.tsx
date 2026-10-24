@@ -479,7 +479,10 @@ export default function ContestGradingWorkbenchScreen() {
             title={tChatbot(MODEL_NOTICE_I18N_KEY[modelNotice.kind])}
           />
         )}
-        {noticeState && <BatchGradingQuestionNotice state={noticeState} onResume={() => void batch.resume()} />}
+        {(batch.error || suggestions.error) && (
+          <InlineNotification kind="error" lowContrast hideCloseButton title={batch.error ?? suggestions.error ?? ""} />
+        )}
+        {noticeState && <BatchGradingQuestionNotice state={noticeState} />}
         {suggestions.running && (
           <InlineNotification kind="info" lowContrast hideCloseButton title={t("workbench.suggesting", "AI 正在產生建議")} />
         )}

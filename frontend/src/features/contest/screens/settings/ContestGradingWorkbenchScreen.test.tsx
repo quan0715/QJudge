@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
     loadQuestionFiles: vi.fn(),
     resume: vi.fn(),
     stop: vi.fn(),
+    error: undefined as string | undefined,
   },
   suggestions: {} as Record<string, { score: number | null; reason: string; synced: boolean }>,
   suggest: { start: vi.fn(), adopt: vi.fn(), skip: vi.fn() },
@@ -165,6 +166,7 @@ beforeEach(() => {
   mocks.batch.aiWrittenAnswerIds = new Set(["s2-c"]);
   mocks.batch.sessionId = null;
   mocks.batch.questions = [];
+  mocks.batch.error = undefined;
   mocks.batch.sessionId = null;
   mocks.batch.draftCounts = {};
   mocks.batch.start.mockResolvedValue(undefined);
@@ -374,6 +376,12 @@ describe("grading workbench", () => {
     await setup("grading_question=c");
     expect(screen.queryByRole("button", { name: "AI 操作" })).toBeNull();
     expect(within(screen.getByTestId("policy-menu")).getByText("AI 評分標準")).toBeInTheDocument();
+  });
+
+  it("shows batch grading errors instead of failing silently", async () => {
+    mocks.batch.error = "停止失敗：連線逾時";
+    await setup("grading_question=c");
+    expect(screen.getByText("停止失敗：連線逾時")).toBeInTheDocument();
   });
 
   it("rail progress counts fully graded students", async () => {
