@@ -33,7 +33,7 @@ export function useQuestionSuggestions(
   rows: readonly GradingAnswerRow[],
 ): QuestionSuggestions {
   const ai = useAiQuestionGrading();
-  const { sessions, listStatus, activeSession, refresh: refreshSessions } = useCopilotSessions();
+  const { sessions, listStatus, activeSession, refresh: refreshSessions, select } = useCopilotSessions();
   const { state: runState } = useCopilotRun();
   const enabled = Boolean(contestId && questionId && rows.length > 0);
   const bound = Boolean(questionId && ai.sessionId && ai.trackedQuestionId === questionId);
@@ -91,8 +91,10 @@ export function useQuestionSuggestions(
       const started = await ai.start(contestId, questionId, [...targetRows], { modelId, title: `AI 建議 · Q${label}` });
       if (!started) throw new Error("AI 建議啟動失敗，請稍後再試");
       await refreshSessions();
+      // The copilot only attaches to a session's run when the session is selected.
+      await select(started);
     },
-    [ai, contestId, questionId, refreshSessions],
+    [ai, contestId, questionId, refreshSessions, select],
   );
 
   const markSynced = useCallback(

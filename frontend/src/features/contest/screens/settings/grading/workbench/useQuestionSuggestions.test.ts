@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   },
   gradeExamAnswer: vi.fn(),
   refreshSessions: vi.fn(),
+  select: vi.fn(),
   runActive: false,
 }));
 
@@ -29,6 +30,7 @@ vi.mock("@copilot", () => ({
     listStatus: "ready",
     activeSession: { id: null, status: "idle" },
     refresh: mocks.refreshSessions,
+    select: mocks.select,
   }),
   useCopilotRun: () => ({ state: { status: "ready" } }),
 }));
@@ -110,6 +112,15 @@ describe("useQuestionSuggestions", () => {
     await act(() => result.current.start([ROWS[1]], "model-x"));
 
     expect(mocks.ai.start).toHaveBeenCalledWith("c1", "q1", [ROWS[1]], { modelId: "model-x", title: "AI 建議 · Q3" });
+  });
+
+  it("start selects the new session so the copilot streams its run", async () => {
+    mocks.ai.start.mockResolvedValue("sess-2");
+    const { result } = renderHook(() => useQuestionSuggestions("c1", "q1", ROWS));
+
+    await act(() => result.current.start(ROWS));
+
+    expect(mocks.select).toHaveBeenCalledWith("sess-2");
   });
 
   it("group unit is inert", async () => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useCopilotSessions } from "@copilot";
+import { useCopilotRun, useCopilotSessions } from "@copilot";
 import { useRequestCopilot } from "@/features/chatbot/contexts/CopilotDemandContext";
 import {
   createTaskSession,
@@ -83,8 +83,8 @@ export interface UseBatchGradingResult {
   /** An action (start, stop, resume, revert, regrade) is in flight. */
   busy: boolean;
   start(modelId?: string): Promise<void>;
-  /** Grade only these questions (a whole group for a group), reusing the batch session when one exists. */
-  startQuestion(questionIds: readonly string[], modelId?: string): Promise<void>;
+  /** Grade only these questions (a whole group for a group), reusing the batch session unless `newSession`. */
+  startQuestion(questionIds: readonly string[], modelId?: string, options?: { newSession?: boolean }): Promise<void>;
   /** Answers whose current grade is still this session's unchanged AI write. */
   aiWrittenAnswerIds: ReadonlySet<string>;
   /** Never throws; failures surface through `error`. */
@@ -145,6 +145,7 @@ export function useBatchGrading(
 ): UseBatchGradingResult {
   useRequestCopilot();
   const { sessions, select, refresh: refreshSessions } = useCopilotSessions();
+  const { state: copilotRun } = useCopilotRun();
   // Keyed by contest: the screen can stay mounted while the route switches contests.
   const [created, setCreated] = useState<{ contestId: string; sessionId: string } | null>(null);
   const [snapshot, setSnapshot] = useState<BatchSnapshot>(EMPTY_SNAPSHOT);
@@ -206,6 +207,17 @@ export function useBatchGrading(
     },
     [contestId, reloadAnswers],
   );
+
+  // The copilot streams this session's run: reload as soon as the run starts, changes state or ends.
+  const runKey =
+    copilotRun.run && copilotRun.run.sessionId === sessionId ? `${copilotRun.run.id}:${copilotRun.status}` : "";
+  const lastRunKeyRef = useRef("");
+  useEffect(() => {
+    const previous = lastRunKeyRef.current;
+    lastRunKeyRef.current = runKey;
+    if (!sessionId || runKey === previous) return;
+    refreshSnapshot(sessionId).catch((err) => setPollError(messageOf(err)));
+  }, [refreshSnapshot, runKey, sessionId]);
 
   useEffect(() => {
     if (!sessionId) return undefined;
@@ -292,8 +304,10 @@ export function useBatchGrading(
         }
         await startBatchRun(id, buildBatchRunPrompt({ contestId, units: manifests }), modelId);
       }
+      // The copilot only attaches to a session's run when the session is selected.
+      await select(id);
     },
-    [batchModelId, contestId, reloadAnswers],
+    [batchModelId, contestId, reloadAnswers, select],
   );
 
   /** Run one action at a time; record its error and optionally rethrow. */
@@ -359,12 +373,13 @@ export function useBatchGrading(
   );
 
   const startQuestion = useCallback(
-    async (questionIds: readonly string[], modelId?: string) => {
+    async (questionIds: readonly string[], modelId?: string, options?: { newSession?: boolean }) => {
       await guard(async () => {
         if (resultsPublished) throw new Error("成績已公布，無法啟動整批批改");
-        const id = sessionId ?? await createBatchSession(modelId);
+        const reuse = sessionId && !options?.newSession ? sessionId : null;
+        const id = reuse ?? await createBatchSession(modelId);
         await enqueue(id, questions.filter((q) => questionIds.includes(q.questionId)));
-        if (!sessionId) {
+        if (!reuse) {
           setCreated({ contestId, sessionId: id });
           await refreshSessions();
         } else {

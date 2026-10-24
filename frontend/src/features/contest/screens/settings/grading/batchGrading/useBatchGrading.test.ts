@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   getBatchGradeWrites: vi.fn(),
   getModels: vi.fn(),
   getRun: vi.fn(),
+  runState: { status: "ready", run: null } as { status: string; run: { id: string; sessionId: string; status: string } | null },
 }));
 
 vi.mock("@copilot", () => ({
@@ -28,6 +29,7 @@ vi.mock("@copilot", () => ({
     select: mocks.select,
     refresh: mocks.refreshSessions,
   }),
+  useCopilotRun: () => ({ state: mocks.runState }),
 }));
 vi.mock("@/features/chatbot/contexts/CopilotDemandContext", () => ({
   useRequestCopilot: () => undefined,
@@ -102,6 +104,7 @@ function render(rows = ROWS, reloadAnswers = vi.fn().mockResolvedValue(rows)) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.sessions = [];
+  mocks.runState = { status: "ready", run: null };
   mocks.getExamQuestions.mockResolvedValue([1,2,3,4].map(i => ({id: `q${i}`, questionType: "essay", prompt: "題目", explanation: "", score: 10, order: i})));
   mocks.getBatchGradeWrites.mockResolvedValue([]);
   mocks.getModels.mockResolvedValue([{ model_id: "default-model", is_default: true }]);
@@ -341,6 +344,22 @@ describe("useBatchGrading", () => {
   });
 });
 
+describe("useBatchGrading sync", () => {
+  it("reloads the batch state as soon as the copilot sees its run change", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.runState = { status: "streaming", run: { id: "r1", sessionId: "s1", status: "running" } };
+    const { result, rerender } = render();
+    await waitFor(() => expect(result.current.sessionId).toBe("s1"));
+    await waitFor(() => expect(mocks.getSession).toHaveBeenCalled());
+    mocks.getSession.mockClear();
+
+    mocks.runState = { status: "ready", run: null };
+    rerender();
+
+    await waitFor(() => expect(mocks.getSession).toHaveBeenCalled());
+  });
+});
+
 describe("useBatchGrading polling", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
@@ -494,6 +513,33 @@ describe("useBatchGrading single question", () => {
     expect(mocks.startRun.mock.calls.map(([, prompt]) => (prompt as string).split("\n")[0])).toEqual([
       "batch_question_id: q1",
     ]);
+  });
+
+  it("re-selects the session after starting a run so the copilot streams it", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    const { result } = render();
+    await waitFor(() => expect(result.current.sessionId).toBe("s1"));
+
+    await act(() => result.current.startQuestion(["q1"]));
+
+    const lastSelect = Math.max(...mocks.select.mock.invocationCallOrder);
+    const lastStart = Math.max(...mocks.startRun.mock.invocationCallOrder);
+    expect(lastSelect).toBeGreaterThan(lastStart);
+    expect(mocks.select).toHaveBeenLastCalledWith("s1");
+  });
+
+  it("startQuestion can open a new session instead of reusing the current one", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.createTaskSession.mockResolvedValue({ sessionId: "s2" });
+    const { result } = render();
+    await waitFor(() => expect(result.current.sessionId).toBe("s1"));
+
+    await act(() => result.current.startQuestion(["q1"], "model-x", { newSession: true }));
+
+    expect(mocks.createTaskSession).toHaveBeenCalledTimes(1);
+    expect(mocks.startRun.mock.calls[0][0]).toBe("s2");
+    expect(mocks.startRun.mock.calls[0][2]).toMatchObject({ modelOverride: "model-x" });
+    await waitFor(() => expect(result.current.sessionId).toBe("s2"));
   });
 
   it("startQuestion rejects when results are published", async () => {
