@@ -103,8 +103,8 @@ function statusFromActiveRun(status: ChatRunStatus): BatchQuestionStatus {
 }
 
 /**
- * Each question follows the last run that asked for it: running while that run is
- * active, completed once its unit was submitted, otherwise how the run ended.
+ * Each question follows the last run that asked for it: completed once its unit was
+ * submitted, running while that run is active, otherwise how the run ended.
  */
 export function deriveBatchState(input: {
   questions: readonly BatchQuestion[];
@@ -136,10 +136,11 @@ export function deriveBatchState(input: {
     };
     const runId = latestRunByQuestion.get(question.questionId);
     if (!runId) return { ...base, status: base.ungradedCount === 0 ? "skipped" : "idle" };
-    const active = activeById.get(runId);
-    if (active) return { ...base, runId, status: statusFromActiveRun(active) };
+    // A unit is written when submitted, even while the run grades other units.
     const unit = input.units.find((item) => item.run_id === runId && item.question_ids.includes(question.questionId));
     if (unit?.status === "completed") return { ...base, runId, status: "completed" };
+    const active = activeById.get(runId);
+    if (active) return { ...base, runId, status: statusFromActiveRun(active) };
     const end = runEnd.get(runId);
     if (end?.status === "cancelled") return { ...base, runId, status: "cancelled" };
     return { ...base, runId, status: "failed", ...(end?.error ? { error: end.error } : {}) };

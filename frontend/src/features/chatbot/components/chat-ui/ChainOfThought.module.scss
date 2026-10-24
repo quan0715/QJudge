@@ -14,10 +14,9 @@
 }
 
 .stepTitle {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: layout.$spacing-03;
-  max-width: 100%;
   min-width: 0;
   font-size: 0.875rem;
 }
@@ -26,8 +25,11 @@
   flex-shrink: 0;
 }
 
-// One line per step; the full name shows on hover.
+// One line per step; the full name shows on hover. A zero basis keeps a long name
+// from widening the accordion title, which would push the row off to the left.
 .stepName {
+  flex: 1 1 0;
+  width: 0;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -8,6 +8,7 @@ import type { GradingAnswerRow } from "./grading/gradingTypes";
 import ContestGradingWorkbenchScreen from "./ContestGradingWorkbenchScreen";
 
 const mocks = vi.hoisted(() => ({
+  subagents: [] as { id: string; label: string; status: string }[],
   gradeAnswer: vi.fn(),
   showToast: vi.fn(),
   getExamPaper: vi.fn(),
@@ -52,6 +53,7 @@ vi.mock("@/features/contest/components/exam/AnswerDisplay", () => ({
 }));
 vi.mock("@/features/chatbot/adapters/qJudgeCopilotMessageData", () => ({
   selectLatestTodoItems: () => [{ id: "t1", label: "Read the SOP", status: "in_progress" }],
+  selectLatestSubagentItems: () => mocks.subagents,
 }));
 vi.mock("@copilot", () => ({
   useCopilotSessions: () => ({ activeSession: { status: "ready", data: { id: "sess", messages: [] } } }),
@@ -161,6 +163,7 @@ function edit(label: string, score: number, feedback: string, index: number) {
 }
 
 beforeEach(() => {
+  mocks.subagents = [];
   sessionStorage.clear();
   vi.clearAllMocks();
   mocks.suggestions = {};
@@ -369,6 +372,17 @@ describe("grading workbench", () => {
     expect(rail.getByRole("progressbar", { name: "第 1 題草稿完成進度" })).toHaveAttribute("title", "草稿已完成 3/4 · 已寫入 0/2");
     expect(rail.getByRole("progressbar", { name: "第 1 題草稿完成進度" })).toHaveAttribute("aria-valuenow", "75");
     expect(screen.getByText("Read the SOP")).toBeInTheDocument();
+  });
+
+  it("rail follows the subagents' live status instead of the agent's todos", async () => {
+    mocks.batch.sessionId = "sess";
+    mocks.subagents = [{ id: "t1", label: "批改第 1 題", status: "in_progress" }];
+    mocks.batch.questions = ["a", "b"].map((questionId, index) => ({
+      questionId, status: "running", ungradedCount: 2, writtenCount: 0, label: `Q${index + 1}`, index,
+    }));
+    await setup("grading_question=c");
+    expect(screen.getByText("批改第 1 題")).toBeInTheDocument();
+    expect(screen.queryByText("Read the SOP")).toBeNull();
   });
 
   it("rail counts only fully saved students while a group is running", async () => {

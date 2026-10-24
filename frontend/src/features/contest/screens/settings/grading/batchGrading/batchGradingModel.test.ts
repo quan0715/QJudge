@@ -97,6 +97,15 @@ describe("deriveBatchState", () => {
     expect(state).toMatchObject({ status: "completed", runId: "r1" });
   });
 
+  it("is completed as soon as its unit is submitted, while the run grades other units", () => {
+    const state = derive({
+      messages: [request("r1", ["q1"])],
+      activeRuns: [{ id: "r1", status: "running" }],
+      units: [unit({})],
+    })[0];
+    expect(state).toMatchObject({ status: "completed", runId: "r1" });
+  });
+
   it("ignores a unit from an older run", () => {
     const state = derive({ messages: [request("r1", ["q1"]), request("r2", ["q1"]), ended("r2", "completed")], units: [unit({})] })[0];
     expect(state).toMatchObject({ status: "failed", runId: "r2" });
