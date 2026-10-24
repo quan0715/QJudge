@@ -29,6 +29,13 @@ describe("ChainOfThought subagents", () => {
     expect(screen.queryByText(/細節/)).not.toBeInTheDocument();
   });
 
+  it("marks a subagent with its own icon instead of a text tag", () => {
+    render(<ChainOfThought steps={[task()]} isProcessing={false} />);
+
+    expect(screen.getByRole("img", { name: "ui.subagent" })).toBeInTheDocument();
+    expect(screen.queryByText("ui.subagent")).not.toBeInTheDocument();
+  });
+
   it("truncates long descriptions", () => {
     const description = "批".repeat(50);
     render(<ChainOfThought steps={[task({ input: { description } })]} isProcessing={false} />);

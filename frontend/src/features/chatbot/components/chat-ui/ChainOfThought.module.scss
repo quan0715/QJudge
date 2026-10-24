@@ -17,7 +17,21 @@
   display: inline-flex;
   align-items: center;
   gap: layout.$spacing-03;
+  max-width: 100%;
+  min-width: 0;
   font-size: 0.875rem;
+}
+
+.stepTitle > svg {
+  flex-shrink: 0;
+}
+
+// One line per step; the full name shows on hover.
+.stepName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .success { color: var(--cds-support-success); }
@@ -57,11 +71,8 @@
   overflow-y: auto;
 }
 
-.subagentLabel {
-  @include type.type-style("label-01");
-  color: var(--cds-text-secondary);
-  white-space: nowrap;
-  flex-shrink: 0;
+.subagentIcon {
+  color: var(--cds-icon-secondary);
 }
 
 .subagentTodos {

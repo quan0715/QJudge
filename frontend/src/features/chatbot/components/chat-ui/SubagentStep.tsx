@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Accordion, AccordionItem, ListItem, UnorderedList } from "@carbon/react";
+import { Bot } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { CopilotToolPart } from "@copilot";
 import { ChainOfThoughtStep, StepStatusIcon } from "./ChainOfThoughtStep";
@@ -27,6 +28,7 @@ export const SubagentStep = memo(function SubagentStep({
   const todos = todoLabels(step.activity?.todos);
   const result = formatJson(step.output);
   const isRunning = step.state === "input-streaming" || step.state === "input-ready";
+  const name = subagentTitle(step, step.toolName);
 
   return (
     <AccordionItem
@@ -34,8 +36,10 @@ export const SubagentStep = memo(function SubagentStep({
       title={
         <span className={styles.stepTitle}>
           <StepStatusIcon step={step} />
-          <span className={styles.subagentLabel}>{t("ui.subagent")}</span>
-          {subagentTitle(step, step.toolName)}
+          <Bot size={16} className={styles.subagentIcon} aria-label={t("ui.subagent")} />
+          <span className={styles.stepName} title={name}>
+            {name}
+          </span>
         </span>
       }
     >
