@@ -821,6 +821,7 @@ class WorkerRuntime:
                 },
             )
         except Exception as error:
+            logger.exception("Run %s failed outside the agent", run_id)
             terminalized = await self._runs.append_event(
                 run_id,
                 claim.execution_epoch,
