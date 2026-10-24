@@ -17,21 +17,24 @@ import {
   BATCH_ARTIFACT_STEP,
   BATCH_JSON_FILENAME,
   parseWrittenCsv,
-  writtenCsvFilename,
   PROGRESS_CSV_FILENAME,
   countScoredRows,
+  countSyncedRows,
   gradeCsvFilename,
   type BatchActiveRun,
 } from "./batchGradingModel";
 
-const WRITTEN_PREFIX = "written_";
 
 export interface BatchRemoteState {
   messages: ChatMessage[];
   activeRuns: BatchActiveRun[];
   progressCsv: string | null;
-  /** Written-records CSV per question id. */
+  /** The AI's current writes per question id, from the backend receipts. */
   writtenCsv: Record<string, string>;
+  /** Answers the worker skipped per question id (already graded), from grade.csv. */
+  skippedCounts: Record<string, number>;
+  /** Downloaded file contents by filename, reused while the checksum is unchanged. */
+  files: Record<string, { checksum: string; content: string | null }>;
   /** Rows the AI has scored so far per question id; read only while a run is active. */
   draftCounts: Record<string, number>;
 }
@@ -111,12 +114,12 @@ const sameRunIds = (a: readonly BatchActiveRun[], b: readonly BatchActiveRun[]) 
 /**
  * `previous` is the last state read for this session. Its messages only map runs to
  * questions and record how finished runs ended, so they are re-read only when the
- * set of active runs changes.
+ * set of active runs changes; a file is downloaded again only when its checksum changes.
  */
 export async function fetchBatchRemoteState(
   contestId: string,
   sessionId: string,
-  previous?: Pick<BatchRemoteState, "messages" | "activeRuns">,
+  previous?: Pick<BatchRemoteState, "messages" | "activeRuns" | "files">,
 ): Promise<BatchRemoteState> {
   const [activeRuns, artifacts, writes] = await Promise.all([
     listSessionActiveRuns(sessionId),
@@ -128,37 +131,34 @@ export async function fetchBatchRemoteState(
       ? previous.messages
       : (await chatbotRepository.getSession(sessionId)).messages;
   const latest = latestByFilename(artifacts);
-  const read = async (artifact: ArtifactRecord | undefined) =>
-    artifact ? (await fetchArtifactContent(artifact.artifact_id)).content : null;
-  const writtenEntries = await Promise.all(
+  const files: BatchRemoteState["files"] = {};
+  const read = async (artifact: ArtifactRecord | undefined) => {
+    if (!artifact) return null;
+    const cached = previous?.files[artifact.filename];
+    const content =
+      cached && artifact.checksum && cached.checksum === artifact.checksum
+        ? cached.content
+        : (await fetchArtifactContent(artifact.artifact_id)).content;
+    files[artifact.filename] = { checksum: artifact.checksum, content };
+    return content;
+  };
+  const gradeEntries = await Promise.all(
     [...latest.entries()]
-      .filter(([filename]) => filename.startsWith(WRITTEN_PREFIX))
-      .map(async ([filename, artifact]) => [
-        filename.slice(WRITTEN_PREFIX.length, -".csv".length),
-        (await read(artifact)) ?? "",
-      ] as const),
+      .filter(([filename]) => /^grade_.+\.csv$/.test(filename))
+      .map(async ([filename, artifact]) => [filename.slice("grade_".length, -".csv".length), await read(artifact)] as const),
   );
-  const draftEntries = activeRuns.length
-    ? await Promise.all(
-        [...latest.entries()]
-          .filter(([filename]) => /^grade_.+\.csv$/.test(filename))
-          .map(async ([filename, artifact]) => [
-            filename.slice("grade_".length, -".csv".length),
-            countScoredRows(await read(artifact)),
-          ] as const),
-      )
-    : [];
   return {
     messages,
     activeRuns,
-    draftCounts: Object.fromEntries(draftEntries),
+    draftCounts: Object.fromEntries(gradeEntries.map(([qid, csv]) => [qid, countScoredRows(csv)])),
+    skippedCounts: Object.fromEntries(gradeEntries.map(([qid, csv]) => [qid, countSyncedRows(csv, "skipped")])),
     progressCsv: await read(latest.get(PROGRESS_CSV_FILENAME)),
-    writtenCsv: mergeBatchWrites(Object.fromEntries(writtenEntries), writes),
+    writtenCsv: mergeBatchWrites({}, writes),
+    files,
   };
 }
 
-
-/** Receipts recover missing CSVs and suppress writes that were later changed/revoked. */
+/** The AI's current writes per question: receipts the backend still reports as current. */
 export function mergeBatchWrites(csvByQuestion: Record<string, string>, writes: BatchGradeWrite[]): Record<string, string> {
   const merged = { ...csvByQuestion };
   for (const questionId of new Set(writes.map((write) => write.question_id))) {
@@ -181,11 +181,7 @@ export function mergeBatchWrites(csvByQuestion: Record<string, string>, writes: 
 }
 
 export async function readBatchWritten(contestId: string, sessionId: string, questionId: string): Promise<string | null> {
-  const [csv, writes] = await Promise.all([
-    readBatchFile(sessionId, writtenCsvFilename(questionId)),
-    getBatchGradeWrites(contestId, sessionId),
-  ]);
-  return mergeBatchWrites({ [questionId]: csv ?? "" }, writes)[questionId] ?? null;
+  return mergeBatchWrites({}, await getBatchGradeWrites(contestId, sessionId))[questionId] ?? null;
 }
 
 export async function defaultBatchModelId(): Promise<string> {

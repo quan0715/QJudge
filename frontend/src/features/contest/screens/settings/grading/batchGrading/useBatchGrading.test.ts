@@ -210,15 +210,12 @@ describe("useBatchGrading", () => {
     expect(mocks.ungradeExamAnswer).not.toHaveBeenCalled();
   });
 
-  it("revert ungrades only unchanged AI answers and rewrites the written file", async () => {
+  it("revert ungrades only unchanged AI answers without writing any file", async () => {
     mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
-    mocks.listArtifacts.mockResolvedValue([
-      { artifact_id: "w", filename: "written_q1.csv", updated_at: "2026-10-22T00:00:00Z" },
+    mocks.getBatchGradeWrites.mockResolvedValue([
+      { exam_answer_id: "a1", question_id: "q1", score: 8, feedback: "AI", current: true },
+      { exam_answer_id: "a9", question_id: "q1", score: 3, feedback: "AI", current: true },
     ]);
-    mocks.fetchArtifactContent.mockResolvedValue({
-      content: "exam_answer_id,score,feedback\na1,8.0,AI\na9,3.0,AI\n",
-      contentType: "text/csv",
-    });
     const rows = [
       row({ id: "a1", questionId: "q1", score: 8, feedback: "AI" }),
       row({ id: "a9", questionId: "q1", score: 7, feedback: "TA 改過" }),
@@ -232,27 +229,13 @@ describe("useBatchGrading", () => {
     expect(mocks.ungradeExamAnswer.mock.calls).toEqual([
       ["c1", "a1", { score: 8, feedback: "AI" }],
     ]);
-    const rewritten = mocks.uploadUserArtifact.mock.calls.at(-1)?.[1] as File;
-    expect(rewritten.name).toBe("written_q1.csv");
-    const text = await new Promise<string>((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.readAsText(rewritten);
-    });
-    expect(text).toContain("a9");
-    expect(text).not.toContain("a1");
+    expect(mocks.uploadUserArtifact).not.toHaveBeenCalled();
     expect(reloadAnswers).toHaveBeenCalled();
   });
 
   it("revert compares against freshly loaded answers, not the stale page rows", async () => {
     mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
-    mocks.listArtifacts.mockResolvedValue([
-      { artifact_id: "w", filename: "written_q1.csv", updated_at: "2026-10-22T00:00:00Z" },
-    ]);
-    mocks.fetchArtifactContent.mockResolvedValue({
-      content: "exam_answer_id,score,feedback\na1,8.0,AI\n",
-      contentType: "text/csv",
-    });
+    mocks.getBatchGradeWrites.mockResolvedValue([{ exam_answer_id: "a1", question_id: "q1", score: 8, feedback: "AI", current: true }]);
     const staleRows = [row({ id: "a1", questionId: "q1", score: 8, feedback: "AI" })];
     // Another teacher changed the score after the AI wrote it.
     const freshRows = [row({ id: "a1", questionId: "q1", score: 6, feedback: "TA" })];
@@ -267,13 +250,7 @@ describe("useBatchGrading", () => {
 
   it("revert keeps an answer the server reports as changed after the reload", async () => {
     mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
-    mocks.listArtifacts.mockResolvedValue([
-      { artifact_id: "w", filename: "written_q1.csv", updated_at: "2026-10-22T00:00:00Z" },
-    ]);
-    mocks.fetchArtifactContent.mockResolvedValue({
-      content: "exam_answer_id,score,feedback\na1,8.0,AI\n",
-      contentType: "text/csv",
-    });
+    mocks.getBatchGradeWrites.mockResolvedValue([{ exam_answer_id: "a1", question_id: "q1", score: 8, feedback: "AI", current: true }]);
     const rows = [row({ id: "a1", questionId: "q1", score: 8, feedback: "AI" })];
     // Another teacher saved a grade between the reload and the ungrade request.
     mocks.ungradeExamAnswer.mockRejectedValue(Object.assign(new Error("changed"), { status: 409 }));
@@ -415,6 +392,22 @@ describe("useBatchGrading polling", () => {
     expect(mocks.getSession).toHaveBeenCalledTimes(1);
   });
 
+  it("downloads a file again only when its checksum changes", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.getSession.mockResolvedValue({ messages: [userMessage("q1", "r1")] });
+    mocks.getActiveRuns.mockResolvedValue([{ id: "r1", sessionId: "s1", status: "running" }]);
+    mocks.listArtifacts.mockResolvedValue([{ artifact_id: "g", filename: "grade_q1.csv", checksum: "c1" }]);
+    mocks.fetchArtifactContent.mockResolvedValue({ content: "exam_answer_id,score\na1,\n" });
+    render();
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(5_100);
+    expect(mocks.fetchArtifactContent).toHaveBeenCalledTimes(1);
+
+    mocks.listArtifacts.mockResolvedValue([{ artifact_id: "g2", filename: "grade_q1.csv", checksum: "c2" }]);
+    await vi.advanceTimersByTimeAsync(5_100);
+    expect(mocks.fetchArtifactContent).toHaveBeenCalledTimes(2);
+  });
+
   it("re-reads the session once the set of active runs changes", async () => {
     mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
     mocks.getSession.mockResolvedValue({ messages: [userMessage("q1", "r1")] });
@@ -479,17 +472,33 @@ describe("batch grading recovery", () => {
     expect(mocks.ungradeExamAnswer).toHaveBeenCalledWith("c1", "a1", { score: 8, feedback: "AI" });
   });
 
-  it("does not resurrect a revoked receipt from an old CSV copy", async () => {
+  it("treats the backend receipts as the only record of AI writes", async () => {
     mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
-    mocks.listArtifacts.mockResolvedValue([{ artifact_id: "w", filename: "written_q1.csv" }]);
+    mocks.listArtifacts.mockResolvedValue([{ artifact_id: "w", filename: "written_q1.csv", checksum: "w1" }]);
     mocks.fetchArtifactContent.mockResolvedValue({ content: "exam_answer_id,score,feedback\na1,8,AI\n" });
-    mocks.getBatchGradeWrites.mockResolvedValue([
-      { exam_answer_id: "a1", question_id: "q1", score: 8, feedback: "AI", current: false },
-    ]);
     const { result } = render([row({ score: 8, feedback: "AI" })]);
-    await waitFor(() => expect(result.current.sessionId).toBe("s1"));
+    await waitFor(() => expect(mocks.listArtifacts).toHaveBeenCalled());
     await act(() => result.current.revertQuestion("q1"));
+    expect([...result.current.aiWrittenAnswerIds]).toEqual([]);
     expect(mocks.ungradeExamAnswer).not.toHaveBeenCalled();
+    expect(mocks.fetchArtifactContent).not.toHaveBeenCalledWith("w");
+  });
+
+  it("counts answers the worker skipped from the grade file", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.getSession.mockResolvedValue({ messages: [userMessage("q1", "r1")] });
+    mocks.listArtifacts.mockResolvedValue([
+      { artifact_id: "p", filename: "progress.csv", checksum: "p1" },
+      { artifact_id: "g", filename: "grade_q1.csv", checksum: "g1" },
+    ]);
+    mocks.fetchArtifactContent.mockImplementation(async (id: string) => ({
+      content:
+        id === "p"
+          ? "question_id,run_id,status,error,updated_at\nq1,r1,completed,,x\n"
+          : "exam_answer_id,score,reason,synced\na1,5,ok,skipped\nb1,4,ok,yes\n",
+    }));
+    const { result } = render();
+    await waitFor(() => expect(result.current.questions[0]).toMatchObject({ status: "completed", skippedAtWriteCount: 1 }));
   });
 });
 
@@ -593,13 +602,10 @@ describe("useBatchGrading single question", () => {
 
   it("aiWrittenAnswerIds lists unchanged AI writes only", async () => {
     mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
-    mocks.listArtifacts.mockResolvedValue([
-      { artifact_id: "w", filename: "written_q1.csv", updated_at: "2026-10-22T00:00:00Z" },
+    mocks.getBatchGradeWrites.mockResolvedValue([
+      { exam_answer_id: "1", question_id: "q1", score: 8, feedback: "AI", current: true },
+      { exam_answer_id: "2", question_id: "q1", score: 3, feedback: "AI", current: true },
     ]);
-    mocks.fetchArtifactContent.mockResolvedValue({
-      content: "exam_answer_id,score,feedback\n1,8.0,AI\n2,3.0,AI\n",
-      contentType: "text/csv",
-    });
     const rows = [
       row({ id: "1", questionId: "q1", score: 8, feedback: "AI" }),
       row({ id: "2", questionId: "q1", score: 4, feedback: "TA 改過" }),

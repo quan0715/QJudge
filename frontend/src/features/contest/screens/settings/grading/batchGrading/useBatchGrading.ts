@@ -7,7 +7,6 @@ import {
 } from "@/features/ai-tasks/lib/aiTaskRuntime";
 import { ungradeExamAnswer } from "@/infrastructure/api/repositories/examAnswers.repository";
 import type { GradingAnswerRow } from "../gradingTypes";
-import { serializeCsvRows } from "../gradeCsv";
 import {
   readBatchQuestions,
   readBatchFile,
@@ -36,7 +35,6 @@ import {
   parseWrittenCsv,
   selectBatchQuestions,
   selectRevertableAnswers,
-  writtenCsvFilename,
   type BatchQuestion,
   type BatchQuestionState,
 } from "./batchGradingModel";
@@ -69,6 +67,8 @@ const EMPTY_SNAPSHOT: BatchSnapshot = {
   progressCsv: null,
   writtenCsv: {},
   draftCounts: {},
+  skippedCounts: {},
+  files: {},
   finalizingSince: {},
   fetchedAt: 0,
 };
@@ -114,6 +114,7 @@ function deriveStates(questions: readonly BatchQuestion[], snapshot: BatchSnapsh
     messages: snapshot.messages,
     activeRuns: snapshot.activeRuns,
     progressCsv: snapshot.progressCsv,
+    skippedCounts: snapshot.skippedCounts,
     writtenCounts: Object.fromEntries(
       Object.entries(snapshot.writtenCsv).map(([qid, csv]) => [qid, parseWrittenCsv(csv).length]),
     ),
@@ -447,7 +448,6 @@ export function useBatchGrading(
       if (state && BATCH_ACTIVE_STATUSES.includes(state.status)) {
         throw new Error("這題 AI 仍在執行，請等它完成後再撤回");
       }
-      const filename = writtenCsvFilename(questionId);
       const written = parseWrittenCsv(await readBatchWritten(contestId, id, questionId));
       // Compare against the latest grades: another teacher may have changed them.
       const candidates = selectRevertableAnswers(written, await reloadAnswers());
@@ -464,18 +464,7 @@ export function useBatchGrading(
           if ((err as { status?: number }).status !== 409) throw err;
         }
       }
-      if (reverted.length > 0) {
-        const remaining = written.filter((record) => !reverted.includes(record.examAnswerId));
-        await uploadBatchFile(
-          id,
-          filename,
-          serializeCsvRows([
-            ["exam_answer_id", "score", "feedback"],
-            ...remaining.map((r) => [r.examAnswerId, String(r.score), r.feedback]),
-          ]),
-          "text/csv",
-        );
-      }
+      // The backend receipts stop reporting reverted answers as current; nothing to rewrite.
       return reverted;
     },
     [contestId, questionStates, reloadAnswers],

@@ -77,7 +77,6 @@ export interface WrittenRecord {
 }
 
 export const gradeCsvFilename = (questionId: string) => `grade_${questionId}.csv`;
-export const writtenCsvFilename = (questionId: string) => `written_${questionId}.csv`;
 export const BATCH_JSON_FILENAME = "batch.json";
 /** Teacher notes for every unit of the session, keyed by unit id. */
 export const NOTES_JSON_FILENAME = "notes.json";
@@ -139,6 +138,8 @@ export function deriveBatchState(input: {
   activeRuns: readonly BatchActiveRun[];
   progressCsv: string | null;
   writtenCounts: Record<string, number>;
+  /** Answers the worker skipped because they already had a score, from grade.csv. */
+  skippedCounts?: Record<string, number>;
 }): BatchQuestionState[] {
   const latestRunByQuestion = new Map<string, string>();
   const assistantStatusByRun = new Map<string, ChatRunStatus | undefined>();
@@ -181,14 +182,14 @@ export function deriveBatchState(input: {
     const progress = row?.run_id === runId ? row : undefined;
     const progressStatus = progress?.status as BatchQuestionStatus | undefined;
     if (progressStatus && PROGRESS_STATUSES.includes(progressStatus)) {
+      // Older sessions kept the count in progress.csv.
+      const skipped = input.skippedCounts?.[question.questionId] || Number(progress?.skipped_count) || 0;
       return {
         ...base,
         runId,
         status: progressStatus,
         ...(progress?.error ? { error: progress.error } : {}),
-        ...(Number(progress?.skipped_count) > 0
-          ? { skippedAtWriteCount: Number(progress?.skipped_count) }
-          : {}),
+        ...(skipped > 0 ? { skippedAtWriteCount: skipped } : {}),
       };
     }
     const finished = assistantStatusByRun.get(runId);
@@ -234,6 +235,12 @@ export function parseWrittenCsv(text: string | null): WrittenRecord[] {
     score: Number(record.score),
     feedback: record.feedback ?? "",
   }));
+}
+
+/** Rows the worker marked with this `synced` outcome after writing (yes, skipped, error, out_of_range). */
+export function countSyncedRows(text: string | null, outcome: string): number {
+  if (!text) return 0;
+  return parseCsvRecords(text).filter((record) => (record.synced ?? "").trim() === outcome).length;
 }
 
 /** Rows the AI has scored so far in its working grade CSV (not yet validated or written). */
