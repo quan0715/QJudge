@@ -79,6 +79,8 @@ export interface WrittenRecord {
 export const gradeCsvFilename = (questionId: string) => `grade_${questionId}.csv`;
 export const writtenCsvFilename = (questionId: string) => `written_${questionId}.csv`;
 export const BATCH_JSON_FILENAME = "batch.json";
+/** Teacher notes for every unit of the session, keyed by unit id. */
+export const NOTES_JSON_FILENAME = "notes.json";
 export const PROGRESS_CSV_FILENAME = "progress.csv";
 
 export function selectBatchQuestions(rows: readonly GradingAnswerRow[]): BatchQuestion[] {

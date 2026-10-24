@@ -84,7 +84,8 @@ export async function prepareGradingUnit(
   const digest = await sha256(content);
   const manifest: BatchUnitManifest = {
     id: unit.id, question_ids: unit.targets.map((q) => q.questionId),
-    context_file: `context_${unit.id}_${digest}.json`, context_sha256: digest,
+    // One file per unit, replaced on each run; the worker checks it against context_sha256.
+    context_file: `context_${unit.id}.json`, context_sha256: digest,
     rubric_file: `rubric_${unit.id}_${version}.json`, rubric_version: version,
   };
   return { content, manifest };

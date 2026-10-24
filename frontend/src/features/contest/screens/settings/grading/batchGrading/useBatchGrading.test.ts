@@ -344,6 +344,32 @@ describe("useBatchGrading", () => {
   });
 });
 
+describe("useBatchGrading files", () => {
+  it("keeps teacher notes in one notes file and reuses them on later runs", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.listArtifacts.mockResolvedValue([
+      { artifact_id: "n1", filename: "notes.json", updated_at: "2026-10-24T00:00:00Z" },
+    ]);
+    mocks.fetchArtifactContent.mockImplementation(async (id: string) =>
+      id === "n1" ? { content: JSON.stringify({ question_q1: "loop is worth one point" }) } : { content: "" },
+    );
+    const { result } = render();
+    await waitFor(() => expect(result.current.sessionId).toBe("s1"));
+
+    await act(() => result.current.startQuestion(["q1"]));
+
+    const uploads = mocks.uploadUserArtifact.mock.calls.map(([, file]) => file as File);
+    expect(uploads.map((file) => file.name).filter((name) => name.startsWith("note_"))).toEqual([]);
+    const context = uploads.find((file) => file.name.startsWith("context_"));
+    const text = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.readAsText(context as File);
+    });
+    expect(JSON.parse(text).teacher_note).toBe("loop is worth one point");
+  });
+});
+
 describe("useBatchGrading sync", () => {
   it("reloads the batch state as soon as the copilot sees its run change", async () => {
     mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];

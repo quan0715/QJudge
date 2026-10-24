@@ -27,6 +27,7 @@ import {
   BATCH_ACTIVE_STATUSES,
   BATCH_GRADING_TASK_TYPE,
   BATCH_JSON_FILENAME,
+  NOTES_JSON_FILENAME,
   applyFinalizeTimeout,
   deriveBatchState,
   gradeCsvFilename,
@@ -40,7 +41,14 @@ import {
   type BatchQuestionState,
 } from "./batchGradingModel";
 
-import { buildBatchRunPrompt, buildGradingUnits, buildUnitGradeCsv, prepareGradingUnit, sha256 } from "./batchGradingUnits";
+import {
+  buildBatchRunPrompt,
+  buildGradingUnits,
+  buildUnitGradeCsv,
+  prepareGradingUnit,
+  sha256,
+  type BatchUnitManifest,
+} from "./batchGradingUnits";
 
 const ACTIVE_POLL_MS = 5_000;
 const IDLE_POLL_MS = 30_000;
@@ -282,19 +290,19 @@ export function useBatchGrading(
       const allRows = await reloadAnswers();
       const requested = new Set(toGrade.map((q) => q.questionId));
       const units = buildGradingUnits(selectBatchQuestions(allRows).filter((q) => requested.has(q.questionId)), definitions);
+      const notes: Record<string, string> = JSON.parse((await readBatchFile(id, NOTES_JSON_FILENAME)) ?? "{}");
+      const runs: BatchUnitManifest[][] = [];
       for (const group of groupForRuns(units)) {
         const manifests = [];
         for (const unit of group) {
-          const noteFile = `note_${unit.id}.json`;
-          const previous = JSON.parse(await readBatchFile(id, noteFile) ?? "{}");
-          const teacherNote = note ?? previous.teacher_note ?? "";
+          const teacherNote = note ?? notes[unit.id] ?? "";
+          notes[unit.id] = teacherNote;
           const { content, manifest } = await prepareGradingUnit(unit, allRows, teacherNote);
           const existingRubric = await readBatchFile(id, `accepted_${manifest.rubric_file}`);
           if (existingRubric) {
             manifest.rubric_sha256 = await sha256(existingRubric);
             await uploadBatchFile(id, manifest.rubric_file, existingRubric, "application/json");
           }
-          await uploadBatchFile(id, noteFile, JSON.stringify({ teacher_note: teacherNote }), "application/json");
           await uploadBatchFile(id, manifest.context_file, content, "application/json");
           for (const question of unit.targets) {
             await uploadBatchFile(id, gradeCsvFilename(question.questionId),
@@ -302,6 +310,10 @@ export function useBatchGrading(
           }
           manifests.push(manifest);
         }
+        runs.push(manifests);
+      }
+      await uploadBatchFile(id, NOTES_JSON_FILENAME, JSON.stringify(notes), "application/json");
+      for (const manifests of runs) {
         await startBatchRun(id, buildBatchRunPrompt({ contestId, units: manifests }), modelId);
       }
       // The copilot only attaches to a session's run when the session is selected.

@@ -52,4 +52,12 @@ describe('complete grading units', () => {
     expect(lines[2]).toContain('contest-1');
     expect(lines[2]).toContain('qjudge-exam-grading-sop');
   });
+  it('keeps one context file per unit across retries', async () => {
+    const [unit]=buildGradingUnits(selectBatchQuestions(rows).filter(q=>q.questionId==='c'),qs);
+    const first=await prepareGradingUnit(unit,rows);
+    const retry=await prepareGradingUnit({...unit,targets:unit.targets.map(t=>({...t,ungradedRows:t.ungradedRows.slice(1)}))},rows);
+    expect(first.manifest.context_file).toBe(`context_${unit.id}.json`);
+    expect(retry.manifest.context_file).toBe(first.manifest.context_file);
+    expect(retry.manifest.context_sha256).not.toBe(first.manifest.context_sha256);
+  });
 });
