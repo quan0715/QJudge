@@ -1,4 +1,4 @@
-import { Button, ButtonSet, Tag, TextArea } from "@carbon/react";
+import { Button, ButtonSet, Layer, Tag, TextArea } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import AnswerDisplay from "@/features/contest/components/exam/AnswerDisplay";
@@ -118,7 +118,7 @@ export function WorkbenchStudentRow({
         </Tag>
       </button>
       {expanded && (
-        <div className={styles.rowDetail}>
+        <Layer className={styles.rowDetail}>
           {pending && (
             <p className={styles.currentScore}>
               {t("workbench.currentScore", "目前成績 {{score}} 分", { score: current })}
@@ -208,7 +208,7 @@ export function WorkbenchStudentRow({
               {pending ? t("workbench.adoptNext", "採用並下一位") : t("workbench.saveNext", "儲存並下一位")}
             </Button>
           </ButtonSet>
-        </div>
+        </Layer>
       )}
     </div>
   );
