@@ -9,6 +9,16 @@ export interface GradingWorkbenchUnit {
   questions: ExamQuestion[];
 }
 
+/** One readable line from a Markdown prompt: no heading marks, emphasis or escapes. */
+function plainTitle(markdown: string): string {
+  return markdown
+    .split("\n")[0]
+    .replace(/^\s*#+\s*/, "")
+    .replace(/(\*\*|__)(.+?)\1/g, "$2")
+    .replace(/\\([\\`*_{}[\]()#+\-.!|>~])/g, "$1")
+    .trim();
+}
+
 export function buildWorkbenchUnits(paper: ExamPaper): GradingWorkbenchUnit[] {
   const labels = buildPaperQuestionLabels(paper.questions);
   return paper.blocks
@@ -21,8 +31,8 @@ export function buildWorkbenchUnits(paper: ExamPaper): GradingWorkbenchUnit[] {
         label: firstLabel.replace(/\([a-z]+\)$/, ""),
         title:
           block.kind === "group"
-            ? block.group.title
-            : block.question.prompt.split("\n")[0],
+            ? plainTitle(block.group.title)
+            : plainTitle(block.question.prompt),
         sharedStem:
           block.kind === "group" ? block.group.sharedStemMarkdown : "",
         questions,

@@ -234,6 +234,12 @@ export function parseWrittenCsv(text: string | null): WrittenRecord[] {
   }));
 }
 
+/** Rows the AI has scored so far in its working grade CSV (not yet validated or written). */
+export function countScoredRows(text: string | null): number {
+  if (!text) return 0;
+  return parseCsvRecords(text).filter((record) => (record.score ?? "").trim() !== "").length;
+}
+
 export function selectRevertableAnswers(
   written: readonly WrittenRecord[],
   rows: readonly GradingAnswerRow[],

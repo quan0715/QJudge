@@ -50,4 +50,22 @@ describe("WorkbenchQuestionRail", () => {
     fireEvent.click(screen.getByRole("button", { name: "停止" }));
     expect(onStopExam).toHaveBeenCalled();
   });
+
+  it("running rail shows the AI's todos and how many answers it has scored", () => {
+    render(
+      <WorkbenchQuestionRail
+        {...base}
+        units={[{ id: "u3", label: "第 3 題", progress: "14/16", aiStatus: "running", aiProgress: "3/16" }]}
+        activeId="u3"
+        examAi={{
+          state: "running",
+          progressText: "0/1 題",
+          canStart: false,
+          todos: [{ id: "t1", label: "制定第 3 題規準", status: "in_progress" }],
+        }}
+      />,
+    );
+    expect(screen.getByText("制定第 3 題規準")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /第 3 題/ })).toHaveTextContent("AI 批改中 3/16");
+  });
 });

@@ -116,6 +116,20 @@ describe("WorkbenchStudentRow", () => {
     expect(screen.getByText("新評語")).toBeTruthy();
   });
 
+  it("an ungraded row shows AI grading while the AI runs", () => {
+    render(
+      <WorkbenchStudentRow
+        {...baseProps}
+        row={studentRow([answer({ score: null, feedback: "" })], { source: "none" })}
+        questions={[question()]}
+        expanded={false}
+        aiRunning
+      />,
+    );
+    expect(screen.getAllByText("AI 批改中").length).toBeGreaterThan(0);
+    expect(screen.queryByText("未批改")).toBeNull();
+  });
+
   it("pending row uses adopt/skip buttons", () => {
     const onPrimary = vi.fn();
     const onSecondary = vi.fn();

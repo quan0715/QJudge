@@ -20,6 +20,8 @@ interface WorkbenchStudentRowProps {
   /** Pending AI suggestions keyed by answer id. */
   suggestionScores: Record<string, { score: number; feedback: string }>;
   busy: boolean;
+  /** The AI is grading this row's unit; ungraded rows show it is working on them. */
+  aiRunning?: boolean;
   onToggle(): void;
   onDraftChange(answerId: string, draft: GradeDraft): void;
   onPrimary(): void;
@@ -50,6 +52,7 @@ export function WorkbenchStudentRow({
   drafts,
   suggestionScores,
   busy,
+  aiRunning = false,
   onToggle,
   onDraftChange,
   onPrimary,
@@ -60,6 +63,7 @@ export function WorkbenchStudentRow({
   const isObjective = (answer: GradingAnswerRow) => !isSubjectiveType(answer.questionType);
   const objective = questions.every((question) => !isSubjectiveType(question.questionType));
   const pending = row.source === "suggestion";
+  const aiGrading = aiRunning && row.source === "none";
   const valueOf = (answer: GradingAnswerRow): GradeDraft | null => {
     const draft = drafts[answer.id] ?? suggestionScores[answer.id];
     if (draft) return draft;
@@ -101,21 +105,41 @@ export function WorkbenchStudentRow({
   };
 
   return (
-    <div className={styles.studentRow} data-expanded={expanded}>
+    <div className={aiGrading ? `${styles.studentRow} ${styles.rowAiGrading}` : styles.studentRow} data-expanded={expanded}>
       <button type="button" className={styles.rowButton} aria-expanded={expanded} onClick={onToggle}>
         <span className={styles.rowName}>{row.name}</span>
         <span className={pending ? styles.rowScorePending : styles.rowScore}>
-          {scoreText}
+          {aiGrading ? (
+            <span className={styles.aiDots} aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          ) : (
+            scoreText
+          )}
           <span className={styles.scoreMax}> / {compactScore(maxScore)}</span>
         </span>
-        <span className={styles.rowSummary}>{summary}</span>
-        <Tag
-          type={TAG_TYPE[row.source]}
-          size="sm"
-          className={row.source === "suggestion" ? styles.suggestionTag : undefined}
-        >
-          {sourceText[row.source]}
-        </Tag>
+        {aiGrading ? (
+          <span className={styles.rowSummary}>
+            <span className={styles.aiShimmer} aria-hidden="true" />
+          </span>
+        ) : (
+          <span className={styles.rowSummary}>{summary}</span>
+        )}
+        {aiGrading ? (
+          <Tag type="blue" size="sm">
+            {t("workbench.aiGrading", "AI 批改中")}
+          </Tag>
+        ) : (
+          <Tag
+            type={TAG_TYPE[row.source]}
+            size="sm"
+            className={row.source === "suggestion" ? styles.suggestionTag : undefined}
+          >
+            {sourceText[row.source]}
+          </Tag>
+        )}
       </button>
       {expanded && (
         <Layer className={styles.rowDetail}>

@@ -4,7 +4,7 @@
  *
  * A before/after score distribution preview is shown before committing any policy change.
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, type ReactElement } from "react";
 import { OverflowMenu, OverflowMenuItem, Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
@@ -33,6 +33,11 @@ interface ScorePolicyMenuProps {
   impactContext: ScorePolicyMenuImpactContext;
   /** Called when the overflow menu opens — use to trigger lazy data loading */
   onMenuOpen?: () => void;
+  /** The caller's own OverflowMenuItems, shown before and after the policies in this one menu. */
+  leadingItems?: ReactElement[];
+  trailingItems?: ReactElement[];
+  /** Menu name when it holds more than policies. */
+  menuLabel?: string;
 }
 
 export default function ScorePolicyMenu({
@@ -44,6 +49,9 @@ export default function ScorePolicyMenu({
   onPolicyChanged,
   impactContext,
   onMenuOpen,
+  leadingItems = [],
+  trailingItems = [],
+  menuLabel,
 }: ScorePolicyMenuProps) {
   const { t } = useTranslation("contest");
   const { contestId } = useParams<{ contestId: string }>();
@@ -165,11 +173,12 @@ export default function ScorePolicyMenu({
       <OverflowMenu
         size="sm"
         flipped
-        iconDescription={t("grading.scorePolicy.menuTitle", "分數政策")}
+        iconDescription={menuLabel ?? t("grading.scorePolicy.menuTitle", "分數政策")}
         className={styles.menu}
-        aria-label={t("grading.scorePolicy.menuTitle", "分數政策")}
+        aria-label={menuLabel ?? t("grading.scorePolicy.menuTitle", "分數政策")}
         onClick={onMenuOpen}
       >
+        {leadingItems}
         <OverflowMenuItem
           itemText={
             currentPolicy === "excluded"
@@ -204,6 +213,7 @@ export default function ScorePolicyMenu({
             hasDivider
           />
         )}
+        {trailingItems}
       </OverflowMenu>
 
       {/* Redistribute target selection */}

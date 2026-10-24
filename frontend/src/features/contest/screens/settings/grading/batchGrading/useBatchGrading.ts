@@ -60,6 +60,7 @@ const EMPTY_SNAPSHOT: BatchSnapshot = {
   activeRuns: [],
   progressCsv: null,
   writtenCsv: {},
+  draftCounts: {},
   finalizingSince: {},
   fetchedAt: 0,
 };
@@ -75,6 +76,8 @@ export interface BatchGradingOverall {
 export interface UseBatchGradingResult {
   sessionId: string | null;
   questions: BatchQuestionState[];
+  /** Answers the AI has scored so far per question while a run is active. */
+  draftCounts: Record<string, number>;
   overall: BatchGradingOverall;
   canStart: boolean;
   /** An action (start, stop, resume, revert, regrade) is in flight. */
@@ -495,6 +498,7 @@ export function useBatchGrading(
   return {
     sessionId,
     questions: questionStates,
+    draftCounts: currentSnapshot.draftCounts,
     overall,
     canStart: !sessionId && !resultsPublished && overall.ungradedTotal > 0,
     busy,

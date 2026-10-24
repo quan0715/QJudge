@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import type { GradingAnswerRow } from "../gradingTypes";
-import {
+import { countScoredRows,
   applyFinalizeTimeout,
   groupForRuns,
   deriveBatchState,
@@ -265,5 +265,13 @@ describe("selectRevertableAnswers", () => {
     );
 
     expect(ids).toEqual(["a1"]);
+  });
+});
+
+describe("countScoredRows", () => {
+  it("counts rows the AI has already scored in its working grade CSV", () => {
+    const csv = "exam_answer_id,score,reason\na1,3,ok\na2,,\na3,0,none\n";
+    expect(countScoredRows(csv)).toBe(2);
+    expect(countScoredRows("")).toBe(0);
   });
 });

@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   batch: {
     questions: [] as { questionId: string; status: string; ungradedCount: number; writtenCount: number; label: string; index: number }[],
     sessionId: null as string | null,
+    draftCounts: {} as Record<string, number>,
     aiWrittenAnswerIds: new Set<string>(),
     overall: { ungradedTotal: 0 },
     canStart: true,
@@ -47,7 +48,11 @@ vi.mock("@/shared/ui/markdown/MarkdownContent", () => ({
 vi.mock("@/features/contest/components/exam/AnswerDisplay", () => ({
   default: () => <div>Original answer</div>,
 }));
+vi.mock("@/features/chatbot/adapters/qJudgeCopilotMessageData", () => ({
+  selectLatestTodoItems: () => [{ id: "t1", label: "Read the SOP", status: "in_progress" }],
+}));
 vi.mock("@copilot", () => ({
+  useCopilotSessions: () => ({ activeSession: { status: "ready", data: { id: "sess", messages: [] } } }),
   useCopilotModels: () => ({
     models: [{ id: "m1", displayName: "Model" }],
     selectedModelId: "m1",
@@ -61,7 +66,14 @@ vi.mock("./grading/batchGrading/useBatchGrading", () => ({
 vi.mock("./grading/workbench/useQuestionSuggestions", () => ({
   useQuestionSuggestions: () => ({ suggestions: mocks.suggestions, running: false, ...mocks.suggest }),
 }));
-vi.mock("./grading/components/ScorePolicyMenu", () => ({ default: () => null }));
+vi.mock("./grading/components/ScorePolicyMenu", () => ({
+  default: ({ leadingItems, trailingItems }: { leadingItems?: ReactNode; trailingItems?: ReactNode }) => (
+    <div data-testid="policy-menu">
+      {leadingItems}
+      {trailingItems}
+    </div>
+  ),
+}));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, fallback?: unknown, options?: Record<string, unknown>) => {
@@ -153,6 +165,8 @@ beforeEach(() => {
   mocks.batch.aiWrittenAnswerIds = new Set(["s2-c"]);
   mocks.batch.sessionId = null;
   mocks.batch.questions = [];
+  mocks.batch.sessionId = null;
+  mocks.batch.draftCounts = {};
   mocks.batch.start.mockResolvedValue(undefined);
   mocks.batch.regradeQuestion.mockResolvedValue(undefined);
   mocks.getExamPaper.mockResolvedValue(paper);
@@ -320,6 +334,46 @@ describe("grading workbench", () => {
     }));
     await setup("grading_question=a");
     expect(screen.getAllByText("grading.batch.noticeRunning")).toHaveLength(1);
+  });
+
+  it("ungraded rows of a running unit show that AI is grading them", async () => {
+    mocks.batch.questions = ["a", "b"].map((questionId, index) => ({
+      questionId,
+      status: "running",
+      ungradedCount: 2,
+      writtenCount: 0,
+      label: `Q${index + 1}`,
+      index,
+    }));
+    await setup("grading_question=a");
+    expect(screen.getByRole("button", { name: /^s1/ })).toHaveTextContent("AI 批改中");
+    expect(screen.getByRole("button", { name: /^s2/ })).toHaveTextContent("AI 批改中");
+  });
+
+  it("rail shows the AI's progress and todos while the batch runs", async () => {
+    mocks.batch.sessionId = "sess";
+    mocks.batch.draftCounts = { a: 1 };
+    mocks.batch.questions = ["a", "b"].map((questionId, index) => ({
+      questionId,
+      status: "running",
+      ungradedCount: 2,
+      writtenCount: 0,
+      label: `Q${index + 1}`,
+      index,
+    }));
+    await setup("grading_question=c");
+    const rail = within(screen.getByRole("navigation", { name: "題目" }));
+    expect(rail.getByRole("button", { name: /第 1 題/ })).toHaveTextContent("AI 批改中 1/4");
+    expect(screen.getByText("Read the SOP")).toBeInTheDocument();
+  });
+
+  it("a single question has one header menu holding the AI actions", async () => {
+    mocks.batch.questions = [
+      { questionId: "c", status: "completed", ungradedCount: 0, writtenCount: 2, label: "Q3", index: 2, runId: "r1" } as never,
+    ];
+    await setup("grading_question=c");
+    expect(screen.queryByRole("button", { name: "AI 操作" })).toBeNull();
+    expect(within(screen.getByTestId("policy-menu")).getByText("AI 評分標準")).toBeInTheDocument();
   });
 
   it("rail progress counts fully graded students", async () => {

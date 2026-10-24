@@ -1,6 +1,7 @@
 import { Button, Dropdown, ProgressBar } from "@carbon/react";
 import { MachineLearningModel } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import { TodoList, type TodoListItem } from "@/shared/ai/TodoList";
 import styles from "./GradingWorkbench.module.scss";
 
 export interface RailUnit {
@@ -8,13 +9,22 @@ export interface RailUnit {
   label: string;
   progress: string;
   aiStatus?: "running" | "queued" | "failed";
+  /** "scored/total" answers while the AI runs, from its working files. */
+  aiProgress?: string;
 }
 
 interface WorkbenchQuestionRailProps {
   units: RailUnit[];
   activeId: string;
   disabled: boolean;
-  examAi: { state: "idle" | "running"; progressText: string; canStart: boolean; disabledReason?: string };
+  examAi: {
+    state: "idle" | "running";
+    progressText: string;
+    canStart: boolean;
+    disabledReason?: string;
+    /** The AI's current task list. */
+    todos?: readonly TodoListItem[];
+  };
   onSelect(unitId: string): void;
   onStartExam(): void;
   onStopExam(): void;
@@ -35,7 +45,11 @@ export function WorkbenchQuestionRail({
     queued: t("workbench.aiQueued", "AI 排隊中"),
     failed: t("workbench.aiFailed", "AI 失敗"),
   };
-  const right = (unit: RailUnit) => (unit.aiStatus ? statusText[unit.aiStatus] : unit.progress);
+  const right = (unit: RailUnit) => {
+    if (!unit.aiStatus) return unit.progress;
+    const text = statusText[unit.aiStatus];
+    return unit.aiStatus === "running" && unit.aiProgress ? `${text} ${unit.aiProgress}` : text;
+  };
   return (
     <aside className={styles.rail} aria-label={t("workbench.questions", "題目")}>
       <div className={styles.railHeader}>
@@ -63,6 +77,7 @@ export function WorkbenchQuestionRail({
               </Button>
             </div>
             <ProgressBar label={t("workbench.aiRunning", "AI 批改中")} hideLabel size="small" />
+            {examAi.todos && examAi.todos.length > 0 && <TodoList items={examAi.todos} className={styles.railTodos} />}
           </div>
         )}
       </div>

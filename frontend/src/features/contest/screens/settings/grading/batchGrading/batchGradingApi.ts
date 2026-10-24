@@ -19,6 +19,7 @@ import {
   parseWrittenCsv,
   writtenCsvFilename,
   PROGRESS_CSV_FILENAME,
+  countScoredRows,
   gradeCsvFilename,
   type BatchActiveRun,
 } from "./batchGradingModel";
@@ -31,6 +32,8 @@ export interface BatchRemoteState {
   progressCsv: string | null;
   /** Written-records CSV per question id. */
   writtenCsv: Record<string, string>;
+  /** Rows the AI has scored so far per question id; read only while a run is active. */
+  draftCounts: Record<string, number>;
 }
 
 function latestByFilename(artifacts: readonly ArtifactRecord[]): Map<string, ArtifactRecord> {
@@ -120,9 +123,20 @@ export async function fetchBatchRemoteState(contestId: string, sessionId: string
         (await read(artifact)) ?? "",
       ] as const),
   );
+  const draftEntries = activeRuns.length
+    ? await Promise.all(
+        [...latest.entries()]
+          .filter(([filename]) => /^grade_.+\.csv$/.test(filename))
+          .map(async ([filename, artifact]) => [
+            filename.slice("grade_".length, -".csv".length),
+            countScoredRows(await read(artifact)),
+          ] as const),
+      )
+    : [];
   return {
     messages: session.messages,
     activeRuns,
+    draftCounts: Object.fromEntries(draftEntries),
     progressCsv: await read(latest.get(PROGRESS_CSV_FILENAME)),
     writtenCsv: mergeBatchWrites(Object.fromEntries(writtenEntries), writes),
   };

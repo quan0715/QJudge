@@ -15,7 +15,8 @@ import {
 } from "@carbon/react";
 import { Document, MachineLearningModel } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { useCopilotModels } from "@copilot";
+import { useCopilotModels, useCopilotSessions } from "@copilot";
+import { selectLatestTodoItems } from "@/features/chatbot/adapters/qJudgeCopilotMessageData";
 import type { ExamPaper } from "@/core/entities/contest.entity";
 import { getExamPaper } from "@/infrastructure/api/repositories/examPaper.repository";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -82,6 +83,7 @@ export default function ContestGradingWorkbenchScreen() {
   const [filesState, setFilesState] = useState<{ open: boolean; files?: BatchQuestionFiles; error?: string }>({ open: false });
   const [revertOpen, setRevertOpen] = useState(false);
   const { models, status: modelStatus, error: modelError } = useCopilotModels();
+  const { activeSession } = useCopilotSessions();
   const modelNotice = modelAvailabilityNotice({ status: modelStatus, models, error: modelError });
   const batch = useBatchGrading(contestId, data.answers, {
     resultsPublished,
@@ -289,9 +291,13 @@ export default function ContestGradingWorkbenchScreen() {
         : states.some((state) => state.status === "failed")
           ? "failed"
           : undefined;
+    const running = states.filter((state) => BATCH_ACTIVE_STATUSES.includes(state.status));
+    const toGrade = running.reduce((sum, state) => sum + state.ungradedCount, 0);
+    const scored = running.reduce((sum, state) => sum + (batch.draftCounts[state.questionId] ?? 0), 0);
     return {
       id: item.id,
       label: t("workbench.questionNumber", "第 {{number}} 題", { number: item.label }),
+      aiProgress: toGrade ? `${Math.min(scored, toGrade)}/${toGrade}` : undefined,
       progress: `${students.filter((row) => row.total !== null).length}/${students.length}`,
       aiStatus,
     };
@@ -329,6 +335,38 @@ export default function ContestGradingWorkbenchScreen() {
     suggestion: t("workbench.filterSuggestion", "待審建議"),
   };
   const firstState = unitStates.find((state) => state.runId);
+  // AI actions share the header's one overflow menu (with the score policies on single questions).
+  const hasAiMenu = !objective && Boolean(firstState);
+  const aiRubricItems = hasAiMenu
+    ? [
+        <OverflowMenuItem
+          key="rubric"
+          itemText={t("workbench.rubric", "AI 評分標準")}
+          onClick={async () => {
+            if (!firstState) return;
+            setFilesState({ open: true });
+            try {
+              setFilesState({ open: true, files: await batch.loadQuestionFiles(firstState.questionId) });
+            } catch (err) {
+              setFilesState({ open: true, error: err instanceof Error ? err.message : String(err) });
+            }
+          }}
+        />,
+      ]
+    : [];
+  const aiRevertItems = hasAiMenu
+    ? [
+        <OverflowMenuItem
+          key="revert"
+          isDelete
+          hasDivider
+          disabled={unitRunning}
+          itemText={t("workbench.revert", "撤回此題 AI 分數")}
+          onClick={() => setRevertOpen(true)}
+        />,
+      ]
+    : [];
+  const aiMenuItems = [...aiRubricItems, ...aiRevertItems];
 
   return (
     <div className={styles.root}>
@@ -345,6 +383,10 @@ export default function ContestGradingWorkbenchScreen() {
               })
             : "",
           canStart: !aiBlocked && examSummary.answers > 0,
+          todos:
+            examRunning && activeSession.status === "ready" && activeSession.data.id === batch.sessionId
+              ? selectLatestTodoItems(activeSession.data.messages)
+              : undefined,
           disabledReason: resultsPublished ? t("grading.batch.publishedDisabled") : undefined,
         }}
         onSelect={(id) => {
@@ -374,8 +416,9 @@ export default function ContestGradingWorkbenchScreen() {
         }}
       >
         <header className={styles.header}>
-          <h1>
-            {t("workbench.questionNumber", "第 {{number}} 題", { number: unit.label })}{"\u3000"}{unit.title}
+          <h1 title={unit.title}>
+            {t("workbench.questionNumber", "第 {{number}} 題", { number: unit.label })}
+            <span className={styles.headerTitle}>{unit.title}</span>
           </h1>
           <div className={styles.headerActions}>
             {objective ? (
@@ -394,30 +437,16 @@ export default function ContestGradingWorkbenchScreen() {
             <IconButton kind="ghost" label={t("workbench.questionContext", "題目與參考答案")} onClick={() => setQuestionOpen(true)}>
               <Document />
             </IconButton>
-            {!objective && firstState && (
+            {isGroup && aiMenuItems.length > 0 && (
               <OverflowMenu aria-label={t("workbench.aiMenu", "AI 操作")} iconDescription={t("workbench.aiMenu", "AI 操作")} flipped>
-                <OverflowMenuItem
-                  itemText={t("workbench.rubric", "AI 評分標準")}
-                  onClick={async () => {
-                    setFilesState({ open: true });
-                    try {
-                      setFilesState({ open: true, files: await batch.loadQuestionFiles(firstState.questionId) });
-                    } catch (err) {
-                      setFilesState({ open: true, error: err instanceof Error ? err.message : String(err) });
-                    }
-                  }}
-                />
-                <OverflowMenuItem
-                  isDelete
-                  hasDivider
-                  disabled={unitRunning}
-                  itemText={t("workbench.revert", "撤回此題 AI 分數")}
-                  onClick={() => setRevertOpen(true)}
-                />
+                {aiMenuItems}
               </OverflowMenu>
             )}
             {!isGroup && (
               <ScorePolicyMenu
+                leadingItems={aiRubricItems}
+                trailingItems={aiRevertItems}
+                menuLabel={aiMenuItems.length ? t("workbench.moreActions", "更多操作") : undefined}
                 questionId={unit.questions[0].id}
                 questionIndex={unit.questions[0].order + 1}
                 questionLabel={labels.get(unit.questions[0].id)?.label}
@@ -558,6 +587,7 @@ export default function ContestGradingWorkbenchScreen() {
               drafts={drafts}
               suggestionScores={suggestionScores}
               busy={saving}
+              aiRunning={unitRunning}
               onToggle={() => openRow(expanded === row.studentId ? null : row.studentId)}
               onDraftChange={(answerId, draft: GradeDraft) => setDrafts((previous) => ({ ...previous, [answerId]: draft }))}
               onPrimary={() => void (row.source === "suggestion" ? adopt(row) : save(row))}

@@ -3,7 +3,7 @@ import type { ExamQuestion } from "@/core/entities/contest.entity";
 import { buildPaperQuestionLabels } from "@/features/contest/domain/paperQuestionLabels";
 import type { GradingAnswerRow } from "../gradingTypes";
 import { buildSeedGradeCsv, parseCsvContent, serializeCsvRows, stringifyAnswer } from "../gradeCsv";
-import { gradeCsvFilename, type BatchQuestion } from "./batchGradingModel";
+import type { BatchQuestion } from "./batchGradingModel";
 
 export interface BatchUnit {
   id: string;
