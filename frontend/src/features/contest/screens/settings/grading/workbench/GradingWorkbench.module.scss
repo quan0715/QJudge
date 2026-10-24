@@ -18,6 +18,10 @@
   padding: layout.$spacing-06 layout.$spacing-06 layout.$spacing-09;
   overflow-y: auto;
 }
+// The column scrolls; its children keep their natural height instead of shrinking.
+.main > * {
+  flex-shrink: 0;
+}
 .empty {
   display: flex;
   flex-direction: column;
