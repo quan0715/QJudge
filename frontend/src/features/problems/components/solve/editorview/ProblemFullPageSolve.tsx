@@ -2,6 +2,7 @@ import React, { useCallback, useState, useEffect } from "react";
 import { InlineNotification } from "@carbon/react";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import { useProblemSolver } from "@/features/problems/hooks/useProblemSolver";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useUserPreferences } from "@/features/auth/hooks/useUserPreferences";
 import { SolverLayout } from "@/shared/layout/SolverLayout";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
@@ -40,7 +41,15 @@ interface ProblemFullPageSolveProps {
  *
  * Contest-scoped full-screen interface for solving coding problems.
  */
-export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
+export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = (props) => {
+  const { user } = useAuth();
+  const userId = user ? String(user.id) : null;
+  // Remount the editor on identity changes so the prior account's in-memory
+  // draft cannot be displayed or persisted under the next account's key.
+  return <ProblemSolveSession key={userId ?? "anonymous"} {...props} userId={userId} />;
+};
+
+const ProblemSolveSession: React.FC<ProblemFullPageSolveProps & { userId: string | null }> = ({
   problem,
   problemLabel = "",
   statementNavigation,
@@ -50,12 +59,14 @@ export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
   disableCopy = false,
   submissionDisabled = false,
   renderSubmissions,
+  userId,
 }) => {
   // Use the problem solver hook
   const solver = useProblemSolver({
     problem,
     contestId,
     problemLabel,
+    userId,
   });
 
   useEffect(() => {

@@ -212,10 +212,10 @@ class ExamGradingUnitMixin:
                         answer.graded_by, answer.graded_at = request.user, now
                         answer.is_correct = grade['score'] > 0
                         answer.save()
-                        ExamBatchGradeWrite.objects.update_or_create(answer=answer, defaults={
-                            'session_id': unit.session_id, 'run_id': unit.run_id, 'grader': request.user,
-                            'score': grade['score'], 'feedback': grade['feedback'], 'graded_at': now,
-                        })
+                        ExamBatchGradeWrite.objects.create(
+                            answer=answer, session_id=unit.session_id, run_id=unit.run_id, grader=request.user,
+                            score=grade['score'], feedback=grade['feedback'], graded_at=now,
+                        )
                         result.update(status='ok', score=grade['score'])
                         transaction.on_commit(lambda qid=answer.question_id: self._invalidate_dashboard_cache(contest.pk, qid))
                     unit.results[aid] = result

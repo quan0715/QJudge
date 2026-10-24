@@ -1403,7 +1403,8 @@
     "trackName": "track",
     "unavailable": "無法連線",
     "unknownError": "即時監看連線失敗",
-    "userId": "使用者 ID"
+    "userId": "使用者 ID",
+    "reconnect": "重新連線"
   },
   "logs": {
     "capture": {
@@ -1791,7 +1792,21 @@
     "searchPlaceholder": "搜尋監考對象...",
     "sourceScreen": "螢幕",
     "sourceWebcam": "Webcam",
-    "title": "監考"
+    "title": "監考",
+    "focusStudent": "放大 {{name}}",
+    "waitingScreen": "等待螢幕畫面",
+    "noScreen": "尚無螢幕分享",
+    "violationCount": "違規 {{count}} 次",
+    "noMatches": "沒有符合條件的考生",
+    "pageCount": "第 {{page}}／{{pages}} 頁・{{count}} 人",
+    "previousPage": "上一頁",
+    "nextPage": "下一頁",
+    "layout": "監看版面",
+    "focusView": "單人",
+    "fourView": "4 人",
+    "nineView": "9 人",
+    "previousStudent": "上一位",
+    "nextStudent": "下一位"
   },
   "progress": "考試進度",
   "public": "公開",

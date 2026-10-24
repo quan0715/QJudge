@@ -141,6 +141,18 @@ describe("LiveMonitoringProvider", () => {
     expect(view.getByTestId("state")).toHaveTextContent("connected");
   });
 
+  it("republishes the existing capture after a terminal disconnection", async () => {
+    const stream = { getVideoTracks: () => [{ readyState: "live" }] } as unknown as MediaStream;
+    const view = render(wrapper(activeRuntime(), <Consumer stream={stream} />));
+    await waitFor(() => expect(mocks.transports).toHaveLength(1));
+    await act(async () => view.getByTestId("state").click());
+    await act(async () => mocks.transports[0].onState.mock.calls[0][0]("unavailable"));
+    await waitFor(() => expect(mocks.transports).toHaveLength(2), { timeout: 2000 });
+    await waitFor(() => expect(mocks.transports[1].publishSources).toHaveBeenCalledWith({ screen_share: stream, webcam: null }));
+    expect(mocks.transports[0].close).toHaveBeenCalledOnce();
+    view.unmount();
+  });
+
   it("reports unavailable without minting when the self-hosted provider is disabled", async () => {
     mocks.getConfig.mockResolvedValue({
       enabled: false,
@@ -151,6 +163,16 @@ describe("LiveMonitoringProvider", () => {
 
     await waitFor(() => expect(view.getByTestId("state")).toHaveTextContent("unavailable"));
     expect(mocks.requestToken).not.toHaveBeenCalled();
+    expect(mocks.createTransport).not.toHaveBeenCalled();
+  });
+
+  it("does not connect after leaving while a token request is pending", async () => {
+    let resolveToken!: (value: typeof grant) => void;
+    mocks.requestToken.mockImplementationOnce(() => new Promise(resolve => { resolveToken = resolve; }));
+    const view = render(wrapper(activeRuntime(), <Consumer />));
+    await waitFor(() => expect(mocks.requestToken).toHaveBeenCalledOnce());
+    view.unmount();
+    await act(async () => resolveToken(grant));
     expect(mocks.createTransport).not.toHaveBeenCalled();
   });
 

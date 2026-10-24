@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Outlet, useParams } from "react-router-dom";
-import { InlineLoading, Modal } from "@carbon/react";
+import { Button, InlineLoading, Modal } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 
+import { EmptyState } from "@/shared/ui/EmptyState";
 import { ContestProvider } from "@/features/contest/contexts/ContestContext";
 import { ContestRuntimeNavigatorProvider } from "@/features/contest/contexts/ContestRuntimeNavigatorContext";
 import { ContestJudgeQueueProvider } from "@/features/contest/contexts/ContestJudgeQueueProvider";
@@ -34,6 +35,8 @@ const ContestWorkspaceLayout = () => {
     contest,
     contestLoading,
     contestNotFound,
+    contestError,
+    isRefreshing,
     hasEnded,
     isAdmin,
     scoreboardData,
@@ -144,6 +147,16 @@ const ContestWorkspaceLayout = () => {
 
   if (contestNotFound) {
     return null;
+  }
+
+  if (!contest && contestError) {
+    return (
+      <EmptyState
+        title={tc("message.error")}
+        description={contestError.message}
+        action={<Button disabled={isRefreshing} onClick={() => void refreshContest()}>{tc("button.retry", "重試")}</Button>}
+      />
+    );
   }
 
   return (

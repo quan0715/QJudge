@@ -6,7 +6,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('contests', '0011_batch_grade_write_receipts'),
+        ('contests', '0012_batch_receipt_run_identity'),
     ]
     operations = [
         migrations.CreateModel(

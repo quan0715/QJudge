@@ -184,7 +184,7 @@ describe("revert and regrade", () => {
     await waitFor(() => expect(result.current.sessionId).toBe("s1"));
 
     expect(await act(() => result.current.revertQuestion("q1"))).toEqual(["a1"]);
-    expect(mocks.ungradeExamAnswer.mock.calls).toEqual([["c1", "a1", { score: 8, feedback: "AI" }]]);
+    expect(mocks.ungradeExamAnswer.mock.calls).toEqual([["c1", "a1", { score: 8, feedback: "AI", batchSessionId: "s1" }]]);
   });
 
   it("revert waits while the question's run is active", async () => {

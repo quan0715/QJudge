@@ -141,12 +141,16 @@ class QJudgeTokenVerifier(TokenVerifier):
 def _format_django_errors(detail: Any) -> dict[str, Any]:
     """Convert Django error response into AI-friendly errors list.
 
-    Handles two formats:
+    Handles canonical errors, legacy wrappers and plain DRF validation errors:
+    - Canonical API: {errors: [{code, message, field, details}], meta: {...}}
     - DRF custom_exception_handler: {success: false, error: {code, message, details: {field: [...]}}}
     - Plain DRF ValidationError: {field: ["msg1", "msg2"]}
     """
     if not isinstance(detail, dict):
         return {"error": True, "detail": detail}
+
+    if isinstance(detail.get("errors"), list):
+        return {**detail, "error": True}
 
     # Handle custom_exception_handler wrapper: {success: false, error: {...}}
     inner_error = detail.get("error")
@@ -435,14 +439,14 @@ def _compact_answers_for_grading(raw: Any) -> Any:
     agent pipes ``result["items"]`` straight into
     artifact_write_csv_from_records with no remapping.
     """
-    data = raw
-    if not isinstance(data, list):
-        return _items([])
+    if isinstance(raw, dict) and raw.get("error") is True:
+        return raw
+    if not isinstance(raw, list) or any(not isinstance(item, dict) for item in raw):
+        return _error("Invalid answer list returned by Django", status=502)
 
+    data = raw
     rows = []
     for i, item in enumerate(data, start=1):
-        if not isinstance(item, dict):
-            continue
         answer = item.get("answer") or {}
         rows.append({
             "index":             i,

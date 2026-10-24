@@ -27,6 +27,7 @@ interface UseProblemSolverProps {
   problem: CodingProblemDetail | null;
   /** Contest that owns this solve session */
   contestId: string;
+  userId: string | null;
   /** Problem label (e.g. "A") for contest mode */
   problemLabel?: string;
 }
@@ -76,6 +77,7 @@ interface UseProblemSolverReturn {
 export function useProblemSolver({
   problem,
   contestId,
+  userId,
 }: UseProblemSolverProps): UseProblemSolverReturn {
   // Result panel state
   // The student's panel choices, kept for the showing they were made on: every showing of a run
@@ -157,7 +159,7 @@ export function useProblemSolver({
     
     setLanguage(targetLang);
 
-    const savedCode = loadCode(problem.id, targetLang, contestId);
+    const savedCode = userId ? loadCode(problem.id, targetLang, contestId, userId) : null;
     if (savedCode) {
       setCode(savedCode);
     } else {
@@ -178,26 +180,26 @@ export function useProblemSolver({
         enabled: true,
       }));
 
-    const customCases = loadCustomCases(problem.id, contestId);
+    const customCases = userId ? loadCustomCases(problem.id, contestId, userId) : [];
 
     setTestCases([...publicCases, ...customCases]);
-  }, [problem?.id, contestId]);
+  }, [problem?.id, contestId, userId]);
 
   // Save code
   useEffect(() => {
-    if (problem?.id && code && language) {
-      saveCode(problem.id, language, code, contestId);
+    if (userId && problem?.id && code && language) {
+      saveCode(problem.id, language, code, contestId, userId);
     }
-  }, [code, language, problem?.id, contestId]);
+  }, [code, language, problem?.id, contestId, userId]);
 
   // Save custom cases
   const saveCustomCases = useCallback(
     (cases: TestCaseItem[]) => {
-      if (!problem?.id) return;
+      if (!problem?.id || !userId) return;
       const customOnly = cases.filter((c) => c.source === "custom");
-      persistCustomCases(problem.id, customOnly, contestId);
+      persistCustomCases(problem.id, customOnly, contestId, userId);
     },
-    [problem?.id, contestId]
+    [problem?.id, contestId, userId]
   );
 
   const toggleResult = useCallback(() => {
@@ -217,14 +219,14 @@ export function useProblemSolver({
       if (!selected) return;
 
       setLanguage(newLang);
-      const savedCode = loadCode(problem.id, newLang, contestId);
+      const savedCode = userId ? loadCode(problem.id, newLang, contestId, userId) : null;
       if (savedCode) {
         setCode(savedCode);
       } else {
         setCode(selected.templateCode || DEFAULT_TEMPLATES[newLang] || "");
       }
     },
-    [problem?.id, languageConfigs, contestId]
+    [problem?.id, languageConfigs, contestId, userId]
   );
 
   const addTestCase = useCallback(

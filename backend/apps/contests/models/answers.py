@@ -103,12 +103,12 @@ class ExamAnswer(models.Model):
 
 
 class ExamBatchGradeWrite(models.Model):
-    """Latest batch write per answer, committed atomically with the grade.
+    """Immutable receipt per answer and batch run, committed with the grade.
 
     Artifacts are presentation copies. This receipt remains available if object
     storage or the worker fails after a grade commits.
     """
-    answer = models.OneToOneField(ExamAnswer, on_delete=models.CASCADE, related_name='batch_write')
+    answer = models.ForeignKey(ExamAnswer, on_delete=models.CASCADE, related_name='batch_writes')
     session_id = models.UUIDField(db_index=True)
     run_id = models.UUIDField()
     grader = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -118,6 +118,9 @@ class ExamBatchGradeWrite(models.Model):
 
     class Meta:
         db_table = 'exam_batch_grade_writes'
+        constraints = [
+            models.UniqueConstraint(fields=['answer', 'session_id', 'run_id'], name='unique_batch_run_answer_write'),
+        ]
 
 
 class ExamGradingUnit(models.Model):

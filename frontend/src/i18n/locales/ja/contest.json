@@ -1403,7 +1403,8 @@
     "trackName": "track",
     "unavailable": "接続できません",
     "unknownError": "ライブ監視接続に失敗しました",
-    "userId": "ユーザー ID"
+    "userId": "ユーザー ID",
+    "reconnect": "再接続"
   },
   "logs": {
     "capture": {
@@ -1791,7 +1792,21 @@
     "searchPlaceholder": "監視対象を検索...",
     "sourceScreen": "画面",
     "sourceWebcam": "Webcam",
-    "title": "監視"
+    "title": "監視",
+    "focusStudent": "{{name}} を拡大",
+    "waitingScreen": "画面を待機中",
+    "noScreen": "画面共有なし",
+    "violationCount": "違反 {{count}} 回",
+    "noMatches": "該当する受験者がいません",
+    "pageCount": "{{page}}／{{pages}} ページ・{{count}} 人",
+    "previousPage": "前のページ",
+    "nextPage": "次のページ",
+    "layout": "監視レイアウト",
+    "focusView": "個別",
+    "fourView": "4 人",
+    "nineView": "9 人",
+    "previousStudent": "前の受験者",
+    "nextStudent": "次の受験者"
   },
   "progress": "進捗",
   "public": "公開",

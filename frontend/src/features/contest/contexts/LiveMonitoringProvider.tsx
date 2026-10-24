@@ -13,14 +13,8 @@ import type {
   LiveSource,
   LiveState,
 } from "@/core/entities/liveMonitoring.entity";
-import {
-  getLiveMonitoringConfig,
-  requestLiveMonitoringToken,
-} from "@/infrastructure/api/repositories/liveMonitoring.repository";
-import {
-  createLiveKitTransport,
-  type LiveTransport,
-} from "@/infrastructure/realtime/livekitTransport";
+import type { LiveTransport } from "@/infrastructure/realtime/livekitTransport";
+import { useLiveMonitoringConnection } from "../hooks/useLiveMonitoringConnection";
 
 interface LiveMonitoringContextValue {
   setSources: (
@@ -83,14 +77,11 @@ export function LiveMonitoringProvider({
   runtimeState,
   children,
 }: LiveMonitoringProviderProps) {
-  const [state, setState] = useState<LiveState>("idle");
   const sourcesRef = useRef<Partial<Record<LiveSource, MediaStream | null>>>({
     screen_share: null,
     webcam: null,
   });
   const [sourceRevision, setSourceRevision] = useState(0);
-  const transportRef = useRef<LiveTransport | null>(null);
-  const generationRef = useRef(0);
 
   const runId = runtimeState?.integrity_run?.id;
   const participantId = runtimeState?.participant_id;
@@ -109,10 +100,6 @@ export function LiveMonitoringProvider({
     }),
     [activeDeviceMatches, attemptId, deviceId, examStatus, participantId, runId],
   );
-  const scopeKey = scope
-    ? JSON.stringify([contestId, scope.runId, scope.participantId, scope.attemptId, scope.deviceId])
-    : `${contestId}:inactive`;
-
   const setSources = useCallback(
     (sources: Partial<Record<LiveSource, MediaStream | null>>) => {
       sourcesRef.current = { ...sourcesRef.current, ...sources };
@@ -126,87 +113,20 @@ export function LiveMonitoringProvider({
     setSourceRevision((revision) => revision + 1);
   }, []);
 
-  useEffect(() => {
-    const generation = ++generationRef.current;
-    const controller = new AbortController();
-    let candidate: LiveTransport | null = null;
-    let unsubscribe: (() => void) | null = null;
-
-    const closeCandidate = async () => {
-      unsubscribe?.();
-      unsubscribe = null;
-      if (transportRef.current === candidate) transportRef.current = null;
-      if (candidate) await candidate.close();
-    };
-
-    if (!scope) {
-      const previous = transportRef.current;
-      transportRef.current = null;
-      void previous?.close();
-      setState("idle");
-      return () => {
-        controller.abort();
-        generationRef.current += 1;
-      };
-    }
-
-    setState("connecting");
-    void (async () => {
-      try {
-        const config = await getLiveMonitoringConfig(contestId, controller.signal);
-        if (controller.signal.aborted || generationRef.current !== generation) return;
-        if (!config.enabled || !config.configured || config.provider !== "livekit") {
-          setState("unavailable");
-          return;
-        }
-
-        const grant = await requestLiveMonitoringToken(contestId, {
-          role: "publisher",
-          uploadScope: scope,
-          signal: controller.signal,
-        });
-        if (controller.signal.aborted || generationRef.current !== generation) return;
-
-        candidate = createLiveKitTransport();
-        unsubscribe = candidate.onState((nextState) => {
-          if (!controller.signal.aborted && generationRef.current === generation) {
-            setState(nextState);
-          }
-        });
-        await candidate.connect(grant);
-        if (controller.signal.aborted || generationRef.current !== generation) {
-          await closeCandidate();
-          return;
-        }
-        transportRef.current = candidate;
-        await candidate.publishSources(sourcesRef.current);
-      } catch {
-        if (controller.signal.aborted || generationRef.current !== generation) return;
-        setState("unavailable");
-        await closeCandidate();
-      }
-    })();
-
-    return () => {
-      controller.abort();
-      generationRef.current += 1;
-      const previous = transportRef.current;
-      transportRef.current = null;
-      unsubscribe?.();
-      unsubscribe = null;
-      void previous?.close();
-      if (candidate && candidate !== previous) void candidate.close();
-    };
-  }, [contestId, scope, scopeKey]);
+  const publishCurrentSources = useCallback((transport: LiveTransport) =>
+    transport.publishSources(sourcesRef.current), []);
+  const { transportRef, state, reconnect } = useLiveMonitoringConnection({
+    contestId, enabled: !!scope, role: "publisher", uploadScope: scope ?? undefined,
+    onConnected: publishCurrentSources,
+  });
 
   useEffect(() => {
     const transport = transportRef.current;
     if (!transport) return;
-    const generation = generationRef.current;
     void transport.publishSources(sourcesRef.current).catch(() => {
-      if (generationRef.current === generation) setState("unavailable");
+      if (transportRef.current === transport) reconnect();
     });
-  }, [sourceRevision]);
+  }, [sourceRevision, transportRef, reconnect]);
 
   const value = useMemo(
     () => ({ setSources, clearSources, state }),

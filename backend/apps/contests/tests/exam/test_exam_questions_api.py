@@ -847,6 +847,63 @@ class TestImportFromQuestionBank:
         assert rows.first().question_type == "single_choice"
         assert rows.first().score == 4
 
+    @pytest.mark.parametrize("document_answer", [False, True], ids=["choice", "document"])
+    def test_question_bank_round_trip_preserves_content(
+        self, api_client, teacher, contest, document_answer,
+    ):
+        source_contest = create_contest_in_classroom(
+            name="Source exam", owner=teacher, contest_type="paper_exam",
+        )
+        document = {"version": 1, "nodes": [{"type": "paragraph", "children": [{"type": "text", "text": "Reference"}]}]}
+        content = {
+            "prompt": "Explain your answer" if document_answer else "Choose the answer",
+            "question_type": "essay" if document_answer else "single_choice",
+            "options": [] if document_answer else ["A", "B"],
+            "correct_answer": None if document_answer else 1,
+            "answer_format": "open_document" if document_answer else "plain_text",
+            "reference_answer_document": document if document_answer else None,
+            "explanation": "Why this answer is correct",
+            "explanation_document": document if document_answer else None,
+            "score": 7,
+        }
+        source = ExamQuestion.objects.create(contest=source_contest, order=0, **content)
+        bank = QuestionBank.objects.create(
+            owner=teacher, name="Round trip bank", category=QuestionBank.Category.EXAM,
+        )
+        api_client.force_authenticate(user=teacher)
+        ingest = api_client.post(
+            "/api/v1/question-banks/inbox/ingest/",
+            {"target_bank_id": str(bank.uuid),
+             "items": [{"source_type": "exam_question", "source_id": str(source.id)}]},
+            format="json",
+        )
+        assert ingest.status_code == status.HTTP_200_OK
+        membership = bank.asset_memberships.get()
+        content.update(prompt="Edited in the bank", score=9)
+        edit = api_client.patch(
+            f"/api/v1/question-banks/{bank.uuid}/questions/{membership.id}/",
+            {"prompt": content["prompt"], "score": content["score"]},
+            format="json",
+        )
+        assert edit.status_code == status.HTTP_200_OK
+        response = api_client.post(
+            url(contest.id) + "import-from-bank/",
+            {"items": [{"question_bank_id": str(bank.uuid), "question_id": str(membership.id)}]},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        imported = ExamQuestion.objects.get(contest=contest)
+        assert {field: getattr(imported, field) for field in content} == content
+        assert imported.source_mode == "copy"
+
+        # A later edit of the original must not change the imported exam's copy.
+        source.prompt = "Edited original"
+        source.explanation = "Edited explanation"
+        source.save()
+        imported.refresh_from_db()
+        assert imported.prompt == content["prompt"]
+        assert imported.explanation == content["explanation"]
+
     def test_owner_can_import_asset_only_exam_question_from_membership(self, api_client, teacher, contest):
         api_client.force_authenticate(user=teacher)
         bank = QuestionBank.objects.create(

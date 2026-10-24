@@ -553,6 +553,50 @@ def test_qjudge_grading_list_answers_grading_projection(monkeypatch):
     }
 
 
+@pytest.mark.parametrize("status_code", [403, 404, 500])
+def test_grading_preserves_backend_errors(monkeypatch, status_code):
+    payload = {
+        "errors": [{"code": "permission_denied", "message": "Cannot read answers",
+                    "field": None, "details": {}}],
+        "meta": {"request_id": "request-1"},
+    }
+    monkeypatch.setattr(
+        server.httpx, "AsyncClient",
+        lambda timeout: FakeAsyncClient(FakeResponse(status_code, payload), [], timeout=timeout),
+    )
+    result = run(server.qjudge_grading(
+        "list_answers", "11111111-1111-1111-1111-111111111111",
+        DummyContext(), projection="grading",
+    ))
+    assert result == {**payload, "error": True, "status": status_code}
+
+
+@pytest.mark.parametrize("payload", [None, {"unexpected": []}, ["invalid row"]])
+def test_grading_rejects_malformed_success(monkeypatch, payload):
+    monkeypatch.setattr(
+        server.httpx, "AsyncClient",
+        lambda timeout: FakeAsyncClient(FakeResponse(200, payload), [], timeout=timeout),
+    )
+    result = run(server.qjudge_grading(
+        "list_answers", "11111111-1111-1111-1111-111111111111",
+        DummyContext(), projection="grading",
+    ))
+    assert result["error"] is True
+    assert result["status"] == 502
+
+
+def test_grading_accepts_empty_answer_list(monkeypatch):
+    monkeypatch.setattr(
+        server.httpx, "AsyncClient",
+        lambda timeout: FakeAsyncClient(FakeResponse(200, []), [], timeout=timeout),
+    )
+    result = run(server.qjudge_grading(
+        "list_answers", "11111111-1111-1111-1111-111111111111",
+        DummyContext(), projection="grading",
+    ))
+    assert result == {"count": 0, "items": []}
+
+
 def test_qjudge_grading_question_detail_strips_participants_and_omitted_by_default(monkeypatch):
     async def fake_django_api(method, path, ctx, *, json_body=None):
         return {

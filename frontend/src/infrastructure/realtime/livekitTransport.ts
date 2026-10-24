@@ -20,6 +20,8 @@ export interface LiveTransport {
     sources: Partial<Record<LiveSource, MediaStream | null>>,
   ) => Promise<void>;
   selectTarget: (identity: string | null) => void;
+  selectTargets: (targets: Array<{ identity: string; sources: LiveSource[] }>) => void;
+  bindTargetVideo: (identity: string, source: LiveSource, element: HTMLVideoElement | null) => void;
   bindVideo: (source: LiveSource, element: HTMLVideoElement | null) => void;
   onState: (listener: (state: LiveState) => void) => () => void;
   close: () => Promise<void>;
@@ -58,30 +60,37 @@ export function createLiveKitTransport(): LiveTransport {
   const videoElements: Partial<Record<LiveSource, HTMLVideoElement | null>> = {};
   const published = new Map<LiveSource, PublishedVideo>();
   const sourceStreams = new Map<LiveSource, MediaStream>();
-  const attachedTracks = new Map<LiveSource, RemoteTrack>();
+  const selectedTargets = new Map<string, LiveSource[]>();
+  const targetElements = new Map<string, HTMLVideoElement>();
+  const attachedTracks = new Map<string, { track: RemoteTrack; element: HTMLVideoElement }>();
+  const targetKey = (identity: string, source: LiveSource) => JSON.stringify([identity, source]);
+  const isSelected = (identity: string, source: LiveSource) => selectedTargets.get(identity)?.includes(source) ?? false;
   let republishCurrentSources: (() => Promise<void>) | null = null;
 
   const emitState = (state: LiveState) => {
     for (const listener of stateListeners) listener(state);
   };
 
-  const attachTrack = (source: LiveSource, track: RemoteTrack) => {
-    const element = videoElements[source];
-    if (!element) return;
-    const previous = attachedTracks.get(source);
-    if (previous && previous !== track) {
-      previous.detach(element);
-    }
-    track.attach(element);
-    attachedTracks.set(source, track);
+  const detachTrack = (identity: string, source: LiveSource, track?: RemoteTrack) => {
+    const key = targetKey(identity, source);
+    const attached = attachedTracks.get(key);
+    // Late unsubscribe events must not detach a replacement track.
+    if (!attached || (track && attached.track !== track)) return;
+    attached.track.detach(attached.element);
+    attachedTracks.delete(key);
   };
 
-  const detachTrack = (source: LiveSource, track?: RemoteTrack) => {
-    const attached = attachedTracks.get(source);
-    const target = track ?? attached;
-    const element = videoElements[source];
-    if (target && element) target.detach(element);
-    if (!track || attached === track) attachedTracks.delete(source);
+  const attachTrack = (identity: string, source: LiveSource, track: RemoteTrack) => {
+    if (!isSelected(identity, source)) return;
+    const element = targetElements.get(targetKey(identity, source))
+      ?? (identity === selectedIdentity ? videoElements[source] : null);
+    if (!element) return;
+    const key = targetKey(identity, source);
+    const previous = attachedTracks.get(key);
+    if (previous?.track === track && previous.element === element) return;
+    detachTrack(identity, source);
+    track.attach(element);
+    attachedTracks.set(key, { track, element });
   };
 
   const participantPublications = (participant: RemoteParticipant) =>
@@ -92,37 +101,13 @@ export function createLiveKitTransport(): LiveTransport {
     for (const participant of room.remoteParticipants.values()) {
       for (const publication of participantPublications(participant)) {
         const source = sourceFromPublication(publication);
-        publication.setSubscribed(
-          participant.identity === selectedIdentity && source !== null,
-        );
-        if (
-          participant.identity !== selectedIdentity &&
-          source !== null &&
-          publication.track
-        ) {
-          detachTrack(source, publication.track);
-        }
+        const selected = source !== null && isSelected(participant.identity, source);
+        publication.setSubscribed(selected);
+        if (!source) continue;
+        if (!selected) detachTrack(participant.identity, source);
+        else if (publication.track) attachTrack(participant.identity, source, publication.track);
       }
     }
-  };
-
-  const handleTrackSubscribed = (
-    track: RemoteTrack,
-    publication: RemoteTrackPublication,
-    participant: RemoteParticipant,
-  ) => {
-    const source = sourceFromPublication(publication);
-    if (source && participant.identity === selectedIdentity) {
-      attachTrack(source, track);
-    }
-  };
-
-  const handleTrackUnsubscribed = (
-    track: RemoteTrack,
-    publication: RemoteTrackPublication,
-  ) => {
-    const source = sourceFromPublication(publication);
-    if (source) detachTrack(source, track);
   };
 
   const bindRoomEvents = (nextRoom: Room) => {
@@ -137,34 +122,36 @@ export function createLiveKitTransport(): LiveTransport {
         if (republish) {
           const operation = publishQueue.then(republish);
           publishQueue = operation.catch(() => undefined);
-          void operation.catch(() => {
-            if (!closed) emitState("unavailable");
-          });
+          void operation.catch(() => { if (!closed) emitState("unavailable"); });
         }
       }
     });
     nextRoom.on(RoomEvent.Disconnected, () => {
       if (!closed) emitState("unavailable");
     });
-    nextRoom.on(RoomEvent.TrackSubscribed, handleTrackSubscribed);
-    nextRoom.on(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
+    nextRoom.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+      const source = sourceFromPublication(publication);
+      if (!closed && source) attachTrack(participant.identity, source, track);
+    });
+    nextRoom.on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+      const source = sourceFromPublication(publication);
+      if (source) detachTrack(participant.identity, source, track);
+    });
     nextRoom.on(RoomEvent.TrackPublished, (publication, participant) => {
       const source = sourceFromPublication(publication);
-      if (source) {
-        publication.setSubscribed(
-          participant.identity === selectedIdentity,
-        );
+      if (!closed && grant?.role === "subscriber") {
+        publication.setSubscribed(source !== null && isSelected(participant.identity, source));
       }
     });
-    nextRoom.on(RoomEvent.TrackUnpublished, (publication) => {
+    nextRoom.on(RoomEvent.TrackUnpublished, (publication, participant) => {
       const source = sourceFromPublication(publication);
-      if (source) detachTrack(source, publication.track);
+      // LiveKit clears publication.track before this event. Scope by participant.
+      if (source) detachTrack(participant.identity, source, publication.track);
     });
     nextRoom.on(RoomEvent.ParticipantConnected, updateSubscriptions);
     nextRoom.on(RoomEvent.ParticipantDisconnected, (participant) => {
-      for (const publication of participantPublications(participant)) {
-        const source = sourceFromPublication(publication);
-        if (source && publication.track) detachTrack(source, publication.track);
+      for (const source of Object.keys(sourceToSdkSource) as LiveSource[]) {
+        detachTrack(participant.identity, source);
       }
       updateSubscriptions();
     });
@@ -300,39 +287,41 @@ export function createLiveKitTransport(): LiveTransport {
     return operation;
   };
 
-  const selectTarget = (identity: string | null) => {
-    if (selectedIdentity !== identity) {
-      for (const source of Object.keys(sourceToSdkSource) as LiveSource[]) {
-        detachTrack(source);
+  const updateTargets = (targets: Array<{ identity: string; sources: LiveSource[] }>) => {
+    selectedTargets.clear();
+    for (const target of targets) selectedTargets.set(target.identity, target.sources);
+    for (const [key, attached] of attachedTracks) {
+      const [identity, source] = JSON.parse(key) as [string, LiveSource];
+      if (!isSelected(identity, source)) {
+        attached.track.detach(attached.element);
+        attachedTracks.delete(key);
       }
     }
-    selectedIdentity = identity;
     updateSubscriptions();
-    if (!room || !identity) return;
-    const participant = room.remoteParticipants.get(identity);
-    if (!participant) return;
-    for (const publication of participantPublications(participant)) {
-      const source = sourceFromPublication(publication);
-      if (source && publication.track) attachTrack(source, publication.track);
-    }
+  };
+
+  const selectTargets: LiveTransport["selectTargets"] = (targets) => {
+    selectedIdentity = null;
+    updateTargets(targets);
+  };
+
+  const selectTarget = (identity: string | null) => {
+    selectedIdentity = identity;
+    updateTargets(identity ? [{ identity, sources: ["screen_share", "webcam"] }] : []);
   };
 
   const bindVideo = (source: LiveSource, element: HTMLVideoElement | null) => {
-    const previousElement = videoElements[source];
-    const attached = attachedTracks.get(source);
-    if (attached && previousElement && previousElement !== element) {
-      attached.detach(previousElement);
-      attachedTracks.delete(source);
-    }
+    if (videoElements[source] !== element && selectedIdentity) detachTrack(selectedIdentity, source);
     videoElements[source] = element;
-    if (!element || !room || !selectedIdentity) return;
-    const participant = room.remoteParticipants.get(selectedIdentity);
-    const publication = participant
-      ? participantPublications(participant).find(
-          (candidate) => sourceFromPublication(candidate) === source,
-        )
-      : undefined;
-    if (publication?.track) attachTrack(source, publication.track);
+    updateSubscriptions();
+  };
+
+  const bindTargetVideo: LiveTransport["bindTargetVideo"] = (identity, source, element) => {
+    const key = targetKey(identity, source);
+    if (targetElements.get(key) !== element) detachTrack(identity, source);
+    if (element) targetElements.set(key, element);
+    else targetElements.delete(key);
+    updateSubscriptions();
   };
 
   const onState = (listener: (state: LiveState) => void) => {
@@ -345,7 +334,10 @@ export function createLiveKitTransport(): LiveTransport {
     closed = true;
     generation += 1;
     emitState("closed");
-    for (const [source, track] of attachedTracks) detachTrack(source, track);
+    for (const { track, element } of attachedTracks.values()) track.detach(element);
+    attachedTracks.clear();
+    targetElements.clear();
+    selectedTargets.clear();
     for (const current of published.values()) current.owned.stop();
     published.clear();
     sourceStreams.clear();
@@ -358,6 +350,8 @@ export function createLiveKitTransport(): LiveTransport {
     connect,
     publishSources,
     selectTarget,
+    selectTargets,
+    bindTargetVideo,
     bindVideo,
     onState,
     close,

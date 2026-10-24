@@ -103,6 +103,11 @@ def _payload_for_membership_update(*, membership, pending_data: dict, coding_ext
         coding_payload = effective_coding_ext or {}
         payload.update(_coding_ext_from_payload(coding_payload))
     else:
+        # The bank editor does not edit these fields, but must keep imported
+        # document-answer content when changing the prompt or score.
+        for field in ("answer_format", "reference_answer_document", "explanation", "explanation_document"):
+            if field in existing_payload:
+                payload[field] = existing_payload[field]
         payload["question_type"] = pending_data.get(
             "question_type",
             existing_payload.get("question_type", membership.question_asset.asset_type),

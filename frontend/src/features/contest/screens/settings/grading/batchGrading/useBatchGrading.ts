@@ -275,7 +275,11 @@ export function useBatchGrading(
       for (const record of written.filter((r) => candidates.has(r.examAnswerId))) {
         try {
           // The server re-checks the grade, covering changes made after the reload above.
-          await ungradeExamAnswer(contestId, record.examAnswerId, { score: record.score, feedback: record.feedback });
+          await ungradeExamAnswer(contestId, record.examAnswerId, {
+            score: record.score,
+            feedback: record.feedback,
+            batchSessionId: id,
+          });
           reverted.push(record.examAnswerId);
         } catch (err) {
           if ((err as { status?: number }).status !== 409) throw err;
