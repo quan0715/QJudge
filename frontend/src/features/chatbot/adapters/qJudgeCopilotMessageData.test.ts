@@ -5,7 +5,6 @@ import {
   batchKickoffDisplayText,
   selectFinishedArtifactToolIds,
   selectLatestNextTurnOptions,
-  selectLatestSubagentItems,
   selectLatestTodoItems,
 } from "./qJudgeCopilotMessageData";
 
@@ -159,25 +158,5 @@ describe("QJudge Copilot message data", () => {
     expect(selectLatestTodoItems(messages)).toEqual([]);
     expect(selectLatestNextTurnOptions(messages)).toEqual([]);
     expect(selectFinishedArtifactToolIds(messages)).toEqual([]);
-  });
-
-  it("lists the latest run's subagents by their first description line and live status", () => {
-    const task = (id: string, description: string, state: "input-ready" | "output-ready" | "error") => ({
-      type: "tool" as const, toolCallId: id, toolName: "task", state, input: { description },
-    });
-    const messages = [
-      assistantMessage("older", [task("old", "批改第 9 題", "output-ready")]),
-      assistantMessage("latest", [
-        task("t1", "批改第 1 題\n細節", "output-ready"),
-        task("t2", "批改第 2 題", "input-ready"),
-        task("t3", "批改第 3 題", "error"),
-        { type: "tool", toolCallId: "c1", toolName: "save_grading_draft", state: "output-ready", parentToolCallId: "t2" },
-      ]),
-    ];
-    expect(selectLatestSubagentItems(messages)).toEqual([
-      { id: "t1", label: "批改第 1 題", status: "success" },
-      { id: "t2", label: "批改第 2 題", status: "in_progress" },
-      { id: "t3", label: "批改第 3 題", status: "fail" },
-    ]);
   });
 });

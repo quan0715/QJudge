@@ -72,29 +72,6 @@ export function selectLatestTodoItems(
   return selectLatestData(messages, "data-todo-items", parseTodoItems);
 }
 
-/**
- * The latest run's subagents with their live status. A parent agent waiting on
- * parallel subagents cannot update its todos, so this follows the tool calls instead.
- */
-export function selectLatestSubagentItems(messages: readonly CopilotMessage[]): readonly TodoListItem[] {
-  for (const message of [...messages].reverse()) {
-    if (message.role !== "assistant") continue;
-    const tasks = message.parts.flatMap((part) =>
-      part.type === "tool" && part.toolName === "task" && !part.parentToolCallId ? [part] : [],
-    );
-    if (!tasks.length) continue;
-    return tasks.map((part) => {
-      const description = isRecord(part.input) && typeof part.input.description === "string" ? part.input.description : "";
-      return {
-        id: part.toolCallId,
-        label: description.split("\n")[0].trim() || part.toolName,
-        status: part.state === "output-ready" ? "success" : part.state === "error" ? "fail" : "in_progress",
-      };
-    });
-  }
-  return [];
-}
-
 export function selectLatestNextTurnOptions(
   messages: readonly CopilotMessage[],
 ): readonly QJudgeNextTurnOption[] {

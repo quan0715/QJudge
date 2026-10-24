@@ -16,7 +16,7 @@ import {
 import { Document, MachineLearningModel } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useCopilotModels, useCopilotSessions } from "@copilot";
-import { selectLatestSubagentItems, selectLatestTodoItems } from "@/features/chatbot/adapters/qJudgeCopilotMessageData";
+import { selectLatestTodoItems } from "@/features/chatbot/adapters/qJudgeCopilotMessageData";
 import type { ExamPaper } from "@/core/entities/contest.entity";
 import { getExamPaper } from "@/infrastructure/api/repositories/examPaper.repository";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -321,13 +321,6 @@ export default function ContestGradingWorkbenchScreen() {
       aiStatus,
     };
   });
-  // The agent's subagents show their own live status; its todos only when it works alone.
-  const batchMessages =
-    examRunning && activeSession.status === "ready" && activeSession.data.id === batch.sessionId
-      ? activeSession.data.messages
-      : null;
-  const subagents = batchMessages ? selectLatestSubagentItems(batchMessages) : [];
-  const aiTasks = batchMessages ? (subagents.length ? subagents : selectLatestTodoItems(batchMessages)) : undefined;
   const startedUnits = units.map((item) =>
     batch.questions.filter((state) => item.questions.some((q) => q.id === state.questionId)),
   ).filter((states) => states.some((state) => state.status !== "idle" && state.status !== "skipped"));
@@ -416,7 +409,10 @@ export default function ContestGradingWorkbenchScreen() {
               })
             : "",
           canStart: !aiBlocked && examSummary.answers > 0,
-          todos: aiTasks,
+          todos:
+            examRunning && activeSession.status === "ready" && activeSession.data.id === batch.sessionId
+              ? selectLatestTodoItems(activeSession.data.messages)
+              : undefined,
           disabledReason: resultsPublished ? t("grading.batch.publishedDisabled") : undefined,
         }}
         onSelect={(id) => {
