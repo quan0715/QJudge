@@ -43,4 +43,13 @@ describe('complete grading units', () => {
     const [allSiblings] = buildGradingUnits(selectBatchQuestions(rows).filter(q=>['c','d','e'].includes(q.questionId)),qs);
     expect((await prepareGradingUnit(allSiblings,rows)).manifest.rubric_file).toBe(a.manifest.rubric_file);
   });
+  it('kick-off prompt carries only the parsed lines and points to the SOP skill', async () => {
+    const [unit] = buildGradingUnits(selectBatchQuestions(rows).filter(q=>q.questionId==='c'),qs);
+    const prepared = await prepareGradingUnit(unit,rows);
+    const lines = buildBatchRunPrompt({contestId:'contest-1',units:[prepared.manifest]}).split('\n');
+    expect(lines[0]).toBe('batch_question_id: c');
+    expect(lines).toHaveLength(3);
+    expect(lines[2]).toContain('contest-1');
+    expect(lines[2]).toContain('qjudge-exam-grading-sop');
+  });
 });
