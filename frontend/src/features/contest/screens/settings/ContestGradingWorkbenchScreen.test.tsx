@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   showToast: vi.fn(),
   getExamPaper: vi.fn(),
   batch: {
-    questions: [],
+    questions: [] as { questionId: string; status: string; ungradedCount: number; writtenCount: number; label: string; index: number }[],
     sessionId: null as string | null,
     aiWrittenAnswerIds: new Set<string>(),
     overall: { ungradedTotal: 0 },
@@ -152,6 +152,7 @@ beforeEach(() => {
   mocks.suggestions = {};
   mocks.batch.aiWrittenAnswerIds = new Set(["s2-c"]);
   mocks.batch.sessionId = null;
+  mocks.batch.questions = [];
   mocks.batch.start.mockResolvedValue(undefined);
   mocks.batch.regradeQuestion.mockResolvedValue(undefined);
   mocks.getExamPaper.mockResolvedValue(paper);
@@ -306,5 +307,24 @@ describe("grading workbench", () => {
     } finally {
       targets.forEach((row) => delete row.effectiveMaxScore);
     }
+  });
+
+  it("a question group shows its AI notice once", async () => {
+    mocks.batch.questions = ["a", "b"].map((questionId, index) => ({
+      questionId,
+      status: "running",
+      ungradedCount: 2,
+      writtenCount: 0,
+      label: `Q${index + 1}`,
+      index,
+    }));
+    await setup("grading_question=a");
+    expect(screen.getAllByText("grading.batch.noticeRunning")).toHaveLength(1);
+  });
+
+  it("rail progress counts fully graded students", async () => {
+    await setup("grading_question=c");
+    const rail = within(screen.getByRole("navigation", { name: "題目" }));
+    expect(rail.getByRole("button", { name: /第 1 題/ })).toHaveTextContent("0/2");
   });
 });

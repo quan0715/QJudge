@@ -119,89 +119,87 @@ export function WorkbenchStudentRow({
       </button>
       {expanded && (
         <div className={styles.rowDetail}>
-          <div className={styles.rowAnswer}>
-            {row.answers.map((answer) =>
-              isObjective(answer) ? (
-                <ul key={answer.id} className={styles.optionList}>
-                  {optionTexts(answer).map((text, index) => {
-                    const isPicked = selectedOptionIndexes(answer).includes(index);
-                    const isCorrect = correctOptionIndexes(answer).includes(index);
-                    return (
-                      <li
-                        key={index}
-                        className={isPicked ? (isCorrect ? styles.optionPicked : styles.optionWrong) : undefined}
-                      >
-                        <strong>{optionLabel(answer, index)}</strong>
-                        <span>{text}</span>
-                        <span className={styles.muted}>
-                          {[
-                            isPicked ? t("workbench.studentPick", "學生選擇") : "",
-                            isCorrect ? t("workbench.correct", "正解") : "",
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <section key={answer.id}>
-                  {isGroup && <h4 className={styles.subLabel}>{labels.get(answer.questionId)?.label}</h4>}
-                  <AnswerDisplay
-                    questionType={answer.questionType}
-                    answerFormat={answer.answerFormat}
-                    answerContent={answer.answerContent}
-                    options={answer.questionOptions}
-                    correctAnswer={null}
-                    showCorrectness={false}
-                  />
-                </section>
-              ),
-            )}
-          </div>
-          <div className={styles.rowForm}>
-            {pending && (
-              <p className={styles.currentScore}>
-                {t("workbench.currentScore", "目前成績 {{score}} 分", { score: current })}
-              </p>
-            )}
-            {row.answers.map((answer) => {
-              const value = valueOf(answer);
-              const label = isGroup ? (labels.get(answer.questionId)?.label ?? "") : t("workbench.scoreLabel", "分數");
-              const aiValue =
-                suggestionScores[answer.id]?.score ?? (row.source === "ai" ? answer.score : null);
-              const update = (next: Partial<GradeDraft>) =>
-                onDraftChange(answer.id, {
-                  score: value?.score ?? 0,
-                  feedback: value?.feedback ?? "",
-                  ...next,
-                });
-              return (
-                <div key={answer.id} className={styles.subForm}>
-                  <WorkbenchScoreField
-                    label={label}
-                    max={answer.maxScore}
-                    step={isObjective(answer) ? 1 : 0.5}
-                    value={value?.score ?? null}
-                    aiValue={aiValue}
-                    disabled={busy}
-                    onChange={(score) => update({ score })}
-                  />
-                  <TextArea
-                    id={`feedback-${answer.id}`}
-                    labelText={t("workbench.feedback", "評語（選填）")}
-                    hideLabel={!isGroup}
-                    placeholder={t("workbench.feedback", "評語（選填）")}
-                    rows={3}
-                    value={value?.feedback ?? ""}
-                    disabled={busy}
-                    onChange={(event) => update({ feedback: event.target.value })}
-                  />
+          {pending && (
+            <p className={styles.currentScore}>
+              {t("workbench.currentScore", "目前成績 {{score}} 分", { score: current })}
+            </p>
+          )}
+          {row.answers.map((answer) => {
+            const value = valueOf(answer);
+            const subLabel = labels.get(answer.questionId)?.label ?? "";
+            const label = isGroup ? subLabel : t("workbench.scoreLabel", "分數");
+            const aiValue = suggestionScores[answer.id]?.score ?? (row.source === "ai" ? answer.score : null);
+            const update = (next: Partial<GradeDraft>) =>
+              onDraftChange(answer.id, {
+                score: value?.score ?? 0,
+                feedback: value?.feedback ?? "",
+                ...next,
+              });
+            return (
+              <section key={answer.id} className={styles.answerBlock} aria-label={isGroup ? subLabel : undefined}>
+                {isGroup && <h4 className={styles.subLabel}>{subLabel}</h4>}
+                <div className={styles.answerBody}>
+                  <div className={styles.rowAnswer}>
+                    {isObjective(answer) ? (
+                      <ul className={styles.optionList}>
+                        {optionTexts(answer).map((text, index) => {
+                          const isPicked = selectedOptionIndexes(answer).includes(index);
+                          const isCorrect = correctOptionIndexes(answer).includes(index);
+                          return (
+                            <li
+                              key={index}
+                              className={isPicked ? (isCorrect ? styles.optionPicked : styles.optionWrong) : undefined}
+                            >
+                              <strong>{optionLabel(answer, index)}</strong>
+                              <span>{text}</span>
+                              <span className={styles.muted}>
+                                {[
+                                  isPicked ? t("workbench.studentPick", "學生選擇") : "",
+                                  isCorrect ? t("workbench.correct", "正解") : "",
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <AnswerDisplay
+                        questionType={answer.questionType}
+                        answerFormat={answer.answerFormat}
+                        answerContent={answer.answerContent}
+                        options={answer.questionOptions}
+                        correctAnswer={null}
+                        showCorrectness={false}
+                      />
+                    )}
+                  </div>
+                  <div className={styles.rowForm}>
+                    <WorkbenchScoreField
+                      label={label}
+                      max={answer.maxScore}
+                      step={isObjective(answer) ? 1 : 0.5}
+                      value={value?.score ?? null}
+                      aiValue={aiValue}
+                      disabled={busy}
+                      onChange={(score) => update({ score })}
+                    />
+                    <TextArea
+                      id={`feedback-${answer.id}`}
+                      labelText={t("workbench.feedback", "評語（選填）")}
+                      hideLabel
+                      placeholder={t("workbench.feedback", "評語（選填）")}
+                      rows={3}
+                      value={value?.feedback ?? ""}
+                      disabled={busy}
+                      onChange={(event) => update({ feedback: event.target.value })}
+                    />
+                  </div>
                 </div>
-              );
-            })}
-          </div>
+              </section>
+            );
+          })}
           <ButtonSet className={styles.rowActions}>
             <Button kind="secondary" disabled={busy} onClick={onSecondary}>
               {pending ? t("workbench.skip", "略過建議") : t("workbench.cancel", "取消")}

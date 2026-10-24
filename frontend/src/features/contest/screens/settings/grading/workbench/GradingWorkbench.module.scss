@@ -200,10 +200,20 @@
 }
 .rowDetail {
   display: flex;
-  flex-wrap: wrap;
-  gap: layout.$spacing-07;
+  flex-direction: column;
+  gap: layout.$spacing-06;
   padding: layout.$spacing-05 layout.$spacing-05 0;
   background: var(--cds-layer-01);
+}
+.answerBlock {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+.answerBody {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-07;
 }
 .rowAnswer {
   display: flex;
@@ -216,14 +226,8 @@
   display: flex;
   flex: 1 1 18rem;
   flex-direction: column;
-  gap: layout.$spacing-06;
-  min-width: 0;
-  padding-bottom: layout.$spacing-05;
-}
-.subForm {
-  display: flex;
-  flex-direction: column;
   gap: layout.$spacing-03;
+  min-width: 0;
 }
 .subLabel {
   @include type.type-style("heading-compact-01");
@@ -236,10 +240,10 @@
   background: var(--cds-layer-accent-01);
 }
 .rowActions {
-  flex-basis: 100%;
   margin: 0 (-(layout.$spacing-05));
 }
-.rowActions > button {
+// Beats Carbon's .cds--btn-set .cds--btn max-width so both buttons share the row.
+.rowDetail .rowActions > button {
   flex: 1;
   max-width: none;
 }
@@ -249,7 +253,8 @@
   align-items: center;
   gap: layout.$spacing-02;
 }
-.scoreField .scoreInput {
+.scoreInput {
+  flex: 0 0 5rem;
   width: 5rem;
 }
 .scoreField .scoreInput input {

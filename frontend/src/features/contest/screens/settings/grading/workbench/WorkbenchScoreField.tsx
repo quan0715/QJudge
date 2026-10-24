@@ -38,25 +38,26 @@ export function WorkbenchScoreField({ label, max, step, value, aiValue, disabled
         disabled={disabled}
         onClick={() => emit((value ?? 0) - step)}
       />
-      <TextInput
-        id={`score-${label}-${max}`}
-        className={styles.scoreInput}
-        labelText={label}
-        hideLabel
-        inputMode="decimal"
-        placeholder="—"
-        value={text}
-        disabled={disabled}
-        onFocus={(event) => event.currentTarget.select()}
-        onBlur={() => setText(value === null ? "" : compactScore(value))}
-        onChange={(event) => {
-          setText(event.target.value);
-          const parsed = Number(event.target.value);
-          if (event.target.value.trim() !== "" && Number.isFinite(parsed) && parsed >= 0 && parsed <= max) {
-            onChange(roundScore(parsed));
-          }
-        }}
-      />
+      <div className={styles.scoreInput}>
+        <TextInput
+          id={`score-${label}-${max}`}
+          labelText={label}
+          hideLabel
+          inputMode="decimal"
+          placeholder="—"
+          value={text}
+          disabled={disabled}
+          onFocus={(event) => event.currentTarget.select()}
+          onBlur={() => setText(value === null ? "" : compactScore(value))}
+          onChange={(event) => {
+            setText(event.target.value);
+            const parsed = Number(event.target.value);
+            if (event.target.value.trim() !== "" && Number.isFinite(parsed) && parsed >= 0 && parsed <= max) {
+              onChange(roundScore(parsed));
+            }
+          }}
+        />
+      </div>
       <Button
         kind="ghost"
         hasIconOnly

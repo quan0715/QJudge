@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import type { GradingAnswerRow } from "../gradingTypes";
@@ -202,9 +202,10 @@ describe("WorkbenchStudentRow", () => {
         expanded
       />,
     );
-    expect(screen.getByText("student answer")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "1(a) 加 1 分" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "1(b) 加 0.5 分" })).toBeTruthy();
+    const partB = within(screen.getByRole("region", { name: "1(b)" }));
+    expect(partB.getByText("student answer")).toBeTruthy();
+    expect(partB.getByRole("button", { name: "1(b) 加 0.5 分" })).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "1(a)" })).getByRole("button", { name: "1(a) 加 1 分" })).toBeTruthy();
   });
 });
 

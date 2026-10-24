@@ -145,6 +145,8 @@ export default function ContestGradingWorkbenchScreen() {
     answers: batchQuestions.reduce((sum, q) => sum + q.ungradedRows.length, 0),
   };
   const examRunning = batch.questions.some((state) => BATCH_ACTIVE_STATUSES.includes(state.status));
+  // A group's sub-questions run as one job, so one notice speaks for the unit.
+  const noticeState = unitStates.find((state) => BATCH_ACTIVE_STATUSES.includes(state.status)) ?? unitStates[0];
   const unitRunning = unitStates.some((state) => BATCH_ACTIVE_STATUSES.includes(state.status)) || suggestions.running;
   const aiBlocked = resultsPublished || Boolean(modelNotice?.blocking);
 
@@ -278,7 +280,7 @@ export default function ContestGradingWorkbenchScreen() {
   };
 
   const railUnits: RailUnit[] = units.map((item) => {
-    const answers = data.answers.filter((row) => item.questions.some((q) => q.id === row.questionId) && !row.isAbsent);
+    const students = buildStudentRows(item, data.answers, ctx);
     const states = batch.questions.filter((state) => item.questions.some((q) => q.id === state.questionId));
     const aiStatus = states.some((state) => state.status === "running" || state.status === "awaiting-approval")
       ? "running"
@@ -290,7 +292,7 @@ export default function ContestGradingWorkbenchScreen() {
     return {
       id: item.id,
       label: t("workbench.questionNumber", "第 {{number}} 題", { number: item.label }),
-      progress: `${answers.filter((row) => row.score !== null).length}/${answers.length}`,
+      progress: `${students.filter((row) => row.total !== null).length}/${students.length}`,
       aiStatus,
     };
   });
@@ -448,9 +450,7 @@ export default function ContestGradingWorkbenchScreen() {
             title={tChatbot(MODEL_NOTICE_I18N_KEY[modelNotice.kind])}
           />
         )}
-        {unitStates.map((state) => (
-          <BatchGradingQuestionNotice key={state.questionId} state={state} onResume={() => void batch.resume()} />
-        ))}
+        {noticeState && <BatchGradingQuestionNotice state={noticeState} onResume={() => void batch.resume()} />}
         {suggestions.running && (
           <InlineNotification kind="info" lowContrast hideCloseButton title={t("workbench.suggesting", "AI 正在產生建議")} />
         )}
