@@ -194,8 +194,8 @@
         "published": "公開済み"
       },
       "grading": {
-    "saveFailed": "採点を保存できませんでした。もう一度お試しください。",
-    "ungradeFailed": "採点を取り消せませんでした。もう一度お試しください。",
+        "saveFailed": "採点を保存できませんでした。もう一度お試しください。",
+        "ungradeFailed": "採点を取り消せませんでした。もう一度お試しください。",
         "noAnswers": "回答データはまだありません",
         "noData": "採点データはまだありません"
       },
@@ -1197,9 +1197,17 @@
       "revertConfirm": "取り消す",
       "regrade": "AI で再採点…",
       "regradeTitle": "{{label}} を AI で再採点",
-      "regradeBody": "この設問の AI 点数を先に取り消し（手動の点数はそのまま）、再度キューに追加します。",
+      "regradeBody": "AI の点数を取り消して再採点します。設問群は全小問をまとめて採点し、小問別の点数を保持します。手動変更は保持されます。",
       "regradeNote": "AI へのメモ（任意）",
-      "regradeConfirm": "取り消して再採点"
+      "regradeConfirm": "取り消して再採点",
+      "noticeSkippedAtWrite": "{{count}} 件は AI の書き込み時にすでに採点済み（他の人または手動）のため、元の点数を残しました。",
+      "files": "AI ファイルを表示",
+      "filesTitle": "{{label}} の AI ファイル",
+      "filesRubric": "採点基準",
+      "filesGrades": "AI の採点結果",
+      "filesMissing": "このファイルはまだありません",
+      "filesLoading": "読み込み中…",
+      "filesNotUsed": "{{count}} 件の点数はこの採点基準で書き込まれていません。AI の書き込み時にすでに採点済みでした。"
     },
     "absent": "未提出",
     "aiGradingProgress": "AI 採点進捗",
@@ -1393,7 +1401,8 @@
     "trackName": "track",
     "unavailable": "接続できません",
     "unknownError": "ライブ監視接続に失敗しました",
-    "userId": "ユーザー ID"
+    "userId": "ユーザー ID",
+    "reconnect": "再接続"
   },
   "logs": {
     "capture": {
@@ -1781,7 +1790,21 @@
     "searchPlaceholder": "監視対象を検索...",
     "sourceScreen": "画面",
     "sourceWebcam": "Webcam",
-    "title": "監視"
+    "title": "監視",
+    "focusStudent": "{{name}} を拡大",
+    "waitingScreen": "画面を待機中",
+    "noScreen": "画面共有なし",
+    "violationCount": "違反 {{count}} 回",
+    "noMatches": "該当する受験者がいません",
+    "pageCount": "{{page}}／{{pages}} ページ・{{count}} 人",
+    "previousPage": "前のページ",
+    "nextPage": "次のページ",
+    "layout": "監視レイアウト",
+    "focusView": "個別",
+    "fourView": "4 人",
+    "nineView": "9 人",
+    "previousStudent": "前の受験者",
+    "nextStudent": "次の受験者"
   },
   "progress": "進捗",
   "public": "公開",

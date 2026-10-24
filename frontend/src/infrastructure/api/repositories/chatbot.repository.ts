@@ -1095,3 +1095,11 @@ const chatbotRepository: ChatbotRepository = {
 };
 
 export default chatbotRepository;
+
+
+/** Read a historical run to recover the actual model used by a saved task. */
+export async function getChatRun(runId: string): Promise<ChatRun> {
+  return convertBackendRun(await requestJson<BackendRun>(
+    httpClient.get(`${AI_BASE}/runs/${runId}/`), "無法載入 AI 任務",
+  ));
+}

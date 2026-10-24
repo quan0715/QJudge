@@ -194,8 +194,8 @@
         "published": "공개됨"
       },
       "grading": {
-    "saveFailed": "채점을 저장하지 못했습니다. 다시 시도해 주세요.",
-    "ungradeFailed": "채점을 취소하지 못했습니다. 다시 시도해 주세요.",
+        "saveFailed": "채점을 저장하지 못했습니다. 다시 시도해 주세요.",
+        "ungradeFailed": "채점을 취소하지 못했습니다. 다시 시도해 주세요.",
         "noAnswers": "아직 답안 데이터 없음",
         "noData": "아직 채점 데이터 없음"
       },
@@ -1197,9 +1197,17 @@
       "revertConfirm": "취소하기",
       "regrade": "AI로 다시 채점…",
       "regradeTitle": "{{label}} AI로 다시 채점",
-      "regradeBody": "이 문제의 AI 점수를 먼저 취소하고(직접 준 점수는 유지) 다시 대기열에 넣습니다.",
+      "regradeBody": "AI 점수를 취소하고 다시 채점합니다. 문항 그룹은 함께 채점하되 소문항별 점수와 수동 변경은 유지합니다.",
       "regradeNote": "AI에게 남길 메모(선택)",
-      "regradeConfirm": "취소 후 다시 채점"
+      "regradeConfirm": "취소 후 다시 채점",
+      "noticeSkippedAtWrite": "{{count}}개 답안은 AI가 기록할 때 이미 점수가 있어(다른 사람 또는 수동 채점) 기존 점수를 유지했습니다.",
+      "files": "AI 파일 보기",
+      "filesTitle": "{{label}}의 AI 파일",
+      "filesRubric": "채점 기준",
+      "filesGrades": "AI 채점 결과",
+      "filesMissing": "아직 이 파일이 없습니다",
+      "filesLoading": "불러오는 중…",
+      "filesNotUsed": "{{count}}개 점수는 이 채점 기준으로 기록되지 않았습니다. AI가 기록할 때 이미 점수가 있었습니다."
     },
     "absent": "미제출",
     "aiGradingProgress": "AI 채점 진행률",
@@ -1393,7 +1401,8 @@
     "trackName": "track",
     "unavailable": "연결할 수 없음",
     "unknownError": "실시간 감독 연결 실패",
-    "userId": "사용자 ID"
+    "userId": "사용자 ID",
+    "reconnect": "다시 연결"
   },
   "logs": {
     "capture": {
@@ -1781,7 +1790,21 @@
     "searchPlaceholder": "감독 대상 검색...",
     "sourceScreen": "화면",
     "sourceWebcam": "Webcam",
-    "title": "감독"
+    "title": "감독",
+    "focusStudent": "{{name}} 확대",
+    "waitingScreen": "화면 대기 중",
+    "noScreen": "공유된 화면 없음",
+    "violationCount": "위반 {{count}}회",
+    "noMatches": "일치하는 응시자가 없습니다",
+    "pageCount": "{{page}}／{{pages}} 페이지 · {{count}}명",
+    "previousPage": "이전 페이지",
+    "nextPage": "다음 페이지",
+    "layout": "모니터링 레이아웃",
+    "focusView": "개별",
+    "fourView": "4명",
+    "nineView": "9명",
+    "previousStudent": "이전 응시자",
+    "nextStudent": "다음 응시자"
   },
   "progress": "진행률",
   "public": "공개",

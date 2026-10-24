@@ -41,6 +41,7 @@ export function isUnfinished(state: BatchQuestionState): boolean {
 
 export interface BatchQuestion {
   questionId: string;
+  groupId?: string | null;
   label: string;
   index: number;
   maxScore: number;
@@ -50,6 +51,7 @@ export interface BatchQuestion {
 
 export interface BatchQuestionState {
   questionId: string;
+  groupId?: string | null;
   label: string;
   index: number;
   status: BatchQuestionStatus;
@@ -59,6 +61,8 @@ export interface BatchQuestionState {
   runId?: string;
   /** The run ended but its finalize step has not written progress yet. */
   finalizing?: boolean;
+  /** Answers that already had a score (another grader) when the run wrote its grades. */
+  skippedAtWriteCount?: number;
 }
 
 export interface BatchActiveRun {
@@ -83,6 +87,7 @@ export function selectBatchQuestions(rows: readonly GradingAnswerRow[]): BatchQu
     if (!BATCH_QUESTION_TYPES.includes(row.questionType) || row.isAbsent) continue;
     const question = byQuestion.get(row.questionId) ?? {
       questionId: row.questionId,
+      groupId: row.questionGroupId,
       label: `Q${row.questionLabel ?? row.questionIndex}`,
       index: row.questionIndex,
       maxScore: row.maxScore,
@@ -96,29 +101,19 @@ export function selectBatchQuestions(rows: readonly GradingAnswerRow[]): BatchQu
   return [...byQuestion.values()].sort((a, b) => a.index - b.index);
 }
 
-export function buildBatchRunPrompt(input: {
-  contestId: string;
-  questionId: string;
-  label: string;
-  maxScore: number;
-  regradeNote?: string;
-}): string {
-  const { contestId, questionId, label, maxScore, regradeNote } = input;
-  const note = regradeNote?.trim();
-  return [
-    `batch_question_id: ${questionId}`,
-    `整批批改 ${label}（滿分 ${maxScore}），contest_id: ${contestId}。用 task 工具（general-purpose）交給子代理，你只轉述它回的一行摘要。`,
-    `子代理依 qjudge-exam-grading-sop 批改：學生作答已在 \`${gradeCsvFilename(questionId)}\`，rubric 用 \`rubric_${questionId}.md\`；完成後回一行：已填幾份、平均分。`,
-    "不要寫回或發布成績，系統會自動寫入。",
-    note ? `老師註記：${note}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
+/** Independent units sharing one run; siblings remain in one unit/subagent. */
+export const BATCH_PARALLEL_QUESTIONS = 3;
+
+export function groupForRuns<T>(items: readonly T[], size = BATCH_PARALLEL_QUESTIONS): T[][] {
+  const groups: T[][] = [];
+  for (let i = 0; i < items.length; i += size) groups.push(items.slice(i, i + size));
+  return groups;
 }
 
-function batchQuestionIdOf(message: ChatMessage): string | null {
-  const match = /^\s*batch_question_id:\s*(\S+)\s*$/.exec(message.content.split("\n", 1)[0] ?? "");
-  return match ? match[1] : null;
+
+function batchQuestionIdsOf(message: ChatMessage): string[] {
+  const match = /^\s*batch_question_id:\s*(.+?)\s*$/.exec(message.content.split("\n", 1)[0] ?? "");
+  return match ? match[1].split(",").map((id) => id.trim()).filter(Boolean) : [];
 }
 
 function statusFromActiveRun(status: ChatRunStatus): BatchQuestionStatus {
@@ -148,16 +143,18 @@ export function deriveBatchState(input: {
   for (const message of input.messages) {
     if (!message.runId) continue;
     if (message.role === "user") {
-      const questionId = batchQuestionIdOf(message);
-      if (questionId) latestRunByQuestion.set(questionId, message.runId);
+      for (const questionId of batchQuestionIdsOf(message)) {
+        latestRunByQuestion.set(questionId, message.runId);
+      }
     } else {
       assistantStatusByRun.set(message.runId, message.runStatus);
     }
   }
   const activeById = new Map(input.activeRuns.map((run) => [run.id, run.status]));
-  const progressByRun = new Map(
+  // One row per question; it belongs to the question's latest run only if run ids match.
+  const progressByQuestion = new Map(
     (input.progressCsv ? parseCsvRecords(input.progressCsv) : []).map((record) => [
-      record.run_id,
+      record.question_id,
       record,
     ]),
   );
@@ -165,6 +162,7 @@ export function deriveBatchState(input: {
   return input.questions.map((question) => {
     const base = {
       questionId: question.questionId,
+      groupId: question.groupId,
       label: question.label,
       index: question.index,
       ungradedCount: question.ungradedRows.length,
@@ -177,7 +175,8 @@ export function deriveBatchState(input: {
     const active = activeById.get(runId);
     if (active) return { ...base, runId, status: statusFromActiveRun(active) };
 
-    const progress = progressByRun.get(runId);
+    const row = progressByQuestion.get(question.questionId);
+    const progress = row?.run_id === runId ? row : undefined;
     const progressStatus = progress?.status as BatchQuestionStatus | undefined;
     if (progressStatus && PROGRESS_STATUSES.includes(progressStatus)) {
       return {
@@ -185,6 +184,9 @@ export function deriveBatchState(input: {
         runId,
         status: progressStatus,
         ...(progress?.error ? { error: progress.error } : {}),
+        ...(Number(progress?.skipped_count) > 0
+          ? { skippedAtWriteCount: Number(progress?.skipped_count) }
+          : {}),
       };
     }
     const finished = assistantStatusByRun.get(runId);

@@ -316,6 +316,7 @@ const ContestExamGradingScreen: React.FC = () => {
                       states: batchStates,
                       onRevert: batch.revertQuestion,
                       onRegrade: batch.regradeQuestion,
+                      onLoadFiles: batch.loadQuestionFiles,
                       onResume: () => void batch.resume(),
                     }
                   : undefined

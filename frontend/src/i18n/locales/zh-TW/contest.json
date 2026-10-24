@@ -194,8 +194,8 @@
         "published": "已發布"
       },
       "grading": {
-    "saveFailed": "儲存評分失敗，請重試",
-    "ungradeFailed": "撤回批改失敗，請重試",
+        "saveFailed": "儲存評分失敗，請重試",
+        "ungradeFailed": "撤回批改失敗，請重試",
         "noAnswers": "尚無作答資料",
         "noData": "尚無批改資料"
       },
@@ -1197,9 +1197,17 @@
       "revertConfirm": "撤回",
       "regrade": "AI 重改此題…",
       "regradeTitle": "AI 重改 {{label}}",
-      "regradeBody": "會先撤回這題由 AI 寫入的分數（手動給的不動），再排入整批重改。",
+      "regradeBody": "會先撤回這題由 AI 寫入的分數；若屬題組，會一起重改整個題組並保留子題分數。手動修改的分數不變。",
       "regradeNote": "給 AI 的註記（選填）",
-      "regradeConfirm": "撤回並重改"
+      "regradeConfirm": "撤回並重改",
+      "noticeSkippedAtWrite": "有 {{count}} 份在 AI 寫入時已有分數（他人或手動給分），保留原分數未覆蓋。",
+      "files": "查看 AI 檔案",
+      "filesTitle": "{{label}} 的 AI 檔案",
+      "filesRubric": "評分標準",
+      "filesGrades": "AI 批改結果",
+      "filesMissing": "尚無這個檔案",
+      "filesLoading": "載入中…",
+      "filesNotUsed": "有 {{count}} 份的分數不是依這份評分標準寫入：AI 寫入時它們已有分數。"
     },
     "absent": "缺交",
     "aiGradingProgress": "AI 批改進度",
@@ -1393,7 +1401,8 @@
     "trackName": "track",
     "unavailable": "無法連線",
     "unknownError": "即時監看連線失敗",
-    "userId": "使用者 ID"
+    "userId": "使用者 ID",
+    "reconnect": "重新連線"
   },
   "logs": {
     "capture": {
@@ -1781,7 +1790,21 @@
     "searchPlaceholder": "搜尋監考對象...",
     "sourceScreen": "螢幕",
     "sourceWebcam": "Webcam",
-    "title": "監考"
+    "title": "監考",
+    "focusStudent": "放大 {{name}}",
+    "waitingScreen": "等待螢幕畫面",
+    "noScreen": "尚無螢幕分享",
+    "violationCount": "違規 {{count}} 次",
+    "noMatches": "沒有符合條件的考生",
+    "pageCount": "第 {{page}}／{{pages}} 頁・{{count}} 人",
+    "previousPage": "上一頁",
+    "nextPage": "下一頁",
+    "layout": "監看版面",
+    "focusView": "單人",
+    "fourView": "4 人",
+    "nineView": "9 人",
+    "previousStudent": "上一位",
+    "nextStudent": "下一位"
   },
   "progress": "考試進度",
   "public": "公開",

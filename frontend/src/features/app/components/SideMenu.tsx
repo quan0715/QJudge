@@ -178,6 +178,8 @@ export const SideMenu: React.FC<SideMenuProps> = ({
         const contest = await getContest(contestIdToFetch);
         if (!active) return;
         setContestForNav(contest ?? null);
+      } catch (error) {
+        console.error("Failed to load contest navigation", error);
       } finally {
         if (active) {
           setContestFetched(true);

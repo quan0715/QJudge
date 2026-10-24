@@ -1,5 +1,6 @@
 """ExamAnswerViewSet — student answer submission and TA grading."""
 import json
+from uuid import UUID
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.utils import timezone
@@ -16,6 +17,7 @@ from ..models import (
     ContestParticipant,
     ExamQuestion,
     ExamAnswer,
+    ExamBatchGradeWrite,
     ExamStatus,
     ExamQuestionAnswerFormat,
     ExamQuestionType,
@@ -631,6 +633,17 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         grades = request.data.get('grades', [])
         only_if_ungraded = request.data.get('only_if_ungraded') is True
+        batch_ids = None
+        if 'batch_session_id' in request.data or 'batch_run_id' in request.data:
+            if not only_if_ungraded:
+                raise ValidationError('Batch receipts require only_if_ungraded.')
+            try:
+                batch_ids = (
+                    UUID(str(request.data.get('batch_session_id'))),
+                    UUID(str(request.data.get('batch_run_id'))),
+                )
+            except (ValueError, TypeError):
+                raise ValidationError('Valid batch_session_id and batch_run_id are required.')
         answer_scope = ExamAnswer.objects.filter(participant__contest=contest)
         if request.data.get('question_id') is not None:
             answer_scope = answer_scope.filter(question_id=request.data.get('question_id'))
@@ -670,6 +683,13 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 if not answer_obj:
                     results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': 'not found'})
                     continue
+                # A committed run must never restore a grade later revoked by
+                # a teacher, even after a newer run has written the same answer.
+                if batch_ids and ExamBatchGradeWrite.objects.filter(
+                    answer=answer_obj, session_id=batch_ids[0], run_id=batch_ids[1],
+                ).exists():
+                    results.append({'exam_answer_id': answer_id, 'status': 'skipped'})
+                    continue
                 if only_if_ungraded and answer_obj.score is not None:
                     results.append({'exam_answer_id': answer_id, 'status': 'skipped'})
                     continue
@@ -680,6 +700,13 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 answer_obj.graded_at = now
                 answer_obj.is_correct = validated_score > 0
                 answer_obj.save()
+                if batch_ids:
+                    ExamBatchGradeWrite.objects.create(
+                        answer=answer_obj,
+                        session_id=batch_ids[0], run_id=batch_ids[1],
+                        grader=request.user, score=validated_score,
+                        feedback=validated_feedback, graded_at=now,
+                    )
 
             affected_question_ids.add(answer_obj.question_id)
             results.append({'exam_answer_id': answer_id, 'status': 'ok', 'score': float(validated_score)})
@@ -690,6 +717,37 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         return Response({'results': results, 'graded_count': sum(1 for r in results if r['status'] == 'ok')})
 
+    @action(detail=False, methods=['get'], url_path='batch-writes')
+    def batch_writes(self, request, contest_pk=None):
+        """Recover this teacher's batch ledger without depending on artifacts."""
+        contest = self._get_contest(contest_pk)
+        if not can_manage_contest(request.user, contest):
+            raise PermissionDenied('Only contest staff can read batch writes.')
+        try:
+            session_id = UUID(str(request.query_params.get('session_id')))
+        except (ValueError, TypeError):
+            raise ValidationError('A valid session_id is required.')
+        receipts = ExamBatchGradeWrite.objects.filter(
+            answer__participant__contest=contest,
+            grader=request.user,
+            session_id=session_id,
+        ).select_related('answer').order_by('answer_id', '-graded_at', '-pk').distinct('answer_id')
+        return Response({'writes': [
+            {
+                'exam_answer_id': str(receipt.answer_id),
+                'question_id': str(receipt.answer.question_id),
+                'score': float(receipt.score),
+                'feedback': receipt.feedback,
+                'current': (
+                    receipt.answer.score == receipt.score
+                    and receipt.answer.feedback == receipt.feedback
+                    and receipt.answer.graded_by_id == receipt.grader_id
+                    and receipt.answer.graded_at == receipt.graded_at
+                ),
+            }
+            for receipt in receipts
+        ]})
+
     @action(detail=True, methods=['post'], url_path='ungrade')
     def ungrade_answer(self, request, contest_pk=None, pk=None):
         """Revoke grading for a single answer (TA/admin only).
@@ -697,7 +755,9 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         With ``expected_score`` (and optionally ``expected_feedback``) the grade
         is cleared only if it still matches; otherwise the answer is left as is
         and 409 is returned. Batch AI revert uses this so it never clears a
-        grade another teacher saved after the AI wrote it.
+        grade another teacher saved after the AI wrote it. With
+        ``expected_batch_session_id``, also verify the persisted receipt's
+        grader and timestamp while holding the answer lock, even for same-value saves.
         """
         contest = self._get_contest(contest_pk)
         if not can_manage_contest(request.user, contest):
@@ -705,6 +765,12 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         expected_score = request.data.get('expected_score')
         expected_feedback = request.data.get('expected_feedback')
+        batch_session_id = request.data.get('expected_batch_session_id')
+        if 'expected_batch_session_id' in request.data:
+            try:
+                batch_session_id = UUID(str(batch_session_id))
+            except (ValueError, TypeError):
+                raise ValidationError({'expected_batch_session_id': ['A valid session_id is required.']})
         if expected_score is not None:
             if isinstance(expected_score, bool):
                 raise ValidationError({'expected_score': ['A number is required.']})
@@ -718,6 +784,19 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 ExamAnswer.objects.select_for_update().filter(participant__contest=contest),
                 pk=pk
             )
+            if batch_session_id is not None and not ExamBatchGradeWrite.objects.filter(
+                answer=answer_obj,
+                session_id=batch_session_id,
+                grader=request.user,
+                grader_id=answer_obj.graded_by_id,
+                graded_at=answer_obj.graded_at,
+                score=answer_obj.score,
+                feedback=answer_obj.feedback,
+            ).exists():
+                return Response(
+                    {'error': 'The batch grade is no longer current; nothing was revoked.'},
+                    status=status.HTTP_409_CONFLICT,
+                )
             if expected_score is not None and (
                 answer_obj.score is None
                 or answer_obj.score != expected_score

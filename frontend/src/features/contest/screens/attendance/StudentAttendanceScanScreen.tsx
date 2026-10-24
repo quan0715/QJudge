@@ -218,6 +218,8 @@ export default function StudentAttendanceScanScreen() {
         if (contest.attendanceStatus?.canCheckOut) setExpectedPurpose("check_out");
         else if (contest.attendanceStatus?.canCheckIn) setExpectedPurpose("check_in");
       }
+    }).catch((err) => {
+      if (!cancelled) setError(err instanceof Error ? err.message : "Failed to fetch contest");
     });
     return () => {
       cancelled = true;

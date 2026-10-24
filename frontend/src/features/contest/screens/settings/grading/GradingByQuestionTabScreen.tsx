@@ -20,6 +20,7 @@ import ScorePolicyMenu from "./components/ScorePolicyMenu";
 import type { ScorePolicyMenuImpactContext } from "./components/ScorePolicyMenu";
 import { BatchGradingQuestionMenu } from "./batchGrading/BatchGradingQuestionMenu";
 import { BatchGradingQuestionNotice } from "./batchGrading/BatchGradingQuestionNotice";
+import type { BatchQuestionFiles } from "./batchGrading/batchGradingApi";
 import type { BatchQuestionState } from "./batchGrading/batchGradingModel";
 import {
   GRADING_COLLAPSED_LIST_WIDTH,
@@ -65,6 +66,7 @@ interface GradingByQuestionTabScreenProps {
     onRevert(questionId: string): Promise<unknown>;
     onRegrade(questionId: string, note?: string): Promise<void>;
     onResume(): void;
+    onLoadFiles(questionId: string): Promise<BatchQuestionFiles>;
   };
 }
 
@@ -348,6 +350,7 @@ export default function GradingByQuestionTabScreen({
                   state={batchState}
                   onRevert={batch.onRevert}
                   onRegrade={batch.onRegrade}
+                  onLoadFiles={batch.onLoadFiles}
                 />
               )}
               <ScorePolicyMenu

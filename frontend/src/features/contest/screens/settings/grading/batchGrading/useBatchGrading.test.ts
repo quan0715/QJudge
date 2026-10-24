@@ -4,6 +4,7 @@ import type { ChatMessage } from "@/core/types/chatbot.types";
 import type { GradingAnswerRow } from "../gradingTypes";
 
 const mocks = vi.hoisted(() => ({
+  getExamQuestions: vi.fn(),
   select: vi.fn(),
   refreshSessions: vi.fn(),
   sessions: [] as { id: string; metadata?: Record<string, unknown> }[],
@@ -16,6 +17,9 @@ const mocks = vi.hoisted(() => ({
   startRun: vi.fn(),
   cancelRun: vi.fn(),
   ungradeExamAnswer: vi.fn(),
+  getBatchGradeWrites: vi.fn(),
+  getModels: vi.fn(),
+  getRun: vi.fn(),
 }));
 
 vi.mock("@copilot", () => ({
@@ -38,8 +42,11 @@ vi.mock("@/infrastructure/api/repositories/artifact.repository", () => ({
   fetchArtifactContent: mocks.fetchArtifactContent,
 }));
 vi.mock("@/infrastructure/api/repositories/chatbot.repository", () => ({
+  getChatRun: mocks.getRun,
   default: {
     getSession: mocks.getSession,
+    getModels: mocks.getModels,
+    getRun: mocks.getRun,
     getActiveRuns: mocks.getActiveRuns,
     startRun: mocks.startRun,
     cancelRun: mocks.cancelRun,
@@ -47,7 +54,10 @@ vi.mock("@/infrastructure/api/repositories/chatbot.repository", () => ({
 }));
 vi.mock("@/infrastructure/api/repositories/examAnswers.repository", () => ({
   ungradeExamAnswer: mocks.ungradeExamAnswer,
+  getBatchGradeWrites: mocks.getBatchGradeWrites,
 }));
+
+vi.mock("@/infrastructure/api/repositories/examQuestions.repository", () => ({ getExamQuestions: mocks.getExamQuestions }));
 
 import { useBatchGrading } from "./useBatchGrading";
 
@@ -55,6 +65,7 @@ const row = (overrides: Partial<GradingAnswerRow>): GradingAnswerRow =>
   ({
     id: "a1",
     studentUsername: "s1",
+    studentId: "s1",
     questionId: "q1",
     questionIndex: 1,
     questionType: "essay",
@@ -91,6 +102,10 @@ function render(rows = ROWS, reloadAnswers = vi.fn().mockResolvedValue(rows)) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.sessions = [];
+  mocks.getExamQuestions.mockResolvedValue([1,2,3,4].map(i => ({id: `q${i}`, questionType: "essay", prompt: "題目", explanation: "", score: 10, order: i})));
+  mocks.getBatchGradeWrites.mockResolvedValue([]);
+  mocks.getModels.mockResolvedValue([{ model_id: "default-model", is_default: true }]);
+  mocks.getRun.mockResolvedValue({ modelId: "legacy-model" });
   mocks.listArtifacts.mockResolvedValue([]);
   mocks.getActiveRuns.mockResolvedValue([]);
   mocks.getSession.mockResolvedValue({ messages: [] });
@@ -114,14 +129,14 @@ describe("useBatchGrading", () => {
       (file as File).name,
       options,
     ]);
-    expect(uploaded).toEqual([
+    expect(uploaded).toEqual(expect.arrayContaining([
       ["batch.json", { step: "batch" }],
       ["grade_q1.csv", { step: "batch" }],
       ["grade_q2.csv", { step: "batch" }],
-    ]);
+    ]));
+    // Questions share one run (one subagent each) so they are graded in parallel.
     expect(mocks.startRun.mock.calls.map(([, prompt]) => (prompt as string).split("\n")[0])).toEqual([
-      "batch_question_id: q1",
-      "batch_question_id: q2",
+      "batch_question_id: q1,q2",
     ]);
     expect(mocks.startRun.mock.calls[0][2]).toMatchObject({ modelOverride: "model-x" });
     expect(mocks.select).toHaveBeenCalledWith("s1");
@@ -177,8 +192,7 @@ describe("useBatchGrading", () => {
 
     // q1 completed but its answer is still ungraded (e.g. rejected or out of range); q3 is skipped.
     expect(mocks.startRun.mock.calls.map(([, prompt]) => (prompt as string).split("\n")[0])).toEqual([
-      "batch_question_id: q1",
-      "batch_question_id: q2",
+      "batch_question_id: q1,q2",
     ]);
   });
 
@@ -213,7 +227,7 @@ describe("useBatchGrading", () => {
     await act(() => result.current.revertQuestion("q1"));
 
     expect(mocks.ungradeExamAnswer.mock.calls).toEqual([
-      ["c1", "a1", { score: 8, feedback: "AI" }],
+      ["c1", "a1", { score: 8, feedback: "AI", batchSessionId: "s1" }],
     ]);
     const rewritten = mocks.uploadUserArtifact.mock.calls.at(-1)?.[1] as File;
     expect(rewritten.name).toBe("written_q1.csv");
@@ -354,4 +368,104 @@ describe("useBatchGrading polling", () => {
     await vi.advanceTimersByTimeAsync(5_100);
     expect(mocks.getSession).toHaveBeenCalledTimes(2);
   });
+});
+
+
+describe("batch grading recovery", () => {
+  it("keeps the selected model after remounting and resuming the batch", async () => {
+    mocks.createTaskSession.mockResolvedValue({ sessionId: "s1" });
+    const first = render();
+    await act(() => first.result.current.start("teacher-selected-model"));
+    const config = mocks.uploadUserArtifact.mock.calls.find(([, file]) => file.name === "batch.json")![1] as File;
+    const text = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.readAsText(config);
+    });
+    expect(JSON.parse(text).model_id).toBe("teacher-selected-model");
+    first.unmount();
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.listArtifacts.mockResolvedValue([{ artifact_id: "config", filename: "batch.json" }]);
+    mocks.fetchArtifactContent.mockResolvedValue({ content: text });
+    mocks.startRun.mockClear();
+    const second = render();
+    await waitFor(() => expect(second.result.current.sessionId).toBe("s1"));
+    await act(() => second.result.current.resume());
+    expect(mocks.startRun).toHaveBeenCalled();
+    for (const call of mocks.startRun.mock.calls) {
+      expect(call[2]).toMatchObject({ modelOverride: "teacher-selected-model" });
+    }
+  });
+
+  it("recovers the model from an existing batch run instead of the default", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.getSession.mockResolvedValue({ messages: [userMessage("q1", "r1"), userMessage("q2", "r2"), { ...userMessage("q1", "chat-run"), content: "Explain this grade" }] });
+    const { result } = render();
+    await waitFor(() => expect(result.current.sessionId).toBe("s1"));
+    await act(() => result.current.resume());
+    expect(mocks.getRun).toHaveBeenCalledWith("r1");
+    expect(mocks.startRun.mock.calls[0][2]).toMatchObject({ modelOverride: "legacy-model" });
+  });
+
+  it("can revoke a durable batch write when the written artifact was never saved", async () => {
+    mocks.getSession.mockResolvedValue({ messages: [userMessage("q1", "r1")] });
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.getBatchGradeWrites.mockResolvedValue([
+      { exam_answer_id: "a1", question_id: "q1", score: 8, feedback: "AI", current: true },
+    ]);
+    const rows = [row({ id: "a1", score: 8, feedback: "AI" })];
+    const { result } = render(rows);
+    await waitFor(() => expect(result.current.overall.writtenCount).toBe(1));
+    await act(() => result.current.revertQuestion("q1"));
+    expect(mocks.ungradeExamAnswer).toHaveBeenCalledWith("c1", "a1", { score: 8, feedback: "AI", batchSessionId: "s1" });
+  });
+
+  it("does not resurrect a revoked receipt from an old CSV copy", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+    mocks.listArtifacts.mockResolvedValue([{ artifact_id: "w", filename: "written_q1.csv" }]);
+    mocks.fetchArtifactContent.mockResolvedValue({ content: "exam_answer_id,score,feedback\na1,8,AI\n" });
+    mocks.getBatchGradeWrites.mockResolvedValue([
+      { exam_answer_id: "a1", question_id: "q1", score: 8, feedback: "AI", current: false },
+    ]);
+    const { result } = render([row({ score: 8, feedback: "AI" })]);
+    await waitFor(() => expect(result.current.sessionId).toBe("s1"));
+    await act(() => result.current.revertQuestion("q1"));
+    expect(mocks.ungradeExamAnswer).not.toHaveBeenCalled();
+  });
+});
+
+it("regrading one child includes all siblings while protecting manual changes", async () => {
+  mocks.sessions = [{ id: "s1", metadata: BATCH_CONTEXT }];
+  mocks.getExamQuestions.mockResolvedValue([1,2].map(i => ({id:`q${i}`,groupId:"g",questionType:"essay",prompt:"shared",score:10,order:i})));
+  const grouped = [row({id:"a1",questionId:"q1",questionGroupId:"g",score:8,feedback:"AI"}),
+    row({id:"a2",questionId:"q2",questionGroupId:"g",score:9,feedback:"teacher"})];
+  const reload = vi.fn().mockResolvedValue(grouped);
+  mocks.getBatchGradeWrites.mockResolvedValue([
+    {question_id:"q1",exam_answer_id:"a1",score:8,feedback:"AI",current:true},
+    {question_id:"q2",exam_answer_id:"a2",score:7,feedback:"AI",current:false},
+  ]);
+  mocks.ungradeExamAnswer.mockImplementation(async () => { grouped[0]={...grouped[0],score:null}; });
+  const {result}=render(grouped,reload);
+  await waitFor(()=>expect(result.current.sessionId).toBe("s1"));
+  await act(()=>result.current.regradeQuestion("q1","keep partial credit"));
+  expect(mocks.ungradeExamAnswer.mock.calls.map(call=>call[1])).toEqual(["a1"]);
+  const prompt=mocks.startRun.mock.calls[0][1] as string;
+  const [unit]=JSON.parse(prompt.split("\n")[1].slice("batch_units: ".length));
+  expect(unit.id).toBe("group_g");
+  expect(unit.question_ids).toEqual(["q1"]);
+  expect(grouped[1].score).toBe(9);
+});
+
+it("opens the same versioned group rubric from either child and retains legacy files", async () => {
+  const { listQuestionFiles } = await import("./batchGradingApi");
+  const files = [
+    { filename: "rubric_group_g1_v1.json", step: "batch", updated_at: "2026-01-01" },
+    { filename: "rubric_group_g1_v2.json", step: "batch", updated_at: "2026-01-02" },
+    { filename: "rubric_q3.md", step: "rubric", updated_at: "2026-01-01" },
+    { filename: "grade_q1.csv", step: "batch", updated_at: "2026-01-01" },
+  ];
+  mocks.listArtifacts.mockResolvedValue(files);
+  expect(await listQuestionFiles("s1", "q1", "g1")).toEqual({ rubric: files[1], grade: files[3] });
+  expect(await listQuestionFiles("s1", "q2", "g1")).toEqual({ rubric: files[1], grade: null });
+  expect(await listQuestionFiles("s1", "q3")).toEqual({ rubric: files[2], grade: null });
 });

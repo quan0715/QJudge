@@ -100,3 +100,24 @@ class ExamAnswer(models.Model):
             correct_set = set(correct) if isinstance(correct, list) else set()
             self.is_correct = selected == correct_set
             self.score = q_score if self.is_correct else 0
+
+
+class ExamBatchGradeWrite(models.Model):
+    """Immutable receipt per answer and batch run, committed with the grade.
+
+    Artifacts are presentation copies. This receipt remains available if object
+    storage or the worker fails after a grade commits.
+    """
+    answer = models.ForeignKey(ExamAnswer, on_delete=models.CASCADE, related_name='batch_writes')
+    session_id = models.UUIDField(db_index=True)
+    run_id = models.UUIDField()
+    grader = models.ForeignKey(User, on_delete=models.CASCADE)
+    score = models.DecimalField(max_digits=6, decimal_places=2)
+    feedback = models.TextField(blank=True)
+    graded_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'exam_batch_grade_writes'
+        constraints = [
+            models.UniqueConstraint(fields=['answer', 'session_id', 'run_id'], name='unique_batch_run_answer_write'),
+        ]

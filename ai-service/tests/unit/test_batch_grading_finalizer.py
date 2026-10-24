@@ -58,7 +58,7 @@ class FakeArtifacts:
         self.reads.append(filename)
         return self.files[filename].encode()
 
-    async def put_for_run(self, *, session_id, run_id, step, filename, content, content_type, metadata):
+    async def put_for_run(self, *, session_id, run_id, step, filename, content, content_type, metadata, worker_owned=False):
         assert step == "batch"
         self.files[filename] = content.decode()
 
@@ -73,13 +73,18 @@ class Credentials:
         return "mcp-token"
 
 
-def _info(status: str = "completed", error_code: str | None = None, context=BATCH_CONTEXT):
+def _info(
+    status: str = "completed",
+    error_code: str | None = None,
+    context=BATCH_CONTEXT,
+    question_ids: str = "q3",
+):
     return TerminalRunInfo(
         session_id=SESSION_ID,
         status=status,
         error_code=error_code,
         error_message="boom" if status == "failed" else None,
-        user_message="batch_question_id: q3\n請批改",
+        user_message=f"batch_question_id: {question_ids}\n請批改",
         session_context=context,
     )
 
@@ -131,6 +136,8 @@ async def test_completed_run_posts_grades_and_records_written() -> None:
             "body": {
                 "grades": [{"exam_answer_id": "a1", "score": 8.0, "feedback": "不錯"}],
                 "only_if_ungraded": True,
+                "batch_session_id": str(SESSION_ID),
+                "batch_run_id": str(RUN_ID),
                 "question_id": "q3",
             },
         }
@@ -228,9 +235,15 @@ async def test_expired_token_pauses_batch() -> None:
 
 
 @pytest.mark.asyncio
-async def test_backend_error_records_failed_progress() -> None:
+async def test_backend_error_remains_retryable_until_grades_are_written() -> None:
     artifacts = FakeArtifacts(_batch_files())
-    http = httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(500)))
+    attempts = []
+    def handler(request):
+        attempts.append(request)
+        if len(attempts) == 1:
+            return httpx.Response(500)
+        return httpx.Response(200, json={"results": [{"exam_answer_id": "a1", "status": "ok"}]})
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     finalizer = BatchGradingFinalizer(
         runs=FakeRuns(_info()),
         artifacts=artifacts,
@@ -239,11 +252,14 @@ async def test_backend_error_records_failed_progress() -> None:
         backend_url="http://backend:8000",
     )
 
-    await finalizer(RUN_ID, "lease:teacher")
-
+    with pytest.raises(httpx.HTTPStatusError):
+        await finalizer(RUN_ID, "lease:teacher")
     progress = _csv(artifacts.files["progress.csv"])[0]
-    assert progress["status"] == "failed"
+    assert progress["status"] == "running"
     assert "500" in progress["error"]
+    await finalizer(RUN_ID, "lease:teacher")
+    assert _csv(artifacts.files["progress.csv"])[0]["status"] == "completed"
+    assert len(attempts) == 2
 
 
 @pytest.mark.asyncio
@@ -269,7 +285,7 @@ class FailingWrittenArtifacts(FakeArtifacts):
 
 
 @pytest.mark.asyncio
-async def test_artifact_failure_still_records_failed_progress() -> None:
+async def test_artifact_copy_failure_keeps_success_with_durable_backend_receipt() -> None:
     artifacts = FailingWrittenArtifacts(_batch_files())
     finalizer, posted = _finalizer(FakeRuns(_info()), artifacts)
 
@@ -277,8 +293,10 @@ async def test_artifact_failure_still_records_failed_progress() -> None:
 
     assert len(posted) == 1
     progress = _csv(artifacts.files["progress.csv"])[0]
-    assert progress["status"] == "failed"
-    assert "s3 down" in progress["error"]
+    assert progress["status"] == "completed"
+    assert progress["written_count"] == "1"
+    assert posted[0]["body"]["batch_session_id"] == str(SESSION_ID)
+    assert posted[0]["body"]["batch_run_id"] == str(RUN_ID)
 
 
 @pytest.mark.asyncio
@@ -303,3 +321,115 @@ async def test_non_batch_session_is_ignored() -> None:
     assert posted == []
     assert artifacts.reads == []
     assert "progress.csv" not in artifacts.files
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("http_status", [401, 403])
+async def test_backend_auth_rejection_pauses_remaining_queue(http_status):
+    runs = FakeRuns(_info())
+    artifacts = FakeArtifacts(_batch_files())
+    async with httpx.AsyncClient(transport=httpx.MockTransport(
+        lambda request: httpx.Response(http_status, json={"detail": "permission denied"})
+    )) as http:
+        finalizer = BatchGradingFinalizer(runs=runs, artifacts=artifacts,
+            credentials=Credentials(), http=http, backend_url="http://backend:8000")
+        await finalizer(RUN_ID, "lease:teacher")
+    assert runs.cancelled_sessions == [SESSION_ID]
+    assert _csv(artifacts.files["progress.csv"])[0]["status"] == "paused"
+    assert "written_q3.csv" not in artifacts.files
+
+
+@pytest.mark.asyncio
+async def test_run_with_several_questions_finalizes_each_one() -> None:
+    files = _batch_files()
+    batch = json.loads(files["batch.json"])
+    batch["questions"] += [
+        {"question_id": "q4", "label": "Q4", "index": 4, "max_score": 10},
+        {"question_id": "q5", "label": "Q5", "index": 5, "max_score": 10},
+    ]
+    files["batch.json"] = json.dumps(batch)
+    files["grade_q4.csv"] = GRADE_CSV.replace("a1,", "b1,").replace("a2,", "b2,").replace("a3,", "b3,")
+    # q5 has no grade CSV: it fails alone without blocking the others.
+    artifacts = FakeArtifacts(files)
+    finalizer, posted = _finalizer(FakeRuns(_info(question_ids="q3,q4,q5")), artifacts)
+
+    await finalizer(RUN_ID, "lease:teacher")
+
+    assert [p["body"]["question_id"] for p in posted] == ["q3", "q4"]
+    assert _csv(artifacts.files["written_q4.csv"])[0]["exam_answer_id"] == "b1"
+    progress = {row["question_id"]: row for row in _csv(artifacts.files["progress.csv"])}
+    assert {qid: row["status"] for qid, row in progress.items()} == {
+        "q3": "completed",
+        "q4": "completed",
+        "q5": "failed",
+    }
+    assert {row["run_id"] for row in progress.values()} == {str(RUN_ID)}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("http_status", [401, 403])
+async def test_auth_rejection_also_pauses_other_questions_in_the_same_run(http_status):
+    files = _batch_files()
+    batch = json.loads(files["batch.json"])
+    batch["questions"].append({"question_id": "q4", "max_score": 10})
+    files["batch.json"] = json.dumps(batch)
+    files["grade_q4.csv"] = GRADE_CSV
+    artifacts = FakeArtifacts(files)
+    runs = FakeRuns(_info(question_ids="q3,q4"))
+    requests = []
+
+    def reject(request):
+        requests.append(request)
+        return httpx.Response(http_status)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(reject)) as http:
+        finalizer = BatchGradingFinalizer(runs=runs, artifacts=artifacts,
+            credentials=Credentials(), http=http, backend_url="http://backend:8000")
+        await finalizer(RUN_ID, "lease:teacher")
+
+    assert len(requests) == 1
+    assert runs.cancelled_sessions == [SESSION_ID]
+    progress = {row["question_id"]: row["status"] for row in _csv(artifacts.files["progress.csv"])}
+    assert progress == {"q3": "paused", "q4": "paused"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("malformed_rubric", [None, {"version": "v1", "criteria": [{}]}, []])
+async def test_v2_missing_rubric_blocks_entire_group_then_validates_child_scores(malformed_rubric):
+    from dataclasses import replace
+    from test_batch_grading_contract import fixture
+    m,c,r,files = fixture()
+    m.update(context_file='context.json',rubric_file='rubric.json')
+    batch={'contest_id':'c1','questions':[{'question_id':'a','max_score':3},{'question_id':'b','max_score':5}]}
+    stored={'batch.json':json.dumps(batch),'context.json':json.dumps(c),**{f'grade_{qid}.csv':content for qid,content in files.items()}}
+    if malformed_rubric is not None: stored['rubric.json'] = json.dumps(malformed_rubric)
+    info=replace(_info(question_ids='a,b'),user_message='batch_question_id: a,b\nbatch_units: '+json.dumps([m]))
+    artifacts=FakeArtifacts(stored); finalizer,posted=_finalizer(FakeRuns(info),artifacts)
+    await finalizer(RUN_ID,'lease')
+    assert posted==[]
+    assert {x['status'] for x in _csv(artifacts.files['progress.csv'])}=={'failed'}
+    artifacts.files['rubric.json']=json.dumps(r)
+    await finalizer(RUN_ID,'lease')
+    assert [p['body']['grades'][0]['score'] for p in posted]==[2,4]
+
+
+@pytest.mark.asyncio
+async def test_progress_storage_failure_replays_write_with_same_receipt_identity():
+    class FailProgressOnce(FakeArtifacts):
+        failed = False
+        async def put_for_run(self, *, filename, **kwargs):
+            if filename == "progress.csv" and not self.failed:
+                self.failed = True
+                raise OSError("storage unavailable")
+            return await super().put_for_run(filename=filename, **kwargs)
+
+    artifacts = FailProgressOnce(_batch_files())
+    finalizer, posted = _finalizer(FakeRuns(_info()), artifacts)
+    with pytest.raises(OSError):
+        await finalizer(RUN_ID, "lease:teacher")
+    await finalizer(RUN_ID, "lease:teacher")
+    assert len(posted) == 2
+    assert posted[0]["body"] == posted[1]["body"]
+    assert posted[1]["body"]["only_if_ungraded"] is True
+    assert posted[1]["body"]["batch_run_id"] == str(RUN_ID)
+    assert _csv(artifacts.files["progress.csv"])[0]["status"] == "completed"

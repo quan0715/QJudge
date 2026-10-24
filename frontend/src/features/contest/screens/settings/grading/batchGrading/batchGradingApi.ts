@@ -1,9 +1,12 @@
+export { getExamQuestions as readBatchQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 /**
  * Batch grading data access. Kept apart from the hook so copilot-aware code
  * never imports the chatbot repository directly (copilot dogfood boundary).
  */
+import { getBatchGradeWrites, type BatchGradeWrite } from "@/infrastructure/api/repositories/examAnswers.repository";
+import { serializeCsvRows } from "../gradeCsv";
 import type { ChatMessage } from "@/core/types/chatbot.types";
-import chatbotRepository from "@/infrastructure/api/repositories/chatbot.repository";
+import chatbotRepository, { getChatRun } from "@/infrastructure/api/repositories/chatbot.repository";
 import {
   fetchArtifactContent,
   listArtifacts,
@@ -12,7 +15,11 @@ import {
 } from "@/infrastructure/api/repositories/artifact.repository";
 import {
   BATCH_ARTIFACT_STEP,
+  BATCH_JSON_FILENAME,
+  parseWrittenCsv,
+  writtenCsvFilename,
   PROGRESS_CSV_FILENAME,
+  gradeCsvFilename,
   type BatchActiveRun,
 } from "./batchGradingModel";
 
@@ -44,6 +51,28 @@ export async function readBatchFile(sessionId: string, filename: string): Promis
   return artifact ? (await fetchArtifactContent(artifact.artifact_id)).content : null;
 }
 
+export interface BatchQuestionFiles {
+  rubric: ArtifactRecord | null;
+  grade: ArtifactRecord | null;
+}
+
+/** Legacy per-question rubrics and versioned whole-unit rubrics share this viewer. */
+export async function listQuestionFiles(
+  sessionId: string,
+  questionId: string,
+  groupId?: string,
+): Promise<BatchQuestionFiles> {
+  const latest = latestByFilename(await listArtifacts({ sessionId }));
+  const prefix = `rubric_${groupId ? `group_${groupId}` : `question_${questionId}`}_`;
+  const rubric = [...latest.values()]
+    .filter((file) => file.step === BATCH_ARTIFACT_STEP && file.filename.startsWith(prefix))
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+  return {
+    rubric: rubric ?? latest.get(`rubric_${questionId}.md`) ?? null,
+    grade: latest.get(gradeCsvFilename(questionId)) ?? null,
+  };
+}
+
 export async function uploadBatchFile(
   sessionId: string,
   filename: string,
@@ -73,11 +102,12 @@ export async function cancelBatchRun(runId: string): Promise<void> {
   await chatbotRepository.cancelRun(runId);
 }
 
-export async function fetchBatchRemoteState(sessionId: string): Promise<BatchRemoteState> {
-  const [session, activeRuns, artifacts] = await Promise.all([
+export async function fetchBatchRemoteState(contestId: string, sessionId: string): Promise<BatchRemoteState> {
+  const [session, activeRuns, artifacts, writes] = await Promise.all([
     chatbotRepository.getSession(sessionId),
     listSessionActiveRuns(sessionId),
     listArtifacts({ sessionId, step: BATCH_ARTIFACT_STEP }),
+    getBatchGradeWrites(contestId, sessionId),
   ]);
   const latest = latestByFilename(artifacts);
   const read = async (artifact: ArtifactRecord | undefined) =>
@@ -94,6 +124,61 @@ export async function fetchBatchRemoteState(sessionId: string): Promise<BatchRem
     messages: session.messages,
     activeRuns,
     progressCsv: await read(latest.get(PROGRESS_CSV_FILENAME)),
-    writtenCsv: Object.fromEntries(writtenEntries),
+    writtenCsv: mergeBatchWrites(Object.fromEntries(writtenEntries), writes),
   };
+}
+
+
+/** Receipts recover missing CSVs and suppress writes that were later changed/revoked. */
+export function mergeBatchWrites(csvByQuestion: Record<string, string>, writes: BatchGradeWrite[]): Record<string, string> {
+  const merged = { ...csvByQuestion };
+  for (const questionId of new Set(writes.map((write) => write.question_id))) {
+    const records = new Map(parseWrittenCsv(merged[questionId] ?? null).map((row) => [row.examAnswerId, row]));
+    for (const write of writes.filter((row) => row.question_id === questionId)) {
+      if (write.current) {
+        records.set(write.exam_answer_id, {
+          examAnswerId: write.exam_answer_id, score: write.score, feedback: write.feedback,
+        });
+      } else {
+        records.delete(write.exam_answer_id);
+      }
+    }
+    merged[questionId] = serializeCsvRows([
+      ["exam_answer_id", "score", "feedback"],
+      ...[...records.values()].map((row) => [row.examAnswerId, String(row.score), row.feedback]),
+    ]);
+  }
+  return merged;
+}
+
+export async function readBatchWritten(contestId: string, sessionId: string, questionId: string): Promise<string | null> {
+  const [csv, writes] = await Promise.all([
+    readBatchFile(sessionId, writtenCsvFilename(questionId)),
+    getBatchGradeWrites(contestId, sessionId),
+  ]);
+  return mergeBatchWrites({ [questionId]: csv ?? "" }, writes)[questionId] ?? null;
+}
+
+export async function defaultBatchModelId(): Promise<string> {
+  const models = await chatbotRepository.getModels();
+  const model = models.find((item) => item.is_default) ?? models[0];
+  if (!model) throw new Error("沒有可用的批改模型");
+  return model.model_id;
+}
+
+export async function readBatchModelId(sessionId: string): Promise<string> {
+  const config = JSON.parse((await readBatchFile(sessionId, BATCH_JSON_FILENAME)) ?? "{}");
+  if (typeof config.model_id === "string" && config.model_id) return config.model_id;
+  // Existing batches predate model persistence. Recover the actual model from
+  // their first grading run, ignoring subsequent sidebar chats or model drift.
+  const session = await chatbotRepository.getSession(sessionId);
+  const runId = session.messages.find((message) =>
+    message.role === "user" && message.runId && /^batch_question_id:/.test(message.content),
+  )?.runId;
+  const modelId = runId
+    ? (await getChatRun(runId)).modelId
+    : await defaultBatchModelId();
+  if (!modelId) throw new Error("無法確認原批改模型，請稍後重試");
+  await uploadBatchFile(sessionId, BATCH_JSON_FILENAME, JSON.stringify({ ...config, model_id: modelId }), "application/json");
+  return modelId;
 }

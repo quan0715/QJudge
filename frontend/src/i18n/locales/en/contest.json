@@ -194,8 +194,8 @@
         "published": "Published"
       },
       "grading": {
-    "saveFailed": "Could not save the grade. Please try again.",
-    "ungradeFailed": "Could not remove the grade. Please try again.",
+        "saveFailed": "Could not save the grade. Please try again.",
+        "ungradeFailed": "Could not remove the grade. Please try again.",
         "noAnswers": "No answer data yet",
         "noData": "No grading data yet"
       },
@@ -1197,9 +1197,17 @@
       "revertConfirm": "Revert",
       "regrade": "Regrade with AI…",
       "regradeTitle": "Regrade {{label}} with AI",
-      "regradeBody": "AI-written scores for this question are reverted first (manual scores stay), then the question is queued again.",
+      "regradeBody": "Revert AI-written scores and regrade. For a question group, regrade all siblings together while keeping separate child scores. Manual changes are preserved.",
       "regradeNote": "Note for the AI (optional)",
-      "regradeConfirm": "Revert and regrade"
+      "regradeConfirm": "Revert and regrade",
+      "noticeSkippedAtWrite": "{{count}} answers already had a score (from someone else or by hand) when the AI wrote; their scores were kept.",
+      "files": "View AI files",
+      "filesTitle": "AI files for {{label}}",
+      "filesRubric": "Rubric",
+      "filesGrades": "AI grades",
+      "filesMissing": "This file does not exist yet",
+      "filesLoading": "Loading…",
+      "filesNotUsed": "{{count}} scores were not written with this rubric: those answers already had a score when the AI wrote."
     },
     "absent": "Absent",
     "aiGradingProgress": "AI Grading Progress",
@@ -1393,7 +1401,8 @@
     "trackName": "track",
     "unavailable": "Unavailable",
     "unknownError": "Live monitoring connection failed",
-    "userId": "User ID"
+    "userId": "User ID",
+    "reconnect": "Reconnect"
   },
   "logs": {
     "capture": {
@@ -1781,7 +1790,21 @@
     "searchPlaceholder": "Search monitored participants...",
     "sourceScreen": "Screen",
     "sourceWebcam": "Webcam",
-    "title": "Proctoring"
+    "title": "Proctoring",
+    "focusStudent": "Focus on {{name}}",
+    "waitingScreen": "Waiting for screen",
+    "noScreen": "No screen shared",
+    "violationCount": "{{count}} violations",
+    "noMatches": "No matching participants",
+    "pageCount": "Page {{page}} of {{pages}} · {{count}} participants",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "layout": "Monitoring layout",
+    "focusView": "Focus",
+    "fourView": "4 students",
+    "nineView": "9 students",
+    "previousStudent": "Previous student",
+    "nextStudent": "Next student"
   },
   "progress": "Progress",
   "public": "Public",

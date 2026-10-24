@@ -83,4 +83,14 @@ describe("BatchGradingQuestionNotice", () => {
     );
     expect(screen.getByText("grading.batch.finalizeTimeout")).toBeInTheDocument();
   });
+
+  it("tells the teacher when answers kept a score given by someone else", () => {
+    render(
+      <BatchGradingQuestionNotice
+        state={state({ status: "completed", ungradedCount: 0, writtenCount: 2, skippedAtWriteCount: 4 })}
+        onResume={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("grading.batch.noticeSkippedAtWrite")).toBeInTheDocument();
+  });
 });

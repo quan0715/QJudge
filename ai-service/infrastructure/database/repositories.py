@@ -378,9 +378,8 @@ class SqlAlchemyRunRepository:
             .where(
                 RunRow.session_id == session_id,
                 RunRow.run_id != excluding if excluding is not None else True,
-                RunRow.status.in_(
-                    [status.value for status in ACTIVE_EXECUTION_STATUSES]
-                ),
+                (RunRow.status.in_([status.value for status in ACTIVE_EXECUTION_STATUSES]))
+                | RunRow.finalization_pending.is_(True),
             )
             .limit(1)
         )
@@ -416,7 +415,7 @@ class SqlAlchemyRunRepository:
             .where(SessionRow.session_id == terminal.session_id)
             .with_for_update()
         )
-        if await self.has_blocking_run(terminal.session_id, excluding=run_id):
+        if terminal.finalization_pending or await self.has_blocking_run(terminal.session_id, excluding=run_id):
             return None
         return await self.oldest_queued(terminal.session_id, excluding=run_id)
 
@@ -470,6 +469,14 @@ class SqlAlchemyRunRepository:
                 event_type=str(event.get("type", "")),
                 payload=dict(event),
             )
+
+        # Commit the durable handoff in the same transaction as the terminal event.
+        # A replayed terminal event must not reopen an already finalized run.
+        if (event.get("type") in _TERMINAL_EVENT_TYPES
+                and RunStatus(run_row.status) not in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}):
+            owner_session = await self._session.get(SessionRow, run_row.session_id)
+            manifest = (owner_session.context or {}).get("task_manifest") or {}
+            run_row.finalization_pending = manifest.get("task_type") == "grading.batch"
 
         sequence = run_row.last_sequence + 1
         assistant_row = await self._latest_assistant_message(run_id)

@@ -72,6 +72,7 @@ const ContestAiGradingScreen: React.FC = () => {
     questionProgress,
     answersByQuestion,
     selectedQuestionError,
+    refresh: refreshGradingData,
   } = useAiGradingScreenData(selectedQuestionId);
   const {
     resultsByAnswerId,
@@ -537,6 +538,7 @@ const ContestAiGradingScreen: React.FC = () => {
       } catch (err) {
         setActionError(err instanceof Error ? err.message : "批量送出 AI 建議失敗");
       } finally {
+        void refreshGradingData();
         setSubmittingAnswerIds((prev) => {
           const next = new Set(prev);
           for (const row of writableRows) next.delete(row.id);
@@ -544,7 +546,7 @@ const ContestAiGradingScreen: React.FC = () => {
         });
       }
     },
-    [contest?.id, markAnswersSynced, resultsByAnswerId, sessionId],
+    [contest?.id, markAnswersSynced, resultsByAnswerId, sessionId, refreshGradingData],
   );
 
   const openRevertModal = useCallback(
@@ -579,6 +581,7 @@ const ContestAiGradingScreen: React.FC = () => {
       } catch (err) {
         setActionError(err instanceof Error ? err.message : "Revert AI 批改送出失敗");
       } finally {
+        void refreshGradingData();
         setSubmittingAnswerIds((prev) => {
           const next = new Set(prev);
           for (const row of revertableRows) next.delete(row.id);
@@ -586,7 +589,7 @@ const ContestAiGradingScreen: React.FC = () => {
         });
       }
     },
-    [contest?.id, markAnswersUnsynced, resultsByAnswerId, sessionId],
+    [contest?.id, markAnswersUnsynced, resultsByAnswerId, sessionId, refreshGradingData],
   );
 
   const handleConfirmRevert = useCallback(async () => {

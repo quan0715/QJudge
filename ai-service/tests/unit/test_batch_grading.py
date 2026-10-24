@@ -8,7 +8,7 @@ import io
 from application.batch_grading import (
     GradeRow,
     append_written_csv,
-    parse_batch_question_id,
+    parse_batch_question_ids,
     plan_grades,
     progress_status,
     upsert_progress_csv,
@@ -24,10 +24,11 @@ def _rows(text: str) -> list[dict[str, str]]:
     return list(csv.DictReader(io.StringIO(text)))
 
 
-def test_parse_batch_question_id_reads_first_line() -> None:
-    assert parse_batch_question_id("batch_question_id: 42\n請批改") == "42"
-    assert parse_batch_question_id("請批改這題") is None
-    assert parse_batch_question_id("") is None
+def test_parse_batch_question_ids_reads_first_line() -> None:
+    assert parse_batch_question_ids("batch_question_id: 42\n請批改") == ["42"]
+    assert parse_batch_question_ids("batch_question_id: q1, q2,q3\n請批改") == ["q1", "q2", "q3"]
+    assert parse_batch_question_ids("請批改這題") == []
+    assert parse_batch_question_ids("") == []
 
 
 def test_partial_csv_writes_scored_rows_only() -> None:

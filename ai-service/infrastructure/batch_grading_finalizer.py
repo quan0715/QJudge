@@ -1,7 +1,7 @@
 """Write a finished batch grading run's scores through the QJudge backend.
 
-The AI only fills ``grade_<qid>.csv``. When the run ends, this hook validates
-the CSV, writes scores with the initiator's MCP token (never overwriting an
+The AI only fills ``grade_<qid>.csv`` for each question of the run. When the
+run ends, this hook validates each CSV, writes scores with the initiator's MCP token (never overwriting an
 existing score) and records the outcome in ``progress.csv`` and
 ``written_<qid>.csv`` of the same session.
 """
@@ -16,12 +16,13 @@ from uuid import UUID
 
 import httpx
 
+from application.batch_grading_contract import parse_batch_units, validate_unit
 from application.batch_grading import (
     BATCH_ARTIFACT_STEP,
     BATCH_TASK_TYPE,
     GradeRow,
     append_written_csv,
-    parse_batch_question_id,
+    parse_batch_question_ids,
     plan_grades,
     progress_status,
     upsert_progress_csv,
@@ -77,20 +78,60 @@ class BatchGradingFinalizer:
         manifest = info.session_context.get("task_manifest") or {}
         if manifest.get("task_type") != BATCH_TASK_TYPE:
             return
-        question_id = parse_batch_question_id(info.user_message)
-        if question_id is None:
-            return
-
+        paused = False
+        plans, invalid = {}, {}
         try:
-            await self._finalize(info, run_id, question_id, lease_key)
-        except Exception as exc:  # the teacher must see it; never leave the question "running"
-            logger.exception("Batch grading finalize failed for run %s", run_id)
-            await self._write_progress(
-                info.session_id, run_id, question_id, status="failed",
-                error=f"收尾失敗：{exc}",
-            )
+            units = parse_batch_units(info.user_message)
+            if units is not None:
+                listed = [qid for unit in units for qid in unit["question_ids"]]
+                if sorted(listed) != sorted(set(parse_batch_question_ids(info.user_message))):
+                    raise ValueError("批改單位與題目清單不一致")
+                for unit in units:
+                    try:
+                        if info.status != "completed":
+                            raise ValueError("題組批改尚未完成，尚未寫分")
+                        context = await self._read(info.session_id, unit["context_file"])
+                        rubric = await self._read(info.session_id, unit["rubric_file"])
+                        if not context or not rubric:
+                            raise ValueError("缺少題組上下文或評分規準，尚未寫分")
+                        csvs = {qid: await self._read(info.session_id, f"grade_{qid}.csv")
+                                for qid in unit["question_ids"]}
+                        if not all(csvs.values()):
+                            raise ValueError("缺少子題評分結果，尚未寫分")
+                        plans.update(validate_unit(unit, context, rubric, csvs))
+                        await self._artifacts.put_for_run(
+                            session_id=info.session_id, run_id=run_id, step=BATCH_ARTIFACT_STEP,
+                            filename=f"accepted_{unit['rubric_file']}", content=rubric.encode(),
+                            content_type="application/json", metadata={"validated": True},
+                            worker_owned=True,
+                        )
+                    except ValueError as exc:
+                        invalid.update({qid: str(exc) for qid in unit["question_ids"]})
+        except ValueError as exc:
+            invalid = {qid: str(exc) for qid in parse_batch_question_ids(info.user_message)}
+        for question_id in parse_batch_question_ids(info.user_message):
+            try:
+                if paused:
+                    await self._write_progress(
+                        info.session_id, run_id, question_id, status="paused",
+                        error="寫入成績的授權已失效，請確認權限後繼續",
+                    )
+                    continue
+                if question_id in invalid and info.status not in ("cancelled",) and info.error_code != "MCP_AUTH_FAILED":
+                    await self._write_progress(info.session_id, run_id, question_id,
+                        status="failed", error=f"待處理：{invalid[question_id]}")
+                    continue
+                paused = await self._finalize(info, run_id, question_id, lease_key,
+                    validated_plan=plans.get(question_id)) == "paused"
+            except Exception as exc:  # the teacher must see it; never leave the question "running"
+                logger.exception("Batch grading finalize failed for run %s", run_id)
+                await self._write_progress(
+                    info.session_id, run_id, question_id, status="running",
+                    error=f"收尾暫時失敗，將重試：{exc}",
+                )
+                raise
 
-    async def _finalize(self, info: Any, run_id: UUID, question_id: str, lease_key: str) -> None:
+    async def _finalize(self, info: Any, run_id: UUID, question_id: str, lease_key: str, *, validated_plan=None) -> str:
         session_id = info.session_id
         status = progress_status(info.status, info.error_code)
         written: list[GradeRow] = []
@@ -100,13 +141,19 @@ class BatchGradingFinalizer:
         if status in ("completed", "failed"):
             try:
                 written, skipped, rejected, out_of_range = await self._write_grades(
-                    session_id, question_id, lease_key
+                    session_id, run_id, question_id, lease_key, validated_plan=validated_plan
                 )
             except McpReadinessError:
                 status, error = "paused", "授權已過期"
-            except Exception as exc:  # recorded for the teacher, not raised
-                logger.exception("Batch grading write failed for run %s", run_id)
-                status, error = "failed", f"寫入成績失敗：{exc}"
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code in (401, 403):
+                    status, error = "paused", "寫入成績的授權已失效，請確認權限後繼續"
+                elif exc.response.status_code >= 500 or exc.response.status_code in (408, 429):
+                    raise
+                else:
+                    status, error = "failed", f"寫入成績失敗：{exc}"
+            except ValueError as exc:
+                status, error = "failed", f"批改資料無效：{exc}"
 
         if status == "paused":
             await self._runs.cancel_queued_in_session(session_id)
@@ -114,15 +161,21 @@ class BatchGradingFinalizer:
             error = f"{rejected} 份寫入失敗" if rejected else ""
 
         if written:
-            existing = await self._read(session_id, f"written_{question_id}.csv")
-            await self._write(
-                session_id, run_id, f"written_{question_id}.csv",
-                append_written_csv(existing, written),
-            )
+            try:
+                existing = await self._read(session_id, f"written_{question_id}.csv")
+                await self._write(
+                    session_id, run_id, f"written_{question_id}.csv",
+                    append_written_csv(existing, written),
+                )
+            except Exception:
+                # Django committed a durable receipt with each grade. The UI
+                # reads those receipts even when this presentation copy fails.
+                logger.exception("Batch write artifact unavailable for run %s", run_id)
         await self._write_progress(
             session_id, run_id, question_id, status=status, error=error,
             written=len(written), skipped=skipped, out_of_range=out_of_range,
         )
+        return status
 
     async def _write_progress(
         self,
@@ -157,7 +210,7 @@ class BatchGradingFinalizer:
         )
 
     async def _write_grades(
-        self, session_id: UUID, question_id: str, lease_key: str
+        self, session_id: UUID, run_id: UUID, question_id: str, lease_key: str, *, validated_plan=None
     ) -> tuple[list[GradeRow], int, int, int]:
         batch = json.loads(await self._read(session_id, "batch.json") or "{}")
         question = next(
@@ -167,7 +220,7 @@ class BatchGradingFinalizer:
         grade_csv = await self._read(session_id, f"grade_{question_id}.csv")
         if question is None or grade_csv is None:
             raise ValueError("找不到題目設定或批改檔")
-        plan = plan_grades(grade_csv, float(question["max_score"]))
+        plan = validated_plan or plan_grades(grade_csv, float(question["max_score"]))
         if not plan.rows:
             return [], 0, 0, plan.out_of_range_count
 
@@ -181,6 +234,8 @@ class BatchGradingFinalizer:
                     for r in plan.rows
                 ],
                 "only_if_ungraded": True,
+                "batch_session_id": str(session_id),
+                "batch_run_id": str(run_id),
                 # The AI can rewrite the CSV; never let it grade another question.
                 "question_id": question_id,
             },

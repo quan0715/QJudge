@@ -239,6 +239,54 @@ describe("createLiveKitTransport", () => {
     await transport.close();
   });
 
+  it("keeps the selected screen attached when another student stops sharing", async () => {
+    const transport = createLiveKitTransport();
+    await transport.connect({ ...grant, role: "subscriber", allowedSources: [] });
+    const room = sdk.rooms[0];
+    const track = { attach: vi.fn(), detach: vi.fn() };
+    const publication = { source: "screen_share", track, setSubscribed: vi.fn() };
+    const selected = { identity: "student-a", videoTrackPublications: new Map([["screen", publication]]) };
+    room.remoteParticipants.set(selected.identity, selected);
+    const video = document.createElement("video");
+    transport.bindVideo("screen_share", video);
+    transport.selectTarget(selected.identity);
+
+    // LiveKit clears publication.track before emitting TrackUnpublished.
+    room.emit("trackUnpublished", { source: "screen_share", track: undefined }, { identity: "student-b" });
+    expect(track.detach).not.toHaveBeenCalled();
+
+    room.emit("trackUnpublished", { source: "screen_share", track: undefined }, selected);
+    expect(track.detach).toHaveBeenCalledWith(video);
+    await transport.close();
+  });
+
+  it("watches multiple screens on one connection and releases off-page subscriptions", async () => {
+    const transport = createLiveKitTransport();
+    await transport.connect({ ...grant, role: "subscriber", allowedSources: [] });
+    const room = sdk.rooms[0];
+    const students = ["a", "b", "c"].map((identity) => {
+      const track = { attach: vi.fn(), detach: vi.fn() };
+      const publication = { source: "screen_share", track, setSubscribed: vi.fn() };
+      const participant = { identity, videoTrackPublications: new Map([["screen", publication]]) };
+      room.remoteParticipants.set(identity, participant);
+      return { identity, track, publication, participant, video: document.createElement("video") };
+    });
+    for (const student of students) transport.bindTargetVideo(student.identity, "screen_share", student.video);
+    transport.selectTargets(students.slice(0, 2).map(({ identity }) => ({ identity, sources: ["screen_share"] })));
+    expect(students[0].track.attach).toHaveBeenCalledWith(students[0].video);
+    expect(students[1].track.attach).toHaveBeenCalledWith(students[1].video);
+    expect(students[2].publication.setSubscribed).toHaveBeenLastCalledWith(false);
+    room.emit("trackUnpublished", { source: "screen_share" }, students[2].participant);
+    expect(students[0].track.detach).not.toHaveBeenCalled();
+    expect(students[1].track.detach).not.toHaveBeenCalled();
+    transport.selectTargets([{ identity: "b", sources: ["screen_share"] }]);
+    expect(students[0].track.detach).toHaveBeenCalledWith(students[0].video);
+    expect(students[0].publication.setSubscribed).toHaveBeenLastCalledWith(false);
+    expect(students[1].track.detach).not.toHaveBeenCalled();
+    expect(sdk.connect).toHaveBeenCalledOnce();
+    await transport.close();
+  });
+
   it("does not turn a stale connection promise into connected after close", async () => {
     let resolveConnect!: () => void;
     sdk.connect.mockImplementationOnce(() => new Promise<void>((resolve) => {
