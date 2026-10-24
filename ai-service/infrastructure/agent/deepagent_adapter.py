@@ -56,6 +56,7 @@ from domain.model_catalog import ModelConfigInvalid, ModelNotAvailable
 from infrastructure.agent.approval_policy import WRITE_ACTIONS
 from infrastructure.agent.checkpoint_recovery_manager import CheckpointRecoveryManager
 from infrastructure.agent.recursion_failure_handler import RecursionFailureHandler
+from infrastructure.agent.tool_error_middleware import ToolErrorFeedbackMiddleware
 from infrastructure.agent.usage_accumulator import UsageAccumulator
 from infrastructure.artifacts.tools import build_artifact_tools
 from infrastructure.mcp.provider import MCPToolProvider
@@ -440,10 +441,14 @@ class _DeepAgentRuntime:
                 {
                     **GENERAL_PURPOSE_SUBAGENT,
                     "skills": skills,
-                    "middleware": [SubagentWriteGuardMiddleware(write_actions=WRITE_ACTIONS)],
+                    "middleware": [
+                        ToolErrorFeedbackMiddleware(),
+                        SubagentWriteGuardMiddleware(write_actions=WRITE_ACTIONS),
+                    ],
                 }
             ],
             "middleware": [
+                ToolErrorFeedbackMiddleware(),
                 # Must be the last middleware: inspects the final tool_calls produced by
                 # the model turn and pauses execution for human approval on write actions.
                 ActionAwareHITLMiddleware(
