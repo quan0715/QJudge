@@ -116,6 +116,7 @@ rows in the named `grade_<question_id>.csv` files using `artifact_csv_patch`:
 - `score`: the sum of these criterion scores, not an independent estimate.
 - `reason`: explain any deduction against these criteria. Never silently waive a
   shared requirement as somebody else's responsibility.
+- Leave `synced` empty: the worker fills it after writing each score.
 
 Before finishing, check all writable rows, every sibling, the shared-requirement
 mapping and per-child totals. Missing rubric, incomplete results, invalid source

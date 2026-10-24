@@ -2,8 +2,8 @@
 
 The AI only fills ``grade_<qid>.csv`` for each question of the run. When the
 run ends, this hook validates each CSV, writes scores with the initiator's MCP token (never overwriting an
-existing score) and records the outcome in ``progress.csv`` and
-``written_<qid>.csv`` of the same session.
+existing score), marks each written row's ``synced`` in that CSV and records the
+run's status and error in ``progress.csv``.
 """
 
 from __future__ import annotations
@@ -20,8 +20,7 @@ from application.batch_grading_contract import parse_batch_units, validate_unit
 from application.batch_grading import (
     BATCH_ARTIFACT_STEP,
     BATCH_TASK_TYPE,
-    GradeRow,
-    append_written_csv,
+    mark_grade_csv,
     parse_batch_question_ids,
     plan_grades,
     progress_status,
@@ -133,13 +132,12 @@ class BatchGradingFinalizer:
     async def _finalize(self, info: Any, run_id: UUID, question_id: str, lease_key: str, *, validated_plan=None) -> str:
         session_id = info.session_id
         status = progress_status(info.status, info.error_code)
-        written: list[GradeRow] = []
-        skipped = rejected = out_of_range = 0
+        outcomes: dict[str, str] = {}
         error = info.error_message or ""
 
         if status in ("completed", "failed"):
             try:
-                written, skipped, rejected, out_of_range = await self._write_grades(
+                outcomes = await self._write_grades(
                     session_id, run_id, question_id, lease_key, validated_plan=validated_plan
                 )
             except McpReadinessError:
@@ -156,23 +154,20 @@ class BatchGradingFinalizer:
         if status == "paused":
             await self._runs.cancel_queued_in_session(session_id)
         if status == "completed":
+            rejected = sum(1 for outcome in outcomes.values() if outcome == "error")
             error = f"{rejected} 份寫入失敗" if rejected else ""
 
-        if written:
+        if outcomes:
             try:
-                existing = await self._read(session_id, f"written_{question_id}.csv")
-                await self._write(
-                    session_id, run_id, f"written_{question_id}.csv",
-                    append_written_csv(existing, written),
-                )
+                filename = f"grade_{question_id}.csv"
+                grade_csv = await self._read(session_id, filename)
+                if grade_csv is not None:
+                    await self._write(session_id, run_id, filename, mark_grade_csv(grade_csv, outcomes))
             except Exception:
-                # Django committed a durable receipt with each grade. The UI
-                # reads those receipts even when this presentation copy fails.
-                logger.exception("Batch write artifact unavailable for run %s", run_id)
-        await self._write_progress(
-            session_id, run_id, question_id, status=status, error=error,
-            written=len(written), skipped=skipped, out_of_range=out_of_range,
-        )
+                # Django committed a durable receipt with each grade; the page
+                # reads those receipts even when this mark is missing.
+                logger.exception("Could not mark grade rows for run %s", run_id)
+        await self._write_progress(session_id, run_id, question_id, status=status, error=error)
         return status
 
     async def _write_progress(
@@ -183,9 +178,6 @@ class BatchGradingFinalizer:
         *,
         status: str,
         error: str,
-        written: int = 0,
-        skipped: int = 0,
-        out_of_range: int = 0,
     ) -> None:
         progress = await self._read(session_id, "progress.csv")
         await self._write(
@@ -198,9 +190,6 @@ class BatchGradingFinalizer:
                     "question_id": question_id,
                     "run_id": str(run_id),
                     "status": status,
-                    "written_count": str(written),
-                    "skipped_count": str(skipped),
-                    "out_of_range_count": str(out_of_range),
                     "error": error,
                     "updated_at": datetime.now(UTC).isoformat(),
                 },
@@ -209,7 +198,8 @@ class BatchGradingFinalizer:
 
     async def _write_grades(
         self, session_id: UUID, run_id: UUID, question_id: str, lease_key: str, *, validated_plan=None
-    ) -> tuple[list[GradeRow], int, int, int]:
+    ) -> dict[str, str]:
+        """Write the question's grades; returns each acted-on row's ``synced`` outcome."""
         batch = json.loads(await self._read(session_id, "batch.json") or "{}")
         question = next(
             (q for q in batch.get("questions", []) if str(q.get("question_id")) == question_id),
@@ -219,8 +209,9 @@ class BatchGradingFinalizer:
         if question is None or grade_csv is None:
             raise ValueError("找不到題目設定或批改檔")
         plan = validated_plan or plan_grades(grade_csv, float(question["max_score"]))
+        outcomes = {answer_id: "out_of_range" for answer_id in plan.out_of_range_ids}
         if not plan.rows:
-            return [], 0, 0, plan.out_of_range_count
+            return outcomes
 
         token = await self._credentials.worker_token(lease_key, retry_exchange_once=True)
         response = await self._http.post(
@@ -240,16 +231,14 @@ class BatchGradingFinalizer:
             headers={**backend_auth_headers(), "Authorization": f"Bearer {token}"},
         )
         response.raise_for_status()
-        by_id = {r.exam_answer_id: r for r in plan.rows}
-        results = response.json().get("results", [])
-        written = [
-            by_id[str(r["exam_answer_id"])]
-            for r in results
-            if r.get("status") == "ok" and str(r.get("exam_answer_id")) in by_id
-        ]
-        skipped = sum(1 for r in results if r.get("status") == "skipped")
-        rejected = sum(1 for r in results if r.get("status") == "error")
-        return written, skipped, rejected, plan.out_of_range_count
+        planned = {r.exam_answer_id for r in plan.rows}
+        status_outcome = {"ok": "yes", "skipped": "skipped", "error": "error"}
+        for result in response.json().get("results", []):
+            answer_id = str(result.get("exam_answer_id"))
+            outcome = status_outcome.get(result.get("status"))
+            if answer_id in planned and outcome:
+                outcomes[answer_id] = outcome
+        return outcomes
 
     async def _read(self, session_id: UUID, filename: str) -> str | None:
         artifacts = await self._artifacts.list_for_run(

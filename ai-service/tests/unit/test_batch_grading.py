@@ -7,7 +7,7 @@ import io
 
 from application.batch_grading import (
     GradeRow,
-    append_written_csv,
+    mark_grade_csv,
     parse_batch_question_ids,
     plan_grades,
     progress_status,
@@ -79,17 +79,24 @@ def test_upsert_progress_replaces_same_question() -> None:
         ("q1", "completed"),
         ("q2", "completed"),
     ]
-    assert list(rows[0]) == [
-        "question_id", "run_id", "status", "written_count", "skipped_count",
-        "out_of_range_count", "error", "updated_at",
+    assert list(rows[0]) == ["question_id", "run_id", "status", "error", "updated_at"]
+
+
+def test_mark_grade_csv_sets_synced_only_on_acted_rows() -> None:
+    grade = GRADE_HEADER + "1,a1,u1,答,,,8,好,\n2,a2,u2,答,,,,,\n"
+
+    rows = _rows(mark_grade_csv(grade, {"a1": "yes"}))
+
+    assert [(r["exam_answer_id"], r["score"], r["reason"], r["synced"]) for r in rows] == [
+        ("a1", "8", "好", "yes"),
+        ("a2", "", "", ""),
     ]
 
 
-def test_append_written_keeps_previous_rows() -> None:
-    first = append_written_csv(None, [GradeRow("a1", 8.0, "好")])
-    second = append_written_csv(first, [GradeRow("a2", 3.5, "缺少說明")])
+def test_mark_grade_csv_keeps_extra_columns_and_adds_synced() -> None:
+    grade = "exam_answer_id,score,reason,rubric_version,criterion_scores\na1,2,ok,v1,\"{\"\"c\"\": 2}\"\n"
 
-    assert _rows(second) == [
-        {"exam_answer_id": "a1", "score": "8.0", "feedback": "好"},
-        {"exam_answer_id": "a2", "score": "3.5", "feedback": "缺少說明"},
-    ]
+    rows = _rows(mark_grade_csv(grade, {"a1": "skipped"}))
+
+    assert rows == [{"exam_answer_id": "a1", "score": "2", "reason": "ok", "rubric_version": "v1",
+                     "criterion_scores": '{"c": 2}', "synced": "skipped"}]

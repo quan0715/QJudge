@@ -3,7 +3,9 @@
 A batch grading session (task_type ``grading.batch``) runs a few grading units per
 run, one subagent per standalone question or complete question group. The AI only fills ``grade_<qid>.csv``; after the run
 ends the worker turns each CSV into backend grade writes and records the
-outcome in artifacts.
+outcome back into each ``grade_<qid>.csv`` (``synced`` per row) and the run's
+status in ``progress.csv``. The backend's batch write receipts are the record of
+which scores the AI wrote.
 """
 
 from __future__ import annotations
@@ -11,22 +13,13 @@ from __future__ import annotations
 import csv
 import io
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 BATCH_TASK_TYPE = "grading.batch"
 BATCH_ARTIFACT_STEP = "batch"
 
-PROGRESS_COLUMNS = (
-    "question_id",
-    "run_id",
-    "status",
-    "written_count",
-    "skipped_count",
-    "out_of_range_count",
-    "error",
-    "updated_at",
-)
-WRITTEN_COLUMNS = ("exam_answer_id", "score", "feedback")
+PROGRESS_COLUMNS = ("question_id", "run_id", "status", "error", "updated_at")
 
 _QUESTION_LINE = re.compile(r"^\s*batch_question_id:\s*(.+?)\s*$")
 
@@ -42,6 +35,7 @@ class GradeRow:
 class GradePlan:
     rows: list[GradeRow]
     out_of_range_count: int
+    out_of_range_ids: tuple[str, ...] = ()
 
 
 def parse_batch_question_ids(message: str) -> list[str]:
@@ -55,7 +49,7 @@ def parse_batch_question_ids(message: str) -> list[str]:
 
 def plan_grades(grade_csv: str, max_score: float) -> GradePlan:
     rows: list[GradeRow] = []
-    out_of_range = 0
+    out_of_range: list[str] = []
     for record in csv.DictReader(io.StringIO(grade_csv)):
         answer_id = (record.get("exam_answer_id") or "").strip()
         raw_score = (record.get("score") or "").strip()
@@ -66,13 +60,13 @@ def plan_grades(grade_csv: str, max_score: float) -> GradePlan:
         except ValueError:
             continue
         if score < 0 or score > max_score:
-            out_of_range += 1
+            out_of_range.append(answer_id)
             continue
         # ExamAnswer.score keeps two decimals; the backend rejects anything finer.
         rows.append(
             GradeRow(answer_id, round(score, 2), (record.get("reason") or "").strip())
         )
-    return GradePlan(rows=rows, out_of_range_count=out_of_range)
+    return GradePlan(rows=rows, out_of_range_count=len(out_of_range), out_of_range_ids=tuple(out_of_range))
 
 
 def progress_status(run_status: str, error_code: str | None) -> str:
@@ -108,10 +102,14 @@ def upsert_progress_csv(existing: str | None, row: dict[str, str]) -> str:
     return _write_csv(PROGRESS_COLUMNS, rows)
 
 
-def append_written_csv(existing: str | None, rows: list[GradeRow]) -> str:
-    records = _read_csv(existing)
-    records.extend(
-        {"exam_answer_id": r.exam_answer_id, "score": str(r.score), "feedback": r.feedback}
-        for r in rows
-    )
-    return _write_csv(WRITTEN_COLUMNS, records)
+def mark_grade_csv(grade_csv: str, outcomes: Mapping[str, str]) -> str:
+    """Set ``synced`` on each row the worker acted on: yes, skipped, error or out_of_range."""
+    reader = csv.DictReader(io.StringIO(grade_csv))
+    columns = tuple(reader.fieldnames or ())
+    if "synced" not in columns:
+        columns = (*columns, "synced")
+    rows = []
+    for row in reader:
+        outcome = outcomes.get((row.get("exam_answer_id") or "").strip())
+        rows.append({**row, "synced": outcome} if outcome else row)
+    return _write_csv(columns, rows)

@@ -122,8 +122,12 @@ def _csv(text: str) -> list[dict[str, str]]:
     return list(csv.DictReader(io.StringIO(text)))
 
 
+def _synced(text: str) -> dict[str, str]:
+    return {row["exam_answer_id"]: row["synced"] for row in _csv(text)}
+
+
 @pytest.mark.asyncio
-async def test_completed_run_posts_grades_and_records_written() -> None:
+async def test_completed_run_posts_grades_and_marks_each_grade_row() -> None:
     artifacts = FakeArtifacts(_batch_files())
     finalizer, posted = _finalizer(FakeRuns(_info()), artifacts)
 
@@ -142,15 +146,14 @@ async def test_completed_run_posts_grades_and_records_written() -> None:
             },
         }
     ]
-    assert _csv(artifacts.files["written_q3.csv"]) == [
-        {"exam_answer_id": "a1", "score": "8.0", "feedback": "不錯"}
-    ]
+    assert "written_q3.csv" not in artifacts.files
+    assert _synced(artifacts.files["grade_q3.csv"]) == {"a1": "yes", "a2": "", "a3": "out_of_range"}
+    assert _csv(artifacts.files["grade_q3.csv"])[0]["reason"] == "不錯"
     progress = _csv(artifacts.files["progress.csv"])
+    assert list(progress[0]) == ["question_id", "run_id", "status", "error", "updated_at"]
     assert progress[0]["question_id"] == "q3"
     assert progress[0]["run_id"] == str(RUN_ID)
     assert progress[0]["status"] == "completed"
-    assert progress[0]["written_count"] == "1"
-    assert progress[0]["out_of_range_count"] == "1"
 
 
 @pytest.mark.asyncio
@@ -177,11 +180,11 @@ async def test_grade_write_survives_backend_https_redirect() -> None:
 
     progress = _csv(artifacts.files["progress.csv"])
     assert progress[0]["status"] == "completed"
-    assert progress[0]["written_count"] == "1"
+    assert _synced(artifacts.files["grade_q3.csv"])["a1"] == "yes"
 
 
 @pytest.mark.asyncio
-async def test_skipped_rows_not_recorded() -> None:
+async def test_skipped_rows_are_marked_skipped() -> None:
     artifacts = FakeArtifacts(_batch_files())
     finalizer, _ = _finalizer(
         FakeRuns(_info()), artifacts, responses=[{"exam_answer_id": "a1", "status": "skipped"}]
@@ -189,10 +192,8 @@ async def test_skipped_rows_not_recorded() -> None:
 
     await finalizer(RUN_ID, "lease:teacher")
 
-    assert "written_q3.csv" not in artifacts.files
-    progress = _csv(artifacts.files["progress.csv"])[0]
-    assert progress["written_count"] == "0"
-    assert progress["skipped_count"] == "1"
+    assert _synced(artifacts.files["grade_q3.csv"])["a1"] == "skipped"
+    assert _csv(artifacts.files["progress.csv"])[0]["status"] == "completed"
 
 
 @pytest.mark.asyncio
@@ -264,20 +265,20 @@ async def test_backend_error_rows_are_reported() -> None:
 
     progress = _csv(artifacts.files["progress.csv"])[0]
     assert progress["status"] == "completed"
-    assert progress["written_count"] == "0"
     assert "1" in progress["error"]
+    assert _synced(artifacts.files["grade_q3.csv"])["a1"] == "error"
 
 
-class FailingWrittenArtifacts(FakeArtifacts):
+class FailingGradeArtifacts(FakeArtifacts):
     async def put_for_run(self, *, filename, **kwargs):
-        if filename.startswith("written_"):
+        if filename.startswith("grade_"):
             raise RuntimeError("s3 down")
         await super().put_for_run(filename=filename, **kwargs)
 
 
 @pytest.mark.asyncio
-async def test_artifact_copy_failure_keeps_success_with_durable_backend_receipt() -> None:
-    artifacts = FailingWrittenArtifacts(_batch_files())
+async def test_marking_failure_keeps_success_with_durable_backend_receipt() -> None:
+    artifacts = FailingGradeArtifacts(_batch_files())
     finalizer, posted = _finalizer(FakeRuns(_info()), artifacts)
 
     await finalizer(RUN_ID, "lease:teacher")
@@ -285,7 +286,6 @@ async def test_artifact_copy_failure_keeps_success_with_durable_backend_receipt(
     assert len(posted) == 1
     progress = _csv(artifacts.files["progress.csv"])[0]
     assert progress["status"] == "completed"
-    assert progress["written_count"] == "1"
     assert posted[0]["body"]["batch_session_id"] == str(SESSION_ID)
     assert posted[0]["body"]["batch_run_id"] == str(RUN_ID)
 
@@ -327,7 +327,7 @@ async def test_backend_auth_rejection_pauses_remaining_queue(http_status):
         await finalizer(RUN_ID, "lease:teacher")
     assert runs.cancelled_sessions == [SESSION_ID]
     assert _csv(artifacts.files["progress.csv"])[0]["status"] == "paused"
-    assert "written_q3.csv" not in artifacts.files
+    assert set(_synced(artifacts.files["grade_q3.csv"]).values()) == {""}
 
 
 @pytest.mark.asyncio
@@ -347,7 +347,7 @@ async def test_run_with_several_questions_finalizes_each_one() -> None:
     await finalizer(RUN_ID, "lease:teacher")
 
     assert [p["body"]["question_id"] for p in posted] == ["q3", "q4"]
-    assert _csv(artifacts.files["written_q4.csv"])[0]["exam_answer_id"] == "b1"
+    assert _synced(artifacts.files["grade_q4.csv"])["b1"] == "yes"
     progress = {row["question_id"]: row for row in _csv(artifacts.files["progress.csv"])}
     assert {qid: row["status"] for qid, row in progress.items()} == {
         "q3": "completed",
