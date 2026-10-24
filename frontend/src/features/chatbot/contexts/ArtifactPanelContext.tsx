@@ -21,8 +21,8 @@ import {
   listArtifacts,
   type ArtifactRecord,
 } from "@/infrastructure/api/repositories/artifact.repository";
-import { useCopilotSessions } from "@copilot";
-import { selectFinishedArtifactToolIds } from "../adapters/qJudgeCopilotMessageData";
+import { useCopilotRun, useCopilotSessions } from "@copilot";
+import { isArtifactMutationTool, selectFinishedArtifactToolIds } from "../adapters/qJudgeCopilotMessageData";
 
 interface ArtifactPanelContextValue {
   isOpen: boolean;
@@ -37,7 +37,7 @@ interface ArtifactPanelContextValue {
   error: string | null;
   refresh: () => Promise<void>;
 
-  /** Hint from ChainOfThought: a new artifact_write/read finished. */
+  /** Hint from ChainOfThought: an artifact mutation finished. */
   markToolFinished: (toolName: string) => void;
 }
 
@@ -45,10 +45,6 @@ const ArtifactPanelContext = createContext<ArtifactPanelContextValue | null>(nul
 
 interface ArtifactPanelProviderProps {
   children: ReactNode;
-}
-
-function isArtifactToolName(toolName: string): boolean {
-  return toolName.startsWith("artifact_");
 }
 
 // Trailing-edge debounce for burst refreshes triggered by the agent firing
@@ -61,6 +57,7 @@ export function ArtifactPanelProvider({
   children,
 }: ArtifactPanelProviderProps) {
   const { activeSession } = useCopilotSessions();
+  const { state: runState } = useCopilotRun();
   const sessionId = activeSession.status === "ready" ? activeSession.id : null;
   const [isOpen, setIsOpen] = useState(false);
   const [activeArtifactId, setActiveArtifactId] = useState<string | null>(null);
@@ -135,17 +132,13 @@ export function ArtifactPanelProvider({
 
   const markToolFinished = useCallback(
     (toolName: string) => {
-      if (!isArtifactToolName(toolName)) return;
+      if (!isArtifactMutationTool(toolName)) return;
       scheduleRefresh();
     },
     [scheduleRefresh],
   );
 
-  // Auto-watch the current session's messages for finished artifact_* tool calls.
-  // Previously this was done inside ChatContainerBody, which is only mounted when
-  // the right chat panel is open. Consumers like AI Grading read `artifacts` for
-  // progress tracking even when the chat panel is closed — so the refresh trigger
-  // must live here, where the provider stays mounted for the whole session.
+  // Keep artifact previews current after writes, even while the panel is closed.
   useEffect(() => {
     const messages = activeSession.status === "ready" ? activeSession.data.messages : [];
     for (const toolCallId of selectFinishedArtifactToolIds(messages)) {
@@ -154,6 +147,20 @@ export function ArtifactPanelProvider({
       scheduleRefresh();
     }
   }, [activeSession, scheduleRefresh]);
+
+  // Completed runs return to ready with no run object. Refresh once on that
+  // transition, after server-generated exports have been persisted.
+  const exportingSession = useRef<string | null>(null);
+  useEffect(() => {
+    if (runState.run?.sessionId === sessionId && runState.status !== "error") {
+      exportingSession.current = sessionId;
+    } else if (runState.status === "ready" && exportingSession.current === sessionId && sessionId) {
+      exportingSession.current = null;
+      scheduleRefresh();
+    } else if (exportingSession.current !== sessionId || runState.status === "error") {
+      exportingSession.current = null;
+    }
+  }, [runState.status, runState.run?.sessionId, sessionId, scheduleRefresh]);
 
   const open = useCallback((artifactId?: string) => {
     setIsOpen(true);

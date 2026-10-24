@@ -105,9 +105,6 @@ class RunRow(Base):
     repair_pending: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )
-    finalization_pending: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default="false"
-    )
     last_sequence: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"
     )

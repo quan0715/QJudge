@@ -66,6 +66,22 @@ function normalizeMultipleIndexes(
   return [...new Set(normalized)].sort((a, b) => a - b);
 }
 
+function optionIndexes(value: unknown, row: GradingAnswerRow): number[] {
+  const options = row.questionOptions ?? [];
+  if (row.questionType === "multiple_choice") return normalizeMultipleIndexes(value, options) ?? [];
+  const index = normalizeChoiceIndex(value, options, row.questionType);
+  return index === null ? [] : [index];
+}
+
+/** Option indexes the student picked; [] when the answer cannot be read. */
+export function selectedOptionIndexes(row: GradingAnswerRow): number[] {
+  return optionIndexes((row.answerContent as Record<string, unknown>).selected, row);
+}
+
+export function correctOptionIndexes(row: GradingAnswerRow): number[] {
+  return optionIndexes(row.correctAnswer, row);
+}
+
 function sameNumberArray(a: number[], b: number[]): boolean {
   if (a.length !== b.length) return false;
   return a.every((value, index) => value === b[index]);

@@ -2407,3 +2407,105 @@ describe("CopilotProvider run metadata", () => {
     expect(startRun.mock.calls[0]?.[0].metadata).toBeUndefined();
   });
 });
+
+
+describe("externally started run restoration", () => {
+  it("keeps restoring a newly selected run through throttled lookups at Retry-After boundaries", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const run: CopilotRun = { id: "new-run", sessionId: session.id, status: "running", lastSequence: 0 };
+    const throttled = (retryAfterMs: number) => ({ code: "transport-error", operation: "subscribe-run", recoverable: true, retryAfterMs });
+    const lookup = vi.spyOn(transport, "getActiveRun").mockRejectedValueOnce(throttled(5000)).mockRejectedValueOnce(throttled(3000)).mockResolvedValue(run);
+    let observer: CopilotRunObserver | undefined;
+    const subscribe = vi.spyOn(transport, "subscribeRun").mockImplementation((_run, next) => { observer = next; return { close: vi.fn(), closed: false }; });
+    vi.useFakeTimers();
+    const { result, unmount } = renderHook(() => useCopilotStateContext(), { wrapper: createWrapper({ transport, initialSession: "first" }) });
+    try {
+      await act(async () => {});
+      expect(lookup).toHaveBeenCalledTimes(1);
+      await act(() => vi.advanceTimersByTimeAsync(4999));
+      expect(lookup).toHaveBeenCalledTimes(1);
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      expect(lookup).toHaveBeenCalledTimes(2);
+      await act(() => vi.advanceTimersByTimeAsync(2999));
+      expect(subscribe).not.toHaveBeenCalled();
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      expect(subscribe).toHaveBeenCalledTimes(1);
+      act(() => observer!.next({ type: "part-upsert", runId: run.id, sessionId: session.id, sequence: 1, resumeSequence: 1,
+        messageId: `run-${run.id}-assistant`, part: { type: "tool", toolCallId: "task-1", toolName: "task", state: "input-ready" } }));
+      expect(result.current.activeSession.data?.messages).toEqual(expect.arrayContaining([
+        expect.objectContaining({ role: "assistant", parts: expect.arrayContaining([expect.objectContaining({ toolCallId: "task-1" })]) }),
+      ]));
+      act(() => observer!.error(throttled(4000) as Parameters<CopilotRunObserver["error"]>[0]));
+      await act(() => vi.advanceTimersByTimeAsync(3999));
+      expect(subscribe).toHaveBeenCalledTimes(1);
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      expect(subscribe).toHaveBeenCalledTimes(2);
+      expect(subscribe.mock.lastCall?.[2]).toMatchObject({ fromSequence: 1 });
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([false, true])("recovers a throttled session load unless selection changed: %s", async (switchSession) => {
+    const transport = new MemoryCopilotTransport();
+    const first = await transport.createSession();
+    const second = await transport.createSession();
+    const originalGet = transport.getSession.bind(transport);
+    const load = vi.spyOn(transport, "getSession").mockRejectedValueOnce({ code: "transport-error", operation: "load-session", recoverable: true, retryAfterMs: 5000 })
+      .mockImplementation(originalGet);
+    vi.spyOn(transport, "getActiveRun").mockImplementation(async (id) => ({ id: `run-${id}`, sessionId: id, status: "running" }));
+    const subscribe = vi.spyOn(transport, "subscribeRun").mockReturnValue({ close: vi.fn(), closed: false });
+    const { result, unmount } = renderHook(() => useCopilotSessions(), { wrapper: createWrapper({ transport, initialSession: "none" }) });
+    await waitFor(() => expect(result.current.listStatus).toBe("ready"));
+    vi.useFakeTimers();
+    try {
+      await act(() => result.current.select(first.id));
+      expect(subscribe).not.toHaveBeenCalled();
+      if (switchSession) await act(() => result.current.select(second.id));
+      await act(() => vi.advanceTimersByTimeAsync(4999));
+      expect(load.mock.calls.filter(([id]) => id === first.id)).toHaveLength(1);
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      expect(result.current.activeSession.id).toBe(switchSession ? second.id : first.id);
+      expect(result.current.activeSession.status).toBe("ready");
+      expect(load.mock.calls.filter(([id]) => id === first.id)).toHaveLength(switchSession ? 1 : 2);
+      expect(subscribe).toHaveBeenCalledTimes(1);
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
+  it("renders a tool before any assistant text when the restored session has no assistant message", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const run: CopilotRun = {id: "external-run", sessionId: session.id, status: "running", lastSequence: 0};
+    vi.spyOn(transport, "getActiveRun").mockResolvedValue(run);
+    let observer: CopilotRunObserver | undefined;
+    vi.spyOn(transport, "subscribeRun").mockImplementation((_run, next) => { observer = next; return {close: vi.fn(), closed: false}; });
+    const {result} = renderHook(() => useCopilotStateContext(), {wrapper: createWrapper({transport, initialSession: "first"})});
+    await waitFor(() => expect(observer).toBeDefined());
+    act(() => observer!.next({type: "part-upsert", runId: run.id, sessionId: session.id, sequence: 1, resumeSequence: 1,
+      messageId: `run-${run.id}-assistant`, part: {type: "tool", toolCallId: "read-1", toolName: "read_file", state: "input-ready"}}));
+    expect(result.current.activeSession.data?.messages).toEqual(expect.arrayContaining([
+      expect.objectContaining({role: "assistant", parts: expect.arrayContaining([expect.objectContaining({toolCallId: "read-1"})])}),
+    ]));
+  });
+  it("does not reuse a discarded local cursor when reloading an older session snapshot", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const run: CopilotRun = {id: "external-run", sessionId: session.id, status: "running", assistantMessageId: "assistant", lastSequence: 0};
+    vi.spyOn(transport, "getSession").mockResolvedValue({...session, messages: [{id: "assistant", role: "assistant", parts: [], createdAt: new Date()}]});
+    vi.spyOn(transport, "getActiveRun").mockResolvedValue(run);
+    let observer: CopilotRunObserver | undefined;
+    const subscribe = vi.spyOn(transport, "subscribeRun").mockImplementation((_run, next) => { observer = next; return {close: vi.fn(), closed: false}; });
+    const {result} = renderHook(() => ({sessions: useCopilotSessions(), state: useCopilotStateContext()}), {wrapper: createWrapper({transport, initialSession: "first"})});
+    await waitFor(() => expect(observer).toBeDefined());
+    act(() => observer!.next({type: "text-delta", runId: run.id, sessionId: session.id, sequence: 1, resumeSequence: 5, messageId: "assistant", delta: "first"}));
+    await act(() => result.current.sessions.select(session.id));
+    expect(subscribe.mock.lastCall?.[2]).toMatchObject({fromSequence: 0});
+    act(() => observer!.next({type: "text-delta", runId: run.id, sessionId: session.id, sequence: 1, resumeSequence: 5, messageId: "assistant", delta: "first"}));
+    expect(result.current.state.activeSession.data?.messages[0].parts).toEqual([{type: "text", text: "first"}]);
+  });
+});

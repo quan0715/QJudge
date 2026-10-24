@@ -203,21 +203,24 @@ def test_usage_report_replaces_absolute_totals(run: Run, assistant: Message) -> 
     }
 
 
-def test_usage_report_accepts_the_run_id_added_by_the_transport_boundary(
-    run: Run, assistant: Message
+@pytest.mark.parametrize("envelope", [{}, {"run_id": "transport-run"}, {"seq": 1}, {"run_id": "transport-run", "seq": 1}])
+def test_usage_report_accepts_transport_and_persistence_metadata(
+    run: Run, assistant: Message, envelope: dict[str, object]
 ) -> None:
     projection = reduce_run_event(
         run,
         assistant,
         {
             "type": "usage_report",
-            "run_id": str(run.id),
+            **envelope,
             "input_tokens": 12,
             "output_tokens": 7,
         },
     )
 
     assert projection.run.usage == Usage(input_tokens=12, output_tokens=7)
+    completed = reduce_run_event(projection.run, projection.assistant, {"type": "run_completed", "seq": 2})
+    assert completed.run.status == RunStatus.COMPLETED
 
 
 @pytest.mark.parametrize(
@@ -361,3 +364,9 @@ def test_nested_tool_does_not_clobber_task_metadata(run: Run, assistant: Message
     assert "parent_tool_call_id" not in executed[1]
     assert "in_flight_tools" not in result.metadata
     assert "current_tool" not in result.metadata
+
+
+def test_completed_task_keeps_its_launch_sequence(run, assistant):
+    start = reduce_run_event(run, assistant, {"type": "tool_call_started", "tool_name": "task", "tool_call_id": "T2", "seq": 12})
+    end = reduce_run_event(start.run, start.assistant, {"type": "tool_call_finished", "tool_call_id": "T2", "result": "done", "seq": 204})
+    assert end.assistant.metadata["tools_executed"][0]["start_sequence"] == 12

@@ -12,8 +12,6 @@ from .runtime import CheckpointRepair, RecoveryRun
 
 
 class SchedulableRuns(Protocol):
-    async def pending_finalizations(self) -> list[RecoveryRun]: ...
-
     async def fail_stale_runs(self, cutoff: datetime) -> list[RecoveryRun]: ...
 
     async def complete_stale_recovery(self, recovery: RecoveryRun) -> bool: ...
@@ -70,16 +68,6 @@ class WorkerScheduler:
                 TraceContext(request_id="ai-stale-recovery"),
             )
         return recovered
-
-    async def recover_pending_finalizations(self) -> int:
-        pending = await self._runs.pending_finalizations()
-        for recovery in pending:
-            await self._runs.dispatch_next_after_terminal(
-                recovery.run_id,
-                self._credentials.key_for(recovery.owner).value,
-                TraceContext(request_id="ai-finalization-recovery"),
-            )
-        return len(pending)
 
     async def dispatch_unblocked_sessions(self) -> int:
         queued = await self._runs.unblocked_queued_runs()

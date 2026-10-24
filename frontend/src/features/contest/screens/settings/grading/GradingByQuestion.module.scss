@@ -6,13 +6,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-right: 1px solid
-    var(
-      --qg-panel-divider-strong-color,
-      var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01))
-    );
   overflow: hidden;
-  background: var(--cds-layer-02);
+  background: var(--cds-layer-01);
 }
 
 .sidebarTypeIcon {

@@ -11,6 +11,67 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("chatbotRepository active run request sharing", () => {
+  it("shares concurrent reads and fetches fresh state after completion", async () => {
+    let resolve!: (response: Response) => void;
+    const get = vi.spyOn(httpClient, "get").mockImplementation(async () => new Response(JSON.stringify({ results: [] }), { status: 200 })).mockReturnValueOnce(new Promise<Response>((done) => { resolve = done; }));
+    const calls = [chatbotRepository.getActiveRuns(), chatbotRepository.getActiveRuns(), chatbotRepository.getActiveRuns()];
+    resolve(new Response(JSON.stringify({ results: [] }), { status: 200 }));
+    await Promise.all(calls);
+    expect(get).toHaveBeenCalledTimes(1);
+
+    get.mockResolvedValueOnce(new Response(JSON.stringify({ results: [{
+      run_id: RUN_ID, session_id: SESSION_ID, status: "running", kind: "chat", last_sequence: 1,
+    }] }), { status: 200 }));
+    expect(await chatbotRepository.getActiveRuns()).toMatchObject([{ id: RUN_ID, status: "running" }]);
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears a failed shared request so the next caller can retry", async () => {
+    let resolve!: (response: Response) => void;
+    const get = vi.spyOn(httpClient, "get").mockImplementation(async () => new Response(JSON.stringify({ detail: "throttled" }), { status: 429 })).mockReturnValueOnce(new Promise<Response>((done) => { resolve = done; }));
+    const calls = [chatbotRepository.getActiveRuns(), chatbotRepository.getActiveRuns()];
+    resolve(new Response(JSON.stringify({ detail: "throttled" }), { status: 429 }));
+    const results = await Promise.allSettled(calls);
+    expect(results).toEqual([expect.objectContaining({ status: "rejected", reason: expect.objectContaining({ status: 429 }) }), expect.objectContaining({ status: "rejected", reason: expect.objectContaining({ status: 429 }) })]);
+    expect(get).toHaveBeenCalledTimes(1);
+
+    get.mockResolvedValueOnce(new Response(JSON.stringify({ results: [] }), { status: 200 }));
+    await expect(chatbotRepository.getActiveRuns()).resolves.toEqual([]);
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("chatbotRepository subscription throttling", () => {
+  it.each(["seconds", "date"])("preserves Retry-After %s on SSE rejection for the reconnect scheduler", async (format) => {
+    vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-24T13:00:00Z"));
+    const retryAfter = format === "seconds" ? "5" : "Sat, 24 Oct 2026 13:00:05 GMT";
+    vi.spyOn(httpClient, "request").mockResolvedValue(new Response("throttled", { status: 429, headers: { "Retry-After": retryAfter } }));
+    await expect(chatbotRepository.subscribeRunEvents({ id: RUN_ID, sessionId: SESSION_ID, status: "running", kind: "chat" }, {}))
+      .rejects.toMatchObject({ status: 429, retryAfterMs: 5000 });
+  });
+
+  it("preserves Retry-After when active run lookup is throttled", async () => {
+    vi.spyOn(httpClient, "get").mockResolvedValue(new Response("throttled", { status: 429, headers: { "Retry-After": "4" } }));
+    await expect(chatbotRepository.getActiveRuns()).rejects.toMatchObject({ status: 429, retryAfterMs: 4000 });
+  });
+
+  it("does not reuse an active-run lookup started before a successful new run", async () => {
+    let resolveOld!: (response: Response) => void;
+    const get = vi.spyOn(httpClient, "get").mockReturnValueOnce(new Promise<Response>((resolve) => { resolveOld = resolve; }));
+    const oldLookup = chatbotRepository.getActiveRuns();
+    const newRun = { run_id: RUN_ID, session_id: SESSION_ID, status: "running", kind: "chat", last_sequence: 0 };
+    vi.spyOn(httpClient, "post").mockResolvedValue(new Response(JSON.stringify(newRun), { status: 202 }));
+    await chatbotRepository.startRun(SESSION_ID, "start");
+    get.mockResolvedValueOnce(new Response(JSON.stringify({ results: [newRun] }), { status: 200 }));
+    const newLookup = chatbotRepository.getActiveRuns();
+    resolveOld(new Response(JSON.stringify({ results: [] }), { status: 200 }));
+    await oldLookup;
+    expect(await newLookup).toMatchObject([{ id: RUN_ID }]);
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("chatbotRepository AI-owned identifiers", () => {
   it("maps aggregate-scoped message ordinals to stable UI ids", async () => {
     vi.spyOn(httpClient, "get").mockResolvedValueOnce(
@@ -1116,4 +1177,50 @@ describe("chatbotRepository subagent events", () => {
       parentToolCallId: "T1",
     });
   });
+});
+
+
+it("restores in-flight subagent tools from an empty-text assistant snapshot", async () => {
+  vi.spyOn(httpClient, "get").mockResolvedValueOnce(new Response(JSON.stringify({
+    session_id: SESSION_ID, title: "Batch", context: {},
+    created_at: "2026-10-24T00:00:00Z", updated_at: "2026-10-24T00:00:00Z",
+    messages: [{ordinal: 2, role: "assistant", content: "", run_id: RUN_ID, created_at: "2026-10-24T00:00:00Z",
+      metadata: {run_status: "running", last_event_seq: 20, in_flight_tools: {
+        T1: {tool_name: "task", tool_call_id: "T1", input: {description: "Grade Q1"}},
+        C1: {tool_name: "read_file", tool_call_id: "C1", parent_tool_call_id: "T1", input: {path: "grade.csv"}},
+      }}}],
+  }), {status: 200, headers: {"Content-Type": "application/json"}}));
+  const session = await chatbotRepository.getSession(SESSION_ID);
+  expect(session.messages[0].toolExecutions).toEqual(expect.arrayContaining([
+    expect.objectContaining({toolCallId: "T1", isRunning: true, inputData: {description: "Grade Q1"}}),
+    expect.objectContaining({toolCallId: "C1", isRunning: true, parentToolCallId: "T1"}),
+  ]));
+});
+
+
+it.each(["cancelled", "failed"])("does not restore orphan tools as running after %s", async (status) => {
+  vi.spyOn(httpClient, "get").mockResolvedValueOnce(new Response(JSON.stringify({
+    session_id: SESSION_ID, title: "Batch", context: {},
+    created_at: "2026-10-24T00:00:00Z", updated_at: "2026-10-24T00:00:00Z",
+    messages: [{ordinal: 2, role: "assistant", content: "", run_id: RUN_ID, created_at: "2026-10-24T00:00:00Z",
+      metadata: {run_status: status, in_flight_tools: {T1: {tool_name: "task", tool_call_id: "T1"}}}}],
+  }), {status: 200, headers: {"Content-Type": "application/json"}}));
+  const session = await chatbotRepository.getSession(SESSION_ID);
+  const tool = session.messages[0].toolExecutions?.[0];
+  expect(tool?.isRunning).not.toBe(true);
+  expect(tool).toMatchObject({toolCallId: "T1", isError: true});
+});
+
+
+it("keeps launch order when one sibling is completed and another is running", async () => {
+  vi.spyOn(httpClient, "get").mockResolvedValueOnce(new Response(JSON.stringify({
+    session_id: SESSION_ID, title: "Batch", context: {},
+    created_at: "2026-10-24T00:00:00Z", updated_at: "2026-10-24T00:00:00Z",
+    messages: [{ordinal: 2, role: "assistant", content: "", run_id: RUN_ID, created_at: "2026-10-24T00:00:00Z",
+      metadata: {run_status: "running", tools_executed: [{tool_name: "task", tool_call_id: "T2", start_sequence: 12, result: "done"}],
+        in_flight_tools: {T1: {tool_name: "task", tool_call_id: "T1", start_sequence: 11}}}}],
+  }), {status: 200, headers: {"Content-Type": "application/json"}}));
+  const session = await chatbotRepository.getSession(SESSION_ID);
+  expect(session.messages[0].toolExecutions?.map(tool => tool.toolCallId)).toEqual(["T1", "T2"]);
+  expect(session.messages[0].toolExecutions?.[1].isRunning).not.toBe(true);
 });

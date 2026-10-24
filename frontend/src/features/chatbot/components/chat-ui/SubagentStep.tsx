@@ -1,9 +1,11 @@
 import { memo } from "react";
 import { Accordion, AccordionItem, ListItem, UnorderedList } from "@carbon/react";
+import { Bot } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { CopilotToolPart } from "@copilot";
 import { ChainOfThoughtStep, StepStatusIcon } from "./ChainOfThoughtStep";
-import { formatJson, subagentTitle } from "./chainOfThoughtFormat";
+import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
+import { formatSubagentResult, subagentTitle } from "./chainOfThoughtFormat";
 import styles from "./ChainOfThought.module.scss";
 
 function todoLabels(todos: readonly unknown[] | undefined): string[] {
@@ -25,8 +27,9 @@ export const SubagentStep = memo(function SubagentStep({
 }: SubagentStepProps) {
   const { t } = useTranslation("chatbot");
   const todos = todoLabels(step.activity?.todos);
-  const result = formatJson(step.output);
+  const result = formatSubagentResult(step.output);
   const isRunning = step.state === "input-streaming" || step.state === "input-ready";
+  const name = subagentTitle(step, t("ui.subagent"));
 
   return (
     <AccordionItem
@@ -34,8 +37,10 @@ export const SubagentStep = memo(function SubagentStep({
       title={
         <span className={styles.stepTitle}>
           <StepStatusIcon step={step} />
-          <span className={styles.subagentLabel}>{t("ui.subagent")}</span>
-          {subagentTitle(step, step.toolName)}
+          <Bot size={16} className={styles.subagentIcon} aria-label={t("ui.subagent")} />
+          <span className={styles.stepName} title={name}>
+            {name}
+          </span>
         </span>
       }
     >
@@ -53,12 +58,12 @@ export const SubagentStep = memo(function SubagentStep({
           ))}
         </Accordion>
       )}
-      {step.activity?.text && <div className={styles.subagentText}>{step.activity.text}</div>}
+      {step.activity?.text && <MarkdownRenderer enableMath className={styles.subagentText}>{step.activity.text}</MarkdownRenderer>}
       {isRunning && <div className={styles.processingText}>{t("ui.subagentRunning")}</div>}
       {result && (
         <div className={styles.section}>
           <div className={styles.sectionLabel}>{t("ui.subagentResult")}</div>
-          <div className={styles.subagentText}>{result}</div>
+          <MarkdownRenderer enableMath className={styles.subagentText}>{result}</MarkdownRenderer>
         </div>
       )}
     </AccordionItem>

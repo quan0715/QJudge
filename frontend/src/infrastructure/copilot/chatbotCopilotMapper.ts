@@ -42,9 +42,7 @@ export function mapToolInfoToCopilotPart(
   tool: ToolInfo,
   index: number,
 ): CopilotToolPart {
-  const state = tool.isError
-    ? "error"
-    : "output-ready";
+  const state = tool.isError ? "error" : tool.isRunning ? "input-ready" : "output-ready";
   return {
     type: "tool",
     toolCallId: tool.toolCallId ?? `legacy-tool-${index}-${tool.toolName}`,
@@ -231,6 +229,9 @@ export function mapQJudgeError(
     code: overrides.code ?? classification.code,
     operation,
     recoverable: overrides.recoverable ?? classification.recoverable,
+    ...(cause && typeof cause === "object" && "retryAfterMs" in cause
+      && typeof cause.retryAfterMs === "number" && Number.isFinite(cause.retryAfterMs)
+      ? { retryAfterMs: Math.max(0, cause.retryAfterMs) } : {}),
     cause,
   });
 }

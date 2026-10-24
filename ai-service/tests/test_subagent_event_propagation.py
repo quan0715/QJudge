@@ -74,3 +74,18 @@ def test_subagent_events_carry_task_run_id_in_parent_ids() -> None:
         e for e in events if e["event"] == "on_tool_start" and e["name"] == "echo_tool"
     )
     assert task_start["run_id"] in echo_start["parent_ids"]
+
+
+def test_real_subagent_task_end_adapts_to_clean_final_message() -> None:
+    from infrastructure.agent.event_adapter import adapt_langgraph_event, to_sse_dict
+
+    events = asyncio.run(_collect_events())
+    task_end = next(
+        e for e in events if e["event"] == "on_tool_end" and e["name"] == "task"
+    )
+
+    adapted = adapt_langgraph_event(task_end)
+
+    assert len(adapted) == 1
+    assert to_sse_dict(adapted[0])["result"] == "子代理完成"
+    assert adapted[0].is_error is False

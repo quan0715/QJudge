@@ -74,23 +74,15 @@ describe("BatchGradingQuestionNotice", () => {
     expect(screen.queryByText("grading.batch.noticeIncomplete")).not.toBeInTheDocument();
   });
 
-  it("explains a finalize timeout", () => {
-    render(
-      <BatchGradingQuestionNotice
-        state={state({ status: "failed", error: "finalizeTimeout" })}
-        onResume={vi.fn()}
-      />,
-    );
-    expect(screen.getByText("grading.batch.finalizeTimeout")).toBeInTheDocument();
+  it("without a resume action, a failure shows its reason and no fill button", () => {
+    render(<BatchGradingQuestionNotice state={state({ status: "failed", error: "模型逾時", ungradedCount: 4 })} />);
+    expect(screen.getByText("grading.batch.noticeFailed")).toBeInTheDocument();
+    expect(screen.getByText("模型逾時")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).toBeNull();
   });
 
-  it("tells the teacher when answers kept a score given by someone else", () => {
-    render(
-      <BatchGradingQuestionNotice
-        state={state({ status: "completed", ungradedCount: 0, writtenCount: 2, skippedAtWriteCount: 4 })}
-        onResume={vi.fn()}
-      />,
-    );
-    expect(screen.getByText("grading.batch.noticeSkippedAtWrite")).toBeInTheDocument();
+  it("without a resume action, a stopped run leaves no reminder", () => {
+    const { container } = render(<BatchGradingQuestionNotice state={state({ status: "cancelled", ungradedCount: 11 })} />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

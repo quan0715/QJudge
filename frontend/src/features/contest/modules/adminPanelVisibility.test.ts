@@ -36,10 +36,21 @@ describe("admin panel visibility in draft", () => {
     expect(codingPanels).not.toContain("participants");
     expect(codingPanels).not.toContain("logs");
     expect(codingPanels).not.toContain("statistics");
-    expect(paperPanels).toContain("grading");
+    expect(paperPanels).toContain("grading-workbench");
+    expect(paperPanels).not.toContain("grading");
+    expect(paperPanels).not.toContain("ai-grading");
     expect(paperPanels).toContain("proctoring");
     expect(paperPanels).not.toContain("participants");
     expect(paperPanels).not.toContain("logs");
     expect(paperPanels).not.toContain("statistics");
+  });
+});
+
+describe("legacy grading panels", () => {
+  it("hidden panels stay routable for paper exams", () => {
+    expect(paperExamContestModule.admin.getHiddenPanels?.({ status: "published" } as any)).toEqual([
+      "grading",
+      "ai-grading",
+    ]);
   });
 });

@@ -1,3 +1,4 @@
+import GradingMatrixViewScreen from "@/features/contest/screens/settings/grading/GradingMatrixViewScreen";
 import GradeAppealsPanel from "@/features/contest/components/GradeAppealsPanel";
 import { useQueryClient } from "@tanstack/react-query";
 import refreshStyles from "@/shared/ui/RefreshAnimation.module.scss";
@@ -107,7 +108,7 @@ export default function AdminOverviewScreen({
     return getContestState(contest, currentTimeMs) === "upcoming";
   }, [contest, currentTimeMs]);
 
-  const { globalStats, loading: gradingLoading } = useGradingData({
+  const { globalStats, questionProgress, students, answersByQuestion, reloadAnswers, loading: gradingLoading } = useGradingData({
     participantsOverride: participants,
     refetchOnParticipantsChange: false,
   });
@@ -175,6 +176,7 @@ export default function AdminOverviewScreen({
       await Promise.all([
         refreshAllAdminData(),
         refreshContest(),
+        reloadAnswers(),
         queryClient.invalidateQueries({ queryKey: ["contestStandings", contest?.id] }),
         queryClient.invalidateQueries({ queryKey: ["contestClarifications", contest?.id] }),
         queryClient.invalidateQueries({ queryKey: ["contestSubmissions", contest?.id] }),
@@ -183,7 +185,7 @@ export default function AdminOverviewScreen({
     } finally {
       setRefreshing(false);
     }
-  }, [refreshAllAdminData, refreshContest, refreshing, queryClient, contest?.id]);
+  }, [refreshAllAdminData, refreshContest, reloadAnswers, refreshing, queryClient, contest?.id]);
 
   const handleExport = useCallback(async () => {
     if (!contest?.id || exporting) return;
@@ -567,7 +569,17 @@ export default function AdminOverviewScreen({
               }
               submissionList={<ContestSubmissionListScreen embedded />}
               standingsContent={
-                <AdminStandingsScreen contestId={contest.id} contest={contest} embedded />
+                contest.contestType === "paper_exam" ? (
+                  <div className={styles.scoreMatrix}>
+                    <GradingMatrixViewScreen questionProgress={questionProgress} students={students} answersByQuestion={answersByQuestion}
+                      onSelectCell={(questionId, studentId) => setSearchParams((previous) => {
+                        const next = new URLSearchParams(previous);
+                        next.set("panel", "grading-workbench"); next.set("grading_mode", "manual");
+                        next.set("grading_question", questionId); next.set("grading_student", studentId);
+                        return next;
+                      })} />
+                  </div>
+                ) : <AdminStandingsScreen contestId={contest.id} contest={contest} embedded />
               }
             />
           )

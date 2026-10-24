@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CopilotMessage } from "@copilot";
 
 import {
+  batchKickoffDisplayText,
   selectFinishedArtifactToolIds,
   selectLatestNextTurnOptions,
   selectLatestTodoItems,
@@ -20,6 +21,11 @@ function assistantMessage(
 }
 
 describe("QJudge Copilot message data", () => {
+  it("shows a batch request as the teacher's words, without its units line", () => {
+    expect(batchKickoffDisplayText('batch_units: [{"id":"u"}]\n請批改第 1 題。')).toBe("請批改第 1 題。");
+    expect(batchKickoffDisplayText("請幫我批改")).toBe("請幫我批改");
+  });
+
   it("selects the latest valid todo data while ignoring malformed newer data", () => {
     const messages: CopilotMessage[] = [
       assistantMessage("older", [
@@ -85,7 +91,7 @@ describe("QJudge Copilot message data", () => {
           {
             type: "tool",
             toolCallId: "tool-error",
-            toolName: "artifact_read",
+            toolName: "artifact_csv_patch",
             state: "error",
             error: { code: "failed", message: "failed", recoverable: false },
           },
@@ -114,6 +120,19 @@ describe("QJudge Copilot message data", () => {
       "tool-error",
       "tool-old",
     ]);
+  });
+
+  it("ignores read-only artifact tools but includes every artifact mutation", () => {
+    const readTools = ["artifact_read", "artifact_list", "artifact_csv_search", "artifact_csv_to_json", "artifact_read_pdf", "submit_grading_unit"];
+    const writeTools = ["artifact_write", "artifact_write_csv", "artifact_csv_from_json", "artifact_csv_patch"];
+    const messages = [assistantMessage("tools", [...readTools, ...writeTools].map((toolName) => ({
+      type: "tool" as const,
+      toolCallId: toolName,
+      toolName,
+      state: "output-ready" as const,
+    })))];
+
+    expect(selectFinishedArtifactToolIds(messages)).toEqual([...writeTools].reverse());
   });
 
   it("returns empty results when no runtime-valid data exists", () => {

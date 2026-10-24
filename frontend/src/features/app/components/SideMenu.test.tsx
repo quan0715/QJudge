@@ -176,7 +176,7 @@ describe("SideMenu contest admin workspace panels", () => {
     expect(screen.getByTestId("location-search")).toHaveTextContent("panel=settings");
   });
 
-  it("shows published panel set including grading", async () => {
+  it("shows published panel set with the grading workbench only", async () => {
     mockGetContest.mockResolvedValue({
       id: "contest-2",
       contestType: "paper_exam",
@@ -191,7 +191,9 @@ describe("SideMenu contest admin workspace panels", () => {
 
     expect(await screen.findByText("adminLayout.nav.examManagement")).toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.proctoring")).toBeInTheDocument();
-    expect(screen.getByText("adminLayout.nav.examGrading")).toBeInTheDocument();
+    expect(screen.getByText("adminLayout.nav.gradingWorkbench")).toBeInTheDocument();
+    expect(screen.queryByText("adminLayout.nav.examGrading")).not.toBeInTheDocument();
+    expect(screen.queryByText("adminLayout.nav.examAiGrading")).not.toBeInTheDocument();
     expect(
       screen.queryByText("adminLayout.nav.examStatistics"),
     ).not.toBeInTheDocument();

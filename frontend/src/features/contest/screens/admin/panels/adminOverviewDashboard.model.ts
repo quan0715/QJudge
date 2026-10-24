@@ -87,7 +87,7 @@ export interface NextActionItem {
   key: "attention" | "grading" | "results";
   title: string;
   description: string;
-  panelTarget: "participants" | "grading" | "logs";
+  panelTarget: "participants" | "grading-workbench" | "logs";
   disabled?: boolean;
 }
 
@@ -776,7 +776,7 @@ export const buildAdminOverviewDashboard = ({
                 "adminOverview.model.nextActions.grading.afterExam",
                 "考後可開始批改",
               ),
-        panelTarget: "grading",
+        panelTarget: "grading-workbench",
       },
       {
         key: "results",
@@ -787,7 +787,7 @@ export const buildAdminOverviewDashboard = ({
               "adminOverview.model.nextActions.results.readyToPublish",
               "確認批改後發布",
             ),
-        panelTarget: "grading",
+        panelTarget: "grading-workbench",
         disabled: contest.resultsPublished,
       },
     ],

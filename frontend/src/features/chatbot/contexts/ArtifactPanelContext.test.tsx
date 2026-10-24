@@ -12,7 +12,7 @@ vi.mock(
   }),
 );
 
-import { DefaultCopilotTranslations, useCopilotSessions } from "@copilot";
+import { DefaultCopilotTranslations, useCopilotSessions, useCopilotComposer } from "@copilot";
 import {
   MemoryCopilotModelCatalog,
   MemoryCopilotSessionLocation,
@@ -26,6 +26,7 @@ import { QJudgeCopilotBoundary } from "./QJudgeCopilotProvider";
 function withCompletedArtifact(
   transport: MemoryCopilotTransport,
   completedSessionId: string,
+  toolName = "artifact_write",
 ) {
   const getSession = transport.getSession.bind(transport);
   vi.spyOn(transport, "getSession").mockImplementation(async (id, options) => {
@@ -42,7 +43,7 @@ function withCompletedArtifact(
             {
               type: "tool",
               toolCallId: "artifact-tool-1",
-              toolName: "artifact_write",
+              toolName,
               state: "output-ready",
               output: { ok: true },
             },
@@ -97,6 +98,38 @@ describe("ArtifactPanelProvider", () => {
     expect(listArtifacts).toHaveBeenLastCalledWith({ sessionId: session.id });
   });
 
+  it("does not refresh for reads or grading submissions from completion hints", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    withCompletedArtifact(transport, session.id, "artifact_read");
+    const { result } = renderHook(() => useArtifactPanel(), {
+      wrapper: createWrapper(transport, new MemoryCopilotSessionLocation(session.id)),
+    });
+    await waitFor(() => expect(listArtifacts).toHaveBeenCalledTimes(1));
+    act(() => {
+      for (const name of ["artifact_read", "artifact_list", "artifact_csv_search", "artifact_csv_to_json", "artifact_read_pdf", "submit_grading_unit"]) {
+        result.current.markToolFinished(name);
+      }
+    });
+    await act(async () => { await new Promise((resolve) => window.setTimeout(resolve, 350)); });
+    expect(listArtifacts).toHaveBeenCalledTimes(1);
+
+    act(() => result.current.markToolFinished("artifact_write_csv"));
+    await waitFor(() => expect(listArtifacts).toHaveBeenCalledTimes(2));
+  });
+
+  it("does not refresh artifacts after grading submission", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    withCompletedArtifact(transport, session.id, "submit_grading_unit");
+    renderHook(() => useArtifactPanel(), {
+      wrapper: createWrapper(transport, new MemoryCopilotSessionLocation(session.id)),
+    });
+    await waitFor(() => expect(listArtifacts).toHaveBeenCalledTimes(1));
+    await act(async () => { await new Promise((resolve) => window.setTimeout(resolve, 350)); });
+    expect(listArtifacts).toHaveBeenCalledTimes(1);
+  });
+
   it("does not refresh twice for the same completed tool call", async () => {
     const transport = new MemoryCopilotTransport();
     const session = await transport.createSession();
@@ -146,4 +179,22 @@ describe("ArtifactPanelProvider", () => {
       [{ sessionId: second.id }],
     ]);
   });
+});
+
+
+it("refreshes once when a run completes without artifact tool calls", async () => {
+  vi.mocked(listArtifacts).mockClear();
+  vi.mocked(listArtifacts).mockResolvedValue([]);
+  const transport = new MemoryCopilotTransport();
+  const session = await transport.createSession();
+  const { result } = renderHook(() => ({ panel: useArtifactPanel(), composer: useCopilotComposer() }), {
+    wrapper: createWrapper(transport, new MemoryCopilotSessionLocation(session.id)),
+  });
+  await waitFor(() => expect(listArtifacts).toHaveBeenCalledTimes(1));
+  act(() => result.current.composer.setDraft("grade"));
+  await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+  const sent = await act(() => result.current.composer.send());
+  act(() => transport.emit(sent.runId!, { type: "run-status", runId: sent.runId!,
+    sessionId: sent.sessionId, sequence: 1, status: "completed" }));
+  await waitFor(() => expect(listArtifacts).toHaveBeenCalledTimes(2));
 });

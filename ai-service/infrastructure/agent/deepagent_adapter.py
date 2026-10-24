@@ -5,10 +5,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from collections.abc import AsyncIterator, Mapping
-from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+from contextlib import AbstractAsyncContextManager, aclosing, asynccontextmanager, nullcontext
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import Any, AsyncGenerator, Protocol
 from uuid import UUID
@@ -23,6 +23,7 @@ from langgraph.types import Command
 
 from application.artifacts import ArtifactService
 from infrastructure.checkpoints.langgraph_store import LangGraphCheckpointStore
+from infrastructure.agent.event_coalescer import coalesce_text_events
 from infrastructure.agent.event_adapter import (
     AgentMessageDelta,
     AwaitingApproval,
@@ -56,6 +57,7 @@ from domain.model_catalog import ModelConfigInvalid, ModelNotAvailable
 from infrastructure.agent.approval_policy import WRITE_ACTIONS
 from infrastructure.agent.checkpoint_recovery_manager import CheckpointRecoveryManager
 from infrastructure.agent.recursion_failure_handler import RecursionFailureHandler
+from infrastructure.agent.tool_error_middleware import ToolErrorFeedbackMiddleware
 from infrastructure.agent.usage_accumulator import UsageAccumulator
 from infrastructure.artifacts.tools import build_artifact_tools
 from infrastructure.mcp.provider import MCPToolProvider
@@ -93,6 +95,7 @@ class AgentCommand:
     mcp_token: str
     approval: dict[str, Any] | None
     answer: str | None
+    execution_epoch: int = 0
 
 
 class AgentRunner(Protocol):
@@ -440,10 +443,14 @@ class _DeepAgentRuntime:
                 {
                     **GENERAL_PURPOSE_SUBAGENT,
                     "skills": skills,
-                    "middleware": [SubagentWriteGuardMiddleware(write_actions=WRITE_ACTIONS)],
+                    "middleware": [
+                        ToolErrorFeedbackMiddleware(),
+                        SubagentWriteGuardMiddleware(write_actions=WRITE_ACTIONS),
+                    ],
                 }
             ],
             "middleware": [
+                ToolErrorFeedbackMiddleware(),
                 # Must be the last middleware: inspects the final tool_calls produced by
                 # the model turn and pauses execution for human approval on write actions.
                 ActionAwareHITLMiddleware(
@@ -833,9 +840,13 @@ class DeepAgentAdapter:
         artifact_service: ArtifactService,
         checkpoint_store: CheckpointIdentity,
         runner: AgentRunner | None = None,
+        run_tools: Callable[[AgentCommand], Awaitable[list[Any]]] | None = None,
+        finalize_run: Callable[[AgentCommand], Awaitable[None]] | None = None,
         skills_paths: list[str] | None = None,
         memory_paths: list[str] | None = None,
     ) -> None:
+        self._run_tools = run_tools
+        self._finalize_run = finalize_run
         self._mcp_provider = mcp_provider
         self._artifact_service = artifact_service
         self._checkpoint_store = checkpoint_store
@@ -862,18 +873,34 @@ class DeepAgentAdapter:
             **self._checkpoint_store.configurable(command.session_id),
             "run_id": str(command.run_id),
         }
-        async with self._mcp_provider.connect(command.mcp_token) as mcp_tools:
-            tools = [
+        bound_tools = await self._run_tools(command) if self._run_tools is not None else []
+        tool_grading = any(getattr(tool, "name", None) == "get_grading_unit" for tool in bound_tools)
+        connection = nullcontext([]) if tool_grading else self._mcp_provider.connect(command.mcp_token)
+        async with connection as mcp_tools:
+            tools = [*bound_tools] if tool_grading else [
                 *mcp_tools,
-                *build_artifact_tools(
-                    session_id=command.session_id,
-                    run_id=command.run_id,
-                    artifact_service=self._artifact_service,
-                ),
+                *build_artifact_tools(session_id=command.session_id, run_id=command.run_id,
+                                      artifact_service=self._artifact_service),
+                *bound_tools,
             ]
-            async for raw_event in self._runner.execute(
-                command=command,
+            model_command = command
+            if tool_grading and command.operation == AgentOperation.START and command.prompt:
+                # The units line scopes the bound tools; the model reads the teacher's words.
+                visible = '\n'.join(line for line in command.prompt.splitlines()
+                                    if not line.startswith('batch_units:'))
+                model_command = replace(command, prompt=visible)
+            raw_events = self._runner.execute(
+                command=model_command,
                 tools=tools,
                 configurable=configurable,
-            ):
-                yield {**raw_event, "run_id": str(command.run_id)}
+            )
+            async with aclosing(coalesce_text_events(raw_events)) as events:
+                async for raw_event in events:
+                    if raw_event.get("type") == "run_completed" and self._finalize_run is not None:
+                        try:
+                            await self._finalize_run(command)
+                        except Exception:
+                            logger.exception("Run %s artifact export failed", command.run_id)
+                            yield {"type": "agent_message_delta", "run_id": str(command.run_id),
+                                   "content": "\n\n批改檔案匯出失敗；已保存的草稿與正式成績不受影響。"}
+                    yield {**raw_event, "run_id": str(command.run_id)}

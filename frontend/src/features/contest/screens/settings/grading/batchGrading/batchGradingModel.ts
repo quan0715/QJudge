@@ -1,9 +1,8 @@
+import type { BatchGradeWrite, GradingUnitProgress } from "@/infrastructure/api/repositories/examAnswers.repository";
 import type { ChatMessage, ChatRunStatus } from "@/core/types/chatbot.types";
 import type { GradingAnswerRow } from "../gradingTypes";
-import { parseCsvRecords } from "../gradeCsv";
 
 export const BATCH_GRADING_TASK_TYPE = "grading.batch";
-export const BATCH_ARTIFACT_STEP = "batch";
 export const BATCH_QUESTION_TYPES: readonly string[] = ["short_answer", "essay"];
 
 export type BatchQuestionStatus =
@@ -14,8 +13,7 @@ export type BatchQuestionStatus =
   | "awaiting-approval"
   | "completed"
   | "failed"
-  | "cancelled"
-  | "paused";
+  | "cancelled";
 
 /** Statuses that hold the session queue: revert and regrade must wait. */
 export const BATCH_ACTIVE_STATUSES: readonly BatchQuestionStatus[] = [
@@ -24,13 +22,7 @@ export const BATCH_ACTIVE_STATUSES: readonly BatchQuestionStatus[] = [
   "awaiting-approval",
 ];
 
-/** Error marker for a run whose finalize step never reported back. */
-export const FINALIZE_TIMEOUT_ERROR = "finalizeTimeout";
-
-/**
- * A question still needs AI work when it has ungraded answers and nothing is
- * running for it — including a completed run that left answers unwritten.
- */
+/** A question still needs AI work when it has ungraded answers and nothing is running for it. */
 export function isUnfinished(state: BatchQuestionState): boolean {
   return (
     state.ungradedCount > 0 &&
@@ -59,10 +51,6 @@ export interface BatchQuestionState {
   writtenCount: number;
   error?: string;
   runId?: string;
-  /** The run ended but its finalize step has not written progress yet. */
-  finalizing?: boolean;
-  /** Answers that already had a score (another grader) when the run wrote its grades. */
-  skippedAtWriteCount?: number;
 }
 
 export interface BatchActiveRun {
@@ -72,14 +60,10 @@ export interface BatchActiveRun {
 
 export interface WrittenRecord {
   examAnswerId: string;
+  questionId: string;
   score: number;
   feedback: string;
 }
-
-export const gradeCsvFilename = (questionId: string) => `grade_${questionId}.csv`;
-export const writtenCsvFilename = (questionId: string) => `written_${questionId}.csv`;
-export const BATCH_JSON_FILENAME = "batch.json";
-export const PROGRESS_CSV_FILENAME = "progress.csv";
 
 export function selectBatchQuestions(rows: readonly GradingAnswerRow[]): BatchQuestion[] {
   const byQuestion = new Map<string, BatchQuestion>();
@@ -101,63 +85,45 @@ export function selectBatchQuestions(rows: readonly GradingAnswerRow[]): BatchQu
   return [...byQuestion.values()].sort((a, b) => a.index - b.index);
 }
 
-/** Independent units sharing one run; siblings remain in one unit/subagent. */
-export const BATCH_PARALLEL_QUESTIONS = 3;
-
-export function groupForRuns<T>(items: readonly T[], size = BATCH_PARALLEL_QUESTIONS): T[][] {
-  const groups: T[][] = [];
-  for (let i = 0; i < items.length; i += size) groups.push(items.slice(i, i + size));
-  return groups;
-}
-
-
-function batchQuestionIdsOf(message: ChatMessage): string[] {
-  const match = /^\s*batch_question_id:\s*(.+?)\s*$/.exec(message.content.split("\n", 1)[0] ?? "");
-  return match ? match[1].split(",").map((id) => id.trim()).filter(Boolean) : [];
+/** Question ids a run was asked to grade, from its `batch_units:` line. */
+export function requestedQuestionIds(message: ChatMessage): string[] {
+  const line = /^batch_units: (.+)$/m.exec(message.content)?.[1];
+  if (!line) return [];
+  try {
+    return (JSON.parse(line) as { question_ids?: string[] }[]).flatMap((unit) => unit.question_ids ?? []);
+  } catch {
+    return [];
+  }
 }
 
 function statusFromActiveRun(status: ChatRunStatus): BatchQuestionStatus {
   if (status === "queued") return "queued";
-  if (status === "awaiting_approval" || status === "awaiting_user_answer") {
-    return "awaiting-approval";
-  }
+  if (status === "awaiting_approval" || status === "awaiting_user_answer") return "awaiting-approval";
   return "running";
 }
 
-const PROGRESS_STATUSES: readonly BatchQuestionStatus[] = [
-  "completed",
-  "failed",
-  "cancelled",
-  "paused",
-];
-
+/**
+ * Each question follows the last run that asked for it: completed once its unit was
+ * submitted, running while that run is active, otherwise how the run ended.
+ */
 export function deriveBatchState(input: {
   questions: readonly BatchQuestion[];
   messages: readonly ChatMessage[];
   activeRuns: readonly BatchActiveRun[];
-  progressCsv: string | null;
-  writtenCounts: Record<string, number>;
+  units: readonly GradingUnitProgress[];
+  written: readonly WrittenRecord[];
 }): BatchQuestionState[] {
   const latestRunByQuestion = new Map<string, string>();
-  const assistantStatusByRun = new Map<string, ChatRunStatus | undefined>();
+  const runEnd = new Map<string, { status?: ChatRunStatus; error?: string }>();
   for (const message of input.messages) {
     if (!message.runId) continue;
     if (message.role === "user") {
-      for (const questionId of batchQuestionIdsOf(message)) {
-        latestRunByQuestion.set(questionId, message.runId);
-      }
+      for (const questionId of requestedQuestionIds(message)) latestRunByQuestion.set(questionId, message.runId);
     } else {
-      assistantStatusByRun.set(message.runId, message.runStatus);
+      runEnd.set(message.runId, { status: message.runStatus, error: message.runError });
     }
   }
   const activeById = new Map(input.activeRuns.map((run) => [run.id, run.status]));
-  // One row per question; it belongs to the question's latest run only if run ids match.
-  const progressByQuestion = new Map(
-    (input.progressCsv ? parseCsvRecords(input.progressCsv) : []).map((record) => [
-      record.question_id,
-      record,
-    ]),
-  );
 
   return input.questions.map((question) => {
     const base = {
@@ -166,72 +132,31 @@ export function deriveBatchState(input: {
       label: question.label,
       index: question.index,
       ungradedCount: question.ungradedRows.length,
-      writtenCount: input.writtenCounts[question.questionId] ?? 0,
+      writtenCount: input.written.filter((record) => record.questionId === question.questionId).length,
     };
     const runId = latestRunByQuestion.get(question.questionId);
-    if (!runId) {
-      return { ...base, status: base.ungradedCount === 0 ? "skipped" : "idle" };
-    }
+    if (!runId) return { ...base, status: base.ungradedCount === 0 ? "skipped" : "idle" };
+    // A unit is written when submitted, even while the run grades other units.
+    const unit = input.units.find((item) => item.run_id === runId && item.question_ids.includes(question.questionId));
+    if (unit?.status === "completed") return { ...base, runId, status: "completed" };
     const active = activeById.get(runId);
     if (active) return { ...base, runId, status: statusFromActiveRun(active) };
-
-    const row = progressByQuestion.get(question.questionId);
-    const progress = row?.run_id === runId ? row : undefined;
-    const progressStatus = progress?.status as BatchQuestionStatus | undefined;
-    if (progressStatus && PROGRESS_STATUSES.includes(progressStatus)) {
-      return {
-        ...base,
-        runId,
-        status: progressStatus,
-        ...(progress?.error ? { error: progress.error } : {}),
-        ...(Number(progress?.skipped_count) > 0
-          ? { skippedAtWriteCount: Number(progress?.skipped_count) }
-          : {}),
-      };
-    }
-    const finished = assistantStatusByRun.get(runId);
-    // A finished run without its progress row is still being finalized.
-    if (finished === "completed" || finished === "failed") {
-      return { ...base, runId, status: "running", finalizing: true };
-    }
-    return { ...base, runId, status: "cancelled" };
+    const end = runEnd.get(runId);
+    if (end?.status === "cancelled") return { ...base, runId, status: "cancelled" };
+    return { ...base, runId, status: "failed", ...(end?.error ? { error: end.error } : {}) };
   });
 }
 
-/**
- * Downgrade runs that stay "finalizing" past `timeoutMs` to failures so the
- * teacher can resume them. `firstSeen` remembers when each run was first seen
- * finalizing and is pruned of runs that are no longer finalizing.
- */
-export function applyFinalizeTimeout(
-  states: readonly BatchQuestionState[],
-  firstSeen: Map<string, number>,
-  now: number,
-  timeoutMs: number,
-): BatchQuestionState[] {
-  const finalizingIds = new Set<string>();
-  const result = states.map((state) => {
-    if (!state.finalizing || !state.runId) return state;
-    finalizingIds.add(state.runId);
-    const since = firstSeen.get(state.runId) ?? now;
-    firstSeen.set(state.runId, since);
-    return now - since >= timeoutMs
-      ? { ...state, status: "failed" as const, finalizing: false, error: FINALIZE_TIMEOUT_ERROR }
-      : state;
-  });
-  for (const runId of [...firstSeen.keys()]) {
-    if (!finalizingIds.has(runId)) firstSeen.delete(runId);
-  }
-  return result;
-}
-
-export function parseWrittenCsv(text: string | null): WrittenRecord[] {
-  if (!text) return [];
-  return parseCsvRecords(text).map((record) => ({
-    examAnswerId: record.exam_answer_id,
-    score: Number(record.score),
-    feedback: record.feedback ?? "",
-  }));
+/** The AI's writes the backend still reports as unchanged. */
+export function currentWrites(writes: readonly BatchGradeWrite[]): WrittenRecord[] {
+  return writes
+    .filter((write) => write.current)
+    .map((write) => ({
+      examAnswerId: write.exam_answer_id,
+      questionId: write.question_id,
+      score: write.score,
+      feedback: write.feedback,
+    }));
 }
 
 export function selectRevertableAnswers(

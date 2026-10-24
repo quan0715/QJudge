@@ -6,7 +6,7 @@ import {
   Layer,
   Popover,
   PopoverContent,
-  FluidSearch,
+  Search,
   FluidDropdown,
 } from "@carbon/react";
 import { Catalog, DocumentExport, Filter, UserMultiple } from "@carbon/icons-react";
@@ -23,7 +23,6 @@ import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useAdminPanelRefresh } from "@/features/contest/contexts";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import {
-  IconModeSwitcher,
   type IconModeOption,
 } from "@/shared/ui/navigation";
 import { useBatchGrading } from "./grading/batchGrading/useBatchGrading";
@@ -190,16 +189,24 @@ const ContestExamGradingScreen: React.FC = () => {
     <div className={styles.editorRoot}>
       <div className={styles.globalToolbar}>
         <div className={styles.toolbarGroup}>
-          <IconModeSwitcher
-            value={viewMode}
-            options={viewModeOptions}
-            onChange={handleViewChange}
-            ariaLabel={t("grading.viewMode", "批改模式")}
-            className={styles.modeSwitcher}
-            tooltipPosition="bottom"
-          />
+          <div className={styles.modeSwitcher} role="group" aria-label={t("grading.viewMode", "批改模式")}>
+            {viewModeOptions.map((option) => (
+              <Button key={option.value} kind={viewMode === option.value ? "secondary" : "ghost"}
+                size="sm" renderIcon={option.icon} aria-pressed={viewMode === option.value}
+                onClick={() => handleViewChange(option.value)}>
+                {option.label}
+              </Button>
+            ))}
+          </div>
           {viewMode !== "matrix" ? (
-            <Layer>
+            <div className={styles.toolbarFilters}>
+              <Search id="grading-global-search" size="sm"
+                labelText={t("grading.searchStudent", "搜尋學生")}
+                placeholder={t("grading.searchStudent", "搜尋學生")}
+                value={searchQuery}
+                onChange={(event) => updateGradingParams({ grading_search: event.target.value || null })}
+              />
+            {viewMode === "byQuestion" && <Layer>
               <Popover
                 open={filterOpen}
                 align="bottom-left"
@@ -209,24 +216,16 @@ const ContestExamGradingScreen: React.FC = () => {
                 <Button
                   kind="ghost"
                   size="sm"
-                  hasIconOnly
                   renderIcon={Filter}
                   iconDescription={t("grading.filter", "篩選")}
                   data-testid="grading-global-filter-btn"
                   onClick={() => setFilterOpen((prev) => !prev)}
                   className={hasActiveFilters ? styles.globalFilterActive : undefined}
-                />
+                >
+                  {filterOptions.find((option) => option.id === filter)?.label}
+                </Button>
                 <PopoverContent className={styles.globalFilterPopoverContent}>
                   <div className={styles.globalFilterPopoverFields}>
-                    <FluidSearch
-                      id="grading-global-search"
-                      labelText={t("grading.searchStudent", "搜尋學生")}
-                      placeholder={`${t("grading.searchStudent", "搜尋學生")}...`}
-                      value={searchQuery}
-                      onChange={(event) =>
-                        updateGradingParams({ grading_search: event.target.value || null })
-                      }
-                    />
                     {viewMode === "byQuestion" ? (
                       <FluidDropdown
                         id="grading-global-filter"
@@ -266,16 +265,19 @@ const ContestExamGradingScreen: React.FC = () => {
                   </div>
                 </PopoverContent>
               </Popover>
-            </Layer>
+            </Layer>}
+            </div>
           ) : null}
         </div>
 
         <div className={styles.toolbarSpacer} />
+        <div className={styles.toolbarActions}>
         <BatchGradingToolbarControl
           batch={batch}
           resultsPublished={contest?.resultsPublished ?? false}
           onRequestStart={() => setBatchStartOpen(true)}
         />
+        </div>
       </div>
       <BatchGradingStartModal
         open={batchStartOpen}

@@ -95,7 +95,7 @@ function BatchGradingToolbarActions({
 
   const unfinished = batch.questions.filter(isUnfinished);
   const remaining = unfinished.reduce((sum, q) => sum + q.ungradedCount, 0);
-  const interrupted = unfinished.some((q) => q.status === "cancelled" || q.status === "paused");
+  const interrupted = unfinished.some((q) => q.status === "cancelled");
 
   return (
     <div className={styles.control}>

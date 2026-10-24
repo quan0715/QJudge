@@ -1,0 +1,20 @@
+import { renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { it, expect, vi } from "vitest";
+import { createElement, type ReactNode } from "react";
+import { getGradingUnit, type GradingUnitProgress } from "@/infrastructure/api/repositories/examAnswers.repository";
+import { useAiGradingDrafts } from "./useAiGradingDrafts";
+vi.mock("@/infrastructure/api/repositories/examAnswers.repository", () => ({getGradingUnit: vi.fn()}));
+it("reuses unchanged progress and isolates another run", async () => {
+  const unit: GradingUnitProgress = {unit_id: "u", run_id: "r", question_ids: ["q"], total_count: 2, draft_count: 1, written_count: 0, skipped_count: 0, status: "draft"};
+  vi.mocked(getGradingUnit).mockResolvedValue({...unit, rubric: null, grades: [{exam_answer_id: "a", score: 0, feedback: "draft"}]});
+  const client = new QueryClient();
+  const wrapper = ({children}: {children: ReactNode}) => createElement(QueryClientProvider, {client}, children);
+  const {result, rerender} = renderHook(({progress}) => useAiGradingDrafts("c", "s", progress), {wrapper, initialProps: {progress: unit}});
+  await waitFor(() => expect(result.current.scores.a?.score).toBe(0));
+  rerender({progress: {...unit}});
+  expect(getGradingUnit).toHaveBeenCalledTimes(1);
+  rerender({progress: {...unit, run_id: "another"}});
+  await waitFor(() => expect(getGradingUnit).toHaveBeenCalledTimes(2));
+  expect(result.current.scores).toEqual({});
+});

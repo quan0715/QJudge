@@ -41,7 +41,10 @@ from .exam_validation_response import (
 from ..services.participation import NO_ATTEMPT_MESSAGE, attempted_participants
 
 
-class ExamAnswerViewSet(viewsets.GenericViewSet):
+from .exam_grading_unit import ExamGradingUnitMixin
+
+
+class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
     """
     ViewSet for exam answer operations.
     Students submit/retrieve answers; TAs grade answers and view results.

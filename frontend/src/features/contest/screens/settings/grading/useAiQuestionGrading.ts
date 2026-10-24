@@ -17,7 +17,7 @@ import {
   serializeCsvRows,
 } from "./gradeCsv";
 
-interface AiSuggestion {
+export interface AiSuggestion {
   score: number | null;
   reason: string;
   synced: boolean;

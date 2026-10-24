@@ -375,7 +375,7 @@ export function CopilotProvider({
   const summarySequenceByRunRef = useRef<Record<string, number>>({});
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const restoreRunRef = useRef<
-    ((sessionId: string, revision: number) => Promise<void>) | null
+    ((sessionId: string, revision: number, freshSnapshot?: boolean) => Promise<void>) | null
   >(null);
   const lastSendRef = useRef<(CopilotSendInput & { optimisticId?: string }) | null>(null);
   const composerSendInFlightRef = useRef<Promise<CopilotSendResult> | null>(null);
@@ -774,7 +774,7 @@ export function CopilotProvider({
                 return;
               }
               void restoreRunRef.current?.(run.sessionId, revisionRef.current);
-            }, 1_000);
+            }, Math.max(1_000, error.retryAfterMs ?? 0));
           },
           complete(freshSession) {
             if (
@@ -831,7 +831,7 @@ export function CopilotProvider({
   );
 
   const restoreRun = useCallback(
-    async (sessionId: string, revision: number) => {
+    async (sessionId: string, revision: number, freshSnapshot = false) => {
       if (!enabledRef.current) return;
       const ownershipEpoch = ownershipEpochRef.current;
       const summaryRunId = sessionsRef.current.find(
@@ -888,18 +888,42 @@ export function CopilotProvider({
           });
           return;
         }
-        const localSequence = runtimeRef.current.lastResumeSequenceByRun[run.id];
+        const localSequence = freshSnapshot ? undefined : runtimeRef.current.lastResumeSequenceByRun[run.id];
         const lastSequence = Math.max(
           run.lastSequence ?? -1,
           localSequence ?? -1,
         );
         const restoredRun =
           lastSequence >= 0 ? { ...run, lastSequence } : run;
+        if (freshSnapshot) delete summarySequenceByRunRef.current[run.id];
         syncSessionSummaryRun(sessionId, restoredRun);
-        setRuntime((previous) => ({
-          ...previous,
-          runs: { ...previous.runs, [sessionId]: toRunState(restoredRun) },
-        }));
+        setRuntime((previous) => {
+          const session = previous.sessions[sessionId];
+          if (!session) return previous;
+          const assistantId = restoredRun.assistantMessageId ?? `run-${restoredRun.id}-assistant`;
+          // Show a thinking placeholder only before the run has any assistant output.
+          const lastMessage = session.messages[session.messages.length - 1];
+          const messages = lastMessage?.role === "assistant" || session.messages.some((message) => message.id === assistantId)
+            ? session.messages
+            : [...session.messages, {
+                id: assistantId,
+                role: "assistant" as const,
+                createdAt: new Date(),
+                parts: [{ type: "reasoning" as const, text: "", state: "streaming" as const }],
+                metadata: { optimistic: true, runId: restoredRun.id },
+              }];
+          return {
+            ...previous,
+            sessions: { ...previous.sessions, [sessionId]: { ...session, messages } },
+            runs: { ...previous.runs, [sessionId]: toRunState(restoredRun) },
+            ...(freshSnapshot ? {
+              lastSequenceByRun: { ...previous.lastSequenceByRun, [run.id]: -1 },
+              lastResumeSequenceByRun: {
+                ...previous.lastResumeSequenceByRun, [run.id]: restoredRun.lastSequence ?? 0,
+              },
+            } : {}),
+          };
+        });
         if (revision === revisionRef.current) subscribeToRun(restoredRun);
       } catch (error) {
         if (
@@ -909,6 +933,7 @@ export function CopilotProvider({
         ) {
           return;
         }
+        const restoreError = toCopilotError("subscribe-run", error);
         setRuntime((previous) => {
           const next = clearEmptyPendingReasoningForRun(
             previous,
@@ -922,14 +947,23 @@ export function CopilotProvider({
               [sessionId]: {
                 status: "error",
                 run: null,
-                error: toCopilotError("subscribe-run", error),
+                error: restoreError,
               },
             },
           };
         });
+        if (restoreError.recoverable) {
+          clearReconnectTimer();
+          reconnectTimerRef.current = setTimeout(() => {
+            reconnectTimerRef.current = null;
+            if (!enabledRef.current || ownershipEpoch !== ownershipEpochRef.current
+              || revision !== revisionRef.current || activeIdRef.current !== sessionId) return;
+            void restoreRunRef.current?.(sessionId, revision, freshSnapshot);
+          }, Math.max(1_000, restoreError.retryAfterMs ?? 0));
+        }
       }
     },
-    [closeRunSubscription, subscribeToRun, syncSessionSummaryRun, transport],
+    [clearReconnectTimer, closeRunSubscription, subscribeToRun, syncSessionSummaryRun, transport],
   );
   restoreRunRef.current = restoreRun;
 
@@ -965,7 +999,7 @@ export function CopilotProvider({
           sessions: { ...previous.sessions, [id]: session },
         }));
         storage?.set(LAST_SESSION_KEY, id);
-        await restoreRun(id, revision);
+        await restoreRun(id, revision, true);
       } catch (error) {
         if (
           !enabledRef.current ||
@@ -974,10 +1008,20 @@ export function CopilotProvider({
         ) {
           return;
         }
-        setActiveError(toCopilotError("load-session", error));
+        const loadError = toCopilotError("load-session", error);
+        setActiveError(loadError);
+        if (loadError.recoverable) {
+          clearReconnectTimer();
+          reconnectTimerRef.current = setTimeout(() => {
+            reconnectTimerRef.current = null;
+            if (!enabledRef.current || ownershipEpoch !== ownershipEpochRef.current
+              || revision !== revisionRef.current || activeIdRef.current !== id) return;
+            void selectSession(id, source);
+          }, Math.max(1_000, loadError.retryAfterMs ?? 0));
+        }
       }
     },
-    [closeRunSubscription, restoreRun, storage, transport, writeLocation],
+    [clearReconnectTimer, closeRunSubscription, restoreRun, storage, transport, writeLocation],
   );
 
   const startNew = useCallback(() => {
@@ -1870,7 +1914,7 @@ export function CopilotProvider({
             },
           }));
           storage?.set(LAST_SESSION_KEY, session.id);
-          await restoreRun(session.id, revision);
+          await restoreRun(session.id, revision, true);
         } else if (bootstrap.selectedId) {
           await selectSession(bootstrap.selectedId, "initial");
         } else if (bootstrap.create) {

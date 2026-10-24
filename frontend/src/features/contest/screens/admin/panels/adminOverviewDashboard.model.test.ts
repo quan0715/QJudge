@@ -189,6 +189,10 @@ describe("adminOverviewDashboard.model", () => {
       now: new Date("2026-05-03T10:15:00+08:00"),
     });
 
+    expect(data.nextActions.filter((item) => item.key !== "attention").map((item) => item.panelTarget)).toEqual([
+      "grading-workbench",
+      "grading-workbench",
+    ]);
     expect(data.examStatus.workItemLabel).toBe("考卷題目");
     expect(data.examStatus.workItemCount).toBe(12);
     expect(JSON.stringify(data)).not.toMatch(/submission|提交趨勢|提交/);
