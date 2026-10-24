@@ -12,7 +12,7 @@ vi.mock(
   }),
 );
 
-import { DefaultCopilotTranslations, useCopilotSessions } from "@copilot";
+import { DefaultCopilotTranslations, useCopilotSessions, useCopilotComposer } from "@copilot";
 import {
   MemoryCopilotModelCatalog,
   MemoryCopilotSessionLocation,
@@ -179,4 +179,22 @@ describe("ArtifactPanelProvider", () => {
       [{ sessionId: second.id }],
     ]);
   });
+});
+
+
+it("refreshes once when a run completes without artifact tool calls", async () => {
+  vi.mocked(listArtifacts).mockClear();
+  vi.mocked(listArtifacts).mockResolvedValue([]);
+  const transport = new MemoryCopilotTransport();
+  const session = await transport.createSession();
+  const { result } = renderHook(() => ({ panel: useArtifactPanel(), composer: useCopilotComposer() }), {
+    wrapper: createWrapper(transport, new MemoryCopilotSessionLocation(session.id)),
+  });
+  await waitFor(() => expect(listArtifacts).toHaveBeenCalledTimes(1));
+  act(() => result.current.composer.setDraft("grade"));
+  await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+  const sent = await act(() => result.current.composer.send());
+  act(() => transport.emit(sent.runId!, { type: "run-status", runId: sent.runId!,
+    sessionId: sent.sessionId, sequence: 1, status: "completed" }));
+  await waitFor(() => expect(listArtifacts).toHaveBeenCalledTimes(2));
 });

@@ -841,10 +841,12 @@ class DeepAgentAdapter:
         checkpoint_store: CheckpointIdentity,
         runner: AgentRunner | None = None,
         run_tools: Callable[[AgentCommand], Awaitable[list[Any]]] | None = None,
+        finalize_run: Callable[[AgentCommand], Awaitable[None]] | None = None,
         skills_paths: list[str] | None = None,
         memory_paths: list[str] | None = None,
     ) -> None:
         self._run_tools = run_tools
+        self._finalize_run = finalize_run
         self._mcp_provider = mcp_provider
         self._artifact_service = artifact_service
         self._checkpoint_store = checkpoint_store
@@ -894,4 +896,11 @@ class DeepAgentAdapter:
             )
             async with aclosing(coalesce_text_events(raw_events)) as events:
                 async for raw_event in events:
+                    if raw_event.get("type") == "run_completed" and self._finalize_run is not None:
+                        try:
+                            await self._finalize_run(command)
+                        except Exception:
+                            logger.exception("Run %s artifact export failed", command.run_id)
+                            yield {"type": "agent_message_delta", "run_id": str(command.run_id),
+                                   "content": "\n\n批改檔案匯出失敗；已保存的草稿與正式成績不受影響。"}
                     yield {**raw_event, "run_id": str(command.run_id)}

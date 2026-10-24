@@ -203,21 +203,24 @@ def test_usage_report_replaces_absolute_totals(run: Run, assistant: Message) -> 
     }
 
 
-def test_usage_report_accepts_the_run_id_added_by_the_transport_boundary(
-    run: Run, assistant: Message
+@pytest.mark.parametrize("envelope", [{}, {"run_id": "transport-run"}, {"seq": 1}, {"run_id": "transport-run", "seq": 1}])
+def test_usage_report_accepts_transport_and_persistence_metadata(
+    run: Run, assistant: Message, envelope: dict[str, object]
 ) -> None:
     projection = reduce_run_event(
         run,
         assistant,
         {
             "type": "usage_report",
-            "run_id": str(run.id),
+            **envelope,
             "input_tokens": 12,
             "output_tokens": 7,
         },
     )
 
     assert projection.run.usage == Usage(input_tokens=12, output_tokens=7)
+    completed = reduce_run_event(projection.run, projection.assistant, {"type": "run_completed", "seq": 2})
+    assert completed.run.status == RunStatus.COMPLETED
 
 
 @pytest.mark.parametrize(

@@ -194,6 +194,8 @@ async def _execute_run(
         )
         raw_runs = SqlAlchemyWorkerRunStore(session_factory, CeleryRunDispatcher(celery_app))
 
+        grading_services = {}
+
         async def run_tools(command):
             # Scope comes from the teacher's persisted request, never from model arguments.
             info = await raw_runs.load_terminal_run(command.run_id)
@@ -212,11 +214,18 @@ async def _execute_run(
                 return (await raw_runs.execution_active(command.run_id, command.execution_epoch)
                         and not await raw_runs.cancel_requested(command.run_id))
 
-            return ToolGrading(
+            grading = ToolGrading(
                 session_id=command.session_id, run_id=command.run_id, contest_id=contest_id,
                 units=units, http=http, backend_url=settings.qjudge_backend_url,
                 token=token, is_active=is_active,
-            ).tools()
+            )
+            grading_services[command.run_id] = grading
+            return grading.tools()
+
+        async def finalize_run(command):
+            grading = grading_services.get(command.run_id)
+            if grading is not None:
+                await grading.export_artifacts(artifacts)
 
         agent = DeepAgentAdapter(
             mcp_provider=McpToolConnectionProvider(
@@ -225,6 +234,7 @@ async def _execute_run(
             artifact_service=artifacts,
             checkpoint_store=checkpoints,
             run_tools=run_tools,
+            finalize_run=finalize_run,
             skills_paths=settings.deepagent_skills_paths,
             memory_paths=settings.deepagent_memory_paths,
         )

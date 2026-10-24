@@ -378,3 +378,24 @@ async def test_tool_grading_does_not_connect_mcp_or_offer_artifact_tools():
         artifact_service=FakeArtifactService(),checkpoint_store=FakeCheckpointStore(),run_tools=scoped)
     _ = [event async for event in adapter.execute(command_for(AgentOperation.START))]
     assert [tool.name for tool in runner.tools] == ["get_grading_unit"]
+
+
+async def test_server_export_finishes_before_run_completed_without_model_tool():
+    calls = []
+    async def finalize(command):
+        calls.append(command.run_id)
+    adapter = DeepAgentAdapter(runner=FakeRunner(), mcp_provider=FakeMcpProvider(),
+        artifact_service=FakeArtifactService(), checkpoint_store=FakeCheckpointStore(), finalize_run=finalize)
+    async for event in adapter.execute(command_for(AgentOperation.START)):
+        if event["type"] == "run_completed":
+            assert calls == [RUN_ID]
+
+
+async def test_export_failure_does_not_fail_completed_grading():
+    async def finalize(command):
+        raise OSError("object store unavailable")
+    adapter = DeepAgentAdapter(runner=FakeRunner(), mcp_provider=FakeMcpProvider(),
+        artifact_service=FakeArtifactService(), checkpoint_store=FakeCheckpointStore(), finalize_run=finalize)
+    events = [event async for event in adapter.execute(command_for(AgentOperation.START))]
+    assert events[-1]["type"] == "run_completed"
+    assert "匯出失敗" in events[-2]["content"]

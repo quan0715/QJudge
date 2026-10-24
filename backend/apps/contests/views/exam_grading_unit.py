@@ -33,6 +33,33 @@ def detail(unit):
     return {**unit.snapshot, **summary(unit), 'rubric': unit.rubric, 'grades': list(unit.drafts.values())}
 
 
+def compare_grades(unit, actual):
+    """Readback comparison; existing or cleared teacher grades are not retry targets."""
+    missing, retry, conflicts, matched = [], [], [], 0
+    for target in unit.snapshot['answers']:
+        if not target['writable']:
+            continue
+        aid = target['exam_answer_id']
+        draft, grade = unit.drafts.get(aid), actual.get(aid)
+        if draft is None:
+            missing.append(aid)
+        elif grade is None:
+            conflicts.append({'exam_answer_id': aid, 'reason': 'answer_missing'})
+        elif grade['score'] is None:
+            if unit.results.get(aid, {}).get('status') in ('ok', 'skipped'):
+                conflicts.append({'exam_answer_id': aid, 'reason': 'grade_cleared_after_submission'})
+            else:
+                retry.append(aid)
+        elif float(grade['score']) == float(draft['score']) and grade['feedback'] == draft.get('feedback', ''):
+            matched += 1
+        else:
+            conflicts.append({'exam_answer_id': aid, 'reason': 'official_grade_differs',
+                              'score': float(grade['score']), 'feedback': grade['feedback']})
+    return {'matched_count': matched, 'missing_draft_ids': missing,
+            'retry_answer_ids': retry, 'conflicts': conflicts,
+            'complete': not (missing or retry or conflicts)}
+
+
 class ExamGradingUnitMixin:
     def _grading_scope(self, request, contest_pk, data, write=False):
         contest = self._get_contest(contest_pk)
@@ -138,12 +165,28 @@ class ExamGradingUnitMixin:
             unit.save(update_fields=['drafts', 'rubric', 'updated_at'])
         return Response(summary(unit))
 
+    @action(detail=False, methods=['post'], url_path='grading-verify')
+    def grading_verify(self, request, contest_pk=None):
+        contest, units = self._grading_scope(request, contest_pk, request.data)
+        unit = get_object_or_404(units, run_id=identifier(request.data, 'run_id'), unit_id=request.data.get('unit_id'))
+        ids = [a['exam_answer_id'] for a in unit.snapshot['answers'] if a['writable']]
+        actual = {str(a['pk']): a for a in ExamAnswer.objects.filter(
+            pk__in=ids, participant__contest=contest).values('pk', 'score', 'feedback')}
+        return Response({'unit_id': unit.unit_id, **compare_grades(unit, actual)})
+
     @action(detail=False, methods=['post'], url_path='grading-submit')
     def grading_submit(self, request, contest_pk=None):
         contest, unit = self._grading_attempt(request, contest_pk)
         targets = [a for a in unit.snapshot['answers'] if a['writable']]
         if any(a['exam_answer_id'] not in unit.drafts for a in targets):
             raise ValidationError('Every target answer requires a saved draft before submission.')
+        selected = request.data.get('answer_ids')
+        if selected is not None:
+            authorized = {a['exam_answer_id'] for a in targets}
+            if not isinstance(selected, list) or not selected or any(str(aid) not in authorized for aid in selected):
+                raise ValidationError("answer_ids must be a non-empty array of this unit's writable answer IDs.")
+            selected = {str(aid) for aid in selected}
+            targets = [a for a in targets if a['exam_answer_id'] in selected]
         for target in targets:
             aid = target['exam_answer_id']
             try:
@@ -201,3 +244,13 @@ class ExamGradingUnitMixin:
         for unit in units.only('unit_id', 'progress').order_by('-created_at', '-pk'):
             latest.setdefault(unit.unit_id, summary(unit))
         return Response({'units': list(latest.values())})
+
+    @action(detail=False, methods=['get'], url_path='grading-export')
+    def grading_export(self, request, contest_pk=None):
+        contest, units = self._grading_scope(request, contest_pk, request.query_params)
+        units = list(units.filter(run_id=identifier(request.query_params, 'run_id')).order_by('created_at', 'pk'))
+        ids = {a['exam_answer_id'] for u in units for a in u.snapshot['answers'] if a['writable']}
+        actual = {str(a['pk']): {'score': float(a['score']) if a['score'] is not None else None,
+                               'feedback': a['feedback']}
+                  for a in ExamAnswer.objects.filter(pk__in=ids, participant__contest=contest).values('pk', 'score', 'feedback')}
+        return Response({'units': [{**detail(u), 'results': u.results} for u in units], 'official_grades': actual})

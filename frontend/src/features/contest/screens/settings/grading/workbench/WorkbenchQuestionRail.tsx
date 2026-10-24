@@ -124,6 +124,7 @@ export function WorkbenchQuestionRail({
             helperText={examAi.progressText}
             value={examAi.totalUnits ? examAi.completedUnits ?? 0 : undefined}
             max={examAi.totalUnits || 1}
+            status={examAi.totalUnits && (examAi.completedUnits ?? 0) >= examAi.totalUnits ? "finished" : "active"}
             size="small"
           />
         </div>

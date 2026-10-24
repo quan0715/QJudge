@@ -131,8 +131,11 @@ class GradingUnitTests(ExamAnswerTestBase):
         self.assertIsNone(self.answer.score)
         self.assertEqual(second.score, 4)
         first_receipt = ExamBatchGradeWrite.objects.get(answer=second).graded_at
-        result = self.post('grading-submit').data
+        retry_ids = self.post('grading-verify').data['retry_answer_ids']
+        self.assertEqual(retry_ids, [str(self.answer.pk)])
+        result = self.post('grading-submit', answer_ids=retry_ids).data
         self.assertEqual((result['written'], result['failed']), (2, 0))
+        self.assertTrue(self.post('grading-verify').data['complete'])
         self.assertEqual(ExamBatchGradeWrite.objects.get(answer=second).graded_at, first_receipt)
 
     def test_another_staff_cannot_adopt_a_session(self):
@@ -150,3 +153,36 @@ class GradingUnitTests(ExamAnswerTestBase):
         self.assertEqual(self.post('grading-submit').data['written'], 1)
         self.answer.refresh_from_db()
         self.assertEqual(self.answer.score, 0)
+
+    def test_verify_reads_official_grades_and_preserves_teacher_changes(self):
+        self.post('grading-unit')
+        aid = str(self.answer.pk)
+        self.assertEqual(self.post('grading-verify').data['missing_draft_ids'], [aid])
+        self.draft()
+        self.assertEqual(self.post('grading-verify').data['retry_answer_ids'], [aid])
+        self.assertEqual(self.post('grading-submit', answer_ids=['outside']).status_code, 400)
+        self.assertEqual(self.post('grading-submit', answer_ids=[]).status_code, 400)
+        self.post('grading-submit', answer_ids=[aid])
+        self.assertTrue(self.post('grading-verify').data['complete'])
+        self.client.post(self.base + f'{aid}/ungrade/', {}, format='json')
+        check = self.post('grading-verify').data
+        self.assertFalse(check['complete'])
+        self.assertEqual(check['retry_answer_ids'], [])
+        self.assertEqual(check['conflicts'][0]['reason'], 'grade_cleared_after_submission')
+        self.client.force_authenticate(user=self.student)
+        self.assertEqual(self.post('grading-verify').status_code, 403)
+
+
+    def test_export_reads_only_this_run_and_keeps_official_grades_separate(self):
+        self.post('grading-unit')
+        self.draft()
+        self.answer.score, self.answer.feedback = 19, 'Teacher'
+        self.answer.save()
+        response = self.client.get(self.base + 'grading-export/', self.body)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['units'][0]['grades'][0]['score'], 12.5)
+        self.assertEqual(response.data['official_grades'][str(self.answer.pk)]['score'], 19)
+        other = self.client.get(self.base + 'grading-export/', {**self.body, 'run_id': str(uuid4())})
+        self.assertEqual(other.data['units'], [])
+        self.client.force_authenticate(user=self.student)
+        self.assertEqual(self.client.get(self.base + 'grading-export/', self.body).status_code, 403)

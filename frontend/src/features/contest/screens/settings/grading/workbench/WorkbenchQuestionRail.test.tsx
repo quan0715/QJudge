@@ -59,6 +59,8 @@ describe("WorkbenchQuestionRail", () => {
     rerender(<WorkbenchQuestionRail {...base} examAi={{ state: "idle", progressText: "1/1 題", canStart: true, completedUnits: 1, totalUnits: 1 }} />);
     expect(screen.getByRole("progressbar", { name: "已完成寫分" })).toHaveAttribute("aria-valuenow", "1");
     expect(screen.getByText("1/1 題")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "已完成寫分" })).toHaveAttribute("aria-busy", "false");
+    expect(screen.queryByText("Loading")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "停止" })).not.toBeInTheDocument();
   });
 

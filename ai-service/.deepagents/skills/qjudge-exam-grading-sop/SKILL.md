@@ -18,9 +18,15 @@ everything needed to grade a unit, `save_grading_draft` keeps your work (it does
 official grades), and `submit_grading_unit` writes the unit's drafts as grades without
 overwriting a teacher's.
 
-How you work is your call: whether to use subagents and how many, whether to write a rubric,
-how often to save. Every writable answer should end with a submitted grade, and your summary
-should report what `submit_grading_unit` actually returned.
+Choose your subagents and save frequency. Include a concise rubric (criteria and points)
+in the first `save_grading_draft` call for every unit; later saves may omit it. At run completion,
+the system exports the stored criteria and grades as `rubric.md` and `grade.csv` artifacts;
+do not rewrite those files yourself. Every writable answer should end with a submitted grade, and your summary
+should report what `submit_grading_unit` actually returned. Before claiming completion, call
+`verify_grading_unit` to compare official scores and feedback with saved drafts. Fill any
+`missing_draft_ids` first. Resubmit only `retry_answer_ids` via `submit_grading_unit(answer_ids=...)`,
+then verify again. Report `conflicts` for teacher review; do not overwrite them. If a retry
+makes no progress, report the remaining IDs instead of retrying indefinitely.
 
 ## Single-question grading with grade.csv
 

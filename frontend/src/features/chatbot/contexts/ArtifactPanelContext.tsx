@@ -21,7 +21,7 @@ import {
   listArtifacts,
   type ArtifactRecord,
 } from "@/infrastructure/api/repositories/artifact.repository";
-import { useCopilotSessions } from "@copilot";
+import { useCopilotRun, useCopilotSessions } from "@copilot";
 import { isArtifactMutationTool, selectFinishedArtifactToolIds } from "../adapters/qJudgeCopilotMessageData";
 
 interface ArtifactPanelContextValue {
@@ -57,6 +57,7 @@ export function ArtifactPanelProvider({
   children,
 }: ArtifactPanelProviderProps) {
   const { activeSession } = useCopilotSessions();
+  const { state: runState } = useCopilotRun();
   const sessionId = activeSession.status === "ready" ? activeSession.id : null;
   const [isOpen, setIsOpen] = useState(false);
   const [activeArtifactId, setActiveArtifactId] = useState<string | null>(null);
@@ -146,6 +147,20 @@ export function ArtifactPanelProvider({
       scheduleRefresh();
     }
   }, [activeSession, scheduleRefresh]);
+
+  // Completed runs return to ready with no run object. Refresh once on that
+  // transition, after server-generated exports have been persisted.
+  const exportingSession = useRef<string | null>(null);
+  useEffect(() => {
+    if (runState.run?.sessionId === sessionId && runState.status !== "error") {
+      exportingSession.current = sessionId;
+    } else if (runState.status === "ready" && exportingSession.current === sessionId && sessionId) {
+      exportingSession.current = null;
+      scheduleRefresh();
+    } else if (exportingSession.current !== sessionId || runState.status === "error") {
+      exportingSession.current = null;
+    }
+  }, [runState.status, runState.run?.sessionId, sessionId, scheduleRefresh]);
 
   const open = useCallback((artifactId?: string) => {
     setIsOpen(true);

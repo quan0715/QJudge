@@ -64,3 +64,29 @@ def test_empty_target_scope_requires_submit_before_completed():
 def test_invalid_session_identifiers_rejected(value):
     with pytest.raises(ValidationError):
         identifier({'session_id': value}, 'session_id')
+
+
+def test_readback_reports_only_missing_official_grades_as_retryable():
+    from apps.contests.views.exam_grading_unit import compare_grades
+    unit = make_unit()
+    unit.snapshot['answers'] += [{'exam_answer_id': '4', 'writable': True}, {'exam_answer_id': '5', 'writable': True}]
+    unit.drafts['4'] = {'score': 2, 'feedback': 'draft'}
+    actual = {'1': {'score': 0, 'feedback': ''}, '2': {'score': None, 'feedback': ''},
+              '4': {'score': 3, 'feedback': 'teacher'}}
+    result = compare_grades(unit, actual)
+    assert result['matched_count'] == 1
+    assert result['retry_answer_ids'] == ['2']
+    assert result['missing_draft_ids'] == ['5']
+    assert result['conflicts'][0]['exam_answer_id'] == '4'
+    assert not result['complete']
+
+
+def test_readback_protects_cleared_grades_and_detects_feedback_differences():
+    from apps.contests.views.exam_grading_unit import compare_grades
+    unit = make_unit()
+    result = compare_grades(unit, {'1': {'score': None, 'feedback': ''}, '2': {'score': 10, 'feedback': 'teacher'}})
+    assert result['retry_answer_ids'] == []
+    assert [c['reason'] for c in result['conflicts']] == ['grade_cleared_after_submission', 'official_grade_differs']
+    assert not result['complete']
+    assert compare_grades(unit, {})['conflicts'][0]['reason'] == 'answer_missing'
+    assert compare_grades(unit, {'1': {'score': 0, 'feedback': ''}, '2': {'score': 10, 'feedback': ''}})['complete']

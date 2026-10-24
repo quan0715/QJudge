@@ -50,10 +50,10 @@ def _project_todos(metadata: dict[str, Any], payload: Any) -> None:
 
 def _validate_usage_event(event: dict[str, Any]) -> Usage:
     allowed_keys = {"type", "input_tokens", "output_tokens"}
-    # The transport boundary attaches the authoritative run_id to every
-    # event before persistence. It is envelope metadata, not usage data.
-    event_keys = set(event)
-    if event_keys != allowed_keys and event_keys != allowed_keys | {"run_id"}:
+    # Transport adds run_id and persistence adds seq before reduction.
+    # Neither is part of the usage payload.
+    event_keys = set(event) - {"run_id", "seq"}
+    if event_keys != allowed_keys:
         raise ValueError("usage_report payload must contain only type and token totals")
     input_tokens = event.get("input_tokens")
     output_tokens = event.get("output_tokens")

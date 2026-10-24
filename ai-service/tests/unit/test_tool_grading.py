@@ -39,7 +39,7 @@ async def test_assignment_lists_the_requested_units_without_instructions():
     ]}
     assert requests == []
     assert [tool.name for tool in service.tools()] == [
-        "get_grading_assignment", "get_grading_unit", "save_grading_draft", "submit_grading_unit",
+        "get_grading_assignment", "get_grading_unit", "save_grading_draft", "submit_grading_unit", "verify_grading_unit",
     ]
 
 
@@ -75,3 +75,36 @@ async def test_backend_answers_are_returned_as_is():
     outcome = {"unit_id": "question_q", "written": 1, "skipped": 1, "failed": 0}
     service, _, _ = harness(response=outcome)
     assert await service.submit("question_q") == outcome
+
+
+@pytest.mark.asyncio
+async def test_verify_and_targeted_retry_preserve_scope():
+    service, requests, state = harness()
+    await service.verify("question_q")
+    assert requests[-1][0].endswith("grading-verify/")
+    assert requests[-1][1]["run_id"] == str(service.run_id)
+    await service.submit("question_q", ["17"])
+    assert requests[-1][1]["answer_ids"] == ["17"]
+    count = len(requests)
+    assert (await service.verify("other"))["is_error"]
+    state["active"] = False
+    assert (await service.verify("question_q"))["is_error"]
+    assert len(requests) == count
+
+
+@pytest.mark.asyncio
+async def test_server_export_reads_once_and_writes_two_artifacts():
+    from unittest.mock import AsyncMock
+    service, _, _ = harness()
+    requests = []
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(200, json={"units": [{"unit_id": "q", "questions": [{"question_id": "q", "label": "1"}],
+            "rubric": {"criterion": "correct"}, "answers": [], "grades": []}], "official_grades": {}})
+    service.http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    artifacts = AsyncMock()
+    await service.export_artifacts(artifacts)
+    assert len(requests) == 1 and requests[0].method == "GET"
+    assert requests[0].url.params["run_id"] == str(service.run_id)
+    assert [c.kwargs["filename"] for c in artifacts.put_for_run.call_args_list] == ["rubric.md", "grade.csv"]
+    assert all(c.kwargs["run_id"] == service.run_id for c in artifacts.put_for_run.call_args_list)
