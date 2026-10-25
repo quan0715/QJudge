@@ -1,4 +1,4 @@
-.PHONY: help dev dev-build dev-down dev-secrets integrity-resident-build judge-build jules-env
+.PHONY: help dev dev-build dev-down dev-secrets integrity-resident-build judge-build
 
 # Default target
 help:
@@ -11,7 +11,6 @@ help:
 	@echo "  dev             Start the development stack (frontend, backend, db, redis, ai-service)"
 	@echo "  dev-build       Build and start the development stack"
 	@echo "  dev-down        Stop and remove development containers"
-	@echo "  jules-env       Bootstrap full dev stack + quality gates for Google Jules VM"
 	@echo ""
 	@echo "Judge System:"
 	@echo "  judge-build     Build the oj-judge Docker image locally"
@@ -35,9 +34,6 @@ dev-secrets:
 
 integrity-resident-build:
 	.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev build integrity-resident
-
-jules-env:
-	bash scripts/dev/setup-jules-env.sh
 
 # --- Judge System ---
 judge-build:
