@@ -26,6 +26,7 @@ const base = {
 describe("WorkbenchQuestionRail", () => {
   it("rail shows status instead of progress", () => {
     render(<WorkbenchQuestionRail {...base} examAi={{ state: "idle", progressText: "", canStart: true }} />);
+    expect(screen.getByRole("heading", { name: "工作台" })).toBeTruthy();
     expect(screen.getByText("16/16")).toBeTruthy();
     expect(screen.getByRole("progressbar", { name: "第 3 題草稿完成進度" })).toBeTruthy();
     expect(screen.getByLabelText("AI 失敗")).toBeTruthy();

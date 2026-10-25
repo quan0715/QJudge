@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Button,
@@ -59,7 +59,7 @@ import styles from "./grading/workbench/GradingWorkbench.module.scss";
 
 type AiScope = "exam" | "question";
 
-export default function ContestGradingWorkbenchScreen() {
+export default function ContestGradingWorkbenchScreen({ header }: { header?: ReactNode } = {}) {
   const { t } = useTranslation("contest");
   const { t: tChatbot } = useTranslation("chatbot");
   const { contest } = useContest();
@@ -395,6 +395,7 @@ export default function ContestGradingWorkbenchScreen() {
   return (
     <div className={styles.root}>
       <WorkbenchQuestionRail
+        header={header}
         units={railUnits}
         activeId={unit.id}
         disabled={saving}

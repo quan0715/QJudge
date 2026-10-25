@@ -25,7 +25,7 @@
       "settings": "Settings",
       "standings": "Leaderboard",
       "statistics": "Statistics",
-      "gradingWorkbench": "Grading (Beta)"
+      "gradingWorkbench": "Workbench (Beta)"
     },
     "title": "Admin Dashboard"
   },
@@ -2261,6 +2261,13 @@
     "sourceHeader": "Source",
     "questionAiTitle": "AI grade question {{number}}",
     "points": "{{count}} pts",
-    "nothingToRegrade": "This question has no AI-written scores to regrade"
+    "nothingToRegrade": "This question has no AI-written scores to regrade",
+    "edit": {
+      "title": "Workbench",
+      "preview": "Preview student view",
+      "modeEdit": "Edit",
+      "modeGrade": "Grade",
+      "gradeDisabled": "Grading is available after the exam starts"
+    }
   }
 }

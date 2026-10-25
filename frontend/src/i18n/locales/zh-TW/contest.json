@@ -25,7 +25,7 @@
       "settings": "設定",
       "standings": "排行榜",
       "statistics": "統計",
-      "gradingWorkbench": "批改 (Beta)"
+      "gradingWorkbench": "工作台 (Beta)"
     },
     "title": "管理後台"
   },
@@ -2261,6 +2261,13 @@
     "questionAiTitle": "AI 批改第 {{number}} 題",
     "points": "{{count}} 分",
     "sourceHeader": "來源",
-    "nothingToRegrade": "這題沒有 AI 寫入的分數可以重改"
+    "nothingToRegrade": "這題沒有 AI 寫入的分數可以重改",
+    "edit": {
+      "title": "工作台",
+      "preview": "預覽學生畫面",
+      "modeEdit": "編輯",
+      "modeGrade": "批改",
+      "gradeDisabled": "考試開始後才能批改"
+    }
   }
 }

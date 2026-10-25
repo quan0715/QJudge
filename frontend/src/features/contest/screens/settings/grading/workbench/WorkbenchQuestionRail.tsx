@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Button, Dropdown, ProgressBar } from "@carbon/react";
 import { MachineLearningModel, WarningAlt } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
@@ -15,6 +16,7 @@ export interface RailUnit {
 }
 
 interface WorkbenchQuestionRailProps {
+  header?: ReactNode;
   units: RailUnit[];
   activeId: string;
   disabled: boolean;
@@ -34,6 +36,7 @@ interface WorkbenchQuestionRailProps {
 }
 
 export function WorkbenchQuestionRail({
+  header,
   units,
   activeId,
   disabled,
@@ -56,7 +59,7 @@ export function WorkbenchQuestionRail({
   return (
     <aside className={styles.rail} aria-label={t("workbench.questions", "題目")}>
       <div className={styles.railHeader}>
-        <h2>{t("workbench.title", "批改 (Beta)")}</h2>
+        {header ?? <h2>{t("workbench.edit.title", "工作台")}</h2>}
         {examAi.state === "idle" ? (
           <Button
             kind="tertiary"

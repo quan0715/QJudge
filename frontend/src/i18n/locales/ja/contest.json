@@ -25,7 +25,7 @@
       "settings": "設定",
       "standings": "ランキング",
       "statistics": "統計",
-      "gradingWorkbench": "採点 (Beta)"
+      "gradingWorkbench": "ワークベンチ (Beta)"
     },
     "title": "管理ダッシュボード"
   },
@@ -2261,6 +2261,13 @@
     "sourceHeader": "採点元",
     "questionAiTitle": "AI で第 {{number}} 問を採点",
     "points": "{{count}} 点",
-    "nothingToRegrade": "この問題には再採点できる AI の点数がありません"
+    "nothingToRegrade": "この問題には再採点できる AI の点数がありません",
+    "edit": {
+      "title": "ワークベンチ",
+      "preview": "受験者画面をプレビュー",
+      "modeEdit": "編集",
+      "modeGrade": "採点",
+      "gradeDisabled": "試験開始後に採点できます"
+    }
   }
 }
