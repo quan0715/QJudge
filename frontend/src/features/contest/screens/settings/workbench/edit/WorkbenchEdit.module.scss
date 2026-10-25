@@ -1,0 +1,31 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+.root { display: grid; grid-template-columns: 18rem minmax(0, 1fr); height: 100%; min-height: 0; overflow: hidden; background: var(--cds-background); }
+.rail { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--cds-border-subtle); background: var(--cds-layer-01); }
+.railHeader { padding: layout.$spacing-05; display: flex; flex-direction: column; gap: layout.$spacing-04; }
+.summary { @include type.type-style("label-01"); color: var(--cds-text-secondary); margin: 0; }
+.addMenu { width: 100%; max-width: none; border: 1px solid var(--cds-border-interactive); color: var(--cds-link-primary); }
+.addLabel { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: layout.$spacing-05; white-space: nowrap; }
+.railList { flex: 1; min-height: 0; overflow-y: auto; }
+.railRow { position: relative; display: flex; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--cds-border-subtle); }
+.childRow { padding-left: layout.$spacing-05; }
+.activeRow { background: var(--cds-layer-selected-01); }
+.grip { cursor: grab; flex-shrink: 0; }
+.rowSelect { flex: 1; min-width: 0; max-width: none; gap: layout.$spacing-02; padding-left: layout.$spacing-02; color: var(--cds-text-primary); }
+.rowLabel { white-space: nowrap; }
+.rowType { @include type.type-style("label-01"); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cds-text-secondary); }
+.rowScore { margin-left: auto; font-variant-numeric: tabular-nums; }
+.warning { color: var(--cds-support-warning); flex-shrink: 0; }
+.moveControls { display: flex; justify-content: flex-end; width: 100%; }
+.dropBefore::before, .dropAfter::after { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: var(--cds-interactive); pointer-events: none; z-index: 1; }
+.dropBefore::before { top: 0; }
+.dropAfter::after { bottom: 0; }
+.railFooter { display: flex; flex-direction: column; align-items: flex-start; gap: layout.$spacing-02; padding: layout.$spacing-03; border-top: 1px solid var(--cds-border-subtle); }
+.main { min-width: 0; min-height: 0; overflow-y: auto; position: relative; padding: layout.$spacing-06 layout.$spacing-07; }
+@media (max-width: 47.99rem) {
+ .root { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+ .rail { max-height: 22rem; border-right: 0; border-bottom: 1px solid var(--cds-border-subtle); }
+ .railHeader { padding: layout.$spacing-03 layout.$spacing-05; gap: layout.$spacing-03; }
+ .railList { max-height: 8rem; }
+ .main { padding: layout.$spacing-05; }
+}

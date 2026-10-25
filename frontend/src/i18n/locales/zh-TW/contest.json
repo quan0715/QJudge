@@ -2267,7 +2267,22 @@
       "preview": "預覽學生畫面",
       "modeEdit": "編輯",
       "modeGrade": "批改",
-      "gradeDisabled": "考試開始後才能批改"
+      "gradeDisabled": "考試開始後才能批改",
+      "questionNumber": "第 {{number}} 題",
+      "groupNumber": "第 {{number}} 題（題組）",
+      "groupSummary": "{{count}} 題 · {{title}}",
+      "emptyGroup": "尚無子題",
+      "addQuestion": "新增題目",
+      "addGroup": "題組",
+      "importBank": "從題庫匯入…",
+      "questions": "題目",
+      "summary": "{{questions}} 題　{{blocks}} 區塊　總分 {{totalScore}}",
+      "drag": "拖曳{{label}}",
+      "hasIssue": "有發布前問題",
+      "moveUp": "上移",
+      "moveDown": "下移",
+      "publishCount": "發布前檢查 {{count}} 項",
+      "legacy": "改用舊版考卷管理"
     }
   }
 }

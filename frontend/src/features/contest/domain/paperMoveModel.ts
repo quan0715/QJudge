@@ -1,4 +1,4 @@
-import type { ExamPaperBlock, ExamQuestion } from "@/core/entities/contest.entity";
+import type { ExamPaperBlock } from "@/core/entities/contest.entity";
 import type { ExamPaperReorderBlock } from "@/infrastructure/api/repositories/examPaper.repository";
 
 export type PaperDragItem = { kind: "question" | "group" | "child"; id: string; groupId: string | null };
