@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
-import { getExamPublishIssues } from "./examPublishIssues";
+import { getExamPublishIssues, getExamPublishIssueItems } from "./examPublishIssues";
 
 const question = (overrides: Partial<ExamQuestion>): ExamQuestion => ({
   id: "q",
@@ -51,4 +51,15 @@ describe("getExamPublishIssues", () => {
   it("returns no issues for a finished paper", () => {
     expect(getExamPublishIssues([question({})])).toEqual({ missingAnswer: [], defaultContent: [] });
   });
+});
+
+it("lists missing answers before default content", () => {
+ expect(getExamPublishIssueItems([
+  question({id:"q2",order:2,correctAnswer:null,options:["Option A","B"]}),
+  question({id:"q1",order:1,prompt:"New question",correctAnswer:0}),
+ ])).toEqual([
+  {questionId:"q2",kind:"missingAnswer",field:"answer"},
+  {questionId:"q1",kind:"defaultContent",field:"prompt"},
+  {questionId:"q2",kind:"defaultContent",field:"options"},
+ ]);
 });

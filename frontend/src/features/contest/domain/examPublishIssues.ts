@@ -36,3 +36,22 @@ export const getExamPublishIssues = (questions: ExamQuestion[]): ExamPublishIssu
       .map(({ number }) => number),
   };
 };
+
+export type ExamPublishIssueKind = "missingAnswer" | "defaultContent";
+export interface ExamPublishIssueItem {
+  questionId: string;
+  kind: ExamPublishIssueKind;
+  field: "answer" | "prompt" | "options";
+}
+
+export function getExamPublishIssueItems(questions: ExamQuestion[]): ExamPublishIssueItem[] {
+  const sorted = [...questions].sort((a, b) => a.order - b.order);
+  const missing: ExamPublishIssueItem[] = [];
+  const defaults: ExamPublishIssueItem[] = [];
+  for (const q of sorted) {
+    if (OBJECTIVE_TYPES.has(q.questionType) && !hasAnswer(q.correctAnswer)) missing.push({ questionId: q.id, kind: "missingAnswer", field: "answer" });
+    if (q.prompt.trim() === DEFAULT_QUESTION_PROMPT) defaults.push({ questionId: q.id, kind: "defaultContent", field: "prompt" });
+    else if (q.options.some(option => DEFAULT_CHOICE_OPTIONS.includes(option.trim()))) defaults.push({ questionId: q.id, kind: "defaultContent", field: "options" });
+  }
+  return [...missing, ...defaults];
+}
