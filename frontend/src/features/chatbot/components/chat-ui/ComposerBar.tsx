@@ -6,6 +6,7 @@ import {
   Document,
   InProgress,
   Location,
+  StopFilled,
   Warning,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
@@ -16,6 +17,7 @@ import type {
   CopilotPendingAttachment,
 } from "@copilot";
 import { SessionBadges } from "./SessionBadges";
+import { ThinkingIndicator } from "./ThinkingIndicator";
 import { useSessionBadgeSummary } from "./useSessionBadgeSummary";
 import { ModelSelect } from "@/shared/ai/ModelSelect";
 import styles from "./ComposerBar.module.scss";
@@ -193,6 +195,7 @@ export function ComposerBar({
 
   return (
     <div className={styles.bar}>
+      {isStreaming && <ThinkingIndicator messages={messages} />}
       {hasStatusBlock && (
         <div className={styles.statusStack}>
           {modelNotice && (
@@ -356,7 +359,7 @@ export function ComposerBar({
                 onClick={onStop}
                 aria-label={t("ui.stopGenerating")}
               >
-                <InProgress size={18} className={styles.spinningIcon} />
+                <StopFilled size={16} aria-hidden />
               </button>
             ) : (
               <button

@@ -1,0 +1,125 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.indicator {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-04;
+  min-width: 0;
+  padding: layout.$spacing-03 0;
+  margin-bottom: layout.$spacing-03;
+}
+
+.orb {
+  --writing-duration: 4.8s;
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--cds-link-primary);
+}
+
+.halo {
+  position: absolute;
+  inset: layout.$spacing-01;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  border-radius: 50%;
+}
+
+.paper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ink {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  animation: writeInk var(--writing-duration) linear infinite;
+}
+
+.penMotion {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  offset-anchor: 0 0;
+  offset-rotate: 0deg;
+  animation: followInk var(--writing-duration) linear infinite;
+}
+
+.penLift {
+  display: block;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
+  animation: liftPen var(--writing-duration) ease-in-out infinite;
+}
+
+.pen {
+  display: block;
+  // Align the Carbon Pen's nib (4, 28 in its 32px viewBox) to the ink path.
+  transform: translate(-2.75px, -19.25px);
+}
+
+.label {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: textBreathe 2.4s ease-in-out infinite;
+}
+
+@keyframes textBreathe {
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 1; }
+}
+
+@keyframes followInk {
+  0%, 8%, 100% { offset-distance: 0%; }
+  24% { offset-distance: 25%; }
+  38% { offset-distance: 45%; }
+  52% { offset-distance: 75%; }
+  62%, 76% { offset-distance: 100%; }
+  92% { offset-distance: 0%; }
+}
+
+@keyframes writeInk {
+  0%, 8% { stroke-dashoffset: 1; opacity: 0; }
+  10% { opacity: 0.85; }
+  24% { stroke-dashoffset: 0.75; }
+  38% { stroke-dashoffset: 0.55; }
+  52% { stroke-dashoffset: 0.25; }
+  62%, 76% { stroke-dashoffset: 0; opacity: 0.85; }
+  90%, 100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+@keyframes liftPen {
+  0%, 100% { transform: translateY(-3px) rotate(-8deg); opacity: 0.7; }
+  8%, 24% { transform: rotate(0deg); opacity: 1; }
+  38% { transform: rotate(-3deg); }
+  52% { transform: rotate(2deg); }
+  62%, 70% { transform: rotate(0deg); opacity: 1; }
+  80%, 92% { transform: translate(1px, -4px) rotate(-10deg); opacity: 0.65; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ink, .penMotion, .penLift, .label { animation: none; }
+  .penMotion { offset-distance: 50%; }
+  .ink { stroke-dashoffset: 0; opacity: 0.65; }
+}
+
+@media (forced-colors: active) {
+  .orb { color: CanvasText; }
+  .halo { border-color: CanvasText; }
+}

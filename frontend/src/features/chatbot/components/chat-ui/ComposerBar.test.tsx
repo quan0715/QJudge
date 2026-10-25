@@ -19,6 +19,30 @@ const baseProps = {
   isStreaming: false,
 };
 
+describe("ComposerBar run activity", () => {
+  it("keeps activity visible between tool calls, then clears it when the run stops", () => {
+    const onStop = vi.fn();
+    const props = { ...baseProps, attachments: [], isStreaming: true, onStop };
+    const { rerender } = render(<ComposerBar {...props} />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(/activityWaiting|等待下一步回應/i);
+    fireEvent.click(screen.getByRole("button", { name: /stopGenerating|停止生成/i }));
+    expect(onStop).toHaveBeenCalledOnce();
+
+    rerender(<ComposerBar {...props} messages={[{
+      id: "assistant-1", role: "assistant", createdAt: new Date(),
+      parts: [{
+        type: "tool", toolCallId: "read-unit", toolName: "get_grading_unit",
+        state: "input-ready",
+      }],
+    }]} />);
+    expect(screen.getByRole("status")).toHaveTextContent(/activityExecuting|正在執行操作/i);
+
+    rerender(<ComposerBar {...props} isStreaming={false} />);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+});
+
 describe("ComposerBar model notice", () => {
   it("shows the model notice as an inline warning", () => {
     render(
