@@ -1,6 +1,6 @@
 import { createEvent, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { paperFixture } from "@/test/fixtures/examPaper";
+import { paperFixture } from "./workbenchEdit.fixture";
 import { buildEditRailRows } from "./editRailModel";
 import { WorkbenchEditRail } from "./WorkbenchEditRail";
 import type { TFunction } from "i18next";
@@ -26,7 +26,7 @@ const base = () => ({
   legacyHref: "/?panel=problem_editor",
 });
 describe("edit rail", () => {
-  it("drop onto lower half of group header moves into group", () => {
+  it("drop onto a group header orders after the whole group", () => {
     const props = base();
     render(<WorkbenchEditRail {...props} />);
     fireEvent.dragStart(screen.getByRole("button", { name: "拖曳第 1 題" }), {
@@ -45,10 +45,9 @@ describe("edit rail", () => {
       fireEvent(row, event);
     }
     expect(props.onMove).toHaveBeenCalledWith("q1", {
-      zone: "group",
-      groupId: "g",
-      refQuestionId: "c1",
-      position: "before",
+      zone: "top",
+      refBlockId: "g",
+      position: "after",
     });
   });
   it("active row move-down button calls onMove", () => {

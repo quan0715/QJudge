@@ -379,84 +379,40 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
         ExamQuestionGroup.objects.select_for_update().filter(contest=contest).exists()
 
         existing_sections = self._build_sections(contest)
-        question_by_id = {
-            str(question.id): question
+        section_by_key = {
+            (section['kind'], section['id']): section
             for section in existing_sections
-            for question in ([section['question']] if section['kind'] == 'question' else section['children'])
         }
-        group_by_id = {
-            section['id']: section
-            for section in existing_sections if section['kind'] == 'group'
-        }
-        explicit_questions = set()
-        seen_groups = set()
+        ordered_sections = []
+        seen = set()
 
-        def claim_question(question_id):
-            question_id = str(question_id)
-            if question_id not in question_by_id:
-                raise DRFValidationError({'blocks': f'unknown paper block {question_id}'})
-            if question_id in explicit_questions:
-                raise DRFValidationError({'blocks': f'duplicate paper question {question_id}'})
-            explicit_questions.add(question_id)
-
-        # Reserve every explicitly placed question before retaining implicit
-        # children, so the order of the request cannot duplicate a moved child.
         for block in blocks:
             if not isinstance(block, dict):
                 raise DRFValidationError({'blocks': 'each block must be an object'})
-            block_id = str(block.get('id'))
-            if block.get('kind') == 'question':
-                claim_question(block_id)
-            elif block.get('kind') == 'group' and block_id in group_by_id:
-                if block_id in seen_groups:
-                    raise DRFValidationError({'blocks': f'duplicate paper block {block_id}'})
-                seen_groups.add(block_id)
-                if 'children' in block:
-                    if not isinstance(block['children'], list):
-                        raise DRFValidationError({'blocks': 'group children must be an array'})
-                    for child_id in block['children']:
-                        claim_question(child_id)
-            else:
-                raise DRFValidationError({'blocks': f'unknown paper block {block_id}'})
+            key = (block.get('kind'), str(block.get('id')))
+            if key not in section_by_key:
+                raise DRFValidationError({'blocks': f'unknown paper block {key[1]}'})
+            if key in seen:
+                raise DRFValidationError({'blocks': f'duplicate paper block {key[1]}'})
+            section = section_by_key[key]
+            if section['kind'] == 'group' and 'children' in block:
+                child_ids = block['children']
+                if not isinstance(child_ids, list):
+                    raise DRFValidationError({'blocks': 'group children must be an array'})
+                child_ids = [str(child_id) for child_id in child_ids]
+                children_by_id = {str(child.id): child for child in section['children']}
+                if len(set(child_ids)) != len(child_ids):
+                    raise DRFValidationError({'blocks': 'duplicate paper question in group'})
+                if set(child_ids) != set(children_by_id):
+                    raise DRFValidationError({'blocks': 'reorder must preserve group membership'})
+                section = {**section, 'children': [children_by_id[child_id] for child_id in child_ids]}
+            ordered_sections.append(section)
+            seen.add(key)
 
-        ordered_sections = []
-        placed_questions = set()
-
-        def append_group(section, child_ids):
-            children = [question_by_id[str(child_id)] for child_id in child_ids]
-            ordered_sections.append({**section, 'children': children})
-            placed_questions.update(str(child.id) for child in children)
-
-        for block in blocks:
-            block_id = str(block['id'])
-            if block['kind'] == 'question':
-                ordered_sections.append({
-                    'kind': 'question', 'id': block_id,
-                    'question': question_by_id[block_id],
-                })
-                placed_questions.add(block_id)
-            else:
-                section = group_by_id[block_id]
-                child_ids = block.get('children', [
-                    str(child.id) for child in section['children']
-                    if str(child.id) not in explicit_questions
-                ])
-                append_group(section, child_ids)
-
-        # Keep omitted blocks, including empty groups. Questions omitted from an
-        # explicit children list remain in the paper as trailing single questions.
-        for section in existing_sections:
-            if section['kind'] == 'group' and section['id'] not in seen_groups:
-                append_group(section, [
-                    str(child.id) for child in section['children']
-                    if str(child.id) not in placed_questions
-                ])
-            elif section['kind'] == 'question' and section['id'] not in placed_questions:
-                ordered_sections.append(section)
-                placed_questions.add(section['id'])
-        for question_id, question in question_by_id.items():
-            if question_id not in placed_questions:
-                ordered_sections.append({'kind': 'question', 'id': question_id, 'question': question})
+        ordered_sections.extend(
+            section for section in existing_sections
+            if (section['kind'], section['id']) not in seen
+        )
 
         next_order = 0
         dirty_questions = []

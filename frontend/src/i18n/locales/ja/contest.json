@@ -2297,8 +2297,6 @@
       "more": "その他の操作",
       "duplicate": "問題を複製",
       "saveToBank": "問題バンクに保存",
-      "moveInto": "{{label}}に移動",
-      "moveOut": "グループから移動",
       "fullMarks": "全員満点",
       "excluded": "採点対象外",
       "normal": "通常の採点",

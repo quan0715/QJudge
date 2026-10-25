@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { TFunction } from "i18next";
-import { paperFixture } from "@/test/fixtures/examPaper";
+import { paperFixture } from "./workbenchEdit.fixture";
 import { buildEditRailRows } from "./editRailModel";
 const t = ((key: string, fallback: string, values?: Record<string, unknown>) =>
   fallback.replace(/\{\{(\w+)\}\}/g, (_, k) =>

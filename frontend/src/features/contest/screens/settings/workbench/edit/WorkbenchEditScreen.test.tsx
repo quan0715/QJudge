@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { paperFixture, questionFixture } from "@/test/fixtures/examPaper";
+import { paperFixture, questionFixture } from "./workbenchEdit.fixture";
 import type { WorkbenchEditRailProps } from "./WorkbenchEditRail";
 import WorkbenchEditScreen from "./WorkbenchEditScreen";
 const mocks = vi.hoisted(() => ({
@@ -268,4 +268,54 @@ it("bar advances and closes as issues resolve", async () => {
   expect(
     screen.queryByRole("navigation", { name: "發布前檢查導覽" }),
   ).toBeNull();
+});
+
+it("keeps the initial question selected after reordering the first block", async () => {
+  const moved = paperFixture();
+  moved.blocks = [moved.blocks[1], moved.blocks[0], moved.blocks[2]];
+  mocks.reorderExamPaperBlocks.mockResolvedValue(moved);
+  await setup();
+  fireEvent.click(screen.getByRole("button", { name: "下移" }));
+  await waitFor(() => expect(mocks.reorderExamPaperBlocks).toHaveBeenCalled());
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+    "Prompt q1",
+  );
+});
+
+it("ends publish review when another item is selected from the rail", async () => {
+  const paper = paperFixture();
+  paper.questions[0].correctAnswer = null;
+  mocks.getExamPaper.mockResolvedValue(paper);
+  await setup();
+  fireEvent.click(screen.getByRole("button", { name: /發布前檢查.*1/ }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: /第 1 題.*Prompt q1/ }),
+  );
+  await screen.findByRole("navigation", { name: "發布前檢查導覽" });
+  fireEvent.click(screen.getByRole("button", { name: /^第 2 題（題組）/ }));
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("navigation", { name: "發布前檢查導覽" }),
+    ).toBeNull(),
+  );
+  await waitFor(() =>
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Shared task",
+    ),
+  );
+});
+
+it("keeps the paper total independent of rounded redistributed question scores", async () => {
+  const paper = paperFixture();
+  Object.assign(paper.questions[0], {
+    score: 15,
+    scorePolicy: "redistribute",
+    effectiveMaxScore: 15,
+  });
+  Object.assign(paper.questions[1], { score: 5, effectiveMaxScore: 5.88 });
+  Object.assign(paper.questions[2], { score: 10, effectiveMaxScore: 11.76 });
+  Object.assign(paper.questions[3], { score: 70, effectiveMaxScore: 82.35 });
+  mocks.getExamPaper.mockResolvedValue(paper);
+  await setup();
+  expect(screen.getByText(/4 題.*3 區塊.*總分 100/)).toBeTruthy();
 });

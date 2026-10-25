@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { questionFixture } from "@/test/fixtures/examPaper";
+import { questionFixture } from "./workbenchEdit.fixture";
 import { ScorePolicyDialog } from "./ScorePolicyDialog";
 const mocks = vi.hoisted(() => ({ setPolicy: vi.fn(), showToast: vi.fn() }));
 vi.mock("@/infrastructure/api/repositories/examQuestions.repository", () => ({

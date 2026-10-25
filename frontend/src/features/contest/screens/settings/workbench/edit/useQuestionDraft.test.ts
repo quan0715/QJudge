@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { questionFixture } from "@/test/fixtures/examPaper";
+import { questionFixture } from "./workbenchEdit.fixture";
 import { useQuestionDraft } from "./useQuestionDraft";
 afterEach(() => vi.useRealTimers());
 describe("question draft", () => {

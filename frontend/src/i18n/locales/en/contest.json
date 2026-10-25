@@ -2297,8 +2297,6 @@
       "more": "More actions",
       "duplicate": "Duplicate question",
       "saveToBank": "Save to question bank",
-      "moveInto": "Move into {{label}}",
-      "moveOut": "Move out of group",
       "fullMarks": "Full marks",
       "excluded": "Exclude",
       "normal": "Normal scoring",

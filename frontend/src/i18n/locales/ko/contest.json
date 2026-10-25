@@ -2297,8 +2297,6 @@
       "more": "추가 작업",
       "duplicate": "문항 복제",
       "saveToBank": "문제은행에 저장",
-      "moveInto": "{{label}}로 이동",
-      "moveOut": "그룹 밖으로 이동",
       "fullMarks": "전원 만점",
       "excluded": "채점 제외",
       "normal": "일반 채점",

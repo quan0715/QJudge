@@ -48,7 +48,6 @@ export interface WorkbenchQuestionEditorProps {
   question: ExamQuestion;
   label: string;
   locked: boolean;
-  groups: Array<{ id: string; label: string }>;
   prevLabel?: string;
   nextLabel?: string;
   onNavigate(direction: "prev" | "next"): void;
@@ -68,7 +67,6 @@ export function WorkbenchQuestionEditor({
   question,
   label,
   locked,
-  groups,
   prevLabel,
   nextLabel,
   onNavigate,
@@ -226,37 +224,6 @@ export function WorkbenchQuestionEditor({
               itemText={t("workbench.edit.saveToBank", "收錄到題庫")}
               onClick={() => actions.saveToBank(question)}
             />
-            {!locked &&
-              groups
-                .filter((g) => g.id !== question.groupId)
-                .map((g) => (
-                  <OverflowMenuItem
-                    key={g.id}
-                    itemText={t("workbench.edit.moveInto", "移入{{label}}", {
-                      label: g.label,
-                    })}
-                    onClick={() => {
-                      void actions.move(question.id, {
-                        zone: "group",
-                        groupId: g.id,
-                        refQuestionId: null,
-                        position: "after",
-                      });
-                    }}
-                  />
-                ))}
-            {!locked && question.groupId && (
-              <OverflowMenuItem
-                itemText={t("workbench.edit.moveOut", "移出題組")}
-                onClick={() => {
-                  void actions.move(question.id, {
-                    zone: "top",
-                    refBlockId: question.groupId!,
-                    position: "after",
-                  });
-                }}
-              />
-            )}
             {!locked && (
               <OverflowMenuItem
                 hasDivider

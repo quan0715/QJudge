@@ -261,7 +261,6 @@ export function WorkbenchGroupEditor({
                     question={child}
                     label={childLabels.get(child.id) ?? ""}
                     locked={locked}
-                    groups={[]}
                     actions={actions}
                     saveStatus={saveStatus}
                     onNavigate={() => {}}
@@ -283,19 +282,6 @@ export function WorkbenchGroupEditor({
                         }}
                       >
                         {t("workbench.edit.duplicate", "複製這題")}
-                      </Button>
-                      <Button
-                        kind="ghost"
-                        size="sm"
-                        onClick={() => {
-                          void actions.move(child.id, {
-                            zone: "top",
-                            refBlockId: block.id,
-                            position: "after",
-                          });
-                        }}
-                      >
-                        {t("workbench.edit.moveOut", "移出題組")}
                       </Button>
                       <Button
                         kind="danger--ghost"

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExamPaperBlock } from "@/core/entities/contest.entity";
-import { paperFixture } from "@/test/fixtures/examPaper";
+import { paperFixture } from "./workbenchEdit.fixture";
 import type { WorkbenchEditActions } from "./WorkbenchEditScreen";
 import { WorkbenchGroupEditor } from "./WorkbenchGroupEditor";
 vi.mock("@/shared/ui/markdown/markdownEditor", () => ({
@@ -50,19 +50,17 @@ const base = () => ({
   } satisfies WorkbenchEditActions,
 });
 beforeEach(() =>
-  vi
-    .spyOn(HTMLElement.prototype, "getBoundingClientRect")
-    .mockReturnValue({
-      x: 0,
-      y: 0,
-      width: 240,
-      height: 40,
-      top: 0,
-      bottom: 40,
-      left: 0,
-      right: 240,
-      toJSON: () => ({}),
-    }),
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+    x: 0,
+    y: 0,
+    width: 240,
+    height: 40,
+    top: 0,
+    bottom: 40,
+    left: 0,
+    right: 240,
+    toJSON: () => ({}),
+  }),
 );
 afterEach(() => {
   vi.useRealTimers();

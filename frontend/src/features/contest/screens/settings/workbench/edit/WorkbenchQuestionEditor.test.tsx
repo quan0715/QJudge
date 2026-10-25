@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { questionFixture } from "@/test/fixtures/examPaper";
+import { questionFixture } from "./workbenchEdit.fixture";
 import type { WorkbenchEditActions } from "./WorkbenchEditScreen";
 import { WorkbenchQuestionEditor } from "./WorkbenchQuestionEditor";
 vi.mock("@/shared/ui/markdown/markdownEditor", () => ({
@@ -39,26 +39,23 @@ const base = () => ({
   question: questionFixture("q1"),
   label: "第 1 題",
   locked: false,
-  groups: [{ id: "g", label: "第 2 題（題組）" }],
   onNavigate: vi.fn(),
   actions: actions(),
   saveStatus: "idle" as const,
   onOpenScorePolicy: vi.fn(),
 });
 beforeEach(() =>
-  vi
-    .spyOn(HTMLElement.prototype, "getBoundingClientRect")
-    .mockReturnValue({
-      x: 0,
-      y: 0,
-      width: 240,
-      height: 40,
-      top: 0,
-      bottom: 40,
-      left: 0,
-      right: 240,
-      toJSON: () => ({}),
-    }),
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+    x: 0,
+    y: 0,
+    width: 240,
+    height: 40,
+    top: 0,
+    bottom: 40,
+    left: 0,
+    right: 240,
+    toJSON: () => ({}),
+  }),
 );
 afterEach(() => {
   vi.useRealTimers();
@@ -87,22 +84,6 @@ describe("question editor", () => {
     fireEvent.click(items.at(-1)!);
     expect(props.actions.remove).toHaveBeenCalledWith("q1");
     expect(screen.queryByLabelText("作答格式")).toBeNull();
-  });
-  it("moves a child out of its group", async () => {
-    const props = base();
-    render(
-      <WorkbenchQuestionEditor
-        {...props}
-        question={questionFixture("c1", { groupId: "g" })}
-      />,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "更多操作" }));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "移出題組" }));
-    expect(props.actions.move).toHaveBeenCalledWith("c1", {
-      zone: "top",
-      refBlockId: "g",
-      position: "after",
-    });
   });
 });
 

@@ -1,3 +1,4 @@
+import { roundScore } from "@/shared/utils/scoreFormat";
 import { useRef, useState, type DragEvent, type ReactNode } from "react";
 import { Button, IconButton } from "@carbon/react";
 import { ArrowDown, ArrowUp, Draggable, WarningAlt } from "@carbon/icons-react";
@@ -59,18 +60,18 @@ export function WorkbenchEditRail({
     if (row.kind === "child") {
       const index = rows.indexOf(row);
       const other = rows[index + direction];
-      if (other?.kind === "child" && other.blockId === row.blockId)
+      if (
+        other?.kind === "child" &&
+        other.blockId === row.blockId &&
+        other.questionId
+      )
         return {
           zone: "group",
           groupId: row.blockId,
           refQuestionId: other.questionId,
           position: direction < 0 ? "before" : "after",
         };
-      return {
-        zone: "top",
-        refBlockId: row.blockId,
-        position: direction < 0 ? "before" : "after",
-      };
+      return null;
     }
     const top = rows.filter((r) => r.kind !== "child");
     const other = top[top.indexOf(row) + direction];
@@ -177,7 +178,7 @@ export function WorkbenchEditRail({
                   aria-label={t("workbench.edit.hasIssue", "有發布前問題")}
                 />
               )}
-              <span className={styles.rowScore}>{row.score}</span>
+              <span className={styles.rowScore}>{roundScore(row.score)}</span>
             </Button>
             {!locked && activeKey === row.key && (
               <div className={styles.moveControls}>

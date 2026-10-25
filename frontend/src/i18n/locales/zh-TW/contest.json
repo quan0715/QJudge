@@ -2297,8 +2297,6 @@
       "more": "更多操作",
       "duplicate": "複製這題",
       "saveToBank": "收錄到題庫",
-      "moveInto": "移入{{label}}",
-      "moveOut": "移出題組",
       "fullMarks": "送分",
       "excluded": "不計分",
       "normal": "正常計分",

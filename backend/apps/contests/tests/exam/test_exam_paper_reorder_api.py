@@ -38,25 +38,10 @@ def g(id, children):
 
 @pytest.mark.django_db
 class TestExamPaperReorder:
-    def test_move_child_out_to_top_level(self, paper):
-        client, url, q1, group, (c1, c2), q2 = paper
-        res = client.patch(url, {"blocks": [q(q1), g(group, [c1]), q(c2), q(q2)]}, format="json")
-        assert res.status_code == 200, res.data
-        assert [b["id"] for b in res.data["blocks"]] == [q1, group, c2, q2]
-        assert [c["id"] for c in res.data["blocks"][1]["children"]] == [c1]
-        assert ExamQuestion.objects.get(id=c2).group_id is None
-
-    def test_move_top_level_question_into_group_at_index(self, paper):
-        client, url, q1, group, (c1, c2), q2 = paper
-        res = client.patch(url, {"blocks": [g(group, [c1, q1, c2]), q(q2)]}, format="json")
-        assert res.status_code == 200, res.data
-        assert [c["id"] for c in res.data["blocks"][0]["children"]] == [c1, q1, c2]
-        assert ExamQuestion.objects.get(id=q1).order_in_group == 2
-
     def test_reorder_children_within_group(self, paper):
         client, url, q1, group, (c1, c2), q2 = paper
         res = client.patch(url, {"blocks": [q(q1), g(group, [c2, c1]), q(q2)]}, format="json")
-        assert res.status_code == 200
+        assert res.status_code == 200, res.data
         assert [c["id"] for c in res.data["blocks"][1]["children"]] == [c2, c1]
         assert [ExamQuestion.objects.get(id=id).order_in_group for id in [c2, c1]] == [1, 2]
 
@@ -66,28 +51,36 @@ class TestExamPaperReorder:
         assert res.status_code == 200
         assert [c["id"] for c in res.data["blocks"][0]["children"]] == [c1, c2]
 
-    def test_implicit_children_exclude_explicit_moves(self, paper):
+    @pytest.mark.parametrize("change", ["add_member", "remove_member", "child_as_top_level"])
+    def test_reorder_preserves_group_membership(self, paper, change):
         client, url, q1, group, (c1, c2), q2 = paper
-        res = client.patch(url, {"blocks": [{"kind": "group", "id": group}, q(c1), q(q1), q(q2)]}, format="json")
-        assert res.status_code == 200, res.data
-        assert [c["id"] for c in res.data["blocks"][0]["children"]] == [c2]
-
-    def test_duplicate_question_returns_400(self, paper):
-        client, url, q1, group, (c1, c2), q2 = paper
-        res = client.patch(url, {"blocks": [q(c1), g(group, [c1, c2])]}, format="json")
+        blocks = {
+            "add_member": [g(group, [c1, q1, c2]), q(q2)],
+            "remove_member": [q(q1), g(group, [c1]), q(q2)],
+            "child_as_top_level": [q(q1), g(group, [c1]), q(c2), q(q2)],
+        }[change]
+        res = client.patch(url, {"blocks": blocks}, format="json")
         assert res.status_code == 400
-        assert str(res.data["error"]["details"]["blocks"]) == f"duplicate paper question {c1}"
+        assert ExamQuestion.objects.get(id=q1).group_id is None
+        assert [str(value) for value in ExamQuestion.objects.filter(group_id=group).order_by('order_in_group').values_list('id', flat=True)] == [c1, c2]
 
-    def test_unknown_question_returns_400_without_changes(self, paper):
+    def test_duplicate_child_returns_400(self, paper):
+        client, url, q1, group, (c1, c2), q2 = paper
+        res = client.patch(url, {"blocks": [q(q1), g(group, [c1, c1]), q(q2)]}, format="json")
+        assert res.status_code == 400
+        assert ExamQuestion.objects.filter(group_id=group).count() == 2
+
+    def test_unknown_block_returns_400(self, paper):
         client, url, q1, group, children, q2 = paper
-        res = client.patch(url, {"blocks": [g(group, ["999999"])]}, format="json")
+        res = client.patch(url, {"blocks": [g("999999", [])]}, format="json")
         assert res.status_code == 400
         assert str(res.data["error"]["details"]["blocks"]) == "unknown paper block 999999"
-        assert ExamQuestion.objects.filter(group_id=group).count() == 2
 
     def test_empty_group_stays_in_paper(self, paper):
         client, url, q1, group, (c1, c2), q2 = paper
-        res = client.patch(url, {"blocks": [q(q1), g(group, []), q(c1), q(c2), q(q2)]}, format="json")
+        created = client.post(url, {"kind": "group", "group": {"title": "Empty group"}}, format="json")
+        empty_group = created.data["id"]
+        res = client.patch(url, {"blocks": [g(empty_group, []), q(q1), g(group, [c1, c2]), q(q2)]}, format="json")
         assert res.status_code == 200, res.data
-        assert res.data["blocks"][1]["id"] == group
-        assert res.data["blocks"][1]["children"] == []
+        assert res.data["blocks"][0]["id"] == empty_group
+        assert res.data["blocks"][0]["children"] == []

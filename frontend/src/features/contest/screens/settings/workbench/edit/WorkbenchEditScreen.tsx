@@ -1,3 +1,4 @@
+import { roundScore } from "@/shared/utils/scoreFormat";
 import {
   useCallback,
   useEffect,
@@ -182,12 +183,25 @@ export default function WorkbenchEditScreen({
   const selected = rows.some((row) => row.key === params.get("edit_item"))
     ? params.get("edit_item")
     : (rows[0]?.key ?? null);
+  useEffect(() => {
+    if (selected && params.get("edit_item") !== selected) {
+      setParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          next.set("edit_item", selected);
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [selected, params, setParams]);
   const beforeLeave = useRef<(() => Promise<void>) | null>(null);
   const registerFlush = useCallback((flush: (() => Promise<void>) | null) => {
     beforeLeave.current = flush;
   }, []);
   const select = useCallback(
-    async (id: string) => {
+    async (id: string, keepReview = false) => {
+      if (!keepReview) setReview(null);
       try {
         await beforeLeave.current?.();
         setParams(
@@ -207,13 +221,13 @@ export default function WorkbenchEditScreen({
   );
   useEffect(() => {
     if (review && review.item.questionId !== selected)
-      void select(review.item.questionId);
+      void select(review.item.questionId, true);
   }, [review, selected, select]);
   useEffect(() => {
     if (mainRef.current) mainRef.current.scrollTop = 0;
   }, [selected]);
   const goIssue = async (item: ExamPublishIssueItem) => {
-    if (await select(item.questionId)) {
+    if (await select(item.questionId, true)) {
       setReview({
         item,
         index: issues.findIndex(
@@ -483,9 +497,14 @@ export default function WorkbenchEditScreen({
         summary={{
           questions: paper.questions.length,
           blocks: paper.blocks.length,
-          totalScore: rows
-            .filter((row) => row.kind !== "group")
-            .reduce((sum, row) => sum + row.score, 0),
+          totalScore: roundScore(
+            paper.questions.reduce(
+              (sum, question) =>
+                sum +
+                (question.scorePolicy === "excluded" ? 0 : question.score),
+              0,
+            ),
+          ),
         }}
         onSelect={select}
         onMove={(id, target) => {
@@ -540,9 +559,6 @@ export default function WorkbenchEditScreen({
                   return next;
                 })
               }
-              groups={rows
-                .filter((r) => r.kind === "group")
-                .map((r) => ({ id: r.key, label: r.label }))}
               actions={actions}
               saveStatus={saveStatus}
               registerFlush={registerFlush}
