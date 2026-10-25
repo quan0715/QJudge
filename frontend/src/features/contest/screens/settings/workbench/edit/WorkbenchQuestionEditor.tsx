@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Button,
   Checkbox,
@@ -103,7 +103,9 @@ export function WorkbenchQuestionEditor({
   });
   const { form, setForm } = draft;
   const dirtyRef = useRef(draft.dirty);
-  dirtyRef.current = draft.dirty;
+  useLayoutEffect(() => {
+    dirtyRef.current = draft.dirty;
+  });
   useEffect(() => {
     const leaveLocked = async () => {
       if (dirtyRef.current && !(await actions.confirmDiscard()))
@@ -175,6 +177,7 @@ export function WorkbenchQuestionEditor({
     <article className={styles.editor}>
       {locked && !compact && (
         <InlineNotification
+          className={styles.lockedNotice}
           kind="warning"
           lowContrast
           hideCloseButton
