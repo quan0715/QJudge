@@ -99,6 +99,41 @@ describe("group editor", () => {
       await screen.findByRole("textbox", { name: "題目敘述" }),
     ).toHaveValue("Prompt c1");
   });
+  it("keeps an invalid child draft expanded on collapse or child switch", async () => {
+    const props = base();
+    function View() {
+      const [expanded, setExpanded] = useState<string | null>("c1");
+      return (
+        <WorkbenchGroupEditor
+          {...props}
+          expandedChildId={expanded}
+          onExpandChild={setExpanded}
+        />
+      );
+    }
+    render(<View />);
+    fireEvent.change(screen.getByRole("textbox", { name: "題目敘述" }), {
+      target: { value: "Keep this child draft" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "新增選項" }));
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: /2\(a\).*Prompt c1/ }),
+      );
+    });
+    expect(screen.getByRole("textbox", { name: "題目敘述" })).toHaveValue(
+      "Keep this child draft",
+    );
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: /2\(b\).*Prompt c2/ }),
+      );
+    });
+    expect(screen.getByRole("textbox", { name: "題目敘述" })).toHaveValue(
+      "Keep this child draft",
+    );
+    expect(props.actions.saveQuestion).not.toHaveBeenCalled();
+  });
   it("adds the chosen subquestion type", async () => {
     const props = base();
     render(<WorkbenchGroupEditor {...props} />);

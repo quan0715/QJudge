@@ -197,6 +197,21 @@ describe("edit container", () => {
       }),
     );
   });
+  it("keeps an invalid draft selected when another question is picked", async () => {
+    await setup();
+    fireEvent.change(screen.getByRole("textbox", { name: "題目敘述" }), {
+      target: { value: "Keep my unsaved prompt" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "新增選項" }));
+    await act(async () => {
+      await mocks.rail!.onSelect("q2");
+    });
+    expect(screen.getByRole("textbox", { name: "題目敘述" })).toHaveValue(
+      "Keep my unsaved prompt",
+    );
+    expect(screen.getByRole("textbox", { name: "選項 C" })).toHaveValue("");
+    expect(mocks.updateExamPaperBlock).not.toHaveBeenCalled();
+  });
   it("delete asks for confirmation", async () => {
     await setup();
     await act(async () => {

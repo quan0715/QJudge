@@ -331,6 +331,7 @@ export default function ContestGradingWorkbenchScreen({ header }: { header?: Rea
   if (error)
     return (
       <div className={styles.empty}>
+        {header}
         <InlineNotification kind="error" title={error} hideCloseButton />
         <Button onClick={() => setRetry((n) => n + 1)}>{t("workbench.retry", "重新載入")}</Button>
       </div>
@@ -338,10 +339,17 @@ export default function ContestGradingWorkbenchScreen({ header }: { header?: Rea
   if (data.loading || !paper)
     return (
       <div className={styles.empty}>
+        {header}
         <InlineLoading description={t("grading.loading", "載入批改資料...")} />
       </div>
     );
-  if (!unit) return <EmptyState title={t("grading.noAnswers", "尚無作答資料")} />;
+  if (!unit)
+    return (
+      <div className={styles.empty}>
+        {header}
+        <EmptyState title={t("grading.noAnswers", "尚無作答資料")} />
+      </div>
+    );
 
   const ungradedCount = unitAnswers.filter((row) => row.score === null).length;
   const regradeCount = unitAnswers.filter((row) => !["manual", "auto"].includes(resolveAnswerSource(row, ctx))).length;

@@ -51,12 +51,13 @@ export function useQuestionDraft(
         current.state.form,
         current.state.saved,
         current.opts.requireScore,
-      ) ||
-      getQuestionValidationError(current.state.form, {
-        requireScore: current.opts.requireScore,
-      })
+      )
     )
       return;
+    const validationError = getQuestionValidationError(current.state.form, {
+      requireScore: current.opts.requireScore,
+    });
+    if (validationError) throw new Error(validationError);
     const sent = current.state.form;
     const id = current.state.id;
     const payload = buildPayload(sent, current.opts.requireScore);

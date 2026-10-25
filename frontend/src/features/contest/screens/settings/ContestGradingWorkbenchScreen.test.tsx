@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { WorkbenchRailHeader } from "./workbench/WorkbenchRailHeader";
 import type { ExamPaper, ExamQuestion } from "@/core/entities/contest.entity";
 import type { GradingAnswerRow } from "./grading/gradingTypes";
 import ContestGradingWorkbenchScreen from "./ContestGradingWorkbenchScreen";
@@ -182,6 +183,19 @@ beforeEach(() => {
 });
 
 describe("grading workbench", () => {
+  it.each(["empty", "error"])("keeps editing reachable from the %s grading state", async (state) => {
+    if (state === "empty") mocks.getExamPaper.mockResolvedValue({ ...paper, questions: [], blocks: [] });
+    else mocks.getExamPaper.mockRejectedValue(new Error("Paper unavailable"));
+    function View() {
+      const [mode, setMode] = useState<"edit" | "grade">("grade");
+      return mode === "edit" ? <p>Editing resumed</p> : <ContestGradingWorkbenchScreen header={<WorkbenchRailHeader mode="grade" gradeDisabled={false} onModeChange={setMode} />} />;
+    }
+    render(<QueryClientProvider client={new QueryClient()}><MemoryRouter><View /></MemoryRouter></QueryClientProvider>);
+    await screen.findByText(state === "empty" ? "尚無作答資料" : "Paper unavailable");
+    fireEvent.click(screen.getByRole("tab", { name: "編輯" }));
+    expect(screen.getByText("Editing resumed")).toBeInTheDocument();
+  });
+
   it("saves a sub-question and advances", async () => {
     await setup();
     edit("1(a)", 3, "Complete", 0);

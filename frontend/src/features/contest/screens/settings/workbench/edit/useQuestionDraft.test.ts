@@ -45,6 +45,27 @@ describe("question draft", () => {
     expect(save).not.toHaveBeenCalled();
     expect(result.current.error).toBe("emptyPrompt");
   });
+  it("rejects navigation flush for an invalid dirty draft", async () => {
+    const save = vi.fn();
+    const { result } = renderHook(() =>
+      useQuestionDraft(questionFixture("q1"), {
+        autosave: true,
+        requireScore: true,
+        save,
+      }),
+    );
+    act(() =>
+      result.current.setForm((p) => ({
+        ...p,
+        prompt: "Keep this draft",
+        options: [...p.options, ""],
+      })),
+    );
+    await expect(result.current.flush()).rejects.toThrow();
+    expect(save).not.toHaveBeenCalled();
+    expect(result.current.form.prompt).toBe("Keep this draft");
+    expect(result.current.dirty).toBe(true);
+  });
   it("flushes pending save when the question changes", async () => {
     vi.useFakeTimers();
     const first = vi.fn().mockResolvedValue(undefined);
