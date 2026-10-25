@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Button, InlineLoading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type {
@@ -99,7 +99,6 @@ export default function WorkbenchEditScreen({
   const { t } = useTranslation("contest");
   const { showToast } = useToast();
   const [params, setParams] = useSearchParams();
-  const location = useLocation();
   const [paper, setPaper] = useState<ExamPaper | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checksOpen, setChecksOpen] = useState(false);
@@ -454,9 +453,6 @@ export default function WorkbenchEditScreen({
       select(created.id);
     });
   };
-  const legacy = new URLSearchParams(params);
-  legacy.set("panel", "problem_editor");
-  const legacyHref = `${location.pathname}?${legacy}`;
   if (error || !paper)
     return (
       <div className={styles.root}>
@@ -466,11 +462,6 @@ export default function WorkbenchEditScreen({
         >
           <div className={styles.railHeader}>{header}</div>
           <div className={styles.railList} />
-          <div className={styles.railFooter}>
-            <Button kind="ghost" size="sm" href={legacyHref}>
-              {t("workbench.edit.legacy", "改用舊版考卷管理")}
-            </Button>
-          </div>
         </aside>
         <div className={styles.mainArea}>
           <main className={styles.main}>
@@ -535,8 +526,6 @@ export default function WorkbenchEditScreen({
         locked={locked}
         issueCount={issues.length}
         summary={{
-          questions: paper.questions.length,
-          blocks: paper.blocks.length,
           totalScore: roundScore(
             paper.questions.reduce(
               (sum, question) =>
@@ -552,7 +541,6 @@ export default function WorkbenchEditScreen({
           void add(choice);
         }}
         onOpenPublishCheck={() => setChecksOpen(true)}
-        legacyHref={legacyHref}
       />
       <div className={styles.mainArea}>
         <main

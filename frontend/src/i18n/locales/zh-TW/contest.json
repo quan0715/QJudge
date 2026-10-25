@@ -2276,13 +2276,12 @@
       "addGroup": "題組",
       "importBank": "從題庫匯入…",
       "questions": "題目",
-      "summary": "{{questions}} 題　{{blocks}} 區塊　總分 {{totalScore}}",
+      "summary": "總分 {{totalScore}}",
       "drag": "拖曳{{label}}",
       "hasIssue": "有發布前問題",
       "moveUp": "上移",
       "moveDown": "下移",
       "publishCount": "發布前檢查 {{count}} 項",
-      "legacy": "改用舊版考卷管理",
       "operationFailed": "操作失敗",
       "deleteQuestion": "刪除這題",
       "deleteConfirm": "確定刪除選取的題目或題組？",
@@ -2363,7 +2362,8 @@
       "issueFixed": "已修好，還有 {{count}} 項",
       "discardTitle": "要捨棄未儲存的變更嗎？",
       "discardBody": "這題的修改還沒儲存，離開後就會遺失。",
-      "stayHere": "留在這題"
+      "stayHere": "留在這題",
+      "reviewChecks": "查看"
     }
   }
 }

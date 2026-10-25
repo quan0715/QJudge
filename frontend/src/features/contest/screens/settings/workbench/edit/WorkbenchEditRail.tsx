@@ -1,6 +1,5 @@
-import { useRef, useState, type ReactNode } from "react";
-import { Button } from "@carbon/react";
-import { WarningAlt } from "@carbon/icons-react";
+import { useId, useRef, useState, type ReactNode } from "react";
+import { Callout } from "@carbon/react";
 import { Reorder } from "motion/react";
 import { useTranslation } from "react-i18next";
 import type { PaperMoveTarget } from "@/features/contest/domain/paperMoveModel";
@@ -14,12 +13,11 @@ export interface WorkbenchEditRailProps {
   activeKey: string | null;
   locked: boolean;
   issueCount: number;
-  summary: { questions: number; blocks: number; totalScore: number };
+  summary: { totalScore: number };
   onSelect(key: string): void;
   onMove(itemId: string, target: PaperMoveTarget): void | Promise<void>;
   onAdd(choice: AddMenuChoice): void;
   onOpenPublishCheck(): void;
-  legacyHref: string;
 }
 export function WorkbenchEditRail({
   header,
@@ -32,9 +30,9 @@ export function WorkbenchEditRail({
   onMove,
   onAdd,
   onOpenPublishCheck,
-  legacyHref,
 }: WorkbenchEditRailProps) {
   const { t } = useTranslation("contest");
+  const publishTitleId = useId();
   const [preview, setPreview] = useState<EditRailRow[] | null>(null);
   const [saving, setSaving] = useState(false);
   const previewRef = useRef<EditRailRow[] | null>(null);
@@ -183,11 +181,7 @@ export function WorkbenchEditRail({
       <div className={styles.railHeader}>
         {header}
         <p className={styles.summary}>
-          {t(
-            "workbench.edit.summary",
-            "{{questions}} 題　{{blocks}} 區塊　總分 {{totalScore}}",
-            summary,
-          )}
+          {t("workbench.edit.summary", "總分 {{totalScore}}", summary)}
         </p>
         {!locked && <WorkbenchAddMenu onAdd={onAdd} />}
       </div>
@@ -225,24 +219,23 @@ export function WorkbenchEditRail({
             );
           })}
       </Reorder.Group>
-      <div className={styles.railFooter}>
-        {issueCount > 0 && (
-          <Button
-            kind="ghost"
-            size="sm"
-            className={styles.publishLink}
-            onClick={onOpenPublishCheck}
-          >
-            <WarningAlt size={16} />
-            {t("workbench.edit.publishCount", "發布前檢查 {{count}} 項", {
+      {issueCount > 0 && (
+        <div className={styles.railFooter}>
+          <Callout
+            role="region"
+            aria-label={t("workbench.edit.publishCheck", "發布前檢查")}
+            kind="warning-alt"
+            lowContrast
+            className={styles.publishNotice}
+            titleId={publishTitleId}
+            title={t("workbench.edit.publishCount", "發布前檢查 {{count}} 項", {
               count: issueCount,
             })}
-          </Button>
-        )}
-        <Button kind="ghost" size="sm" href={legacyHref}>
-          {t("workbench.edit.legacy", "改用舊版考卷管理")}
-        </Button>
-      </div>
+            actionButtonLabel={t("workbench.edit.reviewChecks", "查看")}
+            onActionButtonClick={onOpenPublishCheck}
+          />
+        </div>
+      )}
     </aside>
   );
 }

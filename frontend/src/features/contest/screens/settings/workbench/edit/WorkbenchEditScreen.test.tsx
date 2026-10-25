@@ -250,7 +250,12 @@ it("stays on a fixed issue until the teacher moves on, then closes when all are 
   first.questions[3].prompt = "New question";
   mocks.getExamPaper.mockResolvedValue(first);
   await setup();
-  fireEvent.click(screen.getByRole("button", { name: /發布前檢查.*2/ }));
+  fireEvent.click(
+    within(screen.getByRole("region", { name: "發布前檢查" })).getByRole(
+      "button",
+      { name: "查看" },
+    ),
+  );
   fireEvent.click(
     within(
       await screen.findByRole("complementary", { name: "發布前檢查" }),
@@ -317,7 +322,12 @@ it("ends publish review when another item is selected from the rail", async () =
   paper.questions[0].correctAnswer = null;
   mocks.getExamPaper.mockResolvedValue(paper);
   await setup();
-  fireEvent.click(screen.getByRole("button", { name: /發布前檢查.*1/ }));
+  fireEvent.click(
+    within(screen.getByRole("region", { name: "發布前檢查" })).getByRole(
+      "button",
+      { name: "查看" },
+    ),
+  );
   fireEvent.click(
     within(
       await screen.findByRole("complementary", { name: "發布前檢查" }),
@@ -349,10 +359,10 @@ it("keeps the paper total independent of rounded redistributed question scores",
   Object.assign(paper.questions[3], { score: 70, effectiveMaxScore: 82.35 });
   mocks.getExamPaper.mockResolvedValue(paper);
   await setup();
-  expect(screen.getByText(/4 題.*3 區塊.*總分 100/)).toBeTruthy();
+  expect(screen.getByText("總分 100", { exact: true })).toBeTruthy();
 });
 
-it("keeps the mode header and legacy link while loading and after a load error", async () => {
+it("keeps the mode header without a legacy link while loading and after a load error", async () => {
   let reject: (err: Error) => void = () => {};
   mocks.getExamPaper.mockReturnValue(
     new Promise((_, fail) => {
@@ -368,9 +378,7 @@ it("keeps the mode header and legacy link while loading and after a load error",
   await act(async () => reject(new Error("offline")));
   expect(await screen.findByRole("button", { name: "重新載入" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: "工作台" })).toBeTruthy();
-  expect(
-    screen.getByRole("link", { name: "改用舊版考卷管理" }),
-  ).toHaveAttribute("href", expect.stringContaining("panel=problem_editor"));
+  expect(screen.queryByRole("link", { name: "改用舊版考卷管理" })).toBeNull();
 });
 
 async function findDiscardDialog() {

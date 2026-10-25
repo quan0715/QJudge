@@ -2276,13 +2276,12 @@
       "addGroup": "問題グループ",
       "importBank": "問題バンクからインポート…",
       "questions": "問題",
-      "summary": "{{questions}} 問 · {{blocks}} ブロック · {{totalScore}} 点",
+      "summary": "合計 {{totalScore}} 点",
       "drag": "{{label}}をドラッグ",
       "hasIssue": "公開前の確認項目あり",
       "moveUp": "上へ移動",
       "moveDown": "下へ移動",
       "publishCount": "公開前の確認 {{count}} 件",
-      "legacy": "従来の試験編集を使用",
       "operationFailed": "操作に失敗しました",
       "deleteQuestion": "この問題を削除",
       "deleteConfirm": "選択した問題またはグループを削除しますか？",
@@ -2363,7 +2362,8 @@
       "issueFixed": "修正済み・残り {{count}} 件",
       "discardTitle": "未保存の変更を破棄しますか？",
       "discardBody": "この問題の変更はまだ保存されていません。移動すると失われます。",
-      "stayHere": "この問題に留まる"
+      "stayHere": "この問題に留まる",
+      "reviewChecks": "確認"
     }
   }
 }

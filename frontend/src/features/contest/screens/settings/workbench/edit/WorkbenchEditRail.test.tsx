@@ -74,12 +74,11 @@ const base = () => ({
   activeKey: "q1",
   locked: false,
   issueCount: 2,
-  summary: { questions: 4, blocks: 3, totalScore: 20 },
+  summary: { totalScore: 20 },
   onSelect: vi.fn(),
   onMove: vi.fn(),
   onAdd: vi.fn(),
   onOpenPublishCheck: vi.fn(),
-  legacyHref: "/?panel=problem_editor",
 });
 const rowKeys = () =>
   [...document.querySelectorAll<HTMLElement>("[data-row-key]")].map(
@@ -206,12 +205,20 @@ describe("edit rail", () => {
     expect(screen.queryByRole("button", { name: "下移" })).toBeNull();
     expect(screen.queryByRole("button", { name: "新增題目" })).toBeNull();
   });
-  it("publish check line shows count and opens drawer", () => {
+  it("shows a publish warning that opens checks and disappears once resolved", () => {
     const props = base();
     const { rerender } = render(<WorkbenchEditRail {...props} />);
-    fireEvent.click(screen.getByRole("button", { name: /發布前檢查.*2/ }));
+    const warning = screen.getByRole("region", { name: "發布前檢查" });
+    expect(within(warning).getByText("發布前檢查 2 項")).toBeVisible();
+    fireEvent.click(within(warning).getByRole("button", { name: "查看" }));
     expect(props.onOpenPublishCheck).toHaveBeenCalled();
     rerender(<WorkbenchEditRail {...props} issueCount={0} />);
-    expect(screen.queryByRole("button", { name: /發布前檢查/ })).toBeNull();
+    expect(screen.queryByRole("region", { name: "發布前檢查" })).toBeNull();
+  });
+  it("shows only the total without question counts, block counts or a legacy shortcut", () => {
+    render(<WorkbenchEditRail {...base()} />);
+    expect(screen.getByText("總分 20", { exact: true })).toBeVisible();
+    expect(screen.queryByText(/4 題|3 區塊/)).toBeNull();
+    expect(screen.queryByRole("link", { name: "改用舊版考卷管理" })).toBeNull();
   });
 });

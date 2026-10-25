@@ -88,11 +88,10 @@
 .rowSelect:has(button:focus-visible) .moveControls {
   display: flex;
 }
-.publishLink {
-  gap: layout.$spacing-03;
-}
-.publishLink svg {
-  color: var(--cds-support-warning);
+.publishNotice {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
 }
 .railFooter {
   display: flex;

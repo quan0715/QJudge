@@ -2276,13 +2276,12 @@
       "addGroup": "Question group",
       "importBank": "Import from question bank…",
       "questions": "Questions",
-      "summary": "{{questions}} questions · {{blocks}} blocks · {{totalScore}} points",
+      "summary": "Total {{totalScore}}",
       "drag": "Drag {{label}}",
       "hasIssue": "Has publishing issues",
       "moveUp": "Move up",
       "moveDown": "Move down",
       "publishCount": "{{count}} publishing checks",
-      "legacy": "Use the legacy paper editor",
       "operationFailed": "Operation failed",
       "deleteQuestion": "Delete question",
       "deleteConfirm": "Delete the selected question or group?",
@@ -2363,7 +2362,8 @@
       "issueFixed": "Fixed · {{count}} left",
       "discardTitle": "Discard unsaved changes?",
       "discardBody": "Your changes to this question have not been saved and will be lost if you leave.",
-      "stayHere": "Stay here"
+      "stayHere": "Stay here",
+      "reviewChecks": "Review"
     }
   }
 }

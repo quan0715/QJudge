@@ -2276,13 +2276,12 @@
       "addGroup": "문항 그룹",
       "importBank": "문제은행에서 가져오기…",
       "questions": "문항",
-      "summary": "{{questions}}문항 · {{blocks}}개 블록 · {{totalScore}}점",
+      "summary": "총점 {{totalScore}}",
       "drag": "{{label}} 끌기",
       "hasIssue": "게시 전 확인 필요",
       "moveUp": "위로 이동",
       "moveDown": "아래로 이동",
       "publishCount": "게시 전 확인 {{count}}개",
-      "legacy": "기존 시험지 편집기 사용",
       "operationFailed": "작업 실패",
       "deleteQuestion": "문항 삭제",
       "deleteConfirm": "선택한 문항 또는 그룹을 삭제할까요?",
@@ -2363,7 +2362,8 @@
       "issueFixed": "수정됨 · {{count}}개 남음",
       "discardTitle": "저장하지 않은 변경 사항을 버릴까요?",
       "discardBody": "이 문제의 변경 사항이 아직 저장되지 않았습니다. 나가면 사라집니다.",
-      "stayHere": "이 문제에 머물기"
+      "stayHere": "이 문제에 머물기",
+      "reviewChecks": "확인"
     }
   }
 }

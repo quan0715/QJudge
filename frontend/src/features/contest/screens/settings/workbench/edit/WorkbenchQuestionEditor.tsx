@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Button,
   Checkbox,
@@ -352,6 +358,7 @@ export function WorkbenchQuestionEditor({
           <MarkdownRenderer>{form.prompt}</MarkdownRenderer>
         ) : (
           <MarkdownField
+            variant="subtle"
             id={`prompt-${question.id}`}
             labelText={t("workbench.edit.prompt", "題目敘述")}
             value={form.prompt}
@@ -494,6 +501,7 @@ export function WorkbenchQuestionEditor({
           />
         ) : (
           <MarkdownField
+            variant="subtle"
             id={`reference-${question.id}`}
             labelText={t("workbench.edit.reference", "評分參考答案")}
             value={
@@ -528,6 +536,7 @@ export function WorkbenchQuestionEditor({
           />
         ) : (
           <MarkdownField
+            variant="subtle"
             id={`explanation-${question.id}`}
             labelText={t("workbench.edit.explanation", "詳解")}
             value={form.explanation}

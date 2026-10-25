@@ -199,6 +199,7 @@ export function WorkbenchGroupEditor({
           <MarkdownRenderer>{form.stem}</MarkdownRenderer>
         ) : (
           <MarkdownField
+            variant="subtle"
             id={`group-stem-${block.id}`}
             labelText={t("workbench.edit.sharedStem", "共同題幹")}
             value={form.stem}
