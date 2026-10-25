@@ -17,6 +17,7 @@ import { movePaperItem, toReorderPayload, type PaperMoveTarget } from "@/feature
 import { buildEditRailRows } from "./editRailModel";
 import { WorkbenchEditRail } from "./WorkbenchEditRail";
 import type { AddMenuChoice } from "./WorkbenchAddMenu";
+import { WorkbenchQuestionEditor } from "./WorkbenchQuestionEditor";
 import styles from "./WorkbenchEdit.module.scss";
 
 export interface WorkbenchEditActions {
@@ -37,12 +38,14 @@ export default function WorkbenchEditScreen({header}:{header:ReactNode;onPreview
  const issues=useMemo(()=>getExamPublishIssueItems(paper?.questions??[]),[paper]);
  const rows=useMemo(()=>paper?buildEditRailRows(paper,issues,t):[],[paper,issues,t]);
  const selected=rows.some(row=>row.key===params.get("edit_item"))?params.get("edit_item"):rows[0]?.key??null;
- const select=useCallback((id:string)=>setParams(prev=>{const next=new URLSearchParams(prev);next.set("edit_item",id);return next;},{replace:true}),[setParams]);
+ const beforeLeave=useRef<(()=>Promise<void>)|null>(null);
+ const registerFlush=useCallback((flush:(()=>Promise<void>)|null)=>{beforeLeave.current=flush;},[]);
+ const select=useCallback(async(id:string)=>{try{await beforeLeave.current?.();setParams(prev=>{const next=new URLSearchParams(prev);next.set("edit_item",id);return next;},{replace:true});}catch{/* The save action reports the error; stay on the draft. */}},[setParams]);
  const failed=useCallback((err:unknown)=>showToast({kind:"error",title:t("workbench.edit.operationFailed","操作失敗"),subtitle:err instanceof Error?err.message:String(err)}),[showToast,t]);
  const runSave=useCallback(async(operation:()=>Promise<unknown>)=>{try{await track(async()=>{await operation();await loadPaper();});}catch(err){failed(err);throw err;}},[track,loadPaper,failed]);
  const structural=useCallback(async(operation:()=>Promise<void>)=>{
   if(lockedRef.current||structuralBusy.current)return;structuralBusy.current=true;
-  try{await track(operation);}catch(err){try{await loadPaper();}catch{/* Keep the last known server snapshot when reload also fails. */}failed(err);}finally{structuralBusy.current=false;}
+  try{await beforeLeave.current?.();if(lockedRef.current)return;await track(operation);}catch(err){try{await loadPaper();}catch{/* Keep the last known server snapshot when reload also fails. */}failed(err);}finally{structuralBusy.current=false;}
  },[track,loadPaper,failed]);
  const actions=useMemo<WorkbenchEditActions>(()=>({
   saveQuestion:async(id,payload,action)=>runSave(()=>updateExamPaperBlock(contestId,id,{kind:"question",question:{...payload,...(action?{existing_grades_action:action}:{})}})),
@@ -52,7 +55,7 @@ export default function WorkbenchEditScreen({header}:{header:ReactNode;onPreview
    try{setPaper(await reorderExamPaperBlocks(contestId,toReorderPayload(blocks)));}catch(err){setPaper(previous);throw err;}
   }),
   addChild:async(groupId,type)=>structural(async()=>{await updateExamPaperBlock(contestId,groupId,{kind:"group",children:[DEFAULT_QUESTION_PAYLOADS[type]]});await loadPaper();select(groupId);}),
-  duplicate:async(id)=>structural(async()=>{const source=paper?.questions.find(q=>q.id===id);if(!source)return;const payload=buildDuplicatePayload(source,source.order+1);
+  duplicate:async(id)=>structural(async()=>{const latest=await loadPaper();const source=latest.questions.find(q=>q.id===id);if(!source)return;const payload=buildDuplicatePayload(source,source.order+1);
    if(source.groupId){const block=await updateExamPaperBlock(contestId,source.groupId,{kind:"group",children:[payload]});await loadPaper();if(block.kind==="group")select(block.children.at(-1)?.id??block.id);}
    else{const block=await createExamPaperBlock(contestId,{kind:"question",question:payload});await loadPaper();select(block.id);}
   }),
@@ -78,9 +81,13 @@ export default function WorkbenchEditScreen({header}:{header:ReactNode;onPreview
    summary={{questions:paper.questions.length,blocks:paper.blocks.length,totalScore:paper.questions.reduce((sum,q)=>sum+(q.effectiveMaxScore??q.score),0)}}
    onSelect={select} onMove={(id,target)=>{void actions.move(id,target);}} onAdd={choice=>{void add(choice);}} onOpenPublishCheck={()=>{}} legacyHref={`${location.pathname}?${legacy}`}/>
   <main className={styles.main} aria-label={t("workbench.edit.editor","題目編輯")}>
-   {selected?<><h1>{currentQuestion?.prompt??(currentBlock?.kind==="group"?currentBlock.group.title:"")}</h1>
-    {!locked&&<Button kind="danger--ghost" onClick={()=>{void actions.remove(selected);}}>{t("workbench.edit.deleteQuestion","刪除這題")}</Button>}
-    <span aria-live="polite">{saveStatus==="saving"?t("workbench.edit.saving","儲存中…"):""}</span></>:<EmptyState title={t("workbench.edit.emptyPaper","考卷尚無題目")}/>}
+   {currentQuestion?<WorkbenchQuestionEditor key={currentQuestion.id} question={currentQuestion} label={rows.find(r=>r.key===currentQuestion.id)?.label??""} locked={locked}
+    groups={rows.filter(r=>r.kind==="group").map(r=>({id:r.key,label:r.label}))} actions={actions} saveStatus={saveStatus} registerFlush={registerFlush} onOpenScorePolicy={()=>{}}
+    prevLabel={rows.find(r=>r.key===paper.questions[paper.questions.indexOf(currentQuestion)-1]?.id)?.label}
+    nextLabel={rows.find(r=>r.key===paper.questions[paper.questions.indexOf(currentQuestion)+1]?.id)?.label}
+    onNavigate={direction=>{const next=paper.questions[paper.questions.indexOf(currentQuestion)+(direction==="prev"?-1:1)];if(next)void select(next.id);}}/>
+    :currentBlock?.kind==="group"?<h1>{currentBlock.group.title}</h1>:<EmptyState title={t("workbench.edit.emptyPaper","考卷尚無題目")}/>}
+
   </main>
   <ConfirmModal {...modalProps}/>
   <QuestionBankImportModal open={importOpen} category="exam" onClose={()=>setImportOpen(false)} onConfirm={async items=>{await structural(async()=>{await importExamQuestionsFromBank(contestId,{items:items.map(item=>({question_bank_id:item.questionBankId,question_id:item.questionId}))});const next=await loadPaper();setImportOpen(false);const last=next.blocks.at(-1);if(last)select(last.id);});}}/>

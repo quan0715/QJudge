@@ -6,6 +6,7 @@ import type { ContestDetail } from "@/core/entities/contest.entity";
 import ContestWorkbenchScreen from "./ContestWorkbenchScreen";
 vi.mock("./ContestGradingWorkbenchScreen",()=>({default:({header}:{header:ReactNode})=><div>{header}</div>}));
 vi.mock("react-i18next",()=>({useTranslation:()=>({t:(_k:string,fallback:string)=>fallback})}));
+vi.mock("./workbench/edit/WorkbenchEditScreen",()=>({default:({header}:{header:ReactNode})=><div>{header}</div>}));
 function Location(){return <output data-testid="query">{useLocation().search}</output>}
 function setup(status:string,query=""){return render(<MemoryRouter initialEntries={["/?"+query]}><ContestWorkbenchScreen contestId="c" contest={{id:"c",status} as ContestDetail}/><Location/></MemoryRouter>)}
 describe("workbench shell",()=>{
