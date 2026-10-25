@@ -5,20 +5,29 @@ description: Use when a teacher asks the QJudge TA agent to grade, review, or wr
 
 # QJudge Open-ended Exam Grading
 
-Follow the [core grading principles](references/core-principles.md). This is the single
-source for grading judgment rules; the runtime loads it into both the main agent's and
-grading subagents' system context whenever grading tools are available. The workflows
-below describe how to use the tools.
+Follow the [core grading principles](references/core-principles.md). The runtime supplies
+this SOP and those principles directly to both the main agent and grading subagents
+whenever grading tools are available; no extra skill read or copied workflow is needed.
 
 ## Batch grading (when the grading tools are available)
 
-`get_grading_assignment` lists the units the teacher asked for. A unit is one question or a
-whole question group; read a group's sibling answers together. `get_grading_unit` gives you
-everything needed to grade a unit, `save_grading_draft` keeps your work (it does not change
-official grades), and `submit_grading_unit` writes the unit's drafts as grades without
-overwriting a teacher's.
+**Main agent:** call `get_grading_assignment`, then use `task` to delegate one unit to each
+`general-purpose` subagent, working in small batches. The task description contains only a
+short task label and the unit ID. Do not read the units' answers into the main context or
+precompute grading judgments. Track the delegated work and summarize its verified results.
 
-Choose your subagents and save frequency. Include a concise rubric (criteria and points)
+**Grading subagent:** when delegated a unit ID, grade that unit yourself. Call
+`get_grading_unit` to read its questions, references, original teacher note and answers;
+read a question group's sibling answers together. Derive the rubric, save drafts as you
+grade, then submit and verify the unit. Keep original answers and detailed grading in
+your own context and the stored unit, rather than returning them to the main agent.
+
+Return only the unit ID, written/skipped/failed counts, verification status and any
+unresolved IDs or errors. The main agent reports completion only when every assigned
+unit has a verified result; otherwise report the unfinished units. Reading data or ending
+a model turn does not mean the requested grading was completed.
+
+Include a concise rubric (criteria and points)
 in the first `save_grading_draft` call for every unit; later saves may omit it. At run completion,
 the system exports the stored criteria and grades as `rubric.md` and `grade.csv` artifacts;
 do not rewrite those files yourself. Every writable answer should end with a submitted grade, and your summary

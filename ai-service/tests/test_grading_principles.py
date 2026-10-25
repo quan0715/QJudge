@@ -1,4 +1,4 @@
-"""Grading principles reach actual parent and delegated model requests."""
+"""The canonical grading SOP and principles reach parent and delegated requests."""
 
 from __future__ import annotations
 
@@ -48,13 +48,17 @@ def build_agent(tool_name: str):
 
 
 @pytest.mark.parametrize("tool_name", ["get_grading_unit", "qjudge_grading"])
-async def test_parent_and_subagent_receive_the_same_canonical_principles_once(
+async def test_parent_and_subagent_receive_the_same_canonical_sop_and_principles_once(
     monkeypatch, tmp_path, tool_name,
 ):
     source = tmp_path / "principles.md"
     principles = "Canonical grading instructions supplied by the existing SOP."
     source.write_text(principles, encoding="utf-8")
     monkeypatch.setattr(runner_mod, "_GRADING_PRINCIPLES_PATH", source, raising=False)
+    sop_source = tmp_path / "SKILL.md"
+    sop = "Canonical grading workflow supplied by the existing skill."
+    sop_source.write_text(sop, encoding="utf-8")
+    monkeypatch.setattr(runner_mod, "_GRADING_SOP_PATH", sop_source, raising=False)
     seen.clear()
 
     result = await build_agent(tool_name).ainvoke({
@@ -67,22 +71,31 @@ async def test_parent_and_subagent_receive_the_same_canonical_principles_once(
     for messages in seen:
         system = "\n".join(str(m.content) for m in messages if isinstance(m, SystemMessage))
         assert system.count(principles) == 1
+        assert system.count(sop) == 1
 
 
 @pytest.mark.parametrize("content", [None, "", "  \n"])
-def test_grading_cannot_start_without_core_principles(monkeypatch, tmp_path, content):
-    source = tmp_path / "principles.md"
-    if content is not None:
-        source.write_text(content, encoding="utf-8")
-    monkeypatch.setattr(runner_mod, "_GRADING_PRINCIPLES_PATH", source, raising=False)
+@pytest.mark.parametrize("missing_source", ["SOP", "PRINCIPLES"])
+def test_grading_cannot_start_without_its_canonical_instructions(
+    monkeypatch, tmp_path, content, missing_source,
+):
+    for name in ["SOP", "PRINCIPLES"]:
+        source = tmp_path / f"{name}.md"
+        value = content if name == missing_source else "Existing grading instructions."
+        if value is not None:
+            source.write_text(value, encoding="utf-8")
+        monkeypatch.setattr(runner_mod, f"_GRADING_{name}_PATH", source, raising=False)
 
-    with pytest.raises(RuntimeError, match="grading principles"):
+    with pytest.raises(RuntimeError, match="[Gg]rading"):
         build_agent("get_grading_unit")
 
 
 def test_non_grading_agent_does_not_require_grading_principles(monkeypatch, tmp_path):
     monkeypatch.setattr(
         runner_mod, "_GRADING_PRINCIPLES_PATH", tmp_path / "missing.md", raising=False,
+    )
+    monkeypatch.setattr(
+        runner_mod, "_GRADING_SOP_PATH", tmp_path / "missing-sop.md", raising=False,
     )
 
     assert build_agent("qjudge_exam") is not None
