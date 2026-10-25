@@ -8,6 +8,11 @@ Apply these principles whenever grading or reviewing an exam answer.
   the only acceptable ones. Accept other correct solutions and equivalent wording.
 - Alternative valid methods are alternatives, not cumulative requirements. When
   either method satisfies a requirement, do not deduct for omitting the other.
+- For new grading, pass the original question, answers and teacher criteria, or the
+  grading-unit ID used to retrieve them. Let the subagent derive the rubric and scores.
+  Do not supply parent-generated point allocations, proposed scores or answer-specific
+  judgments as grading instructions. Forward human criteria unchanged. For explicit
+  review of AI drafts, label their rubric and grades as proposals, not teacher decisions.
 - Apply the same rubric and partial-credit standards to every student. Do not
   penalize brevity unless the answer omits something the question requires.
 - Base each award or deduction on what the student actually wrote and the rubric.
