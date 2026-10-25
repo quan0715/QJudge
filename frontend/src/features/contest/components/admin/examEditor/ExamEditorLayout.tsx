@@ -1,3 +1,4 @@
+import { buildDuplicatePayload } from "./examQuestionFormModel";
 import React, {
   useCallback,
   useEffect,
@@ -503,24 +504,7 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
       const source = questions.find((q) => q.id === questionId);
       if (!source) return;
       try {
-        const payload: ExamPaperQuestionPayload & {
-          question_type: ExamQuestionType;
-          prompt: string;
-          score: number;
-        } = {
-          question_type: source.questionType,
-          prompt: source.prompt,
-          explanation: source.explanation,
-          score: source.score,
-          order: source.order + 1,
-          answer_format: source.answerFormat,
-        };
-        if (source.options.length > 0) payload.options = [...source.options];
-        if (source.correctAnswer != null) {
-          payload.correct_answer = Array.isArray(source.correctAnswer)
-            ? [...source.correctAnswer]
-            : source.correctAnswer;
-        }
+        const payload = buildDuplicatePayload(source, source.order + 1);
         const created = await toolbarSave.track(() =>
           createExamPaperBlock(contestId, { kind: "question", question: payload }),
         );
