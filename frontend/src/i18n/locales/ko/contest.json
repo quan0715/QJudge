@@ -25,7 +25,7 @@
       "settings": "설정",
       "standings": "순위표",
       "statistics": "통계",
-      "gradingWorkbench": "채점"
+      "gradingWorkbench": "채점 (Beta)"
     },
     "title": "관리 대시보드"
   },
@@ -2212,7 +2212,7 @@
     "aiQueued": "AI 대기 중",
     "aiFailed": "AI 실패",
     "questions": "문항",
-    "title": "채점",
+    "title": "채점 (Beta)",
     "examAi": "AI로 시험 전체 채점",
     "stop": "중지",
     "saved": "채점을 저장했습니다",

@@ -408,22 +408,15 @@ async def test_presigning_uses_sigv4_for_s3_compatible_endpoints() -> None:
     assert 'AWSAccessKeyId' not in query
 
 
-async def test_accepted_grading_rubric_is_worker_owned_and_immutable(
+async def test_legacy_rubric_filename_uses_normal_artifact_updates(
     artifact_service, principal, session,
 ):
     values = dict(
         session_id=session.id, step="batch", filename="accepted_rubric_group_v1.json",
         content=b'{"points":1}', content_type="application/json", metadata={},
     )
-    with pytest.raises(InvalidArtifact, match="worker-owned"):
-        await artifact_service.put(principal=principal, produced_by_run_id=None, **values)
-    with pytest.raises(InvalidArtifact, match="worker-owned"):
-        await artifact_service.put_for_run(run_id=None, **values)
-    first = await artifact_service.put_for_run(run_id=None, worker_owned=True, **values)
-    repeated = await artifact_service.put_for_run(run_id=None, worker_owned=True, **values)
-    assert repeated.id == first.id
-    with pytest.raises(InvalidArtifact, match="cannot change"):
-        await artifact_service.put_for_run(
-            run_id=None, worker_owned=True, **{**values, "content": b'{"points":2}'},
-        )
-    assert len(artifact_service.store.keys) == 1
+    await artifact_service.put(principal=principal, produced_by_run_id=None, **values)
+    updated = await artifact_service.put_for_run(
+        run_id=None, **{**values, "content": b'{"points":2}'},
+    )
+    assert await artifact_service.get_content(principal, updated.id) == b'{"points":2}'

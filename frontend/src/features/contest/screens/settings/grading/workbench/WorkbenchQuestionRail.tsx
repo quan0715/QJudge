@@ -56,7 +56,7 @@ export function WorkbenchQuestionRail({
   return (
     <aside className={styles.rail} aria-label={t("workbench.questions", "題目")}>
       <div className={styles.railHeader}>
-        <h2>{t("workbench.title", "批改")}</h2>
+        <h2>{t("workbench.title", "批改 (Beta)")}</h2>
         {examAi.state === "idle" ? (
           <Button
             kind="tertiary"

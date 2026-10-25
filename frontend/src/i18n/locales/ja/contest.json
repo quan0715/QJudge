@@ -25,7 +25,7 @@
       "settings": "設定",
       "standings": "ランキング",
       "statistics": "統計",
-      "gradingWorkbench": "採点"
+      "gradingWorkbench": "採点 (Beta)"
     },
     "title": "管理ダッシュボード"
   },
@@ -2212,7 +2212,7 @@
     "aiQueued": "AI 待機中",
     "aiFailed": "AI 失敗",
     "questions": "問題",
-    "title": "採点",
+    "title": "採点 (Beta)",
     "examAi": "AI で試験全体を採点",
     "stop": "停止",
     "saved": "採点を保存しました",

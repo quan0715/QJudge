@@ -82,7 +82,7 @@ describe("BatchGradingQuestionMenu", () => {
 
   it("shows the question's rubric and AI draft grades read-only", async () => {
     const onLoadFiles = vi.fn().mockResolvedValue({
-      rubric: { criteria: ["loop"] },
+      rubric: { criteria: ["**loop**"], points: 0 },
       grades: [{ exam_answer_id: "a1", score: 3, feedback: "ok" }],
     });
     render(
@@ -97,7 +97,8 @@ describe("BatchGradingQuestionMenu", () => {
     openMenu();
     fireEvent.click(menuItem("grading.batch.files"));
 
-    expect(await screen.findByText(/"loop"/)).toBeInTheDocument();
+    expect((await screen.findByText("loop")).tagName).toBe("STRONG");
+    expect(screen.getByText("points").closest("li")).toHaveTextContent("points: 0");
     expect(onLoadFiles).toHaveBeenCalledWith("q1");
     fireEvent.click(screen.getByRole("tab", { name: "grading.batch.filesGrades" }));
     expect(await screen.findByText(/"a1"/)).toBeInTheDocument();
