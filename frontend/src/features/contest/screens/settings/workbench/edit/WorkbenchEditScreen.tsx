@@ -80,6 +80,8 @@ export interface WorkbenchEditActions {
   move(itemId: string, target: PaperMoveTarget): Promise<void>;
   saveToBank(question: ExamQuestion): void;
   addChild(groupId: string, type: ExamQuestionType): Promise<void>;
+  /** Locked edits are saved by hand; resolves true when the teacher drops them. */
+  confirmDiscard(): Promise<boolean>;
 }
 export default function WorkbenchEditScreen({
   header,
@@ -381,6 +383,17 @@ export default function WorkbenchEditScreen({
         });
       },
       saveToBank: setBankQuestion,
+      confirmDiscard: () =>
+        confirm({
+          title: t("workbench.edit.discardTitle", "要捨棄未儲存的變更嗎？"),
+          body: t(
+            "workbench.edit.discardBody",
+            "這題的修改還沒儲存，離開後就會遺失。",
+          ),
+          danger: true,
+          confirmLabel: t("workbench.edit.discard", "捨棄變更"),
+          cancelLabel: t("workbench.edit.stayHere", "留在這題"),
+        }),
     }),
     [
       contestId,

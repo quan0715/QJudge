@@ -2360,7 +2360,10 @@
       "nextIssue": "下一項",
       "allIssues": "全部項目",
       "exitCheck": "結束檢查",
-      "issueFixed": "已修好，還有 {{count}} 項"
+      "issueFixed": "已修好，還有 {{count}} 項",
+      "discardTitle": "要捨棄未儲存的變更嗎？",
+      "discardBody": "這題的修改還沒儲存，離開後就會遺失。",
+      "stayHere": "留在這題"
     }
   }
 }

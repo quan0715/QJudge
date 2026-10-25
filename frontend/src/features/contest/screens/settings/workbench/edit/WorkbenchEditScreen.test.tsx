@@ -368,3 +368,65 @@ it("keeps the mode header and legacy link while loading and after a load error",
     screen.getByRole("link", { name: "改用舊版考卷管理" }),
   ).toHaveAttribute("href", expect.stringContaining("panel=problem_editor"));
 });
+
+async function findDiscardDialog() {
+  const title = await screen.findByText("要捨棄未儲存的變更嗎？");
+  const dialog = title.closest('[role="dialog"]') as HTMLElement;
+  await waitFor(() =>
+    expect(within(dialog).getByRole("button", { name: "留在這題" })).toBeTruthy(),
+  );
+  return dialog;
+}
+describe("locked unsaved edits", () => {
+  beforeEach(() => {
+    mocks.contest.questionEditLocked = true;
+  });
+  it("asks before leaving a question with unsaved changes", async () => {
+    await setup();
+    fireEvent.click(screen.getByRole("radio", { name: "B" }));
+    await act(async () => {
+      void mocks.rail!.onSelect("q2");
+    });
+    let dialog = await findDiscardDialog();
+    fireEvent.click(within(dialog).getByRole("button", { name: "留在這題" }));
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Prompt q1",
+    );
+    expect(screen.getByRole("radio", { name: "B" })).toBeChecked();
+    await act(async () => {
+      void mocks.rail!.onSelect("q2");
+    });
+    dialog = await findDiscardDialog();
+    fireEvent.click(within(dialog).getByRole("button", { name: /捨棄變更$/ }));
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+        "Prompt q2",
+      ),
+    );
+    expect(mocks.updateExamPaperBlock).not.toHaveBeenCalled();
+  });
+  it("leaves a clean question without asking", async () => {
+    await setup();
+    await act(async () => {
+      await mocks.rail!.onSelect("q2");
+    });
+    expect(screen.queryByText("要捨棄未儲存的變更嗎？")).toBeNull();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Prompt q2",
+    );
+  });
+  it("asks before leaving a group whose open child has unsaved changes", async () => {
+    await setup("edit_item=g");
+    const main = screen.getByRole("main");
+    fireEvent.click(within(main).getByRole("button", { name: /^2\(a\)/ }));
+    fireEvent.click(await within(main).findByRole("radio", { name: "B" }));
+    await act(async () => {
+      void mocks.rail!.onSelect("q2");
+    });
+    const dialog = await findDiscardDialog();
+    fireEvent.click(within(dialog).getByRole("button", { name: "留在這題" }));
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Shared task",
+    );
+  });
+});

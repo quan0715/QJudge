@@ -34,6 +34,7 @@ const actions = (): WorkbenchEditActions => ({
   move: vi.fn().mockResolvedValue(undefined),
   saveToBank: vi.fn(),
   addChild: vi.fn().mockResolvedValue(undefined),
+  confirmDiscard: vi.fn().mockResolvedValue(true),
 });
 const base = () => ({
   question: questionFixture("q1"),

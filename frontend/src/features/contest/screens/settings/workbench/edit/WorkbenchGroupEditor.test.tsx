@@ -47,6 +47,7 @@ const base = () => ({
     remove: vi.fn().mockResolvedValue(undefined),
     move: vi.fn().mockResolvedValue(undefined),
     saveToBank: vi.fn(),
+    confirmDiscard: vi.fn().mockResolvedValue(true),
   } satisfies WorkbenchEditActions,
 });
 beforeEach(() =>

@@ -2360,7 +2360,10 @@
       "nextIssue": "다음 항목",
       "allIssues": "모든 항목",
       "exitCheck": "확인 종료",
-      "issueFixed": "수정됨 · {{count}}개 남음"
+      "issueFixed": "수정됨 · {{count}}개 남음",
+      "discardTitle": "저장하지 않은 변경 사항을 버릴까요?",
+      "discardBody": "이 문제의 변경 사항이 아직 저장되지 않았습니다. 나가면 사라집니다.",
+      "stayHere": "이 문제에 머물기"
     }
   }
 }

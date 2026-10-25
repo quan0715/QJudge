@@ -2360,7 +2360,10 @@
       "nextIssue": "次の項目",
       "allIssues": "すべての項目",
       "exitCheck": "確認を終了",
-      "issueFixed": "修正済み・残り {{count}} 件"
+      "issueFixed": "修正済み・残り {{count}} 件",
+      "discardTitle": "未保存の変更を破棄しますか？",
+      "discardBody": "この問題の変更はまだ保存されていません。移動すると失われます。",
+      "stayHere": "この問題に留まる"
     }
   }
 }

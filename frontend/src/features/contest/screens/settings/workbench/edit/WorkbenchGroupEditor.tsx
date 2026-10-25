@@ -115,9 +115,9 @@ export function WorkbenchGroupEditor({
     await childFlush.current?.();
   }, [flush]);
   useEffect(() => {
-    registerFlush?.(locked ? async () => {} : flushAll);
+    registerFlush?.(flushAll);
     return () => registerFlush?.(null);
-  }, [registerFlush, locked, flushAll]);
+  }, [registerFlush, flushAll]);
   const expand = async (id: string) => {
     try {
       await childFlush.current?.();

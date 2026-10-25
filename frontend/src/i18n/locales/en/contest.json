@@ -2360,7 +2360,10 @@
       "nextIssue": "Next item",
       "allIssues": "All items",
       "exitCheck": "End review",
-      "issueFixed": "Fixed · {{count}} left"
+      "issueFixed": "Fixed · {{count}} left",
+      "discardTitle": "Discard unsaved changes?",
+      "discardBody": "Your changes to this question have not been saved and will be lost if you leave.",
+      "stayHere": "Stay here"
     }
   }
 }

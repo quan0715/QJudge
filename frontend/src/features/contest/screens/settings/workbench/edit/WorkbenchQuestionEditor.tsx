@@ -102,10 +102,16 @@ export function WorkbenchQuestionEditor({
     save,
   });
   const { form, setForm } = draft;
+  const dirtyRef = useRef(draft.dirty);
+  dirtyRef.current = draft.dirty;
   useEffect(() => {
-    registerFlush?.(locked ? async () => {} : draft.flush);
+    const leaveLocked = async () => {
+      if (dirtyRef.current && !(await actions.confirmDiscard()))
+        throw new Error("Unsaved locked changes kept");
+    };
+    registerFlush?.(locked ? leaveLocked : draft.flush);
     return () => registerFlush?.(null);
-  }, [draft.flush, locked, registerFlush]);
+  }, [draft.flush, locked, registerFlush, actions]);
   const names = {
     single_choice: "單選題",
     multiple_choice: "多選題",
