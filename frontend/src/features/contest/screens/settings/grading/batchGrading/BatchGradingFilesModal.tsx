@@ -1,7 +1,21 @@
 import { CodeSnippet, InlineLoading, InlineNotification, Modal, Tab, TabList, TabPanel, TabPanels, Tabs } from "@carbon/react";
+import { MarkdownRenderer } from "@/shared/ui/markdown";
 import { useTranslation } from "react-i18next";
 import type { BatchQuestionFiles } from "./batchGradingApi";
 import type { BatchQuestionState } from "./batchGradingModel";
+
+/** Preserve free-form saved criteria, including Markdown text, without inventing a schema. */
+function rubricMarkdown(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value.map((item) => `- ${rubricMarkdown(item).replace(/\n/g, "\n  ")}`).join("\n");
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.entries(value).map(([key, item]) =>
+      `- **${key.replace(/([\\`*_{}[\]()#+.!|<>])/g, "\\$1")}**:\n  ${rubricMarkdown(item).replace(/\n/g, "\n  ")}`,
+    ).join("\n");
+  }
+  return value == null ? "" : String(value);
+}
 
 interface BatchGradingFilesModalProps {
   open: boolean;
@@ -35,7 +49,11 @@ export function BatchGradingFilesModal({ open, state, files, error, onClose }: B
             <Tab>{t("grading.batch.filesGrades")}</Tab>
           </TabList>
           <TabPanels>
-            <TabPanel>{json(files?.rubric)}</TabPanel>
+            <TabPanel>
+              {files?.rubric ? (
+                <MarkdownRenderer allowRawHtml={false}>{rubricMarkdown(files.rubric)}</MarkdownRenderer>
+              ) : <p>{t("grading.batch.filesMissing")}</p>}
+            </TabPanel>
             <TabPanel>{json(files?.grades?.length ? files.grades : null)}</TabPanel>
           </TabPanels>
         </Tabs>

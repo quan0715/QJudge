@@ -25,7 +25,7 @@
       "settings": "設定",
       "standings": "排行榜",
       "statistics": "統計",
-      "gradingWorkbench": "批改"
+      "gradingWorkbench": "批改 (Beta)"
     },
     "title": "管理後台"
   },
@@ -2212,7 +2212,7 @@
     "aiQueued": "AI 排隊中",
     "aiFailed": "AI 失敗",
     "questions": "題目",
-    "title": "批改",
+    "title": "批改 (Beta)",
     "examAi": "AI 批改整份考卷",
     "stop": "停止",
     "saved": "評分已儲存",

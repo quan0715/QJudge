@@ -25,7 +25,7 @@
       "settings": "Settings",
       "standings": "Leaderboard",
       "statistics": "Statistics",
-      "gradingWorkbench": "Grading"
+      "gradingWorkbench": "Grading (Beta)"
     },
     "title": "Admin Dashboard"
   },
@@ -2212,7 +2212,7 @@
     "aiQueued": "AI queued",
     "aiFailed": "AI failed",
     "questions": "Questions",
-    "title": "Grading",
+    "title": "Grading (Beta)",
     "examAi": "AI grade the whole exam",
     "stop": "Stop",
     "saved": "Grade saved",
