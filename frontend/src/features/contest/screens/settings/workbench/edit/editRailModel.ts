@@ -46,6 +46,7 @@ export function buildEditRailRows(
         kind: "group",
         blockId: b.id,
         questionId: null,
+        endsBlock: b.children.length === 0,
         label: t("workbench.edit.groupNumber", "第 {{number}} 題（題組）", {
           number,
         }),
@@ -59,12 +60,13 @@ export function buildEditRailRows(
         hasIssue: false,
       });
     const questions = b.kind === "question" ? [b.question] : b.children;
-    questions.forEach((q) =>
+    questions.forEach((q, index) =>
       rows.push({
         key: q.id,
         kind: b.kind === "group" ? "child" : "question",
         blockId: b.id,
         questionId: q.id,
+        endsBlock: index === questions.length - 1,
         label:
           b.kind === "group"
             ? (labels.get(q.id)?.label ?? "")

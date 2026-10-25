@@ -25,25 +25,53 @@ const base = () => ({
   onOpenPublishCheck: vi.fn(),
   legacyHref: "/?panel=problem_editor",
 });
+function startDrag(name: string) {
+  fireEvent.dragStart(screen.getByRole("button", { name }), {
+    dataTransfer: { setData: vi.fn(), effectAllowed: "" },
+  });
+}
+function rowOf(name: RegExp) {
+  const row = screen
+    .getByRole("button", { name })
+    .closest("[data-row-key]") as HTMLElement;
+  vi.spyOn(row, "getBoundingClientRect").mockReturnValue({
+    top: 0,
+    height: 100,
+  } as DOMRect);
+  return row;
+}
+function fireAt(row: HTMLElement, type: "dragOver" | "drop", y: number) {
+  const event = createEvent[type](row, { bubbles: true });
+  Object.defineProperty(event, "clientY", { value: y });
+  fireEvent(row, event);
+}
+const dragOver = (row: HTMLElement, y: number) => fireAt(row, "dragOver", y);
+const drop = (row: HTMLElement, y: number) => fireAt(row, "drop", y);
+function dragOverAndDrop(row: HTMLElement, y: number) {
+  dragOver(row, y);
+  drop(row, y);
+}
 describe("edit rail", () => {
-  it("drop onto a group header orders after the whole group", () => {
+  it("drop onto a group header orders before the group", () => {
+    const props = base();
+    render(<WorkbenchEditRail {...props} activeKey="q2" />);
+    startDrag("拖曳第 3 題");
+    const row = rowOf(/^第 2 題（題組）/);
+    dragOverAndDrop(row, 60);
+    expect(props.onMove).toHaveBeenCalledWith("q2", {
+      zone: "top",
+      refBlockId: "g",
+      position: "before",
+    });
+  });
+  it("drop below the last child orders after the whole group", () => {
     const props = base();
     render(<WorkbenchEditRail {...props} />);
-    fireEvent.dragStart(screen.getByRole("button", { name: "拖曳第 1 題" }), {
-      dataTransfer: { setData: vi.fn(), effectAllowed: "" },
-    });
-    const row = screen
-      .getByRole("button", { name: /^第 2 題（題組）/ })
-      .closest("[data-row-key]")!;
-    vi.spyOn(row, "getBoundingClientRect").mockReturnValue({
-      top: 0,
-      height: 100,
-    } as DOMRect);
-    for (const type of ["dragOver", "drop"] as const) {
-      const event = createEvent[type](row, { bubbles: true });
-      Object.defineProperty(event, "clientY", { value: 60 });
-      fireEvent(row, event);
-    }
+    startDrag("拖曳第 1 題");
+    const row = rowOf(/^2\(b\)/);
+    dragOver(row, 60);
+    expect(row.className).toMatch(/dropAfter/);
+    drop(row, 60);
     expect(props.onMove).toHaveBeenCalledWith("q1", {
       zone: "top",
       refBlockId: "g",

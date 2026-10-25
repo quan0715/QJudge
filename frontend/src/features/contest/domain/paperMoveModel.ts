@@ -17,6 +17,8 @@ export type PaperRowRef = {
   kind: "question" | "group" | "child";
   blockId: string;
   questionId: string | null;
+  /** The row is the visual bottom of its top-level block. */
+  endsBlock: boolean;
 };
 export function resolveDropTarget(
   row: PaperRowRef,
@@ -35,9 +37,18 @@ export function resolveDropTarget(
       position,
     };
   }
-  return row.kind === "child"
-    ? null
-    : { zone: "top", refBlockId: row.blockId, position };
+  if (row.blockId === drag.id) return null;
+  // A drop line under a group header or a middle child would look like a
+  // position inside the group, so only the block's bottom row accepts "after".
+  if (row.kind === "child")
+    return row.endsBlock && position === "after"
+      ? { zone: "top", refBlockId: row.blockId, position }
+      : null;
+  return {
+    zone: "top",
+    refBlockId: row.blockId,
+    position: row.endsBlock ? position : "before",
+  };
 }
 export function movePaperItem(
   blocks: ExamPaperBlock[],

@@ -40,7 +40,13 @@ const blocks: ExamPaperBlock[] = [
   },
   { kind: "question", id: "q2", question: q("q2") },
 ];
-const childRow = { kind: "child" as const, blockId: "g", questionId: "c1" };
+const childRow = {
+  kind: "child" as const,
+  blockId: "g",
+  questionId: "c1",
+  endsBlock: false,
+};
+const lastChildRow = { ...childRow, questionId: "c2", endsBlock: true };
 describe("paper ordering", () => {
   it("reorders top-level blocks with their groups intact", () => {
     const next = movePaperItem(blocks, "q1", {
@@ -88,14 +94,33 @@ describe("paper ordering", () => {
       }),
     ).toBe(blocks);
   });
-  it("treats the whole group header as a top-level ordering target", () => {
+  it("drops before a group when hovering its header", () => {
     expect(
       resolveDropTarget(
-        { kind: "group", blockId: "g", questionId: null },
+        { kind: "group", blockId: "g", questionId: null, endsBlock: false },
+        { kind: "question", id: "q1", groupId: null },
+        0.6,
+      ),
+    ).toEqual({ zone: "top", refBlockId: "g", position: "before" });
+  });
+  it("drops after an empty group from the lower half of its header", () => {
+    expect(
+      resolveDropTarget(
+        { kind: "group", blockId: "g", questionId: null, endsBlock: true },
         { kind: "question", id: "q1", groupId: null },
         0.6,
       ),
     ).toEqual({ zone: "top", refBlockId: "g", position: "after" });
+  });
+  it("drops after a group from the lower half of its last child", () => {
+    const drag = { kind: "question" as const, id: "q1", groupId: null };
+    expect(resolveDropTarget(lastChildRow, drag, 0.6)).toEqual({
+      zone: "top",
+      refBlockId: "g",
+      position: "after",
+    });
+    expect(resolveDropTarget(lastChildRow, drag, 0.4)).toBeNull();
+    expect(resolveDropTarget(childRow, drag, 0.6)).toBeNull();
   });
   it("only lets a child target another child in the same group", () => {
     expect(
