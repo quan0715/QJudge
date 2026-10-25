@@ -11,6 +11,7 @@ from langchain_core.messages import AIMessage, BaseMessage, SystemMessage
 from langchain_core.tools import StructuredTool
 
 from infrastructure.agent import deepagent_adapter as runner_mod
+from infrastructure.agent.provider_adapters import HistoryCompatibleChatOpenAI
 
 
 seen: list[list[BaseMessage]] = []
@@ -68,10 +69,16 @@ async def test_parent_and_subagent_receive_the_same_canonical_sop_and_principles
     assert result["messages"][-1].content == "Review complete."
     assert any(messages[-1].content == "Review the delegated answers." for messages in seen)
     assert len(seen) >= 3
+    serializer = HistoryCompatibleChatOpenAI(model="test-model", api_key="test-key")
     for messages in seen:
         system = "\n".join(str(m.content) for m in messages if isinstance(m, SystemMessage))
         assert system.count(principles) == 1
         assert system.count(sop) == 1
+        wire = serializer._get_request_payload(messages)["messages"]
+        assert not any(m["role"] in {"system", "developer"} for m in wire)
+        assert wire[0]["role"] == "user"
+        assert str(wire[0]["content"]).count(sop) == 1
+        assert str(wire[0]["content"]).count(principles) == 1
 
 
 @pytest.mark.parametrize("content", [None, "", "  \n"])

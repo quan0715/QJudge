@@ -3,7 +3,7 @@
 import copy
 
 import pytest
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, ChatMessage, HumanMessage, SystemMessage, ToolMessage
 
 from domain.model_catalog import EndpointSpec, ModelSpec
 from infrastructure.agent.provider_adapters import build_chat_model
@@ -62,3 +62,56 @@ def test_openai_responses_retains_native_tool_history():
     ])
     assert "messages" not in payload
     assert any(item.get("type") == "function_call" for item in payload["input"])
+
+
+@pytest.mark.parametrize("provider,effort", [
+    ("openai_compatible", None), ("openai", None), ("openai", "medium"),
+    ("deepseek", None), ("deepseek", "high"),
+])
+@pytest.mark.parametrize("block_content", [False, True])
+def test_application_instructions_reach_every_provider_as_one_user_prompt(provider, effort, block_content):
+    instructions = [
+        {"type": "text", "text": "Follow the grading SOP."},
+        {"type": "text", "text": "Apply the core principles."},
+    ]
+    system = SystemMessage(content=instructions if block_content else "Follow the grading SOP.")
+    human = HumanMessage(content=[
+        {"type": "text", "text": "Grade unit_1."},
+        {"type": "image_url", "image_url": {"url": "https://example.test/answer.png"}},
+    ] if block_content else "Grade unit_1.")
+    history = [
+        system, ChatMessage(role="developer", content="Use independent subagents."), human,
+        AIMessage(content="", tool_calls=[{
+            "name": "lookup", "args": {}, "id": "call_1", "type": "tool_call",
+        }]),
+        ToolMessage("Synthetic result", tool_call_id="call_1"),
+    ]
+    original = copy.deepcopy(history)
+    endpoint = EndpointSpec("test", provider, "http://example.test/v1", "TEST_API_KEY")
+    spec = ModelSpec("test", "test", "test-model", "Test", "", effort, 1000)
+    model = build_chat_model(endpoint, spec, "test-key")
+
+    payload = model._get_request_payload(history)
+    wire = payload.get("messages", payload.get("input"))
+    assert not any(message.get("role") in {"system", "developer"} for message in wire)
+    assert wire[0]["role"] == "user"
+    content = wire[0]["content"]
+    text = content if isinstance(content, str) else "\n".join(
+        block.get("text", "") for block in content
+    )
+    assert text.count("Follow the grading SOP.") == 1
+    assert text.count("Use independent subagents.") == 1
+    assert text.count("Grade unit_1.") == 1
+    if block_content:
+        assert "https://example.test/answer.png" in str(content)
+    assert len(wire) == 3
+    if block_content:
+        assert "Follow the grading SOP.\n\nApply the core principles." in text
+    if provider == "openai" and effort:
+        assert wire[1]["type"] == "function_call"
+        assert wire[2]["type"] == "function_call_output"
+        assert wire[1]["call_id"] == wire[2]["call_id"] == "call_1"
+    else:
+        assert wire[1]["tool_calls"][0]["id"] == wire[2]["tool_call_id"] == "call_1"
+    assert history == original
+    assert model._get_request_payload(history) == payload

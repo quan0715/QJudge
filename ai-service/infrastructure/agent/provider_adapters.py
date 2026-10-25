@@ -9,7 +9,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from langchain_core.messages import AIMessage, convert_to_messages, convert_to_openai_messages
+from langchain_core.messages import (
+    AIMessage, HumanMessage, SystemMessage, convert_to_messages, convert_to_openai_messages,
+)
 from langchain_deepseek import ChatDeepSeek
 from langchain_openai import ChatOpenAI
 
@@ -22,6 +24,39 @@ OPENAI_COMPATIBLE = "openai_compatible"
 # The SDKs honour Retry-After with exponential backoff, so most 429s from
 # per-account rate limits heal without surfacing to the user.
 MAX_RETRIES = 6
+
+
+class _UserPrompt:
+    """Send the same application instructions through user messages for every model."""
+
+    def _get_request_payload(self, input_, *, stop=None, **kwargs):
+        messages = self._convert_input(input_).to_messages()
+        instructions = []
+        history = []
+        for message in messages:
+            if isinstance(message, SystemMessage) or getattr(message, "role", None) == "developer":
+                content = message.content
+                instructions.append(content if isinstance(content, str) else "\n\n".join(
+                    block if isinstance(block, str) else block.get("text", "") for block in content
+                ))
+            else:
+                history.append(message)
+        if instructions:
+            prefix = "\n\n".join(instructions)
+            if history and isinstance(history[0], HumanMessage):
+                first = history[0]
+                if isinstance(first.content, str):
+                    content = f"{prefix}\n\n{first.content}"
+                else:
+                    content = [{"type": "text", "text": f"{prefix}\n\n"}, *first.content]
+                history[0] = first.model_copy(update={"content": content})
+            else:
+                history.insert(0, HumanMessage(content=prefix))
+        return super()._get_request_payload(history, stop=stop, **kwargs)
+
+
+class UserPromptChatOpenAI(_UserPrompt, ChatOpenAI):
+    """Keep native Responses history while delivering instructions as user text."""
 
 
 class _ChatCompletionsHistory:
@@ -50,11 +85,11 @@ class _ChatCompletionsHistory:
         return super()._get_request_payload(normalized, stop=stop, **kwargs)
 
 
-class HistoryCompatibleChatOpenAI(_ChatCompletionsHistory, ChatOpenAI):
+class HistoryCompatibleChatOpenAI(_UserPrompt, _ChatCompletionsHistory, ChatOpenAI):
     pass
 
 
-class HistoryCompatibleChatDeepSeek(_ChatCompletionsHistory, ChatDeepSeek):
+class HistoryCompatibleChatDeepSeek(_UserPrompt, _ChatCompletionsHistory, ChatDeepSeek):
     pass
 
 
@@ -141,7 +176,7 @@ def _openai(endpoint: EndpointSpec, spec: ModelSpec, api_key: str) -> Any:
         kwargs["reasoning"] = {"effort": spec.reasoning_effort, "summary": "auto"}
         kwargs["use_responses_api"] = True
         kwargs["output_version"] = "responses/v1"
-    client = ChatOpenAI if spec.reasoning_effort else HistoryCompatibleChatOpenAI
+    client = UserPromptChatOpenAI if spec.reasoning_effort else HistoryCompatibleChatOpenAI
     return client(**kwargs)
 
 
