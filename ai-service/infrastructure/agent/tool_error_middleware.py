@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import httpx
 from langchain.agents.middleware.types import AgentMiddleware, ContextT, StateT
 from langchain_core.messages import ToolMessage
 from langgraph.errors import GraphBubbleUp
@@ -24,6 +25,10 @@ _PROPAGATE = (GraphBubbleUp, McpReadinessError)
 
 def _error_message(request: Any, exc: Exception) -> ToolMessage:
     call = request.tool_call
+    # A delegated model already exhausted its retries; don't turn the failure
+    # into an argument-correction hint that could hide an incomplete task.
+    if call.get("name") == "task" and isinstance(exc, (httpx.ReadError, httpx.RemoteProtocolError)):
+        raise exc
     logger.warning("Tool %s failed; returning the error to the model: %s", call.get("name"), exc)
     return ToolMessage(
         content=(

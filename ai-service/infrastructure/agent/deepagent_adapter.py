@@ -14,12 +14,14 @@ from pathlib import Path
 from typing import Any, AsyncGenerator, Protocol
 from uuid import UUID
 
+import httpx
 from deepagents import FilesystemPermission, create_deep_agent
 from deepagents.backends.composite import CompositeBackend
 from deepagents.backends.filesystem import FilesystemBackend
 from deepagents.backends.state import StateBackend
 from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
 from deepagents.middleware.summarization import SummarizationMiddleware
+from langchain.agents.middleware import ModelRetryMiddleware
 from langgraph.types import Command
 
 from application.artifacts import ArtifactService
@@ -74,10 +76,23 @@ _MODEL_QUOTA_EXHAUSTED_MESSAGE = (
     "The selected AI model has no remaining provider quota. "
     "Select another model or contact an administrator."
 )
+_MODEL_STREAM_ERRORS = (httpx.ReadError, httpx.RemoteProtocolError)
+
+
+def _model_stream_retry() -> ModelRetryMiddleware:
+    # Retry just the model response, never replay completed grading/tool writes.
+    return ModelRetryMiddleware(
+        max_retries=2, retry_on=_MODEL_STREAM_ERRORS, on_failure="error",
+        initial_delay=1.0, backoff_factor=2.0,
+    )
 
 
 def _classify_agent_failure(exc: Exception) -> tuple[str, str]:
     """Convert safe-to-recognize upstream model failures into API contract errors."""
+    if isinstance(exc, _MODEL_STREAM_ERRORS):
+        return "MODEL_CONNECTION_ERROR", (
+            "模型連線中斷，重試後仍失敗。已完成的操作已保留，請稍後重試。"
+        )
     detail = str(exc).casefold()
     if "insufficient_quota" in detail or "insufficient balance" in detail:
         return "MODEL_QUOTA_EXHAUSTED", _MODEL_QUOTA_EXHAUSTED_MESSAGE
@@ -464,12 +479,14 @@ class _DeepAgentRuntime:
                     ])),
                     "skills": skills,
                     "middleware": [
+                        _model_stream_retry(),
                         ToolErrorFeedbackMiddleware(),
                         SubagentWriteGuardMiddleware(write_actions=WRITE_ACTIONS),
                     ],
                 }
             ],
             "middleware": [
+                _model_stream_retry(),
                 ToolErrorFeedbackMiddleware(),
                 # Must be the last middleware: inspects the final tool_calls produced by
                 # the model turn and pauses execution for human approval on write actions.
