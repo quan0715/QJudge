@@ -19,6 +19,7 @@ import { WorkbenchEditRail } from "./WorkbenchEditRail";
 import type { AddMenuChoice } from "./WorkbenchAddMenu";
 import { useEditorImpactData } from "@/features/contest/components/admin/examEditor/hooks/useEditorImpactData";
 import { summarizeQuestionAnswers } from "./questionAnswerSummary";
+import { WorkbenchGroupEditor, type QuestionEditAnswerData } from "./WorkbenchGroupEditor";
 import { WorkbenchQuestionEditor } from "./WorkbenchQuestionEditor";
 import styles from "./WorkbenchEdit.module.scss";
 
@@ -33,11 +34,21 @@ export default function WorkbenchEditScreen({header}:{header:ReactNode;onPreview
  const lockedRef=useRef(locked);useLayoutEffect(()=>{lockedRef.current=locked;},[locked]);
  const {t}=useTranslation("contest");const {showToast}=useToast();const [params,setParams]=useSearchParams();const location=useLocation();
  const [paper,setPaper]=useState<ExamPaper|null>(null);const [error,setError]=useState<string|null>(null);
+ const [expandedChildId,setExpandedChildId]=useState<string|null>(null);
  const [importOpen,setImportOpen]=useState(false);const [bankQuestion,setBankQuestion]=useState<ExamQuestion|null>(null);
  const {confirm,modalProps}=useConfirmModal();const {track,status:saveStatus}=useToolbarSaveStatus();const structuralBusy=useRef(false);
  const loadPaper=useCallback(async()=>{const next=await getExamPaper(contestId);setPaper(next);return next;},[contestId]);
  useEffect(()=>{let active=true;if(contestId)getExamPaper(contestId).then(next=>{if(active)setPaper(next);}).catch(err=>{if(active)setError(String(err));});return()=>{active=false;};},[contestId]);
  const impactData=useEditorImpactData(contestId,paper?.questions??[]);
+ const refreshImpact=impactData.refresh;
+ const answerData=useMemo(()=>{
+  if(impactData.status!=="loaded")return undefined;
+  const all=[...impactData.impactContext.answersByStudent.values()].flat();
+  return new Map<string,QuestionEditAnswerData>((paper?.questions??[]).map(q=>{
+   const progress=impactData.impactContext.questions.find(item=>item.questionId===q.id);
+   return [q.id,{summary:summarizeQuestionAnswers(all.filter(row=>row.questionId===q.id),q.effectiveMaxScore??q.score),counts:{total:progress?.totalAnswers??0,graded:progress?.gradedCount??0}}];
+  }));
+ },[paper,impactData.status,impactData.impactContext]);
  const issues=useMemo(()=>getExamPublishIssueItems(paper?.questions??[]),[paper]);
  const rows=useMemo(()=>paper?buildEditRailRows(paper,issues,t):[],[paper,issues,t]);
  const selected=rows.some(row=>row.key===params.get("edit_item"))?params.get("edit_item"):rows[0]?.key??null;
@@ -45,7 +56,7 @@ export default function WorkbenchEditScreen({header}:{header:ReactNode;onPreview
  const registerFlush=useCallback((flush:(()=>Promise<void>)|null)=>{beforeLeave.current=flush;},[]);
  const select=useCallback(async(id:string)=>{try{await beforeLeave.current?.();setParams(prev=>{const next=new URLSearchParams(prev);next.set("edit_item",id);return next;},{replace:true});}catch{/* The save action reports the error; stay on the draft. */}},[setParams]);
  const failed=useCallback((err:unknown)=>showToast({kind:"error",title:t("workbench.edit.operationFailed","操作失敗"),subtitle:err instanceof Error?err.message:String(err)}),[showToast,t]);
- const runSave=useCallback(async(operation:()=>Promise<unknown>)=>{try{await track(async()=>{await operation();await loadPaper();impactData.refresh();});}catch(err){failed(err);throw err;}},[track,loadPaper,failed,impactData.refresh]);
+ const runSave=useCallback(async(operation:()=>Promise<unknown>)=>{try{await track(async()=>{await operation();await loadPaper();refreshImpact();});}catch(err){failed(err);throw err;}},[track,loadPaper,failed,refreshImpact]);
  const structural=useCallback(async(operation:()=>Promise<void>)=>{
   if(lockedRef.current||structuralBusy.current)return;structuralBusy.current=true;
   try{await beforeLeave.current?.();if(lockedRef.current)return;await track(operation);}catch(err){try{await loadPaper();}catch{/* Keep the last known server snapshot when reload also fails. */}failed(err);}finally{structuralBusy.current=false;}
@@ -57,7 +68,7 @@ export default function WorkbenchEditScreen({header}:{header:ReactNode;onPreview
    const previous=paper;setPaper({...paper,blocks,questions:blocks.flatMap(b=>b.kind==="group"?b.children:[b.question])});
    try{setPaper(await reorderExamPaperBlocks(contestId,toReorderPayload(blocks)));}catch(err){setPaper(previous);throw err;}
   }),
-  addChild:async(groupId,type)=>structural(async()=>{await updateExamPaperBlock(contestId,groupId,{kind:"group",children:[DEFAULT_QUESTION_PAYLOADS[type]]});await loadPaper();select(groupId);}),
+  addChild:async(groupId,type)=>structural(async()=>{const updated=await updateExamPaperBlock(contestId,groupId,{kind:"group",children:[DEFAULT_QUESTION_PAYLOADS[type]]});await loadPaper();if(updated.kind==="group")setExpandedChildId(updated.children.at(-1)?.id??null);void select(groupId);}),
   duplicate:async(id)=>structural(async()=>{const latest=await loadPaper();const source=latest.questions.find(q=>q.id===id);if(!source)return;const payload=buildDuplicatePayload(source,source.order+1);
    if(source.groupId){const block=await updateExamPaperBlock(contestId,source.groupId,{kind:"group",children:[payload]});await loadPaper();if(block.kind==="group")select(block.children.at(-1)?.id??block.id);}
    else{const block=await createExamPaperBlock(contestId,{kind:"question",question:payload});await loadPaper();select(block.id);}
@@ -85,14 +96,15 @@ export default function WorkbenchEditScreen({header}:{header:ReactNode;onPreview
    onSelect={select} onMove={(id,target)=>{void actions.move(id,target);}} onAdd={choice=>{void add(choice);}} onOpenPublishCheck={()=>{}} legacyHref={`${location.pathname}?${legacy}`}/>
   <main className={styles.main} aria-label={t("workbench.edit.editor","題目編輯")}>
    {currentQuestion?<WorkbenchQuestionEditor key={currentQuestion.id} question={currentQuestion} label={rows.find(r=>r.key===currentQuestion.id)?.label??""} locked={locked}
-    answerSummary={impactData.status==="loaded"?summarizeQuestionAnswers([...impactData.impactContext.answersByStudent.values()].flat().filter(row=>row.questionId===currentQuestion.id),currentQuestion.effectiveMaxScore??currentQuestion.score):undefined}
-    answerCounts={impactData.status==="loaded"?{total:impactData.impactContext.questions.find(q=>q.questionId===currentQuestion.id)?.totalAnswers??0,graded:impactData.impactContext.questions.find(q=>q.questionId===currentQuestion.id)?.gradedCount??0}:null}
-    impactError={impactData.status==="error"} onRetryImpact={impactData.refresh} onGradeQuestion={()=>setParams(prev=>{const next=new URLSearchParams(prev);next.set("workbench_mode","grade");next.set("grading_question",currentQuestion.id);next.delete("grading_student");return next;})}
+    answerSummary={answerData?.get(currentQuestion.id)?.summary} answerCounts={answerData?.get(currentQuestion.id)?.counts}
+    impactError={impactData.status==="error"} onRetryImpact={refreshImpact} onGradeQuestion={()=>setParams(prev=>{const next=new URLSearchParams(prev);next.set("workbench_mode","grade");next.set("grading_question",currentQuestion.id);next.delete("grading_student");return next;})}
     groups={rows.filter(r=>r.kind==="group").map(r=>({id:r.key,label:r.label}))} actions={actions} saveStatus={saveStatus} registerFlush={registerFlush} onOpenScorePolicy={()=>{}}
     prevLabel={rows.find(r=>r.key===paper.questions[paper.questions.indexOf(currentQuestion)-1]?.id)?.label}
     nextLabel={rows.find(r=>r.key===paper.questions[paper.questions.indexOf(currentQuestion)+1]?.id)?.label}
     onNavigate={direction=>{const next=paper.questions[paper.questions.indexOf(currentQuestion)+(direction==="prev"?-1:1)];if(next)void select(next.id);}}/>
-    :currentBlock?.kind==="group"?<h1>{currentBlock.group.title}</h1>:<EmptyState title={t("workbench.edit.emptyPaper","考卷尚無題目")}/>}
+    :currentBlock?.kind==="group"?<WorkbenchGroupEditor key={currentBlock.id} block={currentBlock} label={rows.find(r=>r.key===currentBlock.id)?.label??""} childLabels={new Map(rows.filter(r=>r.kind==="child").map(r=>[r.key,r.label]))}
+     locked={locked} expandedChildId={expandedChildId} onExpandChild={setExpandedChildId} actions={actions} saveStatus={saveStatus} registerFlush={registerFlush} answerData={answerData}
+     impactError={impactData.status==="error"} onRetryImpact={refreshImpact} onGradeQuestion={id=>setParams(prev=>{const next=new URLSearchParams(prev);next.set("workbench_mode","grade");next.set("grading_question",id);next.delete("grading_student");return next;})}/>:<EmptyState title={t("workbench.edit.emptyPaper","考卷尚無題目")}/>}
 
   </main>
   <ConfirmModal {...modalProps}/>

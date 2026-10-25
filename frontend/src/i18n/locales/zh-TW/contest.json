@@ -2333,7 +2333,14 @@
       "discard": "捨棄變更",
       "answerStats": "作答統計",
       "goGrade": "到批改模式看這題",
-      "retryImpact": "重新載入作答統計"
+      "retryImpact": "重新載入作答統計",
+      "deleteGroup": "刪除題組",
+      "groupTitle": "題組標題",
+      "children": "子題",
+      "childCount": "{{count}} 題",
+      "groupScore": "題組合計",
+      "sharedStem": "共同題幹",
+      "addChild": "新增子題"
     }
   }
 }

@@ -2333,7 +2333,14 @@
       "discard": "変更を破棄",
       "answerStats": "解答統計",
       "goGrade": "採点モードでこの問題を開く",
-      "retryImpact": "解答統計を再読み込み"
+      "retryImpact": "解答統計を再読み込み",
+      "deleteGroup": "グループを削除",
+      "groupTitle": "グループ名",
+      "children": "子問題",
+      "childCount": "{{count}} 問",
+      "groupScore": "グループ合計",
+      "sharedStem": "共通の問題文",
+      "addChild": "子問題を追加"
     }
   }
 }

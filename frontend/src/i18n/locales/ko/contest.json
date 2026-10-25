@@ -2333,7 +2333,14 @@
       "discard": "변경 사항 버리기",
       "answerStats": "답안 통계",
       "goGrade": "채점 모드에서 이 문항 보기",
-      "retryImpact": "답안 통계 다시 불러오기"
+      "retryImpact": "답안 통계 다시 불러오기",
+      "deleteGroup": "그룹 삭제",
+      "groupTitle": "그룹 제목",
+      "children": "하위 문항",
+      "childCount": "{{count}}문항",
+      "groupScore": "그룹 합계",
+      "sharedStem": "공통 지문",
+      "addChild": "하위 문항 추가"
     }
   }
 }

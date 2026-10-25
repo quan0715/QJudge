@@ -58,3 +58,23 @@
 .lockedSave { display: flex; flex-direction: column; gap: layout.$spacing-04; padding: layout.$spacing-05; border: 1px solid var(--cds-border-subtle); background: var(--cds-layer-01); }
 .lockedSave p { @include type.type-style("body-compact-01"); margin: 0; }
 .saveActions { display: flex; justify-content: flex-end; gap: layout.$spacing-03; }
+
+.groupSettings { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: layout.$spacing-06; align-items: end; }
+.groupSettings > div:not(:first-child) { display: flex; flex-direction: column; gap: layout.$spacing-03; }
+.groupSettings span { @include type.type-style("label-01"); color: var(--cds-text-secondary); }
+.groupSettings strong { @include type.type-style("heading-02"); }
+.childListHeader { display: flex; justify-content: space-between; align-items: center; gap: layout.$spacing-05; margin-bottom: layout.$spacing-04; }
+.childListHeader > span { flex: 0 1 12rem; }
+.childSection { border-bottom: 1px solid var(--cds-border-subtle); }
+.childHeading { width: 100%; max-width: none; display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto auto; gap: layout.$spacing-05; color: var(--cds-text-primary); }
+.childType { @include type.type-style("label-01"); color: var(--cds-text-secondary); }
+.childPrompt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.childEditor { padding: layout.$spacing-05; background: var(--cds-layer-01); }
+.childActions, .compactDraft { display: flex; align-items: center; flex-wrap: wrap; gap: layout.$spacing-03; padding-top: layout.$spacing-05; }
+@media (max-width: 47.99rem) {
+ .groupSettings { grid-template-columns: minmax(0, 1fr) auto; }
+ .groupSettings > :first-child { grid-column: 1 / -1; }
+ .childHeading { grid-template-columns: auto minmax(0, 1fr) auto auto; gap: layout.$spacing-03; }
+ .childType { display: none; }
+ .childEditor { padding: layout.$spacing-04 layout.$spacing-03; }
+}

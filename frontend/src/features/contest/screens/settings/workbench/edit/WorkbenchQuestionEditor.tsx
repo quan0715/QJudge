@@ -75,6 +75,7 @@ export function WorkbenchQuestionEditor({question,label,locked,groups,prevLabel,
    <NumberInput id={`score-${question.id}`} label={t("workbench.edit.score","配分")} min={0} value={form.score} allowEmpty invalid={draft.error==="invalidScore"} invalidText={t("workbench.edit.invalidScore","配分必須大於 0")} onChange={(_,data)=>setForm(p=>({...p,score:String(data.value)}))}/>
    <div className={styles.policyControl}><span>{t("workbench.edit.scorePolicy","分數政策")}</span><div><Tag size="sm" type="gray">{policyText}</Tag><Button kind="ghost" size="sm" onClick={onOpenScorePolicy}>{t("workbench.edit.change","變更")}</Button></div></div>
   </div>
+  {compact&&locked&&draft.dirty&&<div className={styles.compactDraft}><Tag type="gray" size="sm">{t("workbench.edit.unsaved","{{count}} 項未儲存",{count:dirtyCount})}</Tag><Button kind="ghost" size="sm" disabled={manualSaving} onClick={draft.reset}>{t("workbench.edit.discard","捨棄變更")}</Button></div>}
   <section className={styles.field} aria-label={t("workbench.edit.prompt","題目敘述")}>
    <h2>{t("workbench.edit.prompt","題目敘述")}</h2>
    {locked?<MarkdownRenderer>{form.prompt}</MarkdownRenderer>:<MarkdownField id={`prompt-${question.id}`} labelText={t("workbench.edit.prompt","題目敘述")} value={form.prompt} onChange={value=>setForm(p=>({...p,prompt:value}))} showPreview invalid={draft.error==="emptyPrompt"} invalidText={t("workbench.edit.emptyPrompt","題目內容不可為空")}/>}

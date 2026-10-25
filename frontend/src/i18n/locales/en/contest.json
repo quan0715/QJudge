@@ -2333,7 +2333,14 @@
       "discard": "Discard changes",
       "answerStats": "Answer statistics",
       "goGrade": "Open this question in grading mode",
-      "retryImpact": "Reload answer statistics"
+      "retryImpact": "Reload answer statistics",
+      "deleteGroup": "Delete group",
+      "groupTitle": "Group title",
+      "children": "Subquestions",
+      "childCount": "{{count}} questions",
+      "groupScore": "Group total",
+      "sharedStem": "Shared stem",
+      "addChild": "Add subquestion"
     }
   }
 }

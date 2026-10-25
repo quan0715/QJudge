@@ -9,9 +9,9 @@ export function LockedSavePanel({impact,saving,onSave,onCancel}:LockedSavePanelP
  if(impact.kind==="no-op")return null;
  const waiting=impact.affectedCount===null;
  return <section className={styles.lockedSave} aria-label={t("workbench.edit.saveChanges","儲存變更")}>
-  {impact.kind==="objective-regrade"&&<p>{t("workbench.edit.objectiveImpact","這題已有 {{count}} 份作答，儲存後會依新規則重新批改",{count:impact.affectedCount??"…"})}</p>}
+  {impact.kind==="objective-regrade"&&!waiting&&<p>{t("workbench.edit.objectiveImpact","這題已有 {{count}} 份作答，儲存後會依新規則重新批改",{count:impact.affectedCount??0})}</p>}
   {impact.kind==="subjective-review"&&<>
-   <p>{t("workbench.edit.subjectiveImpact","這題已有 {{count}} 份批改，儲存後要怎麼處理？",{count:impact.affectedCount??"…"})}</p>
+   {!waiting&&<p>{t("workbench.edit.subjectiveImpact","這題已有 {{count}} 份批改，儲存後要怎麼處理？",{count:impact.affectedCount??0})}</p>}
    <RadioButtonGroup name="existing-grades-action" legendText={t("workbench.edit.existingGrades","既有批改")} orientation="vertical" valueSelected={action} onChange={value=>setAction(value as "keep"|"mark_pending")}>
     <RadioButton id="grades-keep" value="keep" labelText={t("workbench.edit.keepGrades","保留既有批改")}/>
     <RadioButton id="grades-pending" value="mark_pending" labelText={t("workbench.edit.markPending","標記為待批改")}/>
