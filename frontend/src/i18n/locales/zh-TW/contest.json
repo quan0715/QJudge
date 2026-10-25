@@ -2282,7 +2282,18 @@
       "moveUp": "上移",
       "moveDown": "下移",
       "publishCount": "發布前檢查 {{count}} 項",
-      "legacy": "改用舊版考卷管理"
+      "legacy": "改用舊版考卷管理",
+      "operationFailed": "操作失敗",
+      "deleteQuestion": "刪除這題",
+      "deleteConfirm": "確定刪除選取的題目或題組？",
+      "delete": "刪除",
+      "cancel": "取消",
+      "newGroup": "新題組",
+      "retry": "重新載入",
+      "loading": "載入考卷中…",
+      "editor": "題目編輯",
+      "saving": "儲存中…",
+      "emptyPaper": "考卷尚無題目"
     }
   }
 }

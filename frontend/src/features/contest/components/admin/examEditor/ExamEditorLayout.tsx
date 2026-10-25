@@ -1,4 +1,4 @@
-import { buildDuplicatePayload } from "./examQuestionFormModel";
+import { buildDuplicatePayload, DEFAULT_QUESTION_PAYLOADS } from "./examQuestionFormModel";
 import React, {
   useCallback,
   useEffect,
@@ -28,7 +28,6 @@ import {
   importExamQuestionsFromBank,
   reorderExamPaperBlocks,
   updateExamPaperBlock,
-  type ExamPaperQuestionPayload,
   type ExamQuestionUpsertPayload,
   type ExistingGradesAction,
 } from "@/infrastructure/api/repositories";
@@ -36,10 +35,6 @@ import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { usePublishPageContext } from "@/shared/contexts/PageContextProvider";
 import { examBlockPageContext } from "./editorPageContext";
 import { useContest } from "@/features/contest/contexts/ContestContext";
-import {
-  DEFAULT_CHOICE_OPTIONS,
-  DEFAULT_QUESTION_PROMPT,
-} from "@/features/contest/domain/examPublishIssues";
 import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
 import { useToast } from "@/shared/contexts";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave";
@@ -66,46 +61,6 @@ const QUESTION_TYPE_ORDER: ExamQuestionType[] = [
   "short_answer",
   "essay",
 ];
-
-const DEFAULT_PAYLOADS: Record<
-  ExamQuestionType,
-  ExamPaperQuestionPayload & {
-    question_type: ExamQuestionType;
-    prompt: string;
-    score: number;
-  }
-> = {
-  // Choice questions start without a correct answer so a placeholder is never
-  // mistaken for the real key; publishing warns about unset answers.
-  single_choice: {
-    question_type: "single_choice",
-    prompt: DEFAULT_QUESTION_PROMPT,
-    score: 5,
-    options: [...DEFAULT_CHOICE_OPTIONS],
-  },
-  multiple_choice: {
-    question_type: "multiple_choice",
-    prompt: DEFAULT_QUESTION_PROMPT,
-    score: 5,
-    options: [...DEFAULT_CHOICE_OPTIONS],
-  },
-  true_false: {
-    question_type: "true_false",
-    prompt: DEFAULT_QUESTION_PROMPT,
-    score: 5,
-    options: ["True", "False"],
-  },
-  short_answer: {
-    question_type: "short_answer",
-    prompt: DEFAULT_QUESTION_PROMPT,
-    score: 5,
-  },
-  essay: {
-    question_type: "essay",
-    prompt: DEFAULT_QUESTION_PROMPT,
-    score: 5,
-  },
-};
 
 interface ExamEditorLayoutProps {
   contestId: string;
@@ -367,7 +322,7 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
     async (type: ExamQuestionType) => {
       setTypePickerOpen(false);
       if (frozen) return;
-      const base = DEFAULT_PAYLOADS[type];
+      const base = DEFAULT_QUESTION_PAYLOADS[type];
       try {
         if (insertGroupId) {
           const updated = await toolbarSave.track(() =>
@@ -628,7 +583,7 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
           createExamPaperBlock(contestId, {
             kind: "question",
             question: {
-              ...DEFAULT_PAYLOADS[sourceItem.questionType],
+              ...DEFAULT_QUESTION_PAYLOADS[sourceItem.questionType],
               order: targetIndex,
             },
           }),

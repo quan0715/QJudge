@@ -2282,7 +2282,18 @@
       "moveUp": "上へ移動",
       "moveDown": "下へ移動",
       "publishCount": "公開前の確認 {{count}} 件",
-      "legacy": "従来の試験編集を使用"
+      "legacy": "従来の試験編集を使用",
+      "operationFailed": "操作に失敗しました",
+      "deleteQuestion": "この問題を削除",
+      "deleteConfirm": "選択した問題またはグループを削除しますか？",
+      "delete": "削除",
+      "cancel": "キャンセル",
+      "newGroup": "新しいグループ",
+      "retry": "再読み込み",
+      "loading": "試験を読み込み中…",
+      "editor": "問題編集",
+      "saving": "保存中…",
+      "emptyPaper": "問題はまだありません"
     }
   }
 }

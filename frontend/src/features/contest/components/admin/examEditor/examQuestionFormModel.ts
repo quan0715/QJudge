@@ -1,3 +1,4 @@
+import { DEFAULT_CHOICE_OPTIONS, DEFAULT_QUESTION_PROMPT } from "@/features/contest/domain/examPublishIssues";
 import type { ExamQuestion, ExamQuestionAnswerFormat, ExamQuestionType } from "@/core/entities/contest.entity";
 import type { ExamQuestionUpsertPayload, ExamPaperQuestionPayload } from "@/infrastructure/api/repositories";
 import type { LockedQuestionComparableState } from "./lockedQuestionSaveImpact";
@@ -254,3 +255,44 @@ export function buildDuplicatePayload(source: ExamQuestion, order: number): Exam
   if (source.correctAnswer != null) payload.correct_answer = Array.isArray(source.correctAnswer) ? [...source.correctAnswer] : source.correctAnswer;
   return payload;
 }
+
+export const DEFAULT_QUESTION_PAYLOADS: Record<
+  ExamQuestionType,
+  ExamPaperQuestionPayload & {
+    question_type: ExamQuestionType;
+    prompt: string;
+    score: number;
+  }
+> = {
+  // Choice questions start without a correct answer so a placeholder is never
+  // mistaken for the real key; publishing warns about unset answers.
+  single_choice: {
+    question_type: "single_choice",
+    prompt: DEFAULT_QUESTION_PROMPT,
+    score: 5,
+    options: [...DEFAULT_CHOICE_OPTIONS],
+  },
+  multiple_choice: {
+    question_type: "multiple_choice",
+    prompt: DEFAULT_QUESTION_PROMPT,
+    score: 5,
+    options: [...DEFAULT_CHOICE_OPTIONS],
+  },
+  true_false: {
+    question_type: "true_false",
+    prompt: DEFAULT_QUESTION_PROMPT,
+    score: 5,
+    options: ["True", "False"],
+  },
+  short_answer: {
+    question_type: "short_answer",
+    prompt: DEFAULT_QUESTION_PROMPT,
+    score: 5,
+  },
+  essay: {
+    question_type: "essay",
+    prompt: DEFAULT_QUESTION_PROMPT,
+    score: 5,
+  },
+};
+

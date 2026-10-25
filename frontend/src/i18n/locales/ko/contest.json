@@ -2282,7 +2282,18 @@
       "moveUp": "위로 이동",
       "moveDown": "아래로 이동",
       "publishCount": "게시 전 확인 {{count}}개",
-      "legacy": "기존 시험지 편집기 사용"
+      "legacy": "기존 시험지 편집기 사용",
+      "operationFailed": "작업 실패",
+      "deleteQuestion": "문항 삭제",
+      "deleteConfirm": "선택한 문항 또는 그룹을 삭제할까요?",
+      "delete": "삭제",
+      "cancel": "취소",
+      "newGroup": "새 그룹",
+      "retry": "다시 불러오기",
+      "loading": "시험지 불러오는 중…",
+      "editor": "문항 편집",
+      "saving": "저장 중…",
+      "emptyPaper": "시험지에 문항이 없습니다"
     }
   }
 }

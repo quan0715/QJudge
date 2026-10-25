@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import type { AdminPanelProps } from "@/features/contest/modules/types";
 import { WorkbenchRailHeader } from "./workbench/WorkbenchRailHeader";
 import { canGrade, resolveWorkbenchMode, type WorkbenchMode } from "./workbench/workbenchMode";
+const WorkbenchEditScreen = lazy(()=>import("./workbench/edit/WorkbenchEditScreen"));
 const ContestGradingWorkbenchScreen = lazy(()=>import("./ContestGradingWorkbenchScreen"));
 export default function ContestWorkbenchScreen(props: AdminPanelProps) {
   const [params,setParams]=useSearchParams();
@@ -14,5 +15,5 @@ export default function ContestWorkbenchScreen(props: AdminPanelProps) {
     return query;
   });
   const header=<WorkbenchRailHeader mode={mode} gradeDisabled={!canGrade(props.contest)} onModeChange={changeMode} onPreview={props.onPreview}/>;
-  return mode==="grade" ? <Suspense fallback={header}><ContestGradingWorkbenchScreen header={header}/></Suspense> : <aside>{header}</aside>;
+  return mode==="grade" ? <Suspense fallback={header}><ContestGradingWorkbenchScreen header={header}/></Suspense> : <Suspense fallback={header}><WorkbenchEditScreen key={props.contestId} header={header} onPreview={props.onPreview}/></Suspense>;
 }
