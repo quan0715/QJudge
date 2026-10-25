@@ -12,6 +12,7 @@ vi.mock("@/features/question-banks/components/SaveToBankModal",()=>({SaveToBankM
 vi.mock("@/features/contest/components/admin/examEditor/QuestionBankImportModal",()=>({default:()=>null}));
 vi.mock("./WorkbenchEditRail",async original=>{const actual=await original<typeof import("./WorkbenchEditRail")>();return {...actual,WorkbenchEditRail:(props:WorkbenchEditRailProps)=>{mocks.rail=props;return <actual.WorkbenchEditRail {...props}/>}}});
 vi.mock("@/shared/ui/markdown/markdownEditor",()=>({MarkdownField:({value,onChange,labelText}:{value:string;onChange(v:string):void;labelText:string})=><textarea aria-label={labelText} value={value} onChange={e=>onChange(e.target.value)}/>}));
+vi.mock("@/features/contest/components/admin/examEditor/hooks/useEditorImpactData",()=>({useEditorImpactData:()=>({status:"loaded",refresh:vi.fn(),impactContext:{questions:[],studentIds:[],answersByStudent:new Map()}})}));
 vi.mock("react-i18next",()=>({useTranslation:()=>({t:(key:string,fallback:unknown,values?:Record<string,unknown>)=>typeof fallback==="string"?fallback.replace(/\{\{(\w+)\}\}/g,(_,k)=>String(values?.[k]??"")):key})}));
 async function setup(query=""){const view=render(<MemoryRouter initialEntries={["/?"+query]}><WorkbenchEditScreen header={<h2>工作台</h2>}/></MemoryRouter>);await waitFor(()=>expect(mocks.rail).not.toBeNull());return view}
 afterEach(()=>vi.restoreAllMocks());

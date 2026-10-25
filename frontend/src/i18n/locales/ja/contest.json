@@ -2319,7 +2319,21 @@
       "invalidScore": "配点は 0 より大きくしてください",
       "questionNavigation": "問題の切り替え",
       "previous": "前の問題",
-      "next": "次の問題"
+      "next": "次の問題",
+      "saveChanges": "変更を保存",
+      "objectiveImpact": "この問題には {{count}} 件の解答があります。保存後、新しい基準で再採点します。",
+      "subjectiveImpact": "保存後、既存の採点 {{count}} 件をどう扱いますか？",
+      "existingGrades": "既存の採点",
+      "keepGrades": "既存の採点を保持",
+      "markPending": "未採点に戻す",
+      "loadingImpact": "解答統計を読み込み中…",
+      "regrade": "再採点",
+      "lockedNotice": "受験者が解答を開始したため、問題文はロックされています。参考解答、配点、解説は変更できます。既存の採点への影響を確認してから手動で保存してください。",
+      "unsaved": "未保存の変更 {{count}} 件",
+      "discard": "変更を破棄",
+      "answerStats": "解答統計",
+      "goGrade": "採点モードでこの問題を開く",
+      "retryImpact": "解答統計を再読み込み"
     }
   }
 }

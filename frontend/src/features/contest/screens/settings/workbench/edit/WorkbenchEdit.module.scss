@@ -50,3 +50,11 @@
  .policyControl { grid-column: 1 / -1; }
  .optionRow { flex-wrap: wrap; gap: layout.$spacing-02; }
 }
+
+.answerStats { display: flex; align-items: center; flex-wrap: wrap; gap: layout.$spacing-07; padding-block: layout.$spacing-05; border-bottom: 1px solid var(--cds-border-subtle); }
+.answerStats > div { display: flex; flex-direction: column; gap: layout.$spacing-02; }
+.answerStats span { @include type.type-style("label-01"); color: var(--cds-text-secondary); }
+.answerStats strong { @include type.type-style("heading-03"); font-variant-numeric: tabular-nums; }
+.lockedSave { display: flex; flex-direction: column; gap: layout.$spacing-04; padding: layout.$spacing-05; border: 1px solid var(--cds-border-subtle); background: var(--cds-layer-01); }
+.lockedSave p { @include type.type-style("body-compact-01"); margin: 0; }
+.saveActions { display: flex; justify-content: flex-end; gap: layout.$spacing-03; }

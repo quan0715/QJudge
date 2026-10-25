@@ -2319,7 +2319,21 @@
       "invalidScore": "Points must be greater than 0",
       "questionNavigation": "Question navigation",
       "previous": "Previous question",
-      "next": "Next question"
+      "next": "Next question",
+      "saveChanges": "Save changes",
+      "objectiveImpact": "This question has {{count}} answers. Saving regrades them with the new rules.",
+      "subjectiveImpact": "How should the {{count}} existing grades be handled after saving?",
+      "existingGrades": "Existing grades",
+      "keepGrades": "Keep existing grades",
+      "markPending": "Mark as pending",
+      "loadingImpact": "Loading answer statistics…",
+      "regrade": "Regrade",
+      "lockedNotice": "A candidate has started answering, so question content is locked. Reference answers, points, and explanations can still be edited. Save these changes manually after reviewing their effect on existing grades.",
+      "unsaved": "{{count}} unsaved changes",
+      "discard": "Discard changes",
+      "answerStats": "Answer statistics",
+      "goGrade": "Open this question in grading mode",
+      "retryImpact": "Reload answer statistics"
     }
   }
 }

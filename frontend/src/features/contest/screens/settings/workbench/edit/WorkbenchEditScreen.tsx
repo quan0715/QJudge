@@ -17,6 +17,8 @@ import { movePaperItem, toReorderPayload, type PaperMoveTarget } from "@/feature
 import { buildEditRailRows } from "./editRailModel";
 import { WorkbenchEditRail } from "./WorkbenchEditRail";
 import type { AddMenuChoice } from "./WorkbenchAddMenu";
+import { useEditorImpactData } from "@/features/contest/components/admin/examEditor/hooks/useEditorImpactData";
+import { summarizeQuestionAnswers } from "./questionAnswerSummary";
 import { WorkbenchQuestionEditor } from "./WorkbenchQuestionEditor";
 import styles from "./WorkbenchEdit.module.scss";
 
@@ -35,6 +37,7 @@ export default function WorkbenchEditScreen({header}:{header:ReactNode;onPreview
  const {confirm,modalProps}=useConfirmModal();const {track,status:saveStatus}=useToolbarSaveStatus();const structuralBusy=useRef(false);
  const loadPaper=useCallback(async()=>{const next=await getExamPaper(contestId);setPaper(next);return next;},[contestId]);
  useEffect(()=>{let active=true;if(contestId)getExamPaper(contestId).then(next=>{if(active)setPaper(next);}).catch(err=>{if(active)setError(String(err));});return()=>{active=false;};},[contestId]);
+ const impactData=useEditorImpactData(contestId,paper?.questions??[]);
  const issues=useMemo(()=>getExamPublishIssueItems(paper?.questions??[]),[paper]);
  const rows=useMemo(()=>paper?buildEditRailRows(paper,issues,t):[],[paper,issues,t]);
  const selected=rows.some(row=>row.key===params.get("edit_item"))?params.get("edit_item"):rows[0]?.key??null;
@@ -42,7 +45,7 @@ export default function WorkbenchEditScreen({header}:{header:ReactNode;onPreview
  const registerFlush=useCallback((flush:(()=>Promise<void>)|null)=>{beforeLeave.current=flush;},[]);
  const select=useCallback(async(id:string)=>{try{await beforeLeave.current?.();setParams(prev=>{const next=new URLSearchParams(prev);next.set("edit_item",id);return next;},{replace:true});}catch{/* The save action reports the error; stay on the draft. */}},[setParams]);
  const failed=useCallback((err:unknown)=>showToast({kind:"error",title:t("workbench.edit.operationFailed","操作失敗"),subtitle:err instanceof Error?err.message:String(err)}),[showToast,t]);
- const runSave=useCallback(async(operation:()=>Promise<unknown>)=>{try{await track(async()=>{await operation();await loadPaper();});}catch(err){failed(err);throw err;}},[track,loadPaper,failed]);
+ const runSave=useCallback(async(operation:()=>Promise<unknown>)=>{try{await track(async()=>{await operation();await loadPaper();impactData.refresh();});}catch(err){failed(err);throw err;}},[track,loadPaper,failed,impactData.refresh]);
  const structural=useCallback(async(operation:()=>Promise<void>)=>{
   if(lockedRef.current||structuralBusy.current)return;structuralBusy.current=true;
   try{await beforeLeave.current?.();if(lockedRef.current)return;await track(operation);}catch(err){try{await loadPaper();}catch{/* Keep the last known server snapshot when reload also fails. */}failed(err);}finally{structuralBusy.current=false;}
@@ -82,6 +85,9 @@ export default function WorkbenchEditScreen({header}:{header:ReactNode;onPreview
    onSelect={select} onMove={(id,target)=>{void actions.move(id,target);}} onAdd={choice=>{void add(choice);}} onOpenPublishCheck={()=>{}} legacyHref={`${location.pathname}?${legacy}`}/>
   <main className={styles.main} aria-label={t("workbench.edit.editor","題目編輯")}>
    {currentQuestion?<WorkbenchQuestionEditor key={currentQuestion.id} question={currentQuestion} label={rows.find(r=>r.key===currentQuestion.id)?.label??""} locked={locked}
+    answerSummary={impactData.status==="loaded"?summarizeQuestionAnswers([...impactData.impactContext.answersByStudent.values()].flat().filter(row=>row.questionId===currentQuestion.id),currentQuestion.effectiveMaxScore??currentQuestion.score):undefined}
+    answerCounts={impactData.status==="loaded"?{total:impactData.impactContext.questions.find(q=>q.questionId===currentQuestion.id)?.totalAnswers??0,graded:impactData.impactContext.questions.find(q=>q.questionId===currentQuestion.id)?.gradedCount??0}:null}
+    impactError={impactData.status==="error"} onRetryImpact={impactData.refresh} onGradeQuestion={()=>setParams(prev=>{const next=new URLSearchParams(prev);next.set("workbench_mode","grade");next.set("grading_question",currentQuestion.id);next.delete("grading_student");return next;})}
     groups={rows.filter(r=>r.kind==="group").map(r=>({id:r.key,label:r.label}))} actions={actions} saveStatus={saveStatus} registerFlush={registerFlush} onOpenScorePolicy={()=>{}}
     prevLabel={rows.find(r=>r.key===paper.questions[paper.questions.indexOf(currentQuestion)-1]?.id)?.label}
     nextLabel={rows.find(r=>r.key===paper.questions[paper.questions.indexOf(currentQuestion)+1]?.id)?.label}
