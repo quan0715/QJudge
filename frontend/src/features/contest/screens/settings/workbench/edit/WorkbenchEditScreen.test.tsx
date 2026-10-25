@@ -334,3 +334,24 @@ it("keeps the paper total independent of rounded redistributed question scores",
   await setup();
   expect(screen.getByText(/4 題.*3 區塊.*總分 100/)).toBeTruthy();
 });
+
+it("keeps the mode header and legacy link while loading and after a load error", async () => {
+  let reject: (err: Error) => void = () => {};
+  mocks.getExamPaper.mockReturnValue(
+    new Promise((_, fail) => {
+      reject = fail;
+    }),
+  );
+  render(
+    <MemoryRouter initialEntries={["/?panel=grading-workbench"]}>
+      <WorkbenchEditScreen header={<h2>工作台</h2>} />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole("heading", { name: "工作台" })).toBeTruthy();
+  await act(async () => reject(new Error("offline")));
+  expect(await screen.findByRole("button", { name: "重新載入" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "工作台" })).toBeTruthy();
+  expect(
+    screen.getByRole("link", { name: "改用舊版考卷管理" }),
+  ).toHaveAttribute("href", expect.stringContaining("panel=problem_editor"));
+});

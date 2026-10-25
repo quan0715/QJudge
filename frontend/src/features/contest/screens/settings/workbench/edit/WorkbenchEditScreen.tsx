@@ -435,25 +435,48 @@ export default function WorkbenchEditScreen({
       select(created.id);
     });
   };
-  if (error)
+  const legacy = new URLSearchParams(params);
+  legacy.set("panel", "problem_editor");
+  const legacyHref = `${location.pathname}?${legacy}`;
+  if (error || !paper)
     return (
-      <EmptyState
-        title={error}
-        action={
-          <Button
-            onClick={() => {
-              setError(null);
-              void loadPaper().catch((err) => setError(String(err)));
-            }}
-          >
-            {t("workbench.edit.retry", "重新載入")}
-          </Button>
-        }
-      />
-    );
-  if (!paper)
-    return (
-      <InlineLoading description={t("workbench.edit.loading", "載入考卷中…")} />
+      <div className={styles.root}>
+        <aside
+          className={styles.rail}
+          aria-label={t("workbench.edit.questions", "題目")}
+        >
+          <div className={styles.railHeader}>{header}</div>
+          <div className={styles.railList} />
+          <div className={styles.railFooter}>
+            <Button kind="ghost" size="sm" href={legacyHref}>
+              {t("workbench.edit.legacy", "改用舊版考卷管理")}
+            </Button>
+          </div>
+        </aside>
+        <div className={styles.mainArea}>
+          <main className={styles.main}>
+            {error ? (
+              <EmptyState
+                title={error}
+                action={
+                  <Button
+                    onClick={() => {
+                      setError(null);
+                      void loadPaper().catch((err) => setError(String(err)));
+                    }}
+                  >
+                    {t("workbench.edit.retry", "重新載入")}
+                  </Button>
+                }
+              />
+            ) : (
+              <InlineLoading
+                description={t("workbench.edit.loading", "載入考卷中…")}
+              />
+            )}
+          </main>
+        </div>
+      </div>
     );
   const currentQuestion = paper.questions.find((q) => q.id === selected);
   const currentBlock = paper.blocks.find((b) => b.id === selected);
@@ -484,8 +507,6 @@ export default function WorkbenchEditScreen({
         ),
       )
     : null;
-  const legacy = new URLSearchParams(params);
-  legacy.set("panel", "problem_editor");
   return (
     <div className={styles.root}>
       <WorkbenchEditRail
@@ -514,7 +535,7 @@ export default function WorkbenchEditScreen({
           void add(choice);
         }}
         onOpenPublishCheck={() => setChecksOpen(true)}
-        legacyHref={`${location.pathname}?${legacy}`}
+        legacyHref={legacyHref}
       />
       <div className={styles.mainArea}>
         <main
