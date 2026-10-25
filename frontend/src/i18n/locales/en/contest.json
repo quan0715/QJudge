@@ -2348,7 +2348,20 @@
       "keepTotal": "Keep total at {{score}} points",
       "redistributeExample": "Distribute these {{points}} points proportionally to the other normal-scoring questions, for example {{label}}: {{before}} → {{after}} points",
       "affectedStudents": "Totals will be recalculated for {{count}} students",
-      "canRestore": "You can restore normal scoring at any time"
+      "canRestore": "You can restore normal scoring at any time",
+      "publishCheck": "Publishing checks",
+      "missingAnswer": "Missing correct answer",
+      "missingAnswerHint": "Choice and true/false questions need a correct answer for automatic grading.",
+      "defaultContent": "Default content remains",
+      "defaultContentHint": "The text supplied when the question was added has not been changed.",
+      "closeChecks": "Close publishing checks",
+      "noIssues": "No pending issues",
+      "autoResolve": "This item disappears automatically once fixed.",
+      "checkNavigation": "Publishing check navigation",
+      "previousIssue": "Previous item",
+      "nextIssue": "Next item",
+      "allIssues": "All items",
+      "exitCheck": "End review"
     }
   }
 }

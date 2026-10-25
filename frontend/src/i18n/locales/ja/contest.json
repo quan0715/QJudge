@@ -2348,7 +2348,20 @@
       "keepTotal": "合計 {{score}} 点を維持",
       "redistributeExample": "この {{points}} 点を他の通常採点問題に配点比で再配分します。例：{{label}} {{before}} 点 → {{after}} 点",
       "affectedStudents": "{{count}} 人の合計点を再計算します",
-      "canRestore": "後からいつでも通常の採点に戻せます"
+      "canRestore": "後からいつでも通常の採点に戻せます",
+      "publishCheck": "公開前の確認",
+      "missingAnswer": "正解が未設定",
+      "missingAnswerHint": "選択問題と正誤問題は、正解がないと自動採点できません。",
+      "defaultContent": "初期内容が残っています",
+      "defaultContentHint": "問題追加時の初期テキストが変更されていません。",
+      "closeChecks": "公開前の確認を閉じる",
+      "noIssues": "未処理項目はありません",
+      "autoResolve": "修正するとこの項目は自動的に消えます。",
+      "checkNavigation": "公開前の確認ナビゲーション",
+      "previousIssue": "前の項目",
+      "nextIssue": "次の項目",
+      "allIssues": "すべての項目",
+      "exitCheck": "確認を終了"
     }
   }
 }

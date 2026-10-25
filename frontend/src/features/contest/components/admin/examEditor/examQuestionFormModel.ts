@@ -1,10 +1,23 @@
-import { DEFAULT_CHOICE_OPTIONS, DEFAULT_QUESTION_PROMPT } from "@/features/contest/domain/examPublishIssues";
-import type { ExamQuestion, ExamQuestionAnswerFormat, ExamQuestionType } from "@/core/entities/contest.entity";
-import type { ExamQuestionUpsertPayload, ExamPaperQuestionPayload } from "@/infrastructure/api/repositories";
+import {
+  DEFAULT_CHOICE_OPTIONS,
+  DEFAULT_QUESTION_PROMPT,
+} from "@/features/contest/domain/examPublishIssues";
+import type {
+  ExamQuestion,
+  ExamQuestionAnswerFormat,
+  ExamQuestionType,
+} from "@/core/entities/contest.entity";
+import type {
+  ExamQuestionUpsertPayload,
+  ExamPaperQuestionPayload,
+} from "@/infrastructure/api/repositories";
 import type { LockedQuestionComparableState } from "./lockedQuestionSaveImpact";
 
 export const TRUE_FALSE_OPTIONS = ["True", "False"];
-export const ALLOWED_TYPE_SWITCHES: Record<ExamQuestionType, ExamQuestionType[]> = {
+export const ALLOWED_TYPE_SWITCHES: Record<
+  ExamQuestionType,
+  ExamQuestionType[]
+> = {
   single_choice: ["single_choice", "multiple_choice"],
   multiple_choice: ["multiple_choice", "single_choice"],
   short_answer: ["short_answer", "essay"],
@@ -40,7 +53,10 @@ export const isSubjectiveType = (type: ExamQuestionType) =>
  * shown as unset and the teacher has to pick the answer again.
  */
 const isAnswerIndex = (value: unknown, size: number): value is number =>
-  typeof value === "number" && Number.isInteger(value) && value >= 0 && value < size;
+  typeof value === "number" &&
+  Number.isInteger(value) &&
+  value >= 0 &&
+  value < size;
 
 const toAnswerIndex = (
   value: unknown,
@@ -80,7 +96,9 @@ export const toFormState = (question: ExamQuestion): QuestionFormState => {
     return {
       ...base,
       options,
-      multiAnswerIndexes: toAnswerIndexes(question.correctAnswer, options).map(String),
+      multiAnswerIndexes: toAnswerIndexes(question.correctAnswer, options).map(
+        String,
+      ),
     };
   }
   if (question.questionType === "short_answer") {
@@ -116,7 +134,11 @@ export const toFormState = (question: ExamQuestion): QuestionFormState => {
     ...base,
     options: resolvedOptions,
     singleAnswerIndex: String(
-      toAnswerIndex(question.correctAnswer, resolvedOptions, question.questionType) ?? "",
+      toAnswerIndex(
+        question.correctAnswer,
+        resolvedOptions,
+        question.questionType,
+      ) ?? "",
     ),
   };
 };
@@ -231,28 +253,56 @@ export const isFormDirty = (
 
 /** Get the correct answer index for true_false / single_choice */
 export const getCorrectSingleIndex = (question: ExamQuestion): number | null =>
-  toAnswerIndex(question.correctAnswer, question.options, question.questionType);
+  toAnswerIndex(
+    question.correctAnswer,
+    question.options,
+    question.questionType,
+  );
 
 export const getCorrectMultiIndexes = (question: ExamQuestion): Set<number> =>
   new Set(toAnswerIndexes(question.correctAnswer, question.options));
 
-
-export function getQuestionValidationError(form: QuestionFormState, opts: { requireScore: boolean }): "emptyPrompt" | "invalidScore" | "minOptions" | "blankOption" | null {
+export function getQuestionValidationError(
+  form: QuestionFormState,
+  opts: { requireScore: boolean },
+): "emptyPrompt" | "invalidScore" | "minOptions" | "blankOption" | null {
   if (!form.prompt.trim()) return "emptyPrompt";
-  if (opts.requireScore && (!Number.isFinite(Number(form.score || 0)) || Number(form.score || 0) <= 0)) return "invalidScore";
+  if (
+    opts.requireScore &&
+    (!Number.isFinite(Number(form.score || 0)) || Number(form.score || 0) <= 0)
+  )
+    return "invalidScore";
   if (!isChoiceType(form.questionType)) return null;
   if (form.options.length < 2) return "minOptions";
-  if (form.options.some(option => !option.trim())) return "blankOption";
+  if (form.options.some((option) => !option.trim())) return "blankOption";
   return null;
 }
 
-export function buildDuplicatePayload(source: ExamQuestion, order: number): ExamPaperQuestionPayload & { question_type: ExamQuestionType; prompt: string; score: number } {
-  const payload: ExamPaperQuestionPayload & { question_type: ExamQuestionType; prompt: string; score: number } = {
-    question_type: source.questionType, prompt: source.prompt, explanation: source.explanation,
-    score: source.score, order, answer_format: source.answerFormat,
+export function buildDuplicatePayload(
+  source: ExamQuestion,
+  order: number,
+): ExamPaperQuestionPayload & {
+  question_type: ExamQuestionType;
+  prompt: string;
+  score: number;
+} {
+  const payload: ExamPaperQuestionPayload & {
+    question_type: ExamQuestionType;
+    prompt: string;
+    score: number;
+  } = {
+    question_type: source.questionType,
+    prompt: source.prompt,
+    explanation: source.explanation,
+    score: source.score,
+    order,
+    answer_format: source.answerFormat,
   };
   if (source.options.length > 0) payload.options = [...source.options];
-  if (source.correctAnswer != null) payload.correct_answer = Array.isArray(source.correctAnswer) ? [...source.correctAnswer] : source.correctAnswer;
+  if (source.correctAnswer != null)
+    payload.correct_answer = Array.isArray(source.correctAnswer)
+      ? [...source.correctAnswer]
+      : source.correctAnswer;
   return payload;
 }
 
@@ -295,4 +345,3 @@ export const DEFAULT_QUESTION_PAYLOADS: Record<
     score: 5,
   },
 };
-

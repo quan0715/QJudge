@@ -1,5 +1,18 @@
 @use "@carbon/layout";
 @use "@carbon/type";
-.header { display: flex; flex-direction: column; gap: layout.$spacing-04; min-width: 0; }
-.title { display: flex; align-items: center; gap: layout.$spacing-02; }
-.title h2 { @include type.type-style("heading-compact-02"); margin: 0; margin-right: auto; }
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+  min-width: 0;
+}
+.title {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+}
+.title h2 {
+  @include type.type-style("heading-compact-02");
+  margin: 0;
+  margin-right: auto;
+}

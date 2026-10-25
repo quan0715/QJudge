@@ -2348,7 +2348,20 @@
       "keepTotal": "총점 {{score}}점 유지",
       "redistributeExample": "이 문항의 {{points}}점을 다른 일반 채점 문항에 배점 비율로 재분배합니다. 예: {{label}} {{before}}점 → {{after}}점",
       "affectedStudents": "학생 {{count}}명의 총점을 다시 계산합니다",
-      "canRestore": "나중에 언제든지 일반 채점으로 되돌릴 수 있습니다"
+      "canRestore": "나중에 언제든지 일반 채점으로 되돌릴 수 있습니다",
+      "publishCheck": "게시 전 확인",
+      "missingAnswer": "정답 미설정",
+      "missingAnswerHint": "선택형 및 참/거짓 문항은 정답이 있어야 자동 채점할 수 있습니다.",
+      "defaultContent": "기본 내용이 남아 있습니다",
+      "defaultContentHint": "문항을 추가할 때 자동 입력된 내용을 아직 수정하지 않았습니다.",
+      "closeChecks": "게시 전 확인 닫기",
+      "noIssues": "확인할 항목이 없습니다",
+      "autoResolve": "수정하면 이 항목이 자동으로 사라집니다.",
+      "checkNavigation": "게시 전 확인 탐색",
+      "previousIssue": "이전 항목",
+      "nextIssue": "다음 항목",
+      "allIssues": "모든 항목",
+      "exitCheck": "확인 종료"
     }
   }
 }

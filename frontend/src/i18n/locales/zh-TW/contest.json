@@ -2348,7 +2348,20 @@
       "keepTotal": "總分維持 {{score}} 分",
       "redistributeExample": "這題的 {{points}} 分依配分比例分給其他正常計分的題目，例如 {{label}} {{before}} 分 → {{after}} 分",
       "affectedStudents": "會重新計算 {{count}} 位學生的總分",
-      "canRestore": "之後可以隨時改回「正常計分」"
+      "canRestore": "之後可以隨時改回「正常計分」",
+      "publishCheck": "發布前檢查",
+      "missingAnswer": "未設定正確答案",
+      "missingAnswerHint": "選擇題與是非題沒有正確答案，就無法自動批改",
+      "defaultContent": "仍是預設內容",
+      "defaultContentHint": "新增題目時自動帶入的文字還沒改",
+      "closeChecks": "關閉發布前檢查",
+      "noIssues": "沒有待處理項目",
+      "autoResolve": "改好後這一項會自動消失",
+      "checkNavigation": "發布前檢查導覽",
+      "previousIssue": "上一項",
+      "nextIssue": "下一項",
+      "allIssues": "全部項目",
+      "exitCheck": "結束檢查"
     }
   }
 }
