@@ -10,6 +10,7 @@ from contextlib import AbstractAsyncContextManager, aclosing, asynccontextmanage
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from enum import StrEnum
+from pathlib import Path
 from typing import Any, AsyncGenerator, Protocol
 from uuid import UUID
 
@@ -63,6 +64,11 @@ from infrastructure.artifacts.tools import build_artifact_tools
 from infrastructure.mcp.provider import MCPToolProvider
 
 logger = logging.getLogger(__name__)
+
+_GRADING_PRINCIPLES_PATH = (
+    Path(__file__).resolve().parents[2]
+    / ".deepagents/skills/qjudge-exam-grading-sop/references/core-principles.md"
+)
 
 _MODEL_QUOTA_EXHAUSTED_MESSAGE = (
     "The selected AI model has no remaining provider quota. "
@@ -413,6 +419,17 @@ class _DeepAgentRuntime:
         custom middleware that is not already included.
         """
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
+        grading_principles = ""
+        if any(getattr(tool, "name", None) in {"get_grading_unit", "qjudge_grading"} for tool in tools):
+            # The SOP owns the text. Both model contexts receive it without a
+            # discretionary skill read or a parent-written delegation summary.
+            try:
+                grading_principles = _GRADING_PRINCIPLES_PATH.read_text(encoding="utf-8").strip()
+            except (OSError, UnicodeError) as exc:
+                raise RuntimeError("Core grading principles could not be loaded") from exc
+            if not grading_principles:
+                raise RuntimeError("Core grading principles are empty")
+            prompt = f"{prompt}\n\n{grading_principles}"
         skills = [p for p in self._skills_paths if p]
         memory = [p for p in self._memory_paths if p]
 
@@ -442,6 +459,9 @@ class _DeepAgentRuntime:
             "subagents": [
                 {
                     **GENERAL_PURPOSE_SUBAGENT,
+                    "system_prompt": "\n\n".join(filter(None, [
+                        GENERAL_PURPOSE_SUBAGENT["system_prompt"], grading_principles,
+                    ])),
                     "skills": skills,
                     "middleware": [
                         ToolErrorFeedbackMiddleware(),
