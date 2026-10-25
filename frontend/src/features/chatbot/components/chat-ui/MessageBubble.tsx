@@ -126,7 +126,7 @@ function MessageBubbleComponent({ message }: CopilotMessageViewProps) {
               onClick={handleCopy}
               className={styles.copyButton}
             >
-              {isCopied ? <Checkmark size={16} /> : <Copy size={16} />}
+              {isCopied ? <Checkmark size={14} /> : <Copy size={14} />}
             </IconButton>
           </div>
         )}
