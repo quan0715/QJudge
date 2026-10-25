@@ -9,7 +9,7 @@ Follow the [core grading principles](references/core-principles.md). The runtime
 this SOP and those principles directly to both the main agent and grading subagents
 whenever grading tools are available; no extra skill read or copied workflow is needed.
 
-## Batch grading (when the grading tools are available)
+## Batch grading (when `get_grading_assignment` is available)
 
 **Main agent:** call `get_grading_assignment`, then use `task` to delegate one unit to each
 `general-purpose` subagent, working in small batches. The task description contains only a
