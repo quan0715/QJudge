@@ -2340,7 +2340,15 @@
       "childCount": "{{count}} 題",
       "groupScore": "題組合計",
       "sharedStem": "共同題幹",
-      "addChild": "新增子題"
+      "addChild": "新增子題",
+      "apply": "套用",
+      "fullMarksHint": "所有學生這題都拿滿分 {{score}} 分",
+      "totalPolicy": "考卷總分",
+      "lowerTotal": "總分降為 {{score}} 分",
+      "keepTotal": "總分維持 {{score}} 分",
+      "redistributeExample": "這題的 {{points}} 分依配分比例分給其他正常計分的題目，例如 {{label}} {{before}} 分 → {{after}} 分",
+      "affectedStudents": "會重新計算 {{count}} 位學生的總分",
+      "canRestore": "之後可以隨時改回「正常計分」"
     }
   }
 }

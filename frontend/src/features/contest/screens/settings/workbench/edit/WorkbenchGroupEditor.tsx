@@ -1,3 +1,4 @@
+import { paperQuestionPoints } from "@/features/contest/domain/scorePolicyChoice";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button, InlineNotification, TextInput } from "@carbon/react";
 import { ChevronDown, ChevronUp } from "@carbon/icons-react";
@@ -46,7 +47,7 @@ export function WorkbenchGroupEditor({block,label,childLabels,locked,expandedChi
   </header>
   <div className={styles.groupSettings}><TextInput id={`group-title-${block.id}`} labelText={t("workbench.edit.groupTitle","題組標題")} readOnly={locked} value={form.title} onChange={event=>setForm(p=>({...p,title:event.target.value}))}/>
    <div><span>{t("workbench.edit.children","子題")}</span><strong>{t("workbench.edit.childCount","{{count}} 題",{count:block.children.length})}</strong></div>
-   <div><span>{t("workbench.edit.groupScore","題組合計")}</span><strong>{block.children.reduce((sum,q)=>sum+(q.effectiveMaxScore??q.score),0)}</strong></div>
+   <div><span>{t("workbench.edit.groupScore","題組合計")}</span><strong>{block.children.reduce((sum,q)=>sum+paperQuestionPoints(q),0)}</strong></div>
   </div>
   <section className={styles.field} aria-label={t("workbench.edit.sharedStem","共同題幹")}><h2>{t("workbench.edit.sharedStem","共同題幹")}</h2>
    {locked?<MarkdownRenderer>{form.stem}</MarkdownRenderer>:<MarkdownField id={`group-stem-${block.id}`} labelText={t("workbench.edit.sharedStem","共同題幹")} value={form.stem} onChange={stem=>setForm(p=>({...p,stem}))} showPreview/>}
@@ -57,7 +58,7 @@ export function WorkbenchGroupEditor({block,label,childLabels,locked,expandedChi
   {block.children.length===0&&<p>{t("workbench.edit.emptyGroup","尚無子題")}</p>}
   {block.children.map(child=>{const open=expandedChildId===child.id;return <section key={child.id} className={styles.childSection}>
    <Button className={styles.childHeading} kind="ghost" size="md" aria-expanded={open} aria-controls={`child-editor-${child.id}`} onClick={()=>{void expand(child.id);}}>
-    <span>{childLabels.get(child.id)}</span><span className={styles.childType}>{t(`common:questionType.label.${child.questionType}`,names[child.questionType])}</span><span className={styles.childPrompt}>{child.prompt.split("\n")[0]}</span><span>{child.effectiveMaxScore??child.score}</span>{open?<ChevronUp size={16}/>:<ChevronDown size={16}/>}
+    <span>{childLabels.get(child.id)}</span><span className={styles.childType}>{t(`common:questionType.label.${child.questionType}`,names[child.questionType])}</span><span className={styles.childPrompt}>{child.prompt.split("\n")[0]}</span><span>{paperQuestionPoints(child)}</span>{open?<ChevronUp size={16}/>:<ChevronDown size={16}/>}
    </Button>
    {open&&<div id={`child-editor-${child.id}`} className={styles.childEditor}>
     <WorkbenchQuestionEditor key={child.id} compact question={child} label={childLabels.get(child.id)??""} locked={locked} groups={[]} actions={actions} saveStatus={saveStatus} onNavigate={()=>{}} registerFlush={registerChildFlush}

@@ -2340,7 +2340,15 @@
       "childCount": "{{count}}문항",
       "groupScore": "그룹 합계",
       "sharedStem": "공통 지문",
-      "addChild": "하위 문항 추가"
+      "addChild": "하위 문항 추가",
+      "apply": "적용",
+      "fullMarksHint": "모든 학생이 이 문항에서 만점인 {{score}}점을 받습니다",
+      "totalPolicy": "시험지 총점",
+      "lowerTotal": "총점을 {{score}}점으로 낮추기",
+      "keepTotal": "총점 {{score}}점 유지",
+      "redistributeExample": "이 문항의 {{points}}점을 다른 일반 채점 문항에 배점 비율로 재분배합니다. 예: {{label}} {{before}}점 → {{after}}점",
+      "affectedStudents": "학생 {{count}}명의 총점을 다시 계산합니다",
+      "canRestore": "나중에 언제든지 일반 채점으로 되돌릴 수 있습니다"
     }
   }
 }

@@ -19,6 +19,8 @@ import { WorkbenchEditRail } from "./WorkbenchEditRail";
 import type { AddMenuChoice } from "./WorkbenchAddMenu";
 import { useEditorImpactData } from "@/features/contest/components/admin/examEditor/hooks/useEditorImpactData";
 import { summarizeQuestionAnswers } from "./questionAnswerSummary";
+import { ScorePolicyDialog } from "./ScorePolicyDialog";
+import { simulateEffectiveMax, type SimQuestion } from "../../grading/scorePolicyImpact.utils";
 import { WorkbenchGroupEditor, type QuestionEditAnswerData } from "./WorkbenchGroupEditor";
 import { WorkbenchQuestionEditor } from "./WorkbenchQuestionEditor";
 import styles from "./WorkbenchEdit.module.scss";
@@ -34,6 +36,7 @@ export default function WorkbenchEditScreen({header}:{header:ReactNode;onPreview
  const lockedRef=useRef(locked);useLayoutEffect(()=>{lockedRef.current=locked;},[locked]);
  const {t}=useTranslation("contest");const {showToast}=useToast();const [params,setParams]=useSearchParams();const location=useLocation();
  const [paper,setPaper]=useState<ExamPaper|null>(null);const [error,setError]=useState<string|null>(null);
+ const [policyQuestionId,setPolicyQuestionId]=useState<string|null>(null);
  const [expandedChildId,setExpandedChildId]=useState<string|null>(null);
  const [importOpen,setImportOpen]=useState(false);const [bankQuestion,setBankQuestion]=useState<ExamQuestion|null>(null);
  const {confirm,modalProps}=useConfirmModal();const {track,status:saveStatus}=useToolbarSaveStatus();const structuralBusy=useRef(false);
@@ -89,24 +92,33 @@ export default function WorkbenchEditScreen({header}:{header:ReactNode;onPreview
  if(error)return <EmptyState title={error} action={<Button onClick={()=>{setError(null);void loadPaper().catch(err=>setError(String(err)));}}>{t("workbench.edit.retry","重新載入")}</Button>}/>;
  if(!paper)return <InlineLoading description={t("workbench.edit.loading","載入考卷中…")}/>;
  const currentQuestion=paper.questions.find(q=>q.id===selected);const currentBlock=paper.blocks.find(b=>b.id===selected);
+ const policyQuestion=paper.questions.find(q=>q.id===policyQuestionId);
+ const sample=paper.questions.find(q=>q.id!==policyQuestionId&&(q.scorePolicy??"normal")==="normal");
+ const simQuestions:SimQuestion[]=paper.questions.map(q=>({id:q.id,maxScore:q.score,scorePolicy:q.scorePolicy??"normal",redistributeTargetIds:q.scorePolicyConfig?.redistributeTo??[]}));
+ const baseline=policyQuestion?simulateEffectiveMax(simQuestions.map(q=>q.id===policyQuestion.id?{...q,scorePolicy:"normal"}:q)):null;
+ const redistributed=policyQuestion?simulateEffectiveMax(simQuestions.map(q=>q.id===policyQuestion.id?{...q,scorePolicy:"redistribute",redistributeTargetIds:[]}:q)):null;
  const legacy=new URLSearchParams(params);legacy.set("panel","problem_editor");
  return <div className={styles.root}>
   <WorkbenchEditRail header={header} rows={rows} activeKey={selected} locked={locked} issueCount={issues.length}
-   summary={{questions:paper.questions.length,blocks:paper.blocks.length,totalScore:paper.questions.reduce((sum,q)=>sum+(q.effectiveMaxScore??q.score),0)}}
+   summary={{questions:paper.questions.length,blocks:paper.blocks.length,totalScore:rows.filter(row=>row.kind!=="group").reduce((sum,row)=>sum+row.score,0)}}
    onSelect={select} onMove={(id,target)=>{void actions.move(id,target);}} onAdd={choice=>{void add(choice);}} onOpenPublishCheck={()=>{}} legacyHref={`${location.pathname}?${legacy}`}/>
   <main className={styles.main} aria-label={t("workbench.edit.editor","題目編輯")}>
    {currentQuestion?<WorkbenchQuestionEditor key={currentQuestion.id} question={currentQuestion} label={rows.find(r=>r.key===currentQuestion.id)?.label??""} locked={locked}
     answerSummary={answerData?.get(currentQuestion.id)?.summary} answerCounts={answerData?.get(currentQuestion.id)?.counts}
     impactError={impactData.status==="error"} onRetryImpact={refreshImpact} onGradeQuestion={()=>setParams(prev=>{const next=new URLSearchParams(prev);next.set("workbench_mode","grade");next.set("grading_question",currentQuestion.id);next.delete("grading_student");return next;})}
-    groups={rows.filter(r=>r.kind==="group").map(r=>({id:r.key,label:r.label}))} actions={actions} saveStatus={saveStatus} registerFlush={registerFlush} onOpenScorePolicy={()=>{}}
+    groups={rows.filter(r=>r.kind==="group").map(r=>({id:r.key,label:r.label}))} actions={actions} saveStatus={saveStatus} registerFlush={registerFlush} onOpenScorePolicy={()=>setPolicyQuestionId(currentQuestion.id)}
     prevLabel={rows.find(r=>r.key===paper.questions[paper.questions.indexOf(currentQuestion)-1]?.id)?.label}
     nextLabel={rows.find(r=>r.key===paper.questions[paper.questions.indexOf(currentQuestion)+1]?.id)?.label}
     onNavigate={direction=>{const next=paper.questions[paper.questions.indexOf(currentQuestion)+(direction==="prev"?-1:1)];if(next)void select(next.id);}}/>
     :currentBlock?.kind==="group"?<WorkbenchGroupEditor key={currentBlock.id} block={currentBlock} label={rows.find(r=>r.key===currentBlock.id)?.label??""} childLabels={new Map(rows.filter(r=>r.kind==="child").map(r=>[r.key,r.label]))}
      locked={locked} expandedChildId={expandedChildId} onExpandChild={setExpandedChildId} actions={actions} saveStatus={saveStatus} registerFlush={registerFlush} answerData={answerData}
-     impactError={impactData.status==="error"} onRetryImpact={refreshImpact} onGradeQuestion={id=>setParams(prev=>{const next=new URLSearchParams(prev);next.set("workbench_mode","grade");next.set("grading_question",id);next.delete("grading_student");return next;})}/>:<EmptyState title={t("workbench.edit.emptyPaper","考卷尚無題目")}/>}
+     impactError={impactData.status==="error"} onRetryImpact={refreshImpact} onOpenScorePolicy={setPolicyQuestionId} onGradeQuestion={id=>setParams(prev=>{const next=new URLSearchParams(prev);next.set("workbench_mode","grade");next.set("grading_question",id);next.delete("grading_student");return next;})}/>:<EmptyState title={t("workbench.edit.emptyPaper","考卷尚無題目")}/>}
 
   </main>
+  {policyQuestion&&<ScorePolicyDialog key={`${policyQuestion.id}:${policyQuestion.scorePolicy}`} open question={policyQuestion} label={rows.find(r=>r.key===policyQuestion.id)?.label??""}
+   paperTotal={paper.questions.reduce((sum,q)=>sum+(q.id===policyQuestion.id||q.scorePolicy!=="excluded"?q.score:0),0)}
+   sampleTarget={sample?{label:rows.find(r=>r.key===sample.id)?.label??"",score:baseline?.get(sample.id)??sample.score}:null} sampleAfterScore={sample?redistributed?.get(sample.id):undefined}
+   affectedStudents={impactData.impactContext.studentIds.length} impactReady={impactData.status==="loaded"} onClose={()=>setPolicyQuestionId(null)} onApplied={async()=>{await loadPaper();refreshImpact();}}/>}
   <ConfirmModal {...modalProps}/>
   <QuestionBankImportModal open={importOpen} category="exam" onClose={()=>setImportOpen(false)} onConfirm={async items=>{await structural(async()=>{await importExamQuestionsFromBank(contestId,{items:items.map(item=>({question_bank_id:item.questionBankId,question_id:item.questionId}))});const next=await loadPaper();setImportOpen(false);const last=next.blocks.at(-1);if(last)select(last.id);});}}/>
   <SaveToBankModal open={bankQuestion!==null} onClose={()=>setBankQuestion(null)} sourceType="exam_question" sourceId={bankQuestion?.id??""} sourceTitle={bankQuestion?.prompt.slice(0,60)??""}/>

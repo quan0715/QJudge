@@ -2340,7 +2340,15 @@
       "childCount": "{{count}} 問",
       "groupScore": "グループ合計",
       "sharedStem": "共通の問題文",
-      "addChild": "子問題を追加"
+      "addChild": "子問題を追加",
+      "apply": "適用",
+      "fullMarksHint": "全員がこの問題で満点の {{score}} 点を獲得します",
+      "totalPolicy": "試験の合計点",
+      "lowerTotal": "合計を {{score}} 点に変更",
+      "keepTotal": "合計 {{score}} 点を維持",
+      "redistributeExample": "この {{points}} 点を他の通常採点問題に配点比で再配分します。例：{{label}} {{before}} 点 → {{after}} 点",
+      "affectedStudents": "{{count}} 人の合計点を再計算します",
+      "canRestore": "後からいつでも通常の採点に戻せます"
     }
   }
 }

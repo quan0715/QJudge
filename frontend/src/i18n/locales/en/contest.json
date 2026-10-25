@@ -2340,7 +2340,15 @@
       "childCount": "{{count}} questions",
       "groupScore": "Group total",
       "sharedStem": "Shared stem",
-      "addChild": "Add subquestion"
+      "addChild": "Add subquestion",
+      "apply": "Apply",
+      "fullMarksHint": "All students receive the full {{score}} points for this question",
+      "totalPolicy": "Paper total",
+      "lowerTotal": "Lower total to {{score}} points",
+      "keepTotal": "Keep total at {{score}} points",
+      "redistributeExample": "Distribute these {{points}} points proportionally to the other normal-scoring questions, for example {{label}}: {{before}} → {{after}} points",
+      "affectedStudents": "Totals will be recalculated for {{count}} students",
+      "canRestore": "You can restore normal scoring at any time"
     }
   }
 }

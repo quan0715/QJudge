@@ -78,3 +78,8 @@
  .childType { display: none; }
  .childEditor { padding: layout.$spacing-04 layout.$spacing-03; }
 }
+
+.policyDialog { display: flex; flex-direction: column; gap: layout.$spacing-05; }
+.policySubchoices { display: flex; flex-direction: column; gap: layout.$spacing-04; padding-left: layout.$spacing-06; }
+.policyDialog p { @include type.type-style("body-compact-01"); margin: 0; }
+.policyFootnote { display: flex; flex-direction: column; gap: layout.$spacing-03; padding-top: layout.$spacing-05; border-top: 1px solid var(--cds-border-subtle); color: var(--cds-text-secondary); }
