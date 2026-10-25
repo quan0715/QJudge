@@ -110,6 +110,7 @@ export function WorkbenchEditRail({
             className={[
               styles.railRow,
               row.kind === "child" ? styles.childRow : "",
+              locked ? styles.lockedRow : "",
               row.key === activeKey ? styles.activeRow : "",
               drop?.key === row.key
                 ? drop.target.position === "before"
@@ -213,7 +214,12 @@ export function WorkbenchEditRail({
       </nav>
       <div className={styles.railFooter}>
         {issueCount > 0 && (
-          <Button kind="ghost" size="sm" onClick={onOpenPublishCheck}>
+          <Button
+            kind="ghost"
+            size="sm"
+            className={styles.publishLink}
+            onClick={onOpenPublishCheck}
+          >
             <WarningAlt size={16} />
             {t("workbench.edit.publishCount", "發布前檢查 {{count}} 項", {
               count: issueCount,

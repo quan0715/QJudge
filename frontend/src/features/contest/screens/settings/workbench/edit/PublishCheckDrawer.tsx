@@ -74,6 +74,7 @@ export function PublishCheckDrawer({
         <h2>{t("workbench.edit.publishCheck", "發布前檢查")}</h2>
         <IconButton
           ref={closeRef}
+          align="left"
           kind="ghost"
           size="sm"
           label={t("workbench.edit.closeChecks", "關閉發布前檢查")}

@@ -1,5 +1,4 @@
-import { OverflowMenu, OverflowMenuItem } from "@carbon/react";
-import { Add } from "@carbon/icons-react";
+import { MenuButton, MenuItem, MenuItemDivider } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import styles from "./WorkbenchEdit.module.scss";
@@ -31,40 +30,37 @@ export function WorkbenchAddMenu({
     short_answer: "簡答題",
     essay: "問答題",
   };
-  const text = label ?? t("workbench.edit.addQuestion", "新增題目");
+  const items = types.map((type) => (
+    <MenuItem
+      key={type}
+      label={t(`common:questionType.label.${type}`, names[type])}
+      onClick={() => onAdd({ kind: "question", type })}
+    />
+  ));
+  if (!questionsOnly)
+    items.push(
+      <MenuItemDivider key="group-divider" />,
+      <MenuItem
+        key="group"
+        label={t("workbench.edit.addGroup", "題組")}
+        onClick={() => onAdd({ kind: "group" })}
+      />,
+      <MenuItemDivider key="bank-divider" />,
+      <MenuItem
+        key="bank"
+        label={t("workbench.edit.importBank", "從題庫匯入…")}
+        onClick={() => onAdd({ kind: "bank" })}
+      />,
+    );
   return (
-    <OverflowMenu
-      className={styles.addMenu}
-      iconDescription={text}
-      aria-label={text}
-      renderIcon={() => (
-        <span className={styles.addLabel}>
-          {text}
-          <Add size={16} />
-        </span>
-      )}
+    <MenuButton
+      className={questionsOnly ? undefined : styles.addMenu}
+      label={label ?? t("workbench.edit.addQuestion", "新增題目")}
+      kind={questionsOnly ? "ghost" : "tertiary"}
+      size={questionsOnly ? "sm" : "md"}
+      menuAlignment={questionsOnly ? "bottom-end" : "bottom-start"}
     >
-      {types.map((type) => (
-        <OverflowMenuItem
-          key={type}
-          itemText={t(`common:questionType.label.${type}`, names[type])}
-          onClick={() => onAdd({ kind: "question", type })}
-        />
-      ))}
-      {!questionsOnly && (
-        <OverflowMenuItem
-          hasDivider
-          itemText={t("workbench.edit.addGroup", "題組")}
-          onClick={() => onAdd({ kind: "group" })}
-        />
-      )}
-      {!questionsOnly && (
-        <OverflowMenuItem
-          hasDivider
-          itemText={t("workbench.edit.importBank", "從題庫匯入…")}
-          onClick={() => onAdd({ kind: "bank" })}
-        />
-      )}
-    </OverflowMenu>
+      {items}
+    </MenuButton>
   );
 }

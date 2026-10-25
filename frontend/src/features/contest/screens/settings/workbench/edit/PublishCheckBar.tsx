@@ -31,10 +31,12 @@ export function PublishCheckBar({
       aria-label={t("workbench.edit.checkNavigation", "發布前檢查導覽")}
     >
       <span className={styles.checkCategory}>
-        {t("workbench.edit.publishCheck", "發布前檢查")}{" "}
-        {current.kind === "missingAnswer"
-          ? t("workbench.edit.missingAnswer", "未設定正確答案")
-          : t("workbench.edit.defaultContent", "仍是預設內容")}
+        {t("workbench.edit.publishCheck", "發布前檢查")}
+        <strong>
+          {current.kind === "missingAnswer"
+            ? t("workbench.edit.missingAnswer", "未設定正確答案")
+            : t("workbench.edit.defaultContent", "仍是預設內容")}
+        </strong>
       </span>
       <span>
         {resolved

@@ -137,6 +137,7 @@ export function WorkbenchGroupEditor({
     <article className={styles.editor}>
       {locked && (
         <InlineNotification
+          className={styles.lockedNotice}
           kind="warning"
           lowContrast
           hideCloseButton
