@@ -3,11 +3,7 @@ import type {
   ExamPaperBlock,
   ExamQuestion,
 } from "@/core/entities/contest.entity";
-import {
-  movePaperItem,
-  resolveDropTarget,
-  toReorderPayload,
-} from "./paperMoveModel";
+import { movePaperItem, toReorderPayload } from "./paperMoveModel";
 const q = (id: string, groupId: string | null = null): ExamQuestion => ({
   id,
   groupId,
@@ -40,13 +36,6 @@ const blocks: ExamPaperBlock[] = [
   },
   { kind: "question", id: "q2", question: q("q2") },
 ];
-const childRow = {
-  kind: "child" as const,
-  blockId: "g",
-  questionId: "c1",
-  endsBlock: false,
-};
-const lastChildRow = { ...childRow, questionId: "c2", endsBlock: true };
 describe("paper ordering", () => {
   it("reorders top-level blocks with their groups intact", () => {
     const next = movePaperItem(blocks, "q1", {
@@ -93,62 +82,6 @@ describe("paper ordering", () => {
         position: "after",
       }),
     ).toBe(blocks);
-  });
-  it("drops before a group when hovering its header", () => {
-    expect(
-      resolveDropTarget(
-        { kind: "group", blockId: "g", questionId: null, endsBlock: false },
-        { kind: "question", id: "q1", groupId: null },
-        0.6,
-      ),
-    ).toEqual({ zone: "top", refBlockId: "g", position: "before" });
-  });
-  it("drops after an empty group from the lower half of its header", () => {
-    expect(
-      resolveDropTarget(
-        { kind: "group", blockId: "g", questionId: null, endsBlock: true },
-        { kind: "question", id: "q1", groupId: null },
-        0.6,
-      ),
-    ).toEqual({ zone: "top", refBlockId: "g", position: "after" });
-  });
-  it("drops after a group from the lower half of its last child", () => {
-    const drag = { kind: "question" as const, id: "q1", groupId: null };
-    expect(resolveDropTarget(lastChildRow, drag, 0.6)).toEqual({
-      zone: "top",
-      refBlockId: "g",
-      position: "after",
-    });
-    expect(resolveDropTarget(lastChildRow, drag, 0.4)).toBeNull();
-    expect(resolveDropTarget(childRow, drag, 0.6)).toBeNull();
-  });
-  it("only lets a child target another child in the same group", () => {
-    expect(
-      resolveDropTarget(
-        childRow,
-        { kind: "child", id: "c2", groupId: "g" },
-        0.8,
-      ),
-    ).toEqual({
-      zone: "group",
-      groupId: "g",
-      refQuestionId: "c1",
-      position: "after",
-    });
-    expect(
-      resolveDropTarget(
-        childRow,
-        { kind: "child", id: "other", groupId: "another" },
-        0.5,
-      ),
-    ).toBeNull();
-    expect(
-      resolveDropTarget(
-        childRow,
-        { kind: "question", id: "q1", groupId: null },
-        0.5,
-      ),
-    ).toBeNull();
   });
   it("serialises each group's unchanged membership", () =>
     expect(toReorderPayload(blocks)[1]).toEqual({

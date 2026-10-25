@@ -13,11 +13,11 @@ it("labels groups as a main question with lettered children", () => {
     t,
   );
   expect(rows.map((r) => r.label)).toEqual([
-    "第 1 題",
-    "第 2 題（題組）",
-    "2(a)",
-    "2(b)",
-    "第 3 題",
+    "Q1",
+    "Q2",
+    "Q2(a)",
+    "Q2(b)",
+    "Q3",
   ]);
   expect(rows.filter((r) => r.hasIssue).map((r) => r.key)).toEqual(["c2"]);
 });
@@ -25,18 +25,22 @@ it("keeps an empty group and its main-question number", () => {
   const paper = paperFixture();
   if (paper.blocks[1].kind === "group") paper.blocks[1].children = [];
   const rows = buildEditRailRows(paper, [], t);
-  expect(rows[1].typeText).toContain("尚無子題");
-  expect(rows[2].label).toBe("第 3 題");
+  expect(rows[1]).toMatchObject({ title: "Shared task", typeText: "題組" });
+  expect(rows[2].label).toBe("Q3");
 });
 
-it("shows redistributed points once and excluded points as zero", () => {
+it("provides readable single-line titles and a distinct group type", () => {
   const paper = paperFixture();
-  paper.questions[0].scorePolicy = "redistribute";
-  paper.questions[1].effectiveMaxScore = 7.5;
-  paper.questions[2].scorePolicy = "excluded";
-  paper.questions[3].effectiveMaxScore = 7.5;
+  paper.questions[0].prompt = "## **二元搜尋**\n請選出正確的複雜度。";
   const rows = buildEditRailRows(paper, [], t);
-  expect(rows.filter((r) => r.kind !== "group").map((r) => r.score)).toEqual([
-    0, 7.5, 0, 7.5,
-  ]);
+  expect(rows[0]).toMatchObject({
+    title: "二元搜尋",
+    questionType: "single_choice",
+    typeText: "單選題",
+  });
+  expect(rows[1]).toMatchObject({ title: "Shared task", typeText: "題組" });
+  expect(rows[2]).toMatchObject({
+    title: "Prompt c1",
+    questionType: "single_choice",
+  });
 });

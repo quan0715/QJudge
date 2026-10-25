@@ -1,14 +1,18 @@
-import { paperQuestionPoints } from "@/features/contest/domain/scorePolicyChoice";
 import type { TFunction } from "i18next";
-import type { ExamPaper, ExamQuestion } from "@/core/entities/contest.entity";
+import type {
+  ExamPaper,
+  ExamQuestion,
+  ExamQuestionType,
+} from "@/core/entities/contest.entity";
 import { buildPaperQuestionLabels } from "@/features/contest/domain/paperQuestionLabels";
 import type { PaperRowRef } from "@/features/contest/domain/paperMoveModel";
 import type { ExamPublishIssueItem } from "@/features/contest/domain/examPublishIssues";
 export interface EditRailRow extends PaperRowRef {
   key: string;
   label: string;
+  title: string;
+  questionType?: ExamQuestionType;
   typeText: string;
-  score: number;
   hasIssue: boolean;
 }
 export function buildEditRailRows(
@@ -46,38 +50,34 @@ export function buildEditRailRows(
         kind: "group",
         blockId: b.id,
         questionId: null,
-        endsBlock: b.children.length === 0,
-        label: t("workbench.edit.groupNumber", "第 {{number}} 題（題組）", {
+        label: t("workbench.edit.groupNumber", "Q{{number}}", {
           number,
         }),
-        typeText: b.children.length
-          ? t("workbench.edit.groupSummary", "{{count}} 題 · {{title}}", {
-              count: b.children.length,
-              title: b.group.title,
-            })
-          : t("workbench.edit.emptyGroup", "尚無子題"),
-        score: b.children.reduce((sum, q) => sum + paperQuestionPoints(q), 0),
+        title: b.group.title || t("workbench.edit.addGroup", "題組"),
+        typeText: t("workbench.edit.addGroup", "題組"),
         hasIssue: false,
       });
     const questions = b.kind === "question" ? [b.question] : b.children;
-    questions.forEach((q, index) =>
+    questions.forEach((q) =>
       rows.push({
         key: q.id,
         kind: b.kind === "group" ? "child" : "question",
         blockId: b.id,
         questionId: q.id,
-        endsBlock: index === questions.length - 1,
         label:
           b.kind === "group"
-            ? (labels.get(q.id)?.label ?? "")
-            : t("workbench.edit.questionNumber", "第 {{number}} 題", {
+            ? `Q${labels.get(q.id)?.label ?? ""}`
+            : t("workbench.edit.questionNumber", "Q{{number}}", {
                 number,
               }),
+        title: (q.prompt.split("\n").find((line) => line.trim()) ?? "")
+          .replace(/[#*_`>]/g, "")
+          .trim(),
+        questionType: q.questionType,
         typeText: t(
           `common:questionType.label.${q.questionType}`,
           typeNames[q.questionType],
         ),
-        score: paperQuestionPoints(q),
         hasIssue: issueIds.has(q.id),
       }),
     );

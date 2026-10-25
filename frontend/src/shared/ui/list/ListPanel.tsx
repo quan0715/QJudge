@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { AriaAttributes, ReactNode } from "react";
 import styles from "./ListPanel.module.scss";
 
 // ─── Helpers ────────────────────────────────────────────────
@@ -52,6 +52,7 @@ interface ListItemProps {
   children: ReactNode;
   secondaryAction?: ReactNode;
   active?: boolean;
+  ariaCurrent?: AriaAttributes["aria-current"];
   danger?: boolean;
   size?: "default" | "compact";
   asButton?: boolean;
@@ -65,6 +66,7 @@ export const ListItem = ({
   children,
   secondaryAction,
   active = false,
+  ariaCurrent,
   danger = false,
   size = "default",
   asButton = false,
@@ -90,6 +92,7 @@ export const ListItem = ({
           <button
             type="button"
             className={styles.itemPrimaryAction}
+            aria-current={ariaCurrent}
             onClick={onClick}
           >
             {children}
@@ -104,7 +107,7 @@ export const ListItem = ({
 
   if (asButton || onClick) {
     return (
-      <button type="button" className={cls} onClick={onClick} data-testid={testId}>
+      <button type="button" className={cls} aria-current={ariaCurrent} onClick={onClick} data-testid={testId}>
         {children}
       </button>
     );

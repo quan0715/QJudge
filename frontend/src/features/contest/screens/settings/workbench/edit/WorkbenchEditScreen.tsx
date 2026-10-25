@@ -547,9 +547,7 @@ export default function WorkbenchEditScreen({
           ),
         }}
         onSelect={select}
-        onMove={(id, target) => {
-          void actions.move(id, target);
-        }}
+        onMove={(id, target) => actions.move(id, target)}
         onAdd={(choice) => {
           void add(choice);
         }}

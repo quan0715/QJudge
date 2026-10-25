@@ -252,7 +252,9 @@ it("stays on a fixed issue until the teacher moves on, then closes when all are 
   await setup();
   fireEvent.click(screen.getByRole("button", { name: /發布前檢查.*2/ }));
   fireEvent.click(
-    await screen.findByRole("button", { name: /第 1 題.*Prompt q1/ }),
+    within(
+      await screen.findByRole("complementary", { name: "發布前檢查" }),
+    ).getByRole("button", { name: /Q1.*Prompt q1/ }),
   );
   const bar = await screen.findByRole("navigation", { name: "發布前檢查導覽" });
   expect(bar).toHaveTextContent("1/2");
@@ -317,10 +319,12 @@ it("ends publish review when another item is selected from the rail", async () =
   await setup();
   fireEvent.click(screen.getByRole("button", { name: /發布前檢查.*1/ }));
   fireEvent.click(
-    await screen.findByRole("button", { name: /第 1 題.*Prompt q1/ }),
+    within(
+      await screen.findByRole("complementary", { name: "發布前檢查" }),
+    ).getByRole("button", { name: /Q1.*Prompt q1/ }),
   );
   await screen.findByRole("navigation", { name: "發布前檢查導覽" });
-  fireEvent.click(screen.getByRole("button", { name: /^第 2 題（題組）/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^Q2.*Shared task/ }));
   await waitFor(() =>
     expect(
       screen.queryByRole("navigation", { name: "發布前檢查導覽" }),
@@ -373,7 +377,9 @@ async function findDiscardDialog() {
   const title = await screen.findByText("要捨棄未儲存的變更嗎？");
   const dialog = title.closest('[role="dialog"]') as HTMLElement;
   await waitFor(() =>
-    expect(within(dialog).getByRole("button", { name: "留在這題" })).toBeTruthy(),
+    expect(
+      within(dialog).getByRole("button", { name: "留在這題" }),
+    ).toBeTruthy(),
   );
   return dialog;
 }
@@ -418,7 +424,7 @@ describe("locked unsaved edits", () => {
   it("asks before leaving a group whose open child has unsaved changes", async () => {
     await setup("edit_item=g");
     const main = screen.getByRole("main");
-    fireEvent.click(within(main).getByRole("button", { name: /^2\(a\)/ }));
+    fireEvent.click(within(main).getByRole("button", { name: /^Q2\(a\)/ }));
     fireEvent.click(await within(main).findByRole("radio", { name: "B" }));
     await act(async () => {
       void mocks.rail!.onSelect("q2");

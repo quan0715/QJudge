@@ -37,6 +37,10 @@
   min-height: 0;
   overflow-y: auto;
 }
+.reorderItem {
+  position: relative;
+  background: var(--cds-layer-01);
+}
 .railRow {
   position: relative;
   display: flex;
@@ -46,67 +50,43 @@
 .childRow {
   padding-left: layout.$spacing-05;
 }
-// Without a drag handle, line labels up with the rail header text.
-.lockedRow {
-  padding-left: layout.$spacing-04;
-}
-.lockedRow.childRow {
-  padding-left: layout.$spacing-07;
-}
 .activeRow {
   background: var(--cds-layer-selected-01);
-}
-.grip {
-  cursor: grab;
-  flex-shrink: 0;
 }
 .rowSelect {
   flex: 1;
   min-width: 0;
-  max-width: none;
-  gap: layout.$spacing-02;
-  padding-left: layout.$spacing-02;
-  color: var(--cds-text-primary);
+  cursor: grab;
+  touch-action: none;
+}
+.rowSelect > button {
+  cursor: inherit;
+}
+.lockedRow .rowSelect {
+  cursor: pointer;
 }
 .rowLabel {
-  white-space: nowrap;
-}
-.rowType {
   @include type.type-style("label-01");
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: 1.5rem;
   white-space: nowrap;
   color: var(--cds-text-secondary);
 }
-.rowScore {
-  margin-left: auto;
-  font-variant-numeric: tabular-nums;
+.rowTypeIcon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--cds-icon-secondary);
 }
 .warning {
   color: var(--cds-support-warning);
   flex-shrink: 0;
 }
+// Keep keyboard reordering reachable without crowding pointer users' entries.
 .moveControls {
-  display: flex;
+  display: none;
   flex-shrink: 0;
 }
-.dropBefore::before,
-.dropAfter::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--cds-interactive);
-  pointer-events: none;
-  z-index: 1;
-}
-.dropBefore::before {
-  top: 0;
-}
-.dropAfter::after {
-  bottom: 0;
+.rowSelect:has(button:focus-visible) .moveControls {
+  display: flex;
 }
 .publishLink {
   gap: layout.$spacing-03;

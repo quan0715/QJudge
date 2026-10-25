@@ -1,9 +1,65 @@
-import { createEvent, fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import type { ReactNode } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { paperFixture } from "./workbenchEdit.fixture";
 import { buildEditRailRows } from "./editRailModel";
 import { WorkbenchEditRail } from "./WorkbenchEditRail";
 import type { TFunction } from "i18next";
+
+const motion = vi.hoisted(() => ({
+  groups: new Map<string, (keys: string[]) => void>(),
+  end: new Map<string, () => void>(),
+  start: new Map<string, () => void>(),
+}));
+// jsdom cannot measure animated layout; drive the Motion boundary and verify
+// the rail's visible preview and persistence. Real pointer drags are browser QA.
+vi.mock("motion/react", () => ({
+  Reorder: {
+    Group: ({
+      children,
+      as: Tag = "div",
+      className,
+      onReorder,
+      "aria-label": label,
+    }: {
+      children: ReactNode;
+      as?: "div" | "nav";
+      className?: string;
+      onReorder(keys: string[]): void;
+      "aria-label": string;
+    }) => {
+      motion.groups.set(label, onReorder);
+      return (
+        <Tag className={className} aria-label={label}>
+          {children}
+        </Tag>
+      );
+    },
+    Item: ({
+      children,
+      value,
+      onDragEnd,
+      onDragStart,
+    }: {
+      children: ReactNode;
+      value: string;
+      onDragEnd(): void;
+      onDragStart(): void;
+    }) => {
+      motion.end.set(value, onDragEnd);
+      motion.start.set(value, onDragStart);
+      return <div>{children}</div>;
+    },
+  },
+  useDragControls: () => ({ start: vi.fn() }),
+}));
 const t = (key: string, fallback: string, values?: Record<string, unknown>) =>
   fallback.replace(/\{\{(\w+)\}\}/g, (_, k) => String(values?.[k] ?? ""));
 vi.mock("react-i18next", () => ({
@@ -25,58 +81,114 @@ const base = () => ({
   onOpenPublishCheck: vi.fn(),
   legacyHref: "/?panel=problem_editor",
 });
-function startDrag(name: string) {
-  fireEvent.dragStart(screen.getByRole("button", { name }), {
-    dataTransfer: { setData: vi.fn(), effectAllowed: "" },
-  });
-}
-function rowOf(name: RegExp) {
-  const row = screen
-    .getByRole("button", { name })
-    .closest("[data-row-key]") as HTMLElement;
-  vi.spyOn(row, "getBoundingClientRect").mockReturnValue({
-    top: 0,
-    height: 100,
-  } as DOMRect);
-  return row;
-}
-function fireAt(row: HTMLElement, type: "dragOver" | "drop", y: number) {
-  const event = createEvent[type](row, { bubbles: true });
-  Object.defineProperty(event, "clientY", { value: y });
-  fireEvent(row, event);
-}
-const dragOver = (row: HTMLElement, y: number) => fireAt(row, "dragOver", y);
-const drop = (row: HTMLElement, y: number) => fireAt(row, "drop", y);
-function dragOverAndDrop(row: HTMLElement, y: number) {
-  dragOver(row, y);
-  drop(row, y);
-}
+const rowKeys = () =>
+  [...document.querySelectorAll<HTMLElement>("[data-row-key]")].map(
+    (node) => node.dataset.rowKey,
+  );
+const start = (key: string) => {
+  const button = document.querySelector(`[data-row-key="${key}"] button`)!;
+  fireEvent.pointerDown(button, { button: 0, pointerId: 1 });
+  act(() => motion.start.get(key)!());
+};
+beforeEach(() => {
+  motion.groups.clear();
+  motion.end.clear();
+  motion.start.clear();
+});
 describe("edit rail", () => {
-  it("drop onto a group header orders before the group", () => {
-    const props = base();
-    render(<WorkbenchEditRail {...props} activeKey="q2" />);
-    startDrag("拖曳第 3 題");
-    const row = rowOf(/^第 2 題（題組）/);
-    dragOverAndDrop(row, 60);
-    expect(props.onMove).toHaveBeenCalledWith("q2", {
-      zone: "top",
-      refBlockId: "g",
-      position: "before",
+  it("shows the title and question type in each selectable entry", () => {
+    render(<WorkbenchEditRail {...base()} />);
+    const question = screen.getByRole("button", {
+      name: /^Q1.*單選題.*Prompt q1/,
     });
+    expect(within(question).getByText("Prompt q1")).toBeVisible();
+    expect(question).toHaveAttribute("aria-current", "page");
+    expect(within(question).getByRole("img", { name: "單選題" })).toBeVisible();
+    expect(within(question).queryByText("單選題")).toBeNull();
+    expect(within(question).queryByText("5")).toBeNull();
+    expect(screen.queryByRole("button", { name: /拖曳/ })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /^Q2.*題組.*Shared task/ }),
+    ).toBeVisible();
   });
-  it("drop below the last child orders after the whole group", () => {
+  it("previews moving an entire group and saves only on release", async () => {
     const props = base();
     render(<WorkbenchEditRail {...props} />);
-    startDrag("拖曳第 1 題");
-    const row = rowOf(/^2\(b\)/);
-    dragOver(row, 60);
-    expect(row.className).toMatch(/dropAfter/);
-    drop(row, 60);
-    expect(props.onMove).toHaveBeenCalledWith("q1", {
+    start("q1");
+    act(() => motion.groups.get("題目")!(["g", "q1", "q2"]));
+    expect(rowKeys()).toEqual(["g", "c1", "c2", "q1", "q2"]);
+    expect(props.onMove).not.toHaveBeenCalled();
+    await act(async () => motion.end.get("q1")!());
+    expect(props.onMove).toHaveBeenCalledExactlyOnceWith("q1", {
       zone: "top",
       refBlockId: "g",
       position: "after",
     });
+  });
+  it("previews and saves children only inside their existing group", async () => {
+    const props = base();
+    render(<WorkbenchEditRail {...props} />);
+    start("c2");
+    act(() => motion.groups.get("Q2")!(["c2", "c1"]));
+    expect(rowKeys()).toEqual(["q1", "g", "c2", "c1", "q2"]);
+    expect(props.onMove).not.toHaveBeenCalled();
+    await act(async () => motion.end.get("c2")!());
+    expect(props.onMove).toHaveBeenCalledExactlyOnceWith("c2", {
+      zone: "group",
+      groupId: "g",
+      refQuestionId: "c1",
+      position: "before",
+    });
+  });
+  it("does not save a drag that returns to its original position", async () => {
+    const props = base();
+    render(<WorkbenchEditRail {...props} />);
+    start("q1");
+    act(() => motion.groups.get("題目")!(["g", "q1", "q2"]));
+    act(() => motion.groups.get("題目")!(["q1", "g", "q2"]));
+    await act(async () => motion.end.get("q1")!());
+    expect(props.onMove).not.toHaveBeenCalled();
+  });
+  it("keeps the preview until saving finishes and restores server order on failure", async () => {
+    const props = base();
+    let reject!: (error: Error) => void;
+    props.onMove.mockImplementation(
+      () =>
+        new Promise<void>((_, rejectSave) => {
+          reject = rejectSave;
+        }),
+    );
+    render(<WorkbenchEditRail {...props} />);
+    start("q1");
+    act(() => motion.groups.get("題目")!(["g", "q1", "q2"]));
+    act(() => motion.end.get("q1")!());
+    expect(rowKeys()).toEqual(["g", "c1", "c2", "q1", "q2"]);
+    await act(async () => reject(new Error("Save failed")));
+    await waitFor(() =>
+      expect(rowKeys()).toEqual(["q1", "g", "c1", "c2", "q2"]),
+    );
+  });
+  it("cancels the preview without saving when the pointer is cancelled", () => {
+    const props = base();
+    render(<WorkbenchEditRail {...props} />);
+    start("q1");
+    act(() => motion.groups.get("題目")!(["g", "q1", "q2"]));
+    fireEvent.pointerCancel(document.querySelector(`[data-row-key="q1"]`)!);
+    expect(rowKeys()).toEqual(["q1", "g", "c1", "c2", "q2"]);
+    expect(props.onMove).not.toHaveBeenCalled();
+  });
+  it("does not select the dragged card on release but still selects on the next click", async () => {
+    const props = base();
+    render(<WorkbenchEditRail {...props} />);
+    start("q1");
+    act(() => motion.groups.get("題目")!(["g", "q1", "q2"]));
+    await act(async () => motion.end.get("q1")!());
+    const card = screen.getByRole("button", { name: /^Q1.*Prompt q1/ });
+    fireEvent.click(card, { detail: 1 });
+    expect(props.onSelect).not.toHaveBeenCalled();
+    fireEvent.pointerDown(card, { button: 0, pointerId: 2 });
+    fireEvent.click(card, { detail: 1 });
+    expect(props.onSelect).toHaveBeenCalledExactlyOnceWith("q1");
   });
   it("active row move-down button calls onMove", () => {
     const props = base();

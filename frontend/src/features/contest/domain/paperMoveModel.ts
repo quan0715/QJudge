@@ -1,10 +1,5 @@
 import type { ExamPaperBlock } from "@/core/entities/contest.entity";
 import type { ExamPaperReorderBlock } from "@/infrastructure/api/repositories/examPaper.repository";
-export type PaperDragItem = {
-  kind: "question" | "group" | "child";
-  id: string;
-  groupId: string | null;
-};
 export type PaperMoveTarget =
   | { zone: "top"; refBlockId: string; position: "before" | "after" }
   | {
@@ -17,39 +12,7 @@ export type PaperRowRef = {
   kind: "question" | "group" | "child";
   blockId: string;
   questionId: string | null;
-  /** The row is the visual bottom of its top-level block. */
-  endsBlock: boolean;
 };
-export function resolveDropTarget(
-  row: PaperRowRef,
-  drag: PaperDragItem,
-  ratio: number,
-): PaperMoveTarget | null {
-  if ((row.questionId ?? row.blockId) === drag.id) return null;
-  const position = ratio < 0.5 ? "before" : "after";
-  if (drag.kind === "child") {
-    if (row.kind !== "child" || row.blockId !== drag.groupId || !row.questionId)
-      return null;
-    return {
-      zone: "group",
-      groupId: row.blockId,
-      refQuestionId: row.questionId,
-      position,
-    };
-  }
-  if (row.blockId === drag.id) return null;
-  // A drop line under a group header or a middle child would look like a
-  // position inside the group, so only the block's bottom row accepts "after".
-  if (row.kind === "child")
-    return row.endsBlock && position === "after"
-      ? { zone: "top", refBlockId: row.blockId, position }
-      : null;
-  return {
-    zone: "top",
-    refBlockId: row.blockId,
-    position: row.endsBlock ? position : "before",
-  };
-}
 export function movePaperItem(
   blocks: ExamPaperBlock[],
   itemId: string,
