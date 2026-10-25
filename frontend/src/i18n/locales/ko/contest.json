@@ -2359,7 +2359,8 @@
       "previousIssue": "이전 항목",
       "nextIssue": "다음 항목",
       "allIssues": "모든 항목",
-      "exitCheck": "확인 종료"
+      "exitCheck": "확인 종료",
+      "issueFixed": "수정됨 · {{count}}개 남음"
     }
   }
 }

@@ -101,9 +101,12 @@ export default function WorkbenchEditScreen({
   const [paper, setPaper] = useState<ExamPaper | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checksOpen, setChecksOpen] = useState(false);
+  // `index` is where the item sits; a resolved item keeps the slot its
+  // successor moved into, so the teacher stays put until choosing "next".
   const [review, setReview] = useState<{
     item: ExamPublishIssueItem;
     index: number;
+    resolved: boolean;
   } | null>(null);
   const mainRef = useRef<HTMLElement>(null);
   const applyPaper = useCallback((next: ExamPaper) => {
@@ -111,13 +114,19 @@ export default function WorkbenchEditScreen({
     setReview((previous) => {
       if (!previous) return null;
       const items = getExamPublishIssueItems(next.questions);
-      let index = items.findIndex(
+      if (!items.length) return null;
+      const index = items.findIndex(
         (item) =>
           item.questionId === previous.item.questionId &&
           item.kind === previous.item.kind,
       );
-      if (index < 0) index = Math.min(previous.index, items.length - 1);
-      return index < 0 ? null : { item: items[index], index };
+      return index >= 0
+        ? { item: items[index], index, resolved: false }
+        : {
+            ...previous,
+            index: Math.min(previous.index, items.length),
+            resolved: true,
+          };
     });
     return next;
   }, []);
@@ -220,10 +229,6 @@ export default function WorkbenchEditScreen({
     [setParams],
   );
   useEffect(() => {
-    if (review && review.item.questionId !== selected)
-      void select(review.item.questionId, true);
-  }, [review, selected, select]);
-  useEffect(() => {
     if (mainRef.current) mainRef.current.scrollTop = 0;
   }, [selected]);
   const goIssue = async (item: ExamPublishIssueItem) => {
@@ -235,6 +240,7 @@ export default function WorkbenchEditScreen({
             candidate.questionId === item.questionId &&
             candidate.kind === item.kind,
         ),
+        resolved: false,
       });
       setChecksOpen(false);
     }
@@ -547,6 +553,8 @@ export default function WorkbenchEditScreen({
             <PublishCheckBar
               items={issues}
               current={review.item}
+              index={review.index}
+              resolved={review.resolved}
               onGo={(item) => {
                 void goIssue(item);
               }}
@@ -559,7 +567,9 @@ export default function WorkbenchEditScreen({
               key={currentQuestion.id}
               question={currentQuestion}
               highlightField={
-                review?.item.questionId === currentQuestion.id
+                review &&
+                !review.resolved &&
+                review.item.questionId === currentQuestion.id
                   ? review.item.field
                   : undefined
               }

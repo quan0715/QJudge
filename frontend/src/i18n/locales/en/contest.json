@@ -2359,7 +2359,8 @@
       "previousIssue": "Previous item",
       "nextIssue": "Next item",
       "allIssues": "All items",
-      "exitCheck": "End review"
+      "exitCheck": "End review",
+      "issueFixed": "Fixed · {{count}} left"
     }
   }
 }

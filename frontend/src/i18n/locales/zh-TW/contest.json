@@ -2359,7 +2359,8 @@
       "previousIssue": "上一項",
       "nextIssue": "下一項",
       "allIssues": "全部項目",
-      "exitCheck": "結束檢查"
+      "exitCheck": "結束檢查",
+      "issueFixed": "已修好，還有 {{count}} 項"
     }
   }
 }

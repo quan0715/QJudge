@@ -244,7 +244,7 @@ describe("edit container", () => {
   });
 });
 
-it("bar advances and closes as issues resolve", async () => {
+it("stays on a fixed issue until the teacher moves on, then closes when all are fixed", async () => {
   const first = paperFixture();
   first.questions[0].correctAnswer = null;
   first.questions[3].prompt = "New question";
@@ -254,7 +254,8 @@ it("bar advances and closes as issues resolve", async () => {
   fireEvent.click(
     await screen.findByRole("button", { name: /第 1 題.*Prompt q1/ }),
   );
-  await screen.findByRole("navigation", { name: "發布前檢查導覽" });
+  const bar = await screen.findByRole("navigation", { name: "發布前檢查導覽" });
+  expect(bar).toHaveTextContent("1/2");
   const second = paperFixture();
   second.questions[0].correctAnswer = 1;
   second.questions[3].prompt = "New question";
@@ -266,10 +267,22 @@ it("bar advances and closes as issues resolve", async () => {
   });
   expect(
     screen.getByRole("navigation", { name: "發布前檢查導覽" }),
-  ).toHaveTextContent("1/1");
+  ).toHaveTextContent("已修好，還有 1 項");
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+    "Prompt q1",
+  );
+  expect(screen.queryByText("改好後這一項會自動消失")).toBeNull();
+  expect(screen.getByRole("button", { name: "上一項" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "下一項" }));
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0);
+  });
   expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
     "New question",
   );
+  expect(
+    screen.getByRole("navigation", { name: "發布前檢查導覽" }),
+  ).toHaveTextContent("1/1");
   const final = paperFixture();
   final.questions[0].correctAnswer = 1;
   final.questions[3].prompt = "Fixed prompt";

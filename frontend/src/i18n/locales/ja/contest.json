@@ -2359,7 +2359,8 @@
       "previousIssue": "前の項目",
       "nextIssue": "次の項目",
       "allIssues": "すべての項目",
-      "exitCheck": "確認を終了"
+      "exitCheck": "確認を終了",
+      "issueFixed": "修正済み・残り {{count}} 件"
     }
   }
 }

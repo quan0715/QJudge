@@ -6,6 +6,8 @@ import styles from "./WorkbenchEdit.module.scss";
 export interface PublishCheckBarProps {
   items: ExamPublishIssueItem[];
   current: ExamPublishIssueItem;
+  index: number;
+  resolved: boolean;
   onGo(item: ExamPublishIssueItem): void;
   onOpenAll(): void;
   onExit(): void;
@@ -13,16 +15,16 @@ export interface PublishCheckBarProps {
 export function PublishCheckBar({
   items,
   current,
+  index,
+  resolved,
   onGo,
   onOpenAll,
   onExit,
 }: PublishCheckBarProps) {
   const { t } = useTranslation("contest");
   if (!items.length) return null;
-  const index = items.findIndex(
-    (item) =>
-      item.questionId === current.questionId && item.kind === current.kind,
-  );
+  const previous = items[index - 1];
+  const next = items[resolved ? index : index + 1];
   return (
     <nav
       className={styles.publishBar}
@@ -35,16 +37,19 @@ export function PublishCheckBar({
           : t("workbench.edit.defaultContent", "仍是預設內容")}
       </span>
       <span>
-        {index + 1}/{items.length}
+        {resolved
+          ? t("workbench.edit.issueFixed", "已修好，還有 {{count}} 項", {
+              count: items.length,
+            })
+          : `${index + 1}/${items.length}`}
       </span>
       <Button
         kind="ghost"
         size="sm"
         renderIcon={ArrowLeft}
-        disabled={index <= 0}
+        disabled={!previous}
         onClick={() => {
-          const item = items[index - 1];
-          if (item) onGo(item);
+          if (previous) onGo(previous);
         }}
       >
         {t("workbench.edit.previousIssue", "上一項")}
@@ -53,10 +58,9 @@ export function PublishCheckBar({
         kind="ghost"
         size="sm"
         renderIcon={ArrowRight}
-        disabled={index < 0 || index >= items.length - 1}
+        disabled={!next}
         onClick={() => {
-          const item = items[index + 1];
-          if (item) onGo(item);
+          if (next) onGo(next);
         }}
       >
         {t("workbench.edit.nextIssue", "下一項")}
