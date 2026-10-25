@@ -76,13 +76,13 @@ class TestExamPaperReorder:
         client, url, q1, group, (c1, c2), q2 = paper
         res = client.patch(url, {"blocks": [q(c1), g(group, [c1, c2])]}, format="json")
         assert res.status_code == 400
-        assert str(res.data["blocks"]) == f"duplicate paper question {c1}"
+        assert str(res.data["error"]["details"]["blocks"]) == f"duplicate paper question {c1}"
 
     def test_unknown_question_returns_400_without_changes(self, paper):
         client, url, q1, group, children, q2 = paper
         res = client.patch(url, {"blocks": [g(group, ["999999"])]}, format="json")
         assert res.status_code == 400
-        assert str(res.data["blocks"]) == "unknown paper block 999999"
+        assert str(res.data["error"]["details"]["blocks"]) == "unknown paper block 999999"
         assert ExamQuestion.objects.filter(group_id=group).count() == 2
 
     def test_empty_group_stays_in_paper(self, paper):
