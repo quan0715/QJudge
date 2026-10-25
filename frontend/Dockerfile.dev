@@ -1,15 +1,11 @@
 FROM node:24.22.1-alpine
 
 WORKDIR /app
+EXPOSE 5173
+CMD ["npm", "run", "dev", "--", "--host"]
 
 # Copy package files for dependency caching
-COPY package.json ./
+COPY package.json package-lock.json ./
 
-# Install dependencies (ci is faster and more deterministic)
-# Using npm install without lock file for cross-platform compatibility
-RUN npm install
-
-# Source is volume-mounted in dev, no COPY . needed
-EXPOSE 5173
-
-CMD ["npm", "run", "dev", "--", "--host"]
+# Use lockfile for reproducible dev container builds
+RUN npm ci --prefer-offline --no-audit
