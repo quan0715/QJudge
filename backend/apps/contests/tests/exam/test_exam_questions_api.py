@@ -423,13 +423,14 @@ class TestValidation:
         }, format="json")
         assert res.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_prompt_required(self, api_client, teacher, contest):
+    def test_omitted_prompt_defaults_to_empty(self, api_client, teacher, contest):
         api_client.force_authenticate(user=teacher)
         res = api_client.post(url(contest.id), {
             "question_type": "essay",
             "score": 5,
         }, format="json")
-        assert res.status_code == status.HTTP_400_BAD_REQUEST
+        assert res.status_code == status.HTTP_201_CREATED
+        assert res.data["prompt"] == ""
 
     def test_answer_format_accepts_markdown_math_for_subjective_question(self, api_client, teacher, contest):
         api_client.force_authenticate(user=teacher)

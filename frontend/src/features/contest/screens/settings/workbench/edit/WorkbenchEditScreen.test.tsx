@@ -545,7 +545,9 @@ describe("locked unsaved edits", () => {
     fireEvent.click(screen.getByRole("radio", { name: "B" }));
     fireEvent.click(screen.getByRole("button", { name: "編輯 2(b)." }));
     const dialog = await findDiscardDialog();
-    fireEvent.click(within(dialog).getByRole("button", { name: /捨棄變更$/ }));
+    await act(async () => {
+      fireEvent.click(within(dialog).getByRole("button", { name: /捨棄變更$/ }));
+    });
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "編輯 2(b)." })).toHaveAttribute("aria-pressed", "true"),
     );
