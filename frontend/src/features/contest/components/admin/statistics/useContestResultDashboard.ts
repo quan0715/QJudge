@@ -162,6 +162,7 @@ function mapDashboardSummary(dto: ExamDashboardSummaryDto): DashboardMockData {
     })),
     questions: dto.questions.map((question) => ({
       questionId: question.question_id,
+      questionLabel: question.question_label,
       order: question.order,
       title: question.title,
       kind: question.kind as DashboardMockData["questions"][number]["kind"],

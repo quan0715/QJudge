@@ -10,6 +10,9 @@ import logging
 from dataclasses import asdict, dataclass, field
 from typing import Any, Iterable, Union
 
+from langchain_core.messages import ToolMessage
+from langgraph.types import Command
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -235,18 +238,34 @@ def adapt_langgraph_event(event: dict[str, Any]) -> list[InternalEvent] | None:
             input_data=input_data,
         )]
 
+    if kind == "on_tool_error":
+        return [ToolCallFinished(
+            tool_call_id=event.get("run_id", ""),
+            result=str(data.get("error", "Tool execution failed")),
+            is_error=True,
+        )]
+
     # Tool invocation finished
     if kind == "on_tool_end":
         run_id = event.get("run_id", "")
         output = data.get("output")
-        # Unwrap LangChain message objects (ToolMessage, AIMessage, etc.)
+        if isinstance(output, Command):
+            # DeepAgents task tools return a graph state update. Only the final
+            # ToolMessage is a display result; files and other state stay internal.
+            update = output.update
+            messages = update.get("messages", []) if isinstance(update, dict) else []
+            if isinstance(messages, ToolMessage):
+                messages = [messages]
+            output = next(
+                (message for message in reversed(messages) if isinstance(message, ToolMessage)),
+                "",
+            ) if isinstance(messages, (list, tuple)) else ""
+        # Read status before unwrapping: ToolMessage.content has no error status.
+        is_error = getattr(output, "status", None) == "error"
         if hasattr(output, "content"):
             output = output.content
-        is_error = False
-        if hasattr(output, "status"):
-            is_error = output.status == "error"
-        elif isinstance(output, dict):
-            is_error = output.get("is_error", False)
+        if isinstance(output, dict):
+            is_error = is_error or output.get("is_error", False)
         # Ensure output is JSON-serialisable
         if isinstance(output, bytes):
             output = output.decode()
@@ -378,7 +397,7 @@ class SubagentEventTracker:
         if kind == "on_tool_start" and is_task:
             self._open_tasks.add(run_id)
             return internal_events
-        if kind == "on_tool_end" and run_id in self._open_tasks:
+        if kind in ("on_tool_end", "on_tool_error") and run_id in self._open_tasks:
             self._open_tasks.discard(run_id)
             return internal_events
 

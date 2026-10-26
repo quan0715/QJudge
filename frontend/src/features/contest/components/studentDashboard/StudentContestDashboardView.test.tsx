@@ -515,8 +515,8 @@ describe("StudentContestDashboard", () => {
     expect(screen.getByText("已作答")).toBeInTheDocument();
     expect(screen.getByText("未作答")).toBeInTheDocument();
     expect(screen.getByText("draft answer")).toBeInTheDocument();
-    expect(screen.getByText(/^Q1\(a\)/)).toBeInTheDocument();
-    expect(screen.getByText(/^Q1\(b\)/)).toBeInTheDocument();
+    expect(screen.getByText(/^1\(a\)\./)).toBeInTheDocument();
+    expect(screen.getByText(/^1\(b\)\./)).toBeInTheDocument();
     expect(getMyExamAnswers).toHaveBeenCalledWith("contest-1");
     expect(getExamResults).not.toHaveBeenCalled();
   });

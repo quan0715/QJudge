@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getExamResults, getExamAnswerDraft, saveExamAnswerDraft, submitExamAnswer } from "./examAnswers.repository";
+import { getAllExamAnswersForGrading, getExamResults, getExamAnswerDraft, saveExamAnswerDraft, submitExamAnswer } from "./examAnswers.repository";
 
 describe("getExamResults", () => {
   const fetchMock = vi.fn();
@@ -12,6 +12,18 @@ describe("getExamResults", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it("maps shared AI provenance independently of any AI session", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      data: [true, false].map((isAi, index) => ({
+        id: index + 1, question_id: "q1", participant_user_id: index + 1,
+        answer: {}, score: "8.00", feedback: "same feedback", is_ai_graded: isAi,
+      })),
+      meta: { count: 2, projection: "grading" },
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const result = await getAllExamAnswersForGrading("contest-1");
+    expect(result.data.map(row => row.isAiGraded)).toEqual([true, false]);
   });
 
   it("maps only flattened current-question fields", async () => {

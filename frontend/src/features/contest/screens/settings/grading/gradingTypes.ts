@@ -48,6 +48,8 @@ export interface GradingAnswerRow {
   gradedBy: string | null;
   gradedAt: string | null;
   isAutoGraded: boolean;
+  /** Current grade matches a persisted AI batch receipt, independent of viewer. */
+  isAiGraded?: boolean;
   /** Correct answer for objective questions; null for subjective. */
   correctAnswer: unknown;
   referenceAnswerDocument?: OpenAnswerDocument | null;

@@ -1,0 +1,537 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+/* Page layout */
+.root {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--cds-background);
+}
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+  min-width: 0;
+  padding: layout.$spacing-06 layout.$spacing-06 layout.$spacing-09;
+  overflow-y: auto;
+}
+// The column scrolls; its children keep their natural height instead of shrinking.
+.main > * {
+  flex-shrink: 0;
+}
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-07;
+}
+.muted {
+  @include type.type-style("label-01");
+  margin: 0;
+  color: var(--cds-text-secondary);
+}
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-04;
+}
+.header h1 {
+  @include type.type-style("heading-04");
+  display: flex;
+  flex: 1 1 20rem;
+  gap: layout.$spacing-05;
+  min-width: 0;
+  margin: 0;
+  white-space: nowrap;
+}
+// Long prompts stay on one line; the full question opens from the Document button.
+.headerTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+}
+.suggestionBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03 layout.$spacing-05;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+  @include type.type-style("body-compact-01");
+}
+.suggestionBar > span {
+  margin-right: auto;
+}
+
+/* Statistics */
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-09;
+  padding: layout.$spacing-05 0;
+  border-top: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-01;
+}
+.statLabel {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+}
+.statValue {
+  @include type.type-style("heading-03");
+  font-variant-numeric: tabular-nums;
+}
+.statMax {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+}
+
+/* Filters and list */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: layout.$spacing-04;
+}
+.filters > :first-child {
+  flex: 1 1 14rem;
+  max-width: 20rem;
+}
+.count {
+  @include type.type-style("body-compact-01");
+  margin-left: auto;
+  padding-bottom: layout.$spacing-03;
+  color: var(--cds-text-secondary);
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+.listHead {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) 7.5rem minmax(0, 3fr) 4rem;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-03 layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+}
+.scoreMax {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  font-weight: 400;
+}
+.questionContext {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-06;
+}
+.questionContext h3 {
+  @include type.type-style("heading-compact-02");
+  margin: 0 0 layout.$spacing-03;
+}
+
+@media (max-width: 47.99rem) {
+  .root {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .main {
+    padding: layout.$spacing-05;
+  }
+  .listHead {
+    display: none;
+  }
+}
+
+/* Student list row */
+.studentRow {
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+.rowButton {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) 7.5rem minmax(0, 3fr) 4rem;
+  gap: layout.$spacing-05;
+  align-items: center;
+  width: 100%;
+  min-height: layout.$spacing-09;
+  padding: 0 layout.$spacing-05;
+  border: 0;
+  background: transparent;
+  color: var(--cds-text-primary);
+  text-align: left;
+  cursor: pointer;
+  @include type.type-style("body-compact-01");
+}
+.rowButton:hover {
+  background: var(--cds-layer-hover-01);
+}
+.rowButton:focus-visible {
+  outline: 2px solid var(--cds-focus);
+  outline-offset: -2px;
+}
+.studentRow[data-expanded="true"] > .rowButton {
+  background: var(--cds-layer-selected-01);
+}
+.rowName {
+  font-weight: 600;
+}
+.rowScore,
+.rowScorePending {
+  @include type.type-style("heading-compact-01");
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rowScorePending {
+  color: var(--cds-support-info);
+}
+.rowSummary {
+  overflow: hidden;
+  color: var(--cds-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+// While the AI grades a row: the same moving field, sweep and pulsing dots as the old AI grading cards.
+.rowAiGrading {
+  position: relative;
+  background: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--cds-layer-01) 94%, var(--cds-interactive)) 0%,
+    color-mix(in srgb, var(--cds-layer-01) 98%, var(--cds-support-info)) 28%,
+    var(--cds-layer-01) 48%,
+    color-mix(in srgb, var(--cds-layer-01) 96%, var(--cds-support-info)) 72%,
+    color-mix(in srgb, var(--cds-layer-01) 95%, var(--cds-support-success)) 100%
+  );
+  background-size: 260% 260%;
+  animation: workbench-ai-field 8.4s ease-in-out infinite;
+}
+.rowAiGrading::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--cds-interactive) 7%, transparent) 38%,
+    color-mix(in srgb, var(--cds-support-info) 9%, transparent) 50%,
+    color-mix(in srgb, var(--cds-support-success) 6%, transparent) 62%,
+    transparent 76%
+  );
+  background-size: 300% 100%;
+  opacity: 0.6;
+  animation: workbench-ai-sweep 5.2s linear infinite;
+}
+.aiDots {
+  display: inline-flex;
+  gap: 0.375rem;
+  align-items: center;
+}
+.aiDots > span {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cds-interactive), var(--cds-support-info) 48%, var(--cds-support-success));
+  box-shadow: 0 0 9px color-mix(in srgb, var(--cds-interactive) 24%, transparent);
+  animation: workbench-ai-pulse 1.9s ease-in-out infinite;
+}
+.aiDots > span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.aiDots > span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+.aiShimmer {
+  display: block;
+  width: min(70%, 20rem);
+  height: 0.875rem;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--cds-layer-accent-01) 86%, var(--cds-interactive)) 0%,
+    color-mix(in srgb, var(--cds-layer-02) 88%, var(--cds-support-info)) 36%,
+    color-mix(in srgb, var(--cds-layer-02) 88%, var(--cds-support-info)) 64%,
+    color-mix(in srgb, var(--cds-layer-accent-01) 86%, var(--cds-support-success)) 100%
+  );
+  background-size: 320% 100%;
+  animation: workbench-ai-bar 2.7s ease-in-out infinite;
+}
+@keyframes workbench-ai-field {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+@keyframes workbench-ai-sweep {
+  from {
+    background-position: 140% 0;
+  }
+  to {
+    background-position: -140% 0;
+  }
+}
+@keyframes workbench-ai-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 0.82;
+    transform: scale(1.08);
+  }
+}
+@keyframes workbench-ai-bar {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rowAiGrading,
+  .rowAiGrading::before,
+  .aiDots > span,
+  .aiShimmer {
+    animation: none;
+  }
+}
+.suggestionTag {
+  color: var(--cds-tag-color-purple);
+  border-color: var(--cds-tag-color-purple);
+}
+.rowDetail {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-06;
+  padding: layout.$spacing-05 layout.$spacing-05 0;
+  background: var(--cds-layer-01);
+}
+.answerBlock {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+.answerBody {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-07;
+}
+.rowAnswer {
+  display: flex;
+  flex: 1 1 22rem;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+  min-width: 0;
+}
+.rowForm {
+  display: flex;
+  flex: 1 1 18rem;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  min-width: 0;
+}
+.subLabel {
+  @include type.type-style("heading-compact-01");
+  margin: 0;
+}
+.currentScore {
+  @include type.type-style("body-compact-01");
+  margin: 0;
+  padding: layout.$spacing-03 layout.$spacing-04;
+  background: var(--cds-layer-accent-01);
+}
+.rowActions {
+  margin: 0 (-(layout.$spacing-05));
+}
+// Beats Carbon's .cds--btn-set .cds--btn max-width so both buttons share the row.
+.rowDetail .rowActions > button {
+  flex: 1;
+  max-width: none;
+}
+.scoreField {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: layout.$spacing-02;
+}
+.scoreInput {
+  flex: 0 0 5rem;
+  width: 5rem;
+}
+.scoreField .scoreInput input {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.optionList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--cds-layer-02);
+}
+.optionList > li {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  gap: layout.$spacing-04;
+  align-items: center;
+  padding: layout.$spacing-04;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+.optionPicked {
+  background: var(--cds-highlight);
+}
+.optionWrong {
+  background: var(--cds-notification-background-error);
+}
+
+/* Question rail */
+.rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--cds-layer-01);
+  border-right: 1px solid var(--cds-border-subtle);
+}
+.railHeader {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+.railHeader h2 {
+  @include type.type-style("heading-compact-02");
+  margin: 0;
+}
+.railHeader > button {
+  max-width: none;
+}
+.railRunning {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+}
+.railTodos {
+  max-height: 12rem;
+  overflow-y: auto;
+}
+.railRunningLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  @include type.type-style("body-compact-01");
+  color: var(--cds-support-info);
+}
+.railList {
+  flex: 1;
+  overflow-y: auto;
+}
+.railProgress {
+  color: var(--cds-text-secondary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+.railStatus_running {
+  color: var(--cds-support-info);
+  font-weight: 400;
+}
+.railStatus_queued {
+  color: var(--cds-text-secondary);
+  font-weight: 400;
+}
+.railStatus_failed {
+  color: var(--cds-support-error);
+  font-weight: 400;
+}
+.railDropdown {
+  display: none;
+  padding: 0 layout.$spacing-05 layout.$spacing-05;
+}
+@media (max-width: 47.99rem) {
+  .rail {
+    border-right: 0;
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+  .railList {
+    display: none;
+  }
+  .railDropdown {
+    display: block;
+  }
+}
+
+/* AI modal */
+.aiModalBody {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-06;
+}
+.aiModalBody p {
+  @include type.type-style("body-01");
+  margin: 0;
+}
+
+@media (max-width: 47.99rem) {
+  .rowButton {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    padding: layout.$spacing-03 layout.$spacing-05;
+  }
+  .rowSummary {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+.railFooter {
+  padding: layout.$spacing-05;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+
+.railLabel {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.railRing {
+  display: inline-flex;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+.railRingTrack,
+.railRingValue {
+  fill: none;
+  stroke-width: 3;
+}
+.railRingTrack { stroke: var(--cds-border-subtle); }
+.railRingValue {
+  stroke: var(--cds-interactive);
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  transition: stroke-dashoffset 1.2s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .railRingValue { transition: none; }
+}

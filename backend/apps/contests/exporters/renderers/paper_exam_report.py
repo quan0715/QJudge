@@ -173,7 +173,7 @@ class PaperExamReportRenderer(BaseRenderer):
         rows = []
         from apps.contests.services.paper_question_labels import build_paper_question_labels
 
-        labels = build_paper_question_labels(questions)
+        labels = build_paper_question_labels(questions, expand_question_numbers=self.contest.expand_question_numbers)
         for q in questions:
             idx = labels[q.id]
             ans = answers_map.get(q.id)
@@ -238,7 +238,7 @@ class PaperExamReportRenderer(BaseRenderer):
 
             rows.append(
                 f'<tr class="overview-row">'
-                f'<td class="overview-cell overview-cell-q">Q{idx}{policy_badge}</td>'
+                f'<td class="overview-cell overview-cell-q">{idx}.{policy_badge}</td>'
                 f'<td class="overview-cell overview-cell-type">{type_label}</td>'
                 f'{status_cell}'
                 f'</tr>'
@@ -272,7 +272,7 @@ class PaperExamReportRenderer(BaseRenderer):
 
         from apps.contests.services.paper_question_labels import build_paper_question_labels
 
-        labels = build_paper_question_labels(questions)
+        labels = build_paper_question_labels(questions, expand_question_numbers=self.contest.expand_question_numbers)
         for q in questions:
             idx = labels[q.id]
             ans = answers_map.get(q.id)
@@ -333,7 +333,7 @@ class PaperExamReportRenderer(BaseRenderer):
         lines.append('<div class="question-heading">')
         lines.append(
             f'<span class="question-heading-left">'
-            f'<span class="question-number">Q{idx}</span>'
+            f'<span class="question-number">{idx}.</span>'
             f'<span class="question-type">{type_label}</span>'
             f'{score_annotation}'
             f'</span>'

@@ -10,6 +10,7 @@ import type {
 } from "@copilot";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { useCopyText } from "@/shared/hooks/useCopyText";
+import { batchKickoffDisplayText } from "../../adapters/qJudgeCopilotMessageData";
 import { ChainOfThought } from "./ChainOfThought";
 import styles from "./MessageBubble.module.scss";
 
@@ -18,10 +19,11 @@ function MessageBubbleComponent({ message }: CopilotMessageViewProps) {
   const { isCopied, copy } = useCopyText();
   const isUser = message.role === "user";
 
-  const messageText = message.parts
+  const rawMessageText = message.parts
     .filter((part): part is CopilotTextPart => part.type === "text")
     .map((part) => part.text)
     .join("");
+  const messageText = isUser ? batchKickoffDisplayText(rawMessageText) : rawMessageText;
   const thinkingText = message.parts
     .filter((part): part is CopilotReasoningPart => part.type === "reasoning")
     .map((part) => part.text)
@@ -124,7 +126,7 @@ function MessageBubbleComponent({ message }: CopilotMessageViewProps) {
               onClick={handleCopy}
               className={styles.copyButton}
             >
-              {isCopied ? <Checkmark size={16} /> : <Copy size={16} />}
+              {isCopied ? <Checkmark size={14} /> : <Copy size={14} />}
             </IconButton>
           </div>
         )}

@@ -55,6 +55,7 @@ const CONTEST_PANEL_META: Record<
   proctoring: { labelKey: "proctoring", Icon: VirtualDesktop },
   problem_editor: { labelKey: "problemManagement", examLabelKey: "examManagement", Icon: DocumentTasks },
   grading: { labelKey: "grading", examLabelKey: "examGrading", Icon: TaskComplete },
+  "grading-workbench": { labelKey: "gradingWorkbench", Icon: TaskComplete },
   "ai-grading": { labelKey: "aiGrading", examLabelKey: "examAiGrading", Icon: AiLabel },
   statistics: { labelKey: "statistics", examLabelKey: "examStatistics", Icon: ChartColumn },
   settings: { labelKey: "settings", Icon: Settings },

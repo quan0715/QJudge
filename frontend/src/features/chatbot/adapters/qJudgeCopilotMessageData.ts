@@ -82,6 +82,18 @@ export function selectLatestNextTurnOptions(
   );
 }
 
+// Keep read-only tools and grading submission out of artifact-list invalidation.
+const ARTIFACT_MUTATION_TOOLS = new Set([
+  "artifact_write",
+  "artifact_write_csv",
+  "artifact_csv_from_json",
+  "artifact_csv_patch",
+]);
+
+export function isArtifactMutationTool(toolName: string): boolean {
+  return ARTIFACT_MUTATION_TOOLS.has(toolName);
+}
+
 export function selectFinishedArtifactToolIds(
   messages: readonly CopilotMessage[],
 ): readonly string[] {
@@ -96,7 +108,7 @@ export function selectFinishedArtifactToolIds(
         part?.type === "tool" &&
         typeof part.toolName === "string" &&
         typeof part.toolCallId === "string" &&
-        part.toolName.startsWith("artifact_") &&
+        isArtifactMutationTool(part.toolName) &&
         (part.state === "output-ready" || part.state === "error")
       ) {
         ids.push(part.toolCallId);
@@ -104,4 +116,10 @@ export function selectFinishedArtifactToolIds(
     }
   }
   return ids;
+}
+
+/** A batch request's first line names its units for the worker; people read the rest. */
+export function batchKickoffDisplayText(text: string): string {
+  if (!text.startsWith("batch_units: ")) return text;
+  return text.split("\n").slice(1).join("\n").trim() || text;
 }

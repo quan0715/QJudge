@@ -20,6 +20,7 @@ class _ReasoningClient(_Client):
 @pytest.fixture(autouse=True)
 def _stub_clients(monkeypatch):
     monkeypatch.setattr(provider_adapters, "ChatOpenAI", _Client)
+    monkeypatch.setattr(provider_adapters, "UserPromptChatOpenAI", _Client)
     monkeypatch.setattr(provider_adapters, "ChatDeepSeek", _Client)
     monkeypatch.setattr(provider_adapters, "HistoryCompatibleChatOpenAI", _Client)
     monkeypatch.setattr(provider_adapters, "HistoryCompatibleChatDeepSeek", _Client)

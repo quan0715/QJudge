@@ -50,16 +50,27 @@ const createQuestion = (
 });
 
 describe("ExamQuestionCard", () => {
+  it("keeps options answerable without a prompt or missing-content placeholder", () => {
+    const onAnswerChange = vi.fn();
+    render(<ExamQuestionCard
+      question={createQuestion("plain_text", { questionType: "single_choice", prompt: "", options: ["Alpha", "Beta"] })}
+      index={10} onAnswerChange={onAnswerChange}
+    />);
+    expect(screen.getByText("11.")).toBeInTheDocument();
+    expect(screen.queryByText("answering.question.promptEmpty")).toBeNull();
+    fireEvent.click(screen.getAllByRole("radio")[1]);
+    expect(onAnswerChange).toHaveBeenCalledWith("q1", 1, "single_choice", "plain_text");
+  });
   it("shows the parent and subquestion labels while saving to the original question ID", () => {
     const onAnswerChange = vi.fn();
     render(<ExamQuestionCard
       question={createQuestion("plain_text", { groupId: "g" })}
       group={{ id: "g", title: "", sharedStemMarkdown: "Shared instructions", totalScore: 8 } as ExamQuestionGroup}
-      showGroupStem groupNumber={7} displayLabel="7(b)" index={7}
+      showGroupStem groupLabel="7" displayLabel="7(b)" index={7}
       onAnswerChange={onAnswerChange}
     />);
-    expect(screen.getByText("Question 7")).toBeInTheDocument();
-    expect(screen.getByText("Question 7(b)")).toBeInTheDocument();
+    expect(screen.getByText("7.")).toBeInTheDocument();
+    expect(screen.getByText("7(b).")).toBeInTheDocument();
     expect(screen.getByText("Shared instructions")).toBeInTheDocument();
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "My answer" } });
     expect(onAnswerChange).toHaveBeenCalledWith("q1", "My answer", "essay", "plain_text");

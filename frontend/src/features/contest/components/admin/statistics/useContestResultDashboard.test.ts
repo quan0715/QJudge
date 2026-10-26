@@ -64,4 +64,25 @@ describe("useContestResultDashboard", () => {
       { rangeLabel: "50-59%", count: 3 },
     ]);
   });
+
+  it("retains canonical paper question labels from the dashboard summary", async () => {
+    vi.mocked(getExamDashboardSummary).mockResolvedValue({
+      ...codingSummary,
+      contest: { ...codingSummary.contest, contest_type: "paper_exam" },
+      questions: [{
+        question_id: "group-child", question_label: "2(b)", order: 4,
+        title: "Explain", kind: "essay", max_score: 10, answer_count: 1,
+        missing_count: 0, average_score: 5, score_rate: 50, zero_rate: 0,
+        full_rate: 0, status: "stable",
+      }],
+    });
+    const { result } = renderHook(() =>
+      useContestResultDashboard({ ...codingContest, contestType: "paper_exam" }),
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.data?.questions[0]).toMatchObject({
+      questionId: "group-child", questionLabel: "2(b)", order: 4,
+    });
+  });
 });

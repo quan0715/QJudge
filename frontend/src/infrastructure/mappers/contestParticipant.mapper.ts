@@ -110,6 +110,7 @@ const mapPaperOverviewRowDto = (
 ): ParticipantPaperReportOverviewRow => ({
   questionId: dto?.question_id?.toString() || "",
   index: Number(dto?.index ?? 0),
+  questionLabel: dto?.question_label,
   questionType: (dto?.question_type || "essay") as ExamQuestionType,
   status: mapParticipantDashboardStatusDto(dto?.status || {}),
   score: dto?.score != null ? Number(dto.score) : null,
@@ -122,6 +123,7 @@ const mapPaperQuestionDetailDto = (
 ): ParticipantPaperQuestionDetail => ({
   questionId: dto?.question_id?.toString() || "",
   index: Number(dto?.index ?? 0),
+  questionLabel: dto?.question_label,
   questionType: (dto?.question_type || "essay") as ExamQuestionType,
   prompt: dto?.prompt || "",
   options: Array.isArray(dto?.options)

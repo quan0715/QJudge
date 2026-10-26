@@ -267,7 +267,7 @@ const ContestAiGradingScreen: React.FC = () => {
     if (!contest?.id || !selectedQuestion || rows.length === 0 || !modelId || modelNotice?.blocking) return;
     setStartingAiGrading(true);
     const effectivePrompt = promptDraft.trim() || defaultPrompt;
-    const sessionTitle = `${t("grading.taskTypeLabel", "AI 批改")} · Q${selectedQuestion.questionIndex}`;
+    const sessionTitle = `${t("grading.taskTypeLabel", "AI 批改")} · ${selectedQuestion.questionLabel ?? selectedQuestion.questionIndex}.`;
     selectModel(modelId);
     try {
       const newSessionId = await start(contest.id, selectedQuestion.questionId, rows, {
@@ -750,7 +750,7 @@ const ContestAiGradingScreen: React.FC = () => {
       questionProgress.map((question) => ({
         id: question.questionId,
         label: truncateLabel(
-          `Q${question.questionIndex} · ${
+          `${question.questionLabel ?? question.questionIndex}. · ${
             toSingleLineLabel((question as { title?: string }).title) ||
             toSingleLineLabel(question.prompt) ||
             t("grading.question", "題目")
@@ -861,6 +861,7 @@ const ContestAiGradingScreen: React.FC = () => {
       <ExamQuestionEditCard
         question={selectedExamQuestion}
         index={selectedQuestion.questionIndex - 1}
+        questionLabel={selectedQuestion.questionLabel}
         frozen
         showScoreField
         onAutoSave={noopQuestionMutation}

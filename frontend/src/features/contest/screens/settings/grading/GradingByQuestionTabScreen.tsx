@@ -469,7 +469,7 @@ export default function GradingByQuestionTabScreen({
     >
       <GradingMobileNav
         questionLabel={
-          selectedQuestion ? `Q${selectedQuestion.questionLabel ?? selectedQuestion.questionIndex}` : "—"
+          selectedQuestion ? `${selectedQuestion.questionLabel ?? selectedQuestion.questionIndex}.` : "—"
         }
         studentLabel={
           selectedAnswer?.studentUsername ?? t("grading.noSelection", "未選擇")
@@ -496,7 +496,7 @@ export default function GradingByQuestionTabScreen({
         hasNextStudent={hasNext}
         contextPath={{
           primary: selectedQuestion
-            ? `Q${selectedQuestion.questionLabel ?? selectedQuestion.questionIndex}`
+            ? `${selectedQuestion.questionLabel ?? selectedQuestion.questionIndex}.`
             : t("grading.question", "題目"),
           secondary: selectedAnswer?.studentUsername,
         }}

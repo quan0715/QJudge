@@ -2,7 +2,6 @@ import type {
   ExamPaperSection,
   ExamQuestionGroup,
 } from "@/core/entities/contest.entity";
-import type { ExamViewMode } from "../../types/exam.types";
 
 export interface ExamQuestionPresentation {
   group?: ExamQuestionGroup;
@@ -11,7 +10,7 @@ export interface ExamQuestionPresentation {
 
 export function buildQuestionPresentationById(
   sections: ExamPaperSection[],
-  mode: ExamViewMode,
+  mode: "single" | "all",
 ): Map<string, ExamQuestionPresentation> {
   const presentationById = new Map<string, ExamQuestionPresentation>();
 

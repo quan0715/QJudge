@@ -79,7 +79,7 @@ describe("GradingSplitPanelScreen", () => {
     );
 
     const header = screen.getByRole("banner", { name: "目前批改題目" });
-    expect(within(header).getByText("Q1")).toBeInTheDocument();
+    expect(within(header).getByText("1.")).toBeInTheDocument();
     expect(within(header).queryByText("short_answer")).not.toBeInTheDocument();
     expect(within(header).queryByText(/Student One/)).not.toBeInTheDocument();
     expect(within(header).queryByText(/10.00/)).not.toBeInTheDocument();

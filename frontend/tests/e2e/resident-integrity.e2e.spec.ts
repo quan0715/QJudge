@@ -145,8 +145,22 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
         }
       } catch { /* A canceled response during navigation is not an ACK. */ }
     });
+    // The events endpoint allows 30 requests/minute per teacher. Pace every
+    // read, including snapshots between polls, rather than only poll intervals.
+    let nextEventsReadAt = 0;
     const studentEvents = async () => {
-      const body = await json<{ events: ProjectedEvent[] }>(await teacher.request.get(`/api/v1/contests/${contestId}/exam/events/`, { headers: teacherHeaders }));
+      const waitMs = nextEventsReadAt - Date.now();
+      if (waitMs > 0) await teacher.waitForTimeout(waitMs);
+      const readEvents = () => teacher.request.get(`/api/v1/contests/${contestId}/exam/events/`, { headers: teacherHeaders });
+      let response = await readEvents();
+      // Other tests/retries use the same teacher; honor any existing throttle
+      // window once, then retain the normal HTTP assertion on the retry.
+      if (response.status() === 429) {
+        await teacher.waitForTimeout(Number(response.headers()["retry-after"] ?? 60) * 1000);
+        response = await readEvents();
+      }
+      nextEventsReadAt = Date.now() + 3000;
+      const body = await json<{ events: ProjectedEvent[] }>(response);
       return body.events.filter((event) => String(event.user) === studentId);
     };
     const clipboardEvents = async () => (await studentEvents()).filter((event) => event.event_type === "clipboard_action");

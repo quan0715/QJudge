@@ -110,7 +110,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
                 onClick={() => onSelect(index)}
                 className={itemClassName}
               >
-                Q{item.kind === "question" ? questionLabels.get(item.data.id)?.label : index + 1}
+                {item.kind === "question" ? questionLabels.get(item.data.id)?.label : index + 1}.
               </ListItem>
             );
           })}
@@ -204,7 +204,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
                       }
                     }}
                   >
-                    Q{item.kind === "question" ? questionLabels.get(item.data.id)?.label : index + 1}
+                    {item.kind === "question" ? questionLabels.get(item.data.id)?.label : index + 1}.
                   </span>
                   <span className={styles.itemMetaDivider}>·</span>
                   <span>{typeLabel}</span>

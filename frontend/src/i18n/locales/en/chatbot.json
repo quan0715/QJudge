@@ -12,6 +12,8 @@
     "unknownError": "Unknown error"
   },
   "ui": {
+    "activityExecuting": "Running an action",
+    "activityWaiting": "Waiting for the next response",
     "addAttachment": "Add attachment",
     "addComment": "Add comment",
     "agentQuestion": "Agent Question",

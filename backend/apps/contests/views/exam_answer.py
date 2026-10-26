@@ -6,6 +6,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from django.utils import timezone
 from django.core.cache import cache
 from django.db import transaction
+from django.db.models import Exists, OuterRef
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -31,6 +32,7 @@ from ..serializers import (
 )
 from ..services.coding_result_summary import build_coding_dashboard_summary
 from ..services.exam_scoring import ExamScoringService
+from ..services.paper_question_labels import build_paper_question_labels
 from ..permissions import can_manage_contest
 from apps.core.api.envelope import envelope
 from ..services.open_answer_document import validate_open_answer_document
@@ -41,7 +43,10 @@ from .exam_validation_response import (
 from ..services.participation import NO_ATTEMPT_MESSAGE, attempted_participants
 
 
-class ExamAnswerViewSet(viewsets.GenericViewSet):
+from .exam_grading_unit import ExamGradingUnitMixin
+
+
+class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
     """
     ViewSet for exam answer operations.
     Students submit/retrieve answers; TAs grade answers and view results.
@@ -346,6 +351,16 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         projection = request.query_params.get('projection')
         if projection == 'grading':
+            # Shared provenance belongs to the current grade, not the viewer's session.
+            answers = answers.annotate(is_ai_graded=Exists(
+                ExamBatchGradeWrite.objects.filter(
+                    answer_id=OuterRef('pk'),
+                    score=OuterRef('score'),
+                    feedback=OuterRef('feedback'),
+                    grader_id=OuterRef('graded_by_id'),
+                    graded_at=OuterRef('graded_at'),
+                )
+            ))
             data = ExamAnswerGradingSerializer(answers, many=True).data
             meta = {
                 'count': len(data),
@@ -417,6 +432,9 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         )
 
         questions = scoring.get_questions()
+        question_labels = build_paper_question_labels(
+            questions, expand_question_numbers=contest.expand_question_numbers
+        )
 
         answers = list(
             ExamAnswer.objects.filter(participant_id__in=participant_ids)
@@ -450,6 +468,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             summary = {
                 'question_id': qid_str,
                 'order': q.order,
+                'question_label': question_labels[q.id],
                 'title': q.prompt,
                 'kind': q.question_type,
                 'max_score': q.score,

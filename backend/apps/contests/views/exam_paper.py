@@ -79,7 +79,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
     def _paper_queryset(self, contest):
         questions = (
             ExamQuestion.objects.filter(contest=contest)
-            .select_related('group', 'question_asset')
+            .select_related('group', 'contest', 'question_asset')
             .order_by('order', 'id')
         )
         groups = (
@@ -94,7 +94,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
         seen_group_ids = set()
         questions = list(
             ExamQuestion.objects.filter(contest=contest)
-            .select_related('group')
+            .select_related('group', 'contest')
             .order_by('order', 'id')
         )
         groups_by_id = {
@@ -120,6 +120,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
             group = groups_by_id.get(question.group_id) or question.group
             children = list(
                 ExamQuestion.objects.filter(contest=contest, group_id=question.group_id)
+                .select_related('group', 'contest', 'question_asset')
                 .order_by('order_in_group', 'order', 'id')
             )
             sections.append({
@@ -177,6 +178,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
                     context=q_ctx,
                 ).data,
                 'groups': ExamQuestionGroupSerializer(groups, many=True).data,
+                'expand_question_numbers': contest.expand_question_numbers,
                 'blocks': [
                     self._serialize_block(section, request, contest, q_ctx)
                     for section in sections
@@ -394,7 +396,19 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
                 raise DRFValidationError({'blocks': f'unknown paper block {key[1]}'})
             if key in seen:
                 raise DRFValidationError({'blocks': f'duplicate paper block {key[1]}'})
-            ordered_sections.append(section_by_key[key])
+            section = section_by_key[key]
+            if section['kind'] == 'group' and 'children' in block:
+                child_ids = block['children']
+                if not isinstance(child_ids, list):
+                    raise DRFValidationError({'blocks': 'group children must be an array'})
+                child_ids = [str(child_id) for child_id in child_ids]
+                children_by_id = {str(child.id): child for child in section['children']}
+                if len(set(child_ids)) != len(child_ids):
+                    raise DRFValidationError({'blocks': 'duplicate paper question in group'})
+                if set(child_ids) != set(children_by_id):
+                    raise DRFValidationError({'blocks': 'reorder must preserve group membership'})
+                section = {**section, 'children': [children_by_id[child_id] for child_id in child_ids]}
+            ordered_sections.append(section)
             seen.add(key)
 
         ordered_sections.extend(

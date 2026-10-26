@@ -69,6 +69,14 @@ describe("getExamPaper", () => {
     expect(result.sections[0].kind).toBe("group");
   });
 
+  it("sends group children in reorder payload", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ blocks: [] }), { status: 200 }));
+    await reorderExamPaperBlocks("c1", [{ kind: "group", id: "g1", children: ["q2", "q1"] }]);
+    const [url, request] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/v1/contests/c1/exam-paper/");
+    expect(JSON.parse(request.body)).toEqual({ blocks: [{ kind: "group", id: "g1", children: ["q2", "q1"] }] });
+  });
+
   it("writes block mutations through the composite exam paper endpoint", async () => {
     fetchMock
       .mockResolvedValueOnce(

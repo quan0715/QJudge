@@ -12,6 +12,8 @@
     "unknownError": "Unknown error"
   },
   "ui": {
+    "activityExecuting": "操作を実行中",
+    "activityWaiting": "次の応答を待っています",
     "addAttachment": "添付を追加",
     "addComment": "コメントを追加",
     "agentQuestion": "AIアシスタントの質問",

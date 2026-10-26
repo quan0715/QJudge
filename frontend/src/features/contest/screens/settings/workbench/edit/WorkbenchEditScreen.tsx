@@ -1,0 +1,686 @@
+import { roundScore } from "@/shared/utils/scoreFormat";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { useSearchParams } from "react-router-dom";
+import { Button, InlineLoading } from "@carbon/react";
+import { useTranslation } from "react-i18next";
+import type {
+  ExamPaper,
+  ExamQuestion,
+  ExamQuestionType,
+} from "@/core/entities/contest.entity";
+import {
+  createExamPaperBlock,
+  deleteExamPaperBlock,
+  getExamPaper,
+  importExamQuestionsFromBank,
+  reorderExamPaperBlocks,
+  updateExamPaperBlock,
+  type ExamQuestionUpsertPayload,
+  type ExistingGradesAction,
+} from "@/infrastructure/api/repositories";
+import { useContest } from "@/features/contest/contexts";
+import { useToast } from "@/shared/contexts/ToastContext";
+import { EmptyState } from "@/shared/ui/EmptyState";
+import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
+import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
+import QuestionBankImportModal from "@/features/contest/components/admin/examEditor/QuestionBankImportModal";
+import {
+  buildDuplicatePayload,
+  DEFAULT_QUESTION_PAYLOADS,
+} from "@/features/contest/components/admin/examEditor/examQuestionFormModel";
+import useToolbarSaveStatus from "@/features/contest/components/admin/examEditor/hooks/useToolbarSaveStatus";
+import {
+  getExamPublishIssueItems,
+  type ExamPublishIssueItem,
+} from "@/features/contest/domain/examPublishIssues";
+import {
+  movePaperItem,
+  toReorderPayload,
+  type PaperMoveTarget,
+} from "@/features/contest/domain/paperMoveModel";
+import { buildEditRailRows } from "./editRailModel";
+import { WorkbenchEditRail } from "./WorkbenchEditRail";
+import type { AddMenuChoice } from "./WorkbenchQuestionTypeMenu";
+import { useEditorImpactData } from "@/features/contest/components/admin/examEditor/hooks/useEditorImpactData";
+import { summarizeQuestionAnswers } from "./questionAnswerSummary";
+import { PublishCheckDrawer } from "./PublishCheckDrawer";
+import { PublishCheckBar } from "./PublishCheckBar";
+import {
+  WorkbenchGroupEditor,
+  type QuestionEditAnswerData,
+} from "./WorkbenchGroupEditor";
+import { WorkbenchQuestionEditor } from "./WorkbenchQuestionEditor";
+import styles from "./WorkbenchEdit.module.scss";
+
+export interface WorkbenchEditActions {
+  saveQuestion(
+    questionId: string,
+    payload: Partial<ExamQuestionUpsertPayload>,
+    action?: ExistingGradesAction,
+  ): Promise<void>;
+  saveGroup(
+    groupId: string,
+    group: { title?: string; shared_stem_markdown?: string },
+  ): Promise<void>;
+  duplicate(questionId: string): Promise<void>;
+  remove(itemId: string): Promise<void>;
+  move(itemId: string, target: PaperMoveTarget): Promise<void>;
+  saveToBank(question: ExamQuestion): void;
+  addChild(groupId: string, type: ExamQuestionType): Promise<void>;
+  /** Locked edits are saved by hand; resolves true when the teacher drops them. */
+  confirmDiscard(): Promise<boolean>;
+}
+export default function WorkbenchEditScreen({
+  header,
+}: {
+  header: ReactNode;
+  onPreview?: () => void;
+}) {
+  const { contest } = useContest();
+  const contestId = contest?.id ?? "";
+  const locked = contest?.questionEditLocked ?? false;
+  const lockedRef = useRef(locked);
+  useLayoutEffect(() => {
+    lockedRef.current = locked;
+  }, [locked]);
+  const { t } = useTranslation("contest");
+  const { showToast } = useToast();
+  const [params, setParams] = useSearchParams();
+  const [paper, setPaper] = useState<ExamPaper | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [checksOpen, setChecksOpen] = useState(false);
+  // `index` is where the item sits; a resolved item keeps the slot its
+  // successor moved into, so the teacher stays put until choosing "next".
+  const [review, setReview] = useState<{
+    item: ExamPublishIssueItem;
+    index: number;
+    resolved: boolean;
+  } | null>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const applyPaper = useCallback((next: ExamPaper) => {
+    setPaper(next);
+    setReview((previous) => {
+      if (!previous) return null;
+      const items = getExamPublishIssueItems(next.questions);
+      if (!items.length) return null;
+      const index = items.findIndex(
+        (item) =>
+          item.questionId === previous.item.questionId &&
+          item.kind === previous.item.kind,
+      );
+      return index >= 0
+        ? { item: items[index], index, resolved: false }
+        : {
+            ...previous,
+            index: Math.min(previous.index, items.length),
+            resolved: true,
+          };
+    });
+    return next;
+  }, []);
+  const [importOpen, setImportOpen] = useState(false);
+  const [bankQuestion, setBankQuestion] = useState<ExamQuestion | null>(null);
+  const { confirm, modalProps } = useConfirmModal();
+  const { track, status: saveStatus } = useToolbarSaveStatus();
+  const structuralBusy = useRef(false);
+  const loadPaper = useCallback(async () => {
+    const next = await getExamPaper(contestId);
+    return applyPaper(next);
+  }, [contestId, applyPaper]);
+  useEffect(() => {
+    let active = true;
+    if (contestId)
+      getExamPaper(contestId)
+        .then((next) => {
+          if (active) applyPaper(next);
+        })
+        .catch((err) => {
+          if (active) setError(String(err));
+        });
+    return () => {
+      active = false;
+    };
+  }, [contestId, contest?.expandQuestionNumbers, applyPaper]);
+  const impactData = useEditorImpactData(contestId, paper?.questions ?? []);
+  const refreshImpact = impactData.refresh;
+  const answerData = useMemo(() => {
+    if (impactData.status !== "loaded") return undefined;
+    const all = [...impactData.impactContext.answersByStudent.values()].flat();
+    return new Map<string, QuestionEditAnswerData>(
+      (paper?.questions ?? []).map((q) => {
+        const progress = impactData.impactContext.questions.find(
+          (item) => item.questionId === q.id,
+        );
+        return [
+          q.id,
+          {
+            summary: summarizeQuestionAnswers(
+              all.filter((row) => row.questionId === q.id),
+              q.effectiveMaxScore ?? q.score,
+            ),
+            counts: {
+              total: progress?.totalAnswers ?? 0,
+              graded: progress?.gradedCount ?? 0,
+            },
+          },
+        ];
+      }),
+    );
+  }, [paper, impactData.status, impactData.impactContext]);
+  const issues = useMemo(
+    () => getExamPublishIssueItems(paper?.questions ?? []),
+    [paper],
+  );
+  const rows = useMemo(
+    () => (paper ? buildEditRailRows(paper, issues, t) : []),
+    [paper, issues, t],
+  );
+  const selected = rows.some((row) => row.key === params.get("edit_item"))
+    ? params.get("edit_item")
+    : (rows[0]?.key ?? null);
+  const selectedRow = rows.find((row) => row.key === selected);
+  const selectedBlockId = selectedRow?.blockId;
+  useEffect(() => {
+    if (selected && params.get("edit_item") !== selected) {
+      setParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          next.set("edit_item", selected);
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [selected, params, setParams]);
+  const beforeLeave = useRef<(() => Promise<void>) | null>(null);
+  const registerFlush = useCallback((flush: (() => Promise<void>) | null) => {
+    beforeLeave.current = flush;
+  }, []);
+  const writeSelection = useCallback(
+    (id: string) => {
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("edit_item", id);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setParams],
+  );
+  const select = useCallback(
+    async (id: string, keepReview = false) => {
+      try {
+        await beforeLeave.current?.();
+        if (!keepReview) setReview(null);
+        writeSelection(id);
+        return true;
+      } catch {
+        /* The save action reports the error; stay on the draft. */ return false;
+      }
+    },
+    [writeSelection],
+  );
+  useLayoutEffect(() => {
+    if (mainRef.current) mainRef.current.scrollTop = 0;
+  }, [selectedBlockId]);
+  const goIssue = async (item: ExamPublishIssueItem) => {
+    if (await select(item.questionId, true)) {
+      setReview({
+        item,
+        index: issues.findIndex(
+          (candidate) =>
+            candidate.questionId === item.questionId &&
+            candidate.kind === item.kind,
+        ),
+        resolved: false,
+      });
+      setChecksOpen(false);
+    }
+  };
+  const failed = useCallback(
+    (err: unknown) =>
+      showToast({
+        kind: "error",
+        title: t("workbench.edit.operationFailed", "操作失敗"),
+        subtitle: err instanceof Error ? err.message : String(err),
+      }),
+    [showToast, t],
+  );
+  const runSave = useCallback(
+    async (operation: () => Promise<unknown>) => {
+      try {
+        await track(async () => {
+          await operation();
+          await loadPaper();
+          refreshImpact();
+        });
+      } catch (err) {
+        failed(err);
+        throw err;
+      }
+    },
+    [track, loadPaper, failed, refreshImpact],
+  );
+  const structural = useCallback(
+    async (operation: () => Promise<void>) => {
+      if (lockedRef.current || structuralBusy.current) return;
+      structuralBusy.current = true;
+      try {
+        await beforeLeave.current?.();
+        if (lockedRef.current) return;
+        await track(operation);
+      } catch (err) {
+        try {
+          await loadPaper();
+        } catch {
+          /* Keep the last known server snapshot when reload also fails. */
+        }
+        failed(err);
+      } finally {
+        structuralBusy.current = false;
+      }
+    },
+    [track, loadPaper, failed],
+  );
+  const actions = useMemo<WorkbenchEditActions>(
+    () => ({
+      saveQuestion: async (id, payload, action) =>
+        runSave(() =>
+          updateExamPaperBlock(contestId, id, {
+            kind: "question",
+            question: {
+              ...payload,
+              ...(action ? { existing_grades_action: action } : {}),
+            },
+          }),
+        ),
+      saveGroup: async (id, group) => {
+        if (lockedRef.current) return;
+        await runSave(() =>
+          updateExamPaperBlock(contestId, id, { kind: "group", group }),
+        );
+      },
+      move: async (id, target) =>
+        structural(async () => {
+          if (!paper) return;
+          const blocks = movePaperItem(paper.blocks, id, target);
+          if (blocks === paper.blocks) return;
+          const previous = paper;
+          applyPaper({
+            ...paper,
+            blocks,
+            questions: blocks.flatMap((b) =>
+              b.kind === "group" ? b.children : [b.question],
+            ),
+          });
+          try {
+            applyPaper(
+              await reorderExamPaperBlocks(contestId, toReorderPayload(blocks)),
+            );
+          } catch (err) {
+            applyPaper(previous);
+            throw err;
+          }
+        }),
+      addChild: async (groupId, type) =>
+        structural(async () => {
+          const updated = await updateExamPaperBlock(contestId, groupId, {
+            kind: "group",
+            children: [DEFAULT_QUESTION_PAYLOADS[type]],
+          });
+          await loadPaper();
+          if (updated.kind === "group")
+            writeSelection(updated.children.at(-1)?.id ?? groupId);
+        }),
+      duplicate: async (id) =>
+        structural(async () => {
+          const latest = await loadPaper();
+          const source = latest.questions.find((q) => q.id === id);
+          if (!source) return;
+          const payload = buildDuplicatePayload(source, source.order + 1);
+          if (source.groupId) {
+            const block = await updateExamPaperBlock(
+              contestId,
+              source.groupId,
+              { kind: "group", children: [payload] },
+            );
+            await loadPaper();
+            if (block.kind === "group")
+              writeSelection(block.children.at(-1)?.id ?? block.id);
+          } else {
+            const block = await createExamPaperBlock(contestId, {
+              kind: "question",
+              question: payload,
+            });
+            await loadPaper();
+            writeSelection(block.id);
+          }
+        }),
+      remove: async (id) => {
+        if (lockedRef.current) return;
+        const accepted = await confirm({
+          title: t("workbench.edit.deleteQuestion", "刪除這題"),
+          body: t("workbench.edit.deleteConfirm", "確定刪除選取的題目或題組？"),
+          danger: true,
+          confirmLabel: t("workbench.edit.delete", "刪除"),
+          cancelLabel: t("workbench.edit.cancel", "取消"),
+        });
+        if (!accepted) return;
+        await structural(async () => {
+          const parent = paper?.blocks.find(
+            (block) =>
+              block.kind === "group" &&
+              block.children.some((child) => child.id === id),
+          );
+          await deleteExamPaperBlock(contestId, id);
+          const next = await getExamPaper(contestId);
+          // Router navigation is a transition; update its paper snapshot together.
+          startTransition(() => {
+            if (parent && selected === id) writeSelection(parent.id);
+            applyPaper(next);
+          });
+        });
+      },
+      saveToBank: setBankQuestion,
+      confirmDiscard: () =>
+        confirm({
+          title: t("workbench.edit.discardTitle", "要捨棄未儲存的變更嗎？"),
+          body: t(
+            "workbench.edit.discardBody",
+            "這題的修改還沒儲存，離開後就會遺失。",
+          ),
+          danger: true,
+          confirmLabel: t("workbench.edit.discard", "捨棄變更"),
+          cancelLabel: t("workbench.edit.stayHere", "留在這題"),
+        }),
+    }),
+    [
+      contestId,
+      runSave,
+      structural,
+      paper,
+      loadPaper,
+      selected,
+      writeSelection,
+      confirm,
+      t,
+      applyPaper,
+    ],
+  );
+  const add = async (choice: AddMenuChoice) => {
+    if (lockedRef.current) return;
+    if (choice.kind === "bank") {
+      setImportOpen(true);
+      return;
+    }
+    const block = paper?.blocks.find(
+      (b) =>
+        b.id === selected ||
+        (b.kind === "group" && b.children.some((q) => q.id === selected)),
+    );
+    if (choice.kind === "question" && block?.kind === "group") {
+      await actions.addChild(block.id, choice.type);
+      return;
+    }
+    await structural(async () => {
+      const order =
+        block?.kind === "group"
+          ? Math.max(block.group.order, ...block.children.map((q) => q.order)) +
+            1
+          : block?.question.order != null
+            ? block.question.order + 1
+            : (paper?.questions.length ?? 0);
+      const created = await createExamPaperBlock(
+        contestId,
+        choice.kind === "group"
+          ? {
+              kind: "group",
+              group: {
+                title: t("workbench.edit.newGroup", "新題組"),
+                shared_stem_markdown: "",
+                order,
+              },
+            }
+          : {
+              kind: "question",
+              question: { ...DEFAULT_QUESTION_PAYLOADS[choice.type], order },
+            },
+      );
+      await loadPaper();
+      writeSelection(created.id);
+    });
+  };
+  if (error || !paper)
+    return (
+      <div className={styles.root}>
+        <aside
+          className={styles.rail}
+          aria-label={t("workbench.edit.questions", "題目")}
+        >
+          <div className={styles.railHeader}>{header}</div>
+          <div className={styles.railList} />
+        </aside>
+        <div className={styles.mainArea}>
+          <main className={styles.main}>
+            {error ? (
+              <EmptyState
+                title={error}
+                action={
+                  <Button
+                    onClick={() => {
+                      setError(null);
+                      void loadPaper().catch((err) => setError(String(err)));
+                    }}
+                  >
+                    {t("workbench.edit.retry", "重新載入")}
+                  </Button>
+                }
+              />
+            ) : (
+              <InlineLoading
+                description={t("workbench.edit.loading", "載入考卷中…")}
+              />
+            )}
+          </main>
+        </div>
+      </div>
+    );
+  const currentBlock = paper.blocks.find((b) => b.id === selectedBlockId);
+  const currentQuestion =
+    currentBlock?.kind === "question" ? currentBlock.question : undefined;
+  const questionRows = rows.filter((row) => row.kind !== "group");
+  const questionIndex = questionRows.findIndex((row) => row.key === currentQuestion?.id);
+  const previousQuestion = questionRows[questionIndex - 1];
+  const nextQuestion = questionRows[questionIndex + 1];
+  return (
+    <div className={styles.root}>
+      <WorkbenchEditRail
+        header={header}
+        rows={rows.filter((row) => row.kind !== "child")}
+        activeKey={selectedBlockId ?? null}
+        locked={locked}
+        issueCount={issues.length}
+        summary={{
+          totalScore: roundScore(
+            paper.questions.reduce(
+              (sum, question) =>
+                sum +
+                (question.scorePolicy === "excluded" ? 0 : question.score),
+              0,
+            ),
+          ),
+        }}
+        onSelect={select}
+        onMove={(id, target) => actions.move(id, target)}
+        onAdd={(choice) => {
+          void add(choice);
+        }}
+        onOpenPublishCheck={() => setChecksOpen(true)}
+      />
+      <div className={styles.mainArea}>
+        <main
+          ref={mainRef}
+          className={styles.main}
+          aria-label={t("workbench.edit.editor", "題目編輯")}
+        >
+          {review && (
+            <PublishCheckBar
+              items={issues}
+              current={review.item}
+              index={review.index}
+              resolved={review.resolved}
+              onGo={(item) => {
+                void goIssue(item);
+              }}
+              onOpenAll={() => setChecksOpen(true)}
+              onExit={() => setReview(null)}
+            />
+          )}
+          {currentQuestion ? (
+            <WorkbenchQuestionEditor
+              key={currentQuestion.id}
+              question={currentQuestion}
+              highlightField={
+                review &&
+                !review.resolved &&
+                review.item.questionId === currentQuestion.id
+                  ? review.item.field
+                  : undefined
+              }
+              label={
+                rows.find((r) => r.key === currentQuestion.id)?.label ?? ""
+              }
+              locked={locked}
+              answerSummary={answerData?.get(currentQuestion.id)?.summary}
+              answerCounts={answerData?.get(currentQuestion.id)?.counts}
+              impactError={impactData.status === "error"}
+              onRetryImpact={refreshImpact}
+              onGradeQuestion={() =>
+                setParams((prev) => {
+                  const next = new URLSearchParams(prev);
+                  next.set("workbench_mode", "grade");
+                  next.set("grading_question", currentQuestion.id);
+                  next.delete("grading_student");
+                  return next;
+                })
+              }
+              actions={actions}
+              saveStatus={saveStatus}
+              registerFlush={registerFlush}
+              prevLabel={previousQuestion?.label}
+              nextLabel={nextQuestion?.label}
+              onNavigate={(direction) => {
+                const target = direction === "prev" ? previousQuestion : nextQuestion;
+                if (target) void select(target.key);
+              }}
+            />
+          ) : currentBlock?.kind === "group" ? (
+            <WorkbenchGroupEditor
+              key={currentBlock.id}
+              block={currentBlock}
+              label={rows.find((r) => r.key === currentBlock.id)?.label ?? ""}
+              childLabels={
+                new Map(
+                  rows
+                    .filter((r) => r.kind === "child")
+                    .map((r) => [r.key, r.label]),
+                )
+              }
+              locked={locked}
+              expandedChildId={
+                selectedRow?.kind === "child" ? selectedRow.key : null
+              }
+              onExpandChild={(id) => {
+                setReview(null);
+                writeSelection(id ?? currentBlock.id);
+              }}
+              highlightField={
+                review &&
+                !review.resolved &&
+                review.item.questionId === selected
+                  ? review.item.field
+                  : undefined
+              }
+              actions={actions}
+              saveStatus={saveStatus}
+              registerFlush={registerFlush}
+              answerData={answerData}
+              impactError={impactData.status === "error"}
+              onRetryImpact={refreshImpact}
+              onGradeQuestion={(id) =>
+                setParams((prev) => {
+                  const next = new URLSearchParams(prev);
+                  next.set("workbench_mode", "grade");
+                  next.set("grading_question", id);
+                  next.delete("grading_student");
+                  return next;
+                })
+              }
+            />
+          ) : (
+            <EmptyState
+              title={t("workbench.edit.emptyPaper", "考卷尚無題目")}
+            />
+          )}
+        </main>
+        <PublishCheckDrawer
+          open={checksOpen}
+          items={issues}
+          describe={(item) => {
+            const question = paper.questions.find(
+              (q) => q.id === item.questionId,
+            );
+            const row = rows.find((r) => r.key === item.questionId);
+            return {
+              label: row?.label ?? "",
+              title: question?.prompt.split("\n")[0] ?? "",
+              typeText: row?.typeText ?? "",
+            };
+          }}
+          onPick={(item) => {
+            void goIssue(item);
+          }}
+          onClose={() => setChecksOpen(false)}
+        />
+      </div>
+      <ConfirmModal {...modalProps} />
+      <QuestionBankImportModal
+        open={importOpen}
+        category="exam"
+        onClose={() => setImportOpen(false)}
+        onConfirm={async (items) => {
+          await structural(async () => {
+            await importExamQuestionsFromBank(contestId, {
+              items: items.map((item) => ({
+                question_bank_id: item.questionBankId,
+                question_id: item.questionId,
+              })),
+            });
+            const next = await loadPaper();
+            setImportOpen(false);
+            const last = next.blocks.at(-1);
+            if (last) select(last.id);
+          });
+        }}
+      />
+      <SaveToBankModal
+        open={bankQuestion !== null}
+        onClose={() => setBankQuestion(null)}
+        sourceType="exam_question"
+        sourceId={bankQuestion?.id ?? ""}
+        sourceTitle={bankQuestion?.prompt.slice(0, 60) ?? ""}
+      />
+    </div>
+  );
+}

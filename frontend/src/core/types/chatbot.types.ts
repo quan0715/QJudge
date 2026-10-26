@@ -39,6 +39,8 @@ export interface ToolInfo {
   result?: string | Record<string, unknown>;
   isError?: boolean;
   durationMs?: number;
+  /** Hydrated from an in-flight tool in a persisted message snapshot. */
+  isRunning?: boolean;
   /** Set when a deepagents subagent (the `task` tool call with this id) made the call. */
   parentToolCallId?: string;
 }

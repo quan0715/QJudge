@@ -13,33 +13,14 @@
   overflow: hidden;
 }
 
-:global([data-carbon-theme="g90"]) .editorRoot,
-:global([data-carbon-theme="g100"]) .editorRoot {
-  --qg-panel-divider-strong-color: color-mix(
-    in srgb,
-    var(--cds-text-primary) 34%,
-    transparent
-  );
-  --qg-panel-divider-color: color-mix(
-    in srgb,
-    var(--cds-text-primary) 26%,
-    transparent
-  );
-  --qg-panel-divider-muted-color: color-mix(
-    in srgb,
-    var(--cds-text-primary) 18%,
-    transparent
-  );
-}
-
 .globalToolbar {
   display: flex;
   align-items: center;
   gap: layout.$spacing-04;
-  padding: layout.$spacing-03 layout.$spacing-04;
+  padding: layout.$spacing-04 layout.$spacing-05;
   border-bottom: 1px solid var(--qg-panel-divider-color, var(--cds-border-subtle));
   flex-shrink: 0;
-  background: var(--cds-layer-02);
+  background: var(--cds-layer-01);
 }
 
 .toolbarGroup {
@@ -50,6 +31,23 @@
 }
 
 .modeSwitcher {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.toolbarFilters {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  width: 18rem;
+  padding-left: layout.$spacing-05;
+  border-left: 1px solid var(--cds-border-subtle);
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
 }
 

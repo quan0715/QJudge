@@ -125,8 +125,16 @@ const AdminDashboardPanels = () => {
     [contestModule, contest],
   );
   const routablePanels = useMemo(
-    () => Array.from(new Set([...availablePanels, "settings" as const, "clarifications" as const])),
-    [availablePanels],
+    () =>
+      Array.from(
+        new Set([
+          ...availablePanels,
+          ...(contestModule.admin.getHiddenPanels?.(contest) ?? []),
+          "settings" as const,
+          "clarifications" as const,
+        ]),
+      ),
+    [availablePanels, contestModule, contest],
   );
   useEffect(() => {
     if (searchParams.get("panel") !== "clarifications") return;

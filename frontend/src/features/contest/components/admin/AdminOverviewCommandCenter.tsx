@@ -433,7 +433,7 @@ export default function AdminOverviewCommandCenter({
     param: "tab",
     keys: isCodingContest
       ? ["participants", "submissions", "standings", "clarifications"]
-      : ["participants", "questionStats", "clarifications"],
+      : ["participants", "standings", "questionStats", "clarifications"],
     defaultKey: "participants",
   });
   const [internalStudentQrScannerOpen, setInternalStudentQrScannerOpen] =
@@ -1112,6 +1112,7 @@ export default function AdminOverviewCommandCenter({
         },
       ]
     : [
+        { id: "standings", label: t("adminOverview.command.drilldown.scoreMatrix", "成績總覽") },
         {
           id: "participants",
           label: t("adminOverview.command.drilldown.participants", "參與者"),
@@ -1163,9 +1164,10 @@ export default function AdminOverviewCommandCenter({
             </DashboardTabPanel>
           </>
         ) : (
-          <DashboardTabPanel tabId="questionStats">
-            {questionStatsPanel}
-          </DashboardTabPanel>
+          <>
+            <DashboardTabPanel tabId="standings">{standingsTabPanel}</DashboardTabPanel>
+            <DashboardTabPanel tabId="questionStats">{questionStatsPanel}</DashboardTabPanel>
+          </>
         )}
       </DashboardTabs>
     </DashboardBlock>

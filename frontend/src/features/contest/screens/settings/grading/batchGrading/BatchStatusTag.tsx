@@ -11,7 +11,6 @@ const STATUS_TAG: Partial<Record<BatchQuestionStatus, { type: TagType; key: stri
   completed: { type: "green", key: "completed" },
   failed: { type: "red", key: "failed" },
   cancelled: { type: "warm-gray", key: "cancelled" },
-  paused: { type: "purple", key: "paused" },
 };
 
 export function BatchStatusTag({ status }: { status: BatchQuestionStatus }) {

@@ -12,6 +12,8 @@
     "unknownError": "Unknown error"
   },
   "ui": {
+    "activityExecuting": "작업 실행 중",
+    "activityWaiting": "다음 응답을 기다리는 중",
     "addAttachment": "첨부 추가",
     "addComment": "댓글 추가",
     "agentQuestion": "AI 조교 질문",

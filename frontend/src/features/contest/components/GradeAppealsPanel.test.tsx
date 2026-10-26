@@ -11,9 +11,9 @@ vi.mock("./GradeAppealDialog", () => ({ default: ({gradingHref}: {gradingHref: s
 
 it("links to the grading mode that accepts both question and student selection", () => {
   render(<MemoryRouter initialEntries={["/classrooms/room/contest/exam/admin"]}><GradeAppealsPanel contestId="exam" /></MemoryRouter>);
-  expect(screen.getByText("student · 第 1(b) 題")).toBeInTheDocument();
+  expect(screen.getByText("student · 1(b).")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", {name: "查看申訴 #9"}));
   const url = new URL(screen.getByRole("link", {name: "前往批改"}).getAttribute("href")!, "http://localhost");
   expect(url.pathname).toBe("/classrooms/room/contest/exam/admin");
-  expect(Object.fromEntries(url.searchParams)).toEqual({panel: "grading", grading_view: "byQuestion", grading_student: "12", grading_question: "second-question"});
+  expect(Object.fromEntries(url.searchParams)).toEqual({panel: "grading-workbench", grading_student: "12", grading_question: "second-question"});
 });

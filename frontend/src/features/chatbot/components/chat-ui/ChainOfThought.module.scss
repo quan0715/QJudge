@@ -14,10 +14,26 @@
 }
 
 .stepTitle {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: layout.$spacing-03;
+  min-width: 0;
   font-size: 0.875rem;
+}
+
+.stepTitle > svg {
+  flex-shrink: 0;
+}
+
+// One line per step; the full name shows on hover. A zero basis keeps a long name
+// from widening the accordion title, which would push the row off to the left.
+.stepName {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .success { color: var(--cds-support-success); }
@@ -57,11 +73,8 @@
   overflow-y: auto;
 }
 
-.subagentLabel {
-  @include type.type-style("label-01");
-  color: var(--cds-text-secondary);
-  white-space: nowrap;
-  flex-shrink: 0;
+.subagentIcon {
+  color: var(--cds-icon-secondary);
 }
 
 .subagentTodos {
@@ -70,8 +83,13 @@
 
 .subagentText {
   @include type.type-style("body-compact-01");
-  white-space: pre-wrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
   margin: layout.$spacing-03 0;
+
+  pre {
+    overflow-wrap: normal;
+  }
 }
 
 .processingText {

@@ -11,6 +11,8 @@ import { useMarkdownImageUpload } from "./MarkdownImageUploadContext";
 import "./MarkdownEditor.scss";
 
 export interface MarkdownEditorProps {
+  /** Use quiet tabs and a compact minimum height when embedded in forms. */
+  variant?: "default" | "subtle";
   /** Current value */
   value: string;
   /** Change handler */
@@ -43,6 +45,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   showPreview: initialShowPreview = true,
   showToolbar = true,
   inline = false,
+  variant = "default",
 }) => {
   const { theme } = useTheme();
   const { t } = useTranslation("common");
@@ -71,7 +74,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     }
   }, [selectedTab, supportsPreview]);
 
-  const MIN_EDITOR_LINES = 10;
+  const MIN_EDITOR_LINES = variant === "subtle" ? 6 : 10;
   const LINE_HEIGHT = 22;
   const EDITOR_PADDING = 32; // top + bottom padding
   const minEditorHeight = MIN_EDITOR_LINES * LINE_HEIGHT + EDITOR_PADDING;
@@ -319,6 +322,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
   const containerClassName = [
     "markdown-editor",
+    variant === "subtle" ? "markdown-editor--subtle" : "",
     inline ? "markdown-editor--inline" : "",
     isDragOverImage ? "markdown-editor--dragover" : "",
   ].filter(Boolean).join(" ");
@@ -420,9 +424,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <div className="markdown-editor__tab-group" role="tablist">
             <Button
               type="button"
-              kind={selectedTab === "edit" ? "secondary" : "ghost"}
+              kind={variant === "subtle" ? "ghost" : selectedTab === "edit" ? "secondary" : "ghost"}
               size="sm"
-              renderIcon={Edit}
+              renderIcon={variant === "subtle" ? undefined : Edit}
               role="tab"
               aria-selected={selectedTab === "edit"}
               className="markdown-editor__tab-btn"
@@ -432,9 +436,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             </Button>
             <Button
               type="button"
-              kind={selectedTab === "preview" ? "secondary" : "ghost"}
+              kind={variant === "subtle" ? "ghost" : selectedTab === "preview" ? "secondary" : "ghost"}
               size="sm"
-              renderIcon={View}
+              renderIcon={variant === "subtle" ? undefined : View}
               role="tab"
               aria-selected={selectedTab === "preview"}
               className="markdown-editor__tab-btn"

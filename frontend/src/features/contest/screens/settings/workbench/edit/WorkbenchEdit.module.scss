@@ -1,0 +1,540 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+.root {
+  display: grid;
+  grid-template-columns: 18rem minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--cds-background);
+}
+.rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+}
+.railHeader {
+  padding: layout.$spacing-05;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+}
+.summary {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+  margin: 0;
+}
+// MenuButton's container is `display: contents`; size its trigger instead.
+.addMenu > button {
+  width: 100%;
+  max-width: none;
+  justify-content: space-between;
+}
+.railList {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.reorderItem {
+  position: relative;
+  background: var(--cds-layer-01);
+}
+.railRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+.childRow {
+  padding-left: layout.$spacing-05;
+}
+.activeRow {
+  background: var(--cds-layer-selected-01);
+}
+.rowSelect {
+  flex: 1;
+  min-width: 0;
+  cursor: grab;
+  touch-action: none;
+}
+.rowSelect > button {
+  cursor: inherit;
+}
+.lockedRow .rowSelect {
+  cursor: pointer;
+}
+.rowLabel {
+  @include type.type-style("label-01");
+  min-width: 1.5rem;
+  white-space: nowrap;
+  color: var(--cds-text-secondary);
+}
+.rowTypeIcon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--cds-icon-secondary);
+}
+.warning {
+  color: var(--cds-support-warning);
+  flex-shrink: 0;
+}
+// Keep keyboard reordering reachable without crowding pointer users' entries.
+.moveControls {
+  display: none;
+  flex-shrink: 0;
+}
+.rowSelect:has(button:focus-visible) .moveControls {
+  display: flex;
+}
+.publishNotice {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+.railFooter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: layout.$spacing-02;
+  padding: layout.$spacing-03;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+.main {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  position: relative;
+  padding: layout.$spacing-06 layout.$spacing-07;
+}
+@media (max-width: 47.99rem) {
+  .root {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .rail {
+    max-height: 22rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+  .railHeader {
+    padding: layout.$spacing-03 layout.$spacing-05;
+    gap: layout.$spacing-03;
+  }
+  .railList {
+    max-height: 8rem;
+  }
+  .main {
+    padding: layout.$spacing-05;
+  }
+}
+
+.lockedNotice {
+  max-width: none;
+}
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-06;
+  max-width: 72rem;
+  margin-inline: auto;
+}
+.editorHeader {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: layout.$spacing-04;
+  padding-bottom: layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+.editorHeader h1 {
+  @include type.type-style("heading-04");
+  display: flex;
+  flex: 1 1 20rem;
+  gap: layout.$spacing-04;
+  min-width: 0;
+  margin: 0;
+}
+.questionLabel {
+  white-space: nowrap;
+}
+.questionTitle {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.settingsRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: layout.$spacing-05;
+  padding-bottom: layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+.typeLabel {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+  margin-bottom: layout.$spacing-03;
+}
+.questionActions {
+  display: flex;
+  margin-inline-start: auto;
+  gap: layout.$spacing-02;
+  align-items: center;
+}
+.field {
+  min-width: 0;
+}
+.markdownSurface {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: layout.$spacing-03;
+  min-width: 0;
+  min-height: layout.$spacing-07;
+}
+.markdownToggle {
+  grid-column: 2;
+  grid-row: 1;
+}
+.markdownEditable {
+  outline: 1px solid transparent;
+  outline-offset: layout.$spacing-02;
+  &:hover {
+    outline-color: var(--cds-border-strong);
+  }
+  &:focus-within {
+    outline: 2px solid var(--cds-focus);
+  }
+  .markdownRendered {
+    cursor: pointer;
+    outline: none;
+  }
+}
+.markdownSurface > :not(.markdownToggle) {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+.markdownSource > :not(.markdownToggle) {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+.markdownRendered {
+  font-size: 1rem;
+  line-height: 1.8;
+}
+.markdownContent {
+  font-size: inherit;
+  line-height: inherit;
+  p, li, td, th {
+    font-size: inherit;
+    line-height: inherit;
+  }
+  > :first-child { margin-top: 0; }
+  > :last-child { margin-bottom: 0; }
+}
+.markdownWithSuffix {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+  > :first-child {
+    min-width: 0;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .markdownEditable .markdownToggle,
+  .optionAction {
+    opacity: 0;
+  }
+  .markdownEditable:hover .markdownToggle,
+  .markdownEditable:focus-within .markdownToggle,
+  .optionRow:hover .markdownToggle,
+  .optionRow:focus-within .markdownToggle,
+  .optionRow:hover .optionAction,
+  .optionRow:focus-within .optionAction {
+    opacity: 1;
+  }
+}
+.markdownEmpty {
+  color: var(--cds-text-placeholder);
+}
+.markdownInvalid {
+  @include type.type-style("label-01");
+  color: var(--cds-text-error);
+}
+.field h2 {
+  @include type.type-style("heading-compact-01");
+  margin: 0 0 layout.$spacing-04;
+}
+.optionRow {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-03;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+.optionRow > :nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.questionNavigation {
+  display: flex;
+  justify-content: space-between;
+  padding-top: layout.$spacing-04;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+@media (max-width: 47.99rem) {
+  .editorHeader h1 {
+    @include type.type-style("heading-02");
+    flex-basis: 100%;
+  }
+  .settingsRow {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .optionRow {
+    flex-wrap: wrap;
+    gap: layout.$spacing-02;
+  }
+}
+
+.answerStats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: layout.$spacing-07;
+  padding-block: layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+.answerStats > div {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+}
+.answerStats span {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+}
+.answerStats strong {
+  @include type.type-style("heading-03");
+  font-variant-numeric: tabular-nums;
+}
+.lockedSave {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-05;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+}
+.lockedSave p {
+  @include type.type-style("body-compact-01");
+  margin: 0;
+}
+.saveActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: layout.$spacing-03;
+}
+
+.groupSettings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: layout.$spacing-06;
+  align-items: end;
+}
+.groupSettings > div:not(:first-child) {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+.groupSettings span {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+}
+.groupSettings strong {
+  @include type.type-style("heading-02");
+}
+.childJump {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: layout.$spacing-02;
+}
+.childJump > span {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+  margin-right: layout.$spacing-03;
+}
+.childJumpButton {
+  color: var(--cds-text-primary);
+}
+.childJumpButton[aria-pressed="true"] {
+  background: var(--cds-layer-selected-01);
+}
+.childListHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: layout.$spacing-05;
+  margin-bottom: layout.$spacing-04;
+}
+.childListHeader > span {
+  flex: 0 1 12rem;
+}
+.childSection {
+  border-bottom: 1px solid var(--cds-border-subtle);
+  scroll-margin-top: layout.$spacing-12;
+}
+
+.childHeading {
+  width: 100%;
+  max-width: none;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  gap: layout.$spacing-05;
+  color: var(--cds-text-primary);
+}
+.childType {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+}
+.childPrompt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+.childEditor {
+  padding: layout.$spacing-05;
+  background: var(--cds-layer-01);
+}
+.childActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+  padding-top: layout.$spacing-05;
+}
+@media (max-width: 47.99rem) {
+  .groupSettings {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .groupSettings > :first-child {
+    grid-column: 1 / -1;
+  }
+  .childHeading {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: layout.$spacing-03;
+  }
+  .childType {
+    display: none;
+  }
+  .childEditor {
+    padding: layout.$spacing-04 layout.$spacing-03;
+  }
+}
+
+.mainArea {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.mainArea .main {
+  height: 100%;
+  box-sizing: border-box;
+}
+.publishDrawer {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: min(28rem, 100%);
+  display: flex;
+  flex-direction: column;
+  z-index: 3;
+  background: var(--cds-layer-01);
+  box-shadow: calc(-1 * layout.$spacing-03) 0 layout.$spacing-06
+    color-mix(in srgb, var(--cds-text-primary) 12%, transparent);
+}
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+.drawerHeader h2 {
+  @include type.type-style("heading-03");
+  margin: 0;
+}
+.drawerBody {
+  overflow-y: auto;
+  min-height: 0;
+  padding: layout.$spacing-05;
+}
+.checkGroup {
+  margin-bottom: layout.$spacing-06;
+}
+.checkGroup h3 {
+  @include type.type-style("heading-compact-01");
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  margin: 0 0 layout.$spacing-03;
+}
+.checkGroup > p,
+.checkHint {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  margin: 0 0 layout.$spacing-04;
+}
+.checkItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: layout.$spacing-02 layout.$spacing-04;
+  width: 100%;
+  max-width: none;
+  min-height: layout.$spacing-10;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  text-align: left;
+  color: var(--cds-text-primary);
+}
+.checkItemLabel {
+  white-space: nowrap;
+}
+.checkItemTitle {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.checkItemType {
+  @include type.type-style("label-01");
+  grid-column: 2;
+  color: var(--cds-text-secondary);
+}
+.publishBar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: layout.$spacing-02;
+  padding: layout.$spacing-03 layout.$spacing-04;
+  margin-bottom: layout.$spacing-06;
+  background: var(--cds-notification-background-warning);
+  border-bottom: 1px solid var(--cds-border-subtle);
+  @include type.type-style("body-compact-01");
+}
+.checkCategory {
+  display: inline-flex;
+  gap: layout.$spacing-03;
+  margin-right: auto;
+}
+.highlightField {
+  outline: 2px solid var(--cds-support-warning);
+  outline-offset: layout.$spacing-03;
+}

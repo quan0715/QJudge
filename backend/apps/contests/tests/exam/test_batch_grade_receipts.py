@@ -86,6 +86,41 @@ class BatchGradeReceiptTests(ExamAnswerTestBase):
                 self.assertIsNone(self.answer.score)
         self.assertFalse(self.writes().data['writes'][0]['current'])
 
+    def test_same_run_retry_does_not_restore_a_teacher_revoked_grade(self):
+        self.assertEqual(self.grade().data['results'][0]['status'], 'ok')
+        receipt = ExamBatchGradeWrite.objects.get(answer=self.answer)
+        original_graded_at = receipt.graded_at
+
+        response = self.client.post(
+            self.base + f'{self.answer.id}/ungrade/', {}, format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        # Another question can fail after this answer committed. Replaying the
+        # unit must not undo the teacher's intervening decision to clear it.
+        replay = self.grade(grades=[{
+            'exam_answer_id': self.answer.id, 'score': 9, 'feedback': 'retry',
+        }])
+        self.assertEqual(replay.status_code, 200)
+        self.assertEqual(replay.data['results'][0]['status'], 'skipped')
+        self.assertEqual(replay.data['graded_count'], 0)
+        self.answer.refresh_from_db()
+        self.assertIsNone(self.answer.score)
+        receipt.refresh_from_db()
+        self.assertEqual(receipt.run_id, self.run_id)
+        self.assertEqual(receipt.score, 8)
+        self.assertEqual(receipt.feedback, 'AI')
+        self.assertEqual(receipt.graded_at, original_graded_at)
+        self.assertFalse(self.writes().data['writes'][0]['current'])
+
+        # A teacher-authorized new run may grade the now-ungraded answer.
+        self.run_id = uuid4()
+        self.assertEqual(self.grade().data['results'][0]['status'], 'ok')
+        self.answer.refresh_from_db()
+        self.assertEqual(self.answer.score, 8)
+        # Receipts are immutable per run: the new run adds its own.
+        self.assertTrue(ExamBatchGradeWrite.objects.filter(answer=self.answer, run_id=self.run_id).exists())
+        self.assertTrue(self.writes().data['writes'][0]['current'])
+
     def test_receipts_are_scoped_to_owner_session_and_contest(self):
         self.grade()
         self.assertEqual(self.writes(uuid4()).data['writes'], [])
@@ -102,6 +137,54 @@ class BatchGradeReceiptTests(ExamAnswerTestBase):
         response = self.client.get(f'/api/v1/contests/{other_contest.id}/exam-answers/batch-writes/',
                                    {'session_id': str(self.session_id)})
         self.assertEqual(response.data['writes'], [])
+
+    def grading_rows(self):
+        response = self.client.get(self.base + 'all-answers/', {'projection': 'grading'})
+        self.assertEqual(response.status_code, 200)
+        return response.data['data']
+
+    def test_grading_source_is_shared_with_other_staff_without_sharing_receipts(self):
+        self.grade()
+        self.assertTrue(self.grading_rows()[0]['is_ai_graded'])
+        from django.contrib.auth import get_user_model
+        other = get_user_model().objects.create_user(username='source-admin', role='admin', is_staff=True)
+        self.client.force_authenticate(user=other)
+        row = self.grading_rows()[0]
+        self.assertTrue(row['is_ai_graded'])
+        self.assertEqual(float(row['score']), 8)
+        self.assertNotIn('session_id', row)
+        self.assertNotIn('run_id', row)
+        self.assertEqual(self.writes().data['writes'], [])
+        self.client.force_authenticate(user=self.student)
+        self.assertEqual(self.client.get(self.base + 'all-answers/', {'projection': 'grading'}).status_code, 403)
+
+    def test_current_grade_source_changes_after_manual_confirmation_and_ungrade(self):
+        self.assertFalse(self.grading_rows()[0]['is_ai_graded'])
+        self.grade()
+        self.assertTrue(self.grading_rows()[0]['is_ai_graded'])
+        # Same values saved through the human grading path are human-confirmed.
+        self.client.post(self.base + f'{self.answer.id}/grade/', {'score': 8, 'feedback': 'AI'}, format='json')
+        self.assertFalse(self.grading_rows()[0]['is_ai_graded'])
+        self.client.post(self.base + f'{self.answer.id}/ungrade/', {}, format='json')
+        self.assertFalse(self.grading_rows()[0]['is_ai_graded'])
+        self.run_id = uuid4()
+        self.grade()
+        self.assertTrue(self.grading_rows()[0]['is_ai_graded'])
+
+    def test_mismatched_grade_cannot_claim_an_old_ai_receipt(self):
+        self.grade()
+        receipt = ExamBatchGradeWrite.objects.get(answer=self.answer)
+        for field, changed, original in (
+            ('score', 9, receipt.score),
+            ('feedback', 'human edit', receipt.feedback),
+            ('graded_by_id', self.student.id, receipt.grader_id),
+            ('graded_at', None, receipt.graded_at),
+        ):
+            with self.subTest(field=field):
+                ExamAnswer.objects.filter(pk=self.answer.pk).update(**{field: changed})
+                self.assertFalse(self.grading_rows()[0]['is_ai_graded'])
+                ExamAnswer.objects.filter(pk=self.answer.pk).update(**{field: original})
+        self.assertTrue(self.grading_rows()[0]['is_ai_graded'])
 
     def test_invalid_receipt_context_cannot_write_grades(self):
         self.assertEqual(self.grade(batch_session_id='invalid').status_code, 400)

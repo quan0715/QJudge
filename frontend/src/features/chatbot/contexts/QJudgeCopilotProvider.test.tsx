@@ -1,4 +1,4 @@
-import { act, render, renderHook, waitFor } from "@testing-library/react";
+import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,9 +10,11 @@ import {
 } from "@copilot/testing";
 import {
   DefaultCopilotTranslations,
+  useCopilot,
   useCopilotModels,
   useCopilotSessions,
 } from "@copilot";
+import { AiAssistantNavButton } from "@/features/app/components/workspace/AiAssistantNavButton";
 import { useArtifactPanel } from "./ArtifactPanelContext";
 import { useRequestCopilot } from "./CopilotDemandContext";
 import {
@@ -250,6 +252,31 @@ describe("QJudgeCopilotProvider", () => {
       </Wrapper>,
     );
     await waitFor(() => expect(probe.listStatus).toBe("idle"));
+  });
+
+  it("keeps monitoring a running session with the panel closed and releases it on completion", async () => {
+    authState.user = { role: "teacher" };
+    const transport = qJudgeCopilotTransport as MemoryCopilotTransport;
+    const Wrapper = createQJudgeProviderWrapper();
+    const { result } = renderHook(() => ({ copilot: useCopilot(), workspace: useWorkspace() }), {
+      wrapper: ({ children }) => <Wrapper><AiAssistantNavButton />{children}</Wrapper>,
+    });
+    act(() => result.current.workspace.right.open());
+    await waitFor(() => expect(result.current.copilot.activeSession.status).toBe("empty"));
+    await act(async () => { await result.current.copilot.send({ text: "Test activity" }); });
+    await waitFor(() => expect(screen.getByRole("button").getAttribute("aria-busy")).toBe("true"));
+    const run = result.current.copilot.run.run!;
+    act(() => result.current.workspace.right.close());
+    expect(result.current.workspace.right.isOpen).toBe(false);
+    expect(screen.getByRole("button")).toHaveAttribute("aria-busy", "true");
+    expect(result.current.copilot.activeSession.id).toBe(run.sessionId);
+
+    act(() => transport.emit(run.id, {
+      type: "run-status", runId: run.id, sessionId: run.sessionId,
+      sequence: 1, status: "completed",
+    }));
+    await waitFor(() => expect(screen.getByRole("button")).toHaveAttribute("aria-busy", "false"));
+    await waitFor(() => expect(result.current.copilot.activeSession.status).toBe("empty"));
   });
 
   it("is exported with its dependency-injected boundary", () => {

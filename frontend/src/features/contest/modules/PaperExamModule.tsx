@@ -14,10 +14,11 @@ const PAPER_EXAM_ADMIN_PANELS: AdminPanelId[] = [
   "overview",
   "proctoring",
   "problem_editor",
-  "grading",
-  "ai-grading",
+  "grading-workbench",
 ];
-const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor"];
+/** The workbench replaces these; they stay reachable by URL until removed. */
+const LEGACY_GRADING_PANELS: AdminPanelId[] = ["grading", "ai-grading"];
+const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor", "grading-workbench"];
 
 export const paperExamContestModule: ContestTypeModule = {
   type: "paper_exam",
@@ -37,6 +38,7 @@ export const paperExamContestModule: ContestTypeModule = {
       contest?.status === "draft"
         ? DRAFT_ADMIN_PANELS
         : PAPER_EXAM_ADMIN_PANELS,
+    getHiddenPanels: () => LEGACY_GRADING_PANELS,
     getPanelRenderers: () => ({
       problem_editor: (props) => {
         if (!props.contest) return null;

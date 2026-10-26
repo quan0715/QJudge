@@ -54,13 +54,9 @@ class PaperExamSheetRenderer(BaseRenderer):
 
         question_rows: list[dict] = []
         answer_key_rows: list[dict] = []
-        main_number = 0
-        labels = build_paper_question_labels(questions)
+        labels = build_paper_question_labels(questions, expand_question_numbers=self.contest.expand_question_numbers)
         for idx, q in enumerate(questions, start=1):
             starts_group = q.group_id and (idx == 1 or questions[idx - 2].group_id != q.group_id)
-            if not q.group_id or starts_group:
-                main_number += 1
-            child_label = labels[q.id].split("(", 1)[1][:-1] if q.group_id else ""
             group_heading = None
             if starts_group:
                 last = idx
@@ -68,7 +64,11 @@ class PaperExamSheetRenderer(BaseRenderer):
                     last += 1
                 group_heading = {
                     "title": q.group.title,
-                    "number": main_number,
+                    "number": (
+                        f'{labels[q.id]}–{labels[questions[last - 1].id]}'
+                        if self.contest.expand_question_numbers and last > idx
+                        else labels[q.id].split('(', 1)[0]
+                    ),
                     "score": self._fmt_score(sum(child.score for child in questions[idx - 1:last])),
                     "stem_html": render_markdown(q.group.shared_stem_markdown, soft_breaks=False),
                 }
@@ -77,7 +77,7 @@ class PaperExamSheetRenderer(BaseRenderer):
             answer_ui = self._build_answer_ui(q)
             question_rows.append(
                 {
-                    "number": f"({child_label})" if q.group_id else f"{main_number}.",
+                    "number": f'{labels[q.id]}.',
                     "question_type": q.question_type,
                     "type_label": self._get_question_type_label(q.question_type),
                     "score": self._fmt_score(q.score),
@@ -93,7 +93,7 @@ class PaperExamSheetRenderer(BaseRenderer):
             )
             answer_key_rows.append(
                 {
-                    "number": labels[q.id],
+                    "number": f'{labels[q.id]}.',
                     "answer_text": self._format_answer_key_text(q, answer_text),
                     "score": self._fmt_score(q.score),
                 }
@@ -127,7 +127,7 @@ class PaperExamSheetRenderer(BaseRenderer):
                 "choice_marking_hint": self.get_label("choice_marking_hint"),
                 "answer_key_note": self.get_label("answer_key_note"),
             },
-            "question_count": main_number,
+            "question_count": len({label.split("(", 1)[0] for label in labels.values()}),
             "total_score": total_score,
             "questions": question_rows,
             "answer_key": answer_key_rows,

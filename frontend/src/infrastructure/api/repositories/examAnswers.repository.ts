@@ -83,6 +83,7 @@ interface ExamAnswerGradingDto {
   feedback: string;
   graded_by_username: string | null;
   graded_at: string | null;
+  is_ai_graded: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -97,6 +98,7 @@ export interface ExamAnswerGrading {
   feedback: string;
   gradedByUsername: string | null;
   gradedAt: string | null;
+  isAiGraded: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -128,6 +130,7 @@ const mapAnswerGradingDto = (dto: ExamAnswerGradingDto): ExamAnswerGrading => ({
   feedback: dto.feedback ?? "",
   gradedByUsername: dto.graded_by_username,
   gradedAt: dto.graded_at,
+  isAiGraded: dto.is_ai_graded === true,
   createdAt: dto.created_at,
   updatedAt: dto.updated_at,
 });
@@ -379,3 +382,32 @@ export const getBatchGradeWrites = async (
   );
   return response.writes;
 };
+
+export interface GradingUnitProgress {
+  unit_id: string;
+  question_ids: string[];
+  run_id: string;
+  total_count: number;
+  draft_count: number;
+  written_count: number;
+  skipped_count: number;
+  status: string;
+}
+
+export async function getGradingProgress(contestId: string, sessionId: string): Promise<GradingUnitProgress[]> {
+  const response = await requestJson<{ units: GradingUnitProgress[] }>(
+    httpClient.get(`/api/v1/contests/${contestId}/exam-answers/grading-progress/?session_id=${encodeURIComponent(sessionId)}`),
+    "無法載入批改草稿進度",
+  );
+  return response.units;
+}
+
+export interface GradingUnitDetail extends GradingUnitProgress {
+  rubric: unknown;
+  grades: { exam_answer_id: string; score: number; feedback: string }[];
+}
+
+export async function getGradingUnit(contestId: string, sessionId: string, unitId: string): Promise<GradingUnitDetail> {
+  const query = new URLSearchParams({ session_id: sessionId, unit_id: unitId });
+  return requestJson<GradingUnitDetail>(httpClient.get(`/api/v1/contests/${contestId}/exam-answers/grading-unit/?${query}`), "無法載入批改標準與草稿");
+}

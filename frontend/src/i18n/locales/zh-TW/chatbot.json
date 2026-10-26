@@ -12,6 +12,8 @@
     "unknownError": "未知錯誤"
   },
   "ui": {
+    "activityExecuting": "正在執行操作",
+    "activityWaiting": "等待下一步回應",
     "addAttachment": "新增附件",
     "addComment": "新增留言",
     "agentQuestion": "AI 助教提問",

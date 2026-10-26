@@ -13,6 +13,7 @@ import { Close, Filter } from "@carbon/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { getQuestionTypeLabel } from "@/features/contest/constants/examLabels";
+import { formatPaperQuestionLabel } from "@/features/contest/domain/paperQuestionLabels";
 import { formatScore } from "@/features/contest/utils/scoreFormat";
 import {
   type DashboardMockData,
@@ -44,8 +45,8 @@ type AttentionToneKey = "critical" | "warning" | "success";
 type FocusMetricKey = "score_rate" | "missing_rate" | "zero_rate";
 type FilterOption = { id: string; label: string };
 
-// Backend `order` is 0-based; the UI labels questions starting from 1.
-const getDisplayOrder = (order: number) => order + 1;
+const getQuestionLabel = (question: QuestionSummaryMock) =>
+  formatPaperQuestionLabel(question.questionLabel ?? question.order + 1);
 
 const focusMetrics: Array<{
   key: FocusMetricKey;
@@ -181,7 +182,7 @@ export default function AdminQuestionStatsGallery({
       const normalizedQuery = searchQuery.trim().toLowerCase();
       if (!normalizedQuery) return true;
       return [
-        `Q${getDisplayOrder(question.order)}`,
+        getQuestionLabel(question),
         question.title,
         getQuestionVisual(question.kind).label,
       ]
@@ -366,7 +367,7 @@ function QuestionStatsCard({
       <div className={styles.cardMeta}>
         <div className={styles.cardMetaLeft}>
           {questionVisual.Icon ? <questionVisual.Icon size={14} /> : null}
-          <span>Q{getDisplayOrder(question.order)}</span>
+          <span>{getQuestionLabel(question)}</span>
           <span>{questionVisual.label}</span>
         </div>
       </div>
@@ -427,7 +428,7 @@ function QuestionStatsDrawer({
         className={styles.drawer}
         role="dialog"
         aria-modal="true"
-        aria-label={`Q${getDisplayOrder(question.order)} 作答數據`}
+        aria-label={`${getQuestionLabel(question)} 作答數據`}
         initial={{ x: 24, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: 24, opacity: 0 }}
@@ -436,8 +437,8 @@ function QuestionStatsDrawer({
         <div className={styles.drawerHeader}>
           <div>
             <h3>
-              {questionVisual.Icon ? <questionVisual.Icon size={18} /> : null}Q
-              {getDisplayOrder(question.order)} · {questionVisual.label}
+              {questionVisual.Icon ? <questionVisual.Icon size={18} /> : null}
+              {getQuestionLabel(question)} · {questionVisual.label}
             </h3>
             <p>{question.title}</p>
           </div>

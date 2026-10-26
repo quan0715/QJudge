@@ -437,14 +437,14 @@ def test_group_header_precedes_children_once(paper_exam_contest, include_answers
     assert ">1.</span>" in html
     assert "Question group" not in html
     assert "題組" not in html
-    assert ">(a)</span>" in html
-    assert ">(b)</span>" in html
+    assert ">1(a).</span>" in html
+    assert ">1(b).</span>" in html
     assert ">2.</span>" in html
     if include_answers:
-        assert "<td>1(a)</td>" in html
-        assert "<td>1(b)</td>" in html
-        assert "<td>2</td>" in html
-        assert "<td>3(a)</td>" in html
+        assert "<td>1(a).</td>" in html
+        assert "<td>1(b).</td>" in html
+        assert "<td>2.</td>" in html
+        assert "<td>3(a).</td>" in html
     assert html.index("Common rules for both parts.") < html.index("Child part 1") < html.index("Child part 2") < html.index("Standalone")
     assert html.count('class="question-item grouped-question"') == 3
     assert ">3.</span>" in html

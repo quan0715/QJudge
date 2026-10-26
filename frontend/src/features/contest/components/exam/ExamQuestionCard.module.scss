@@ -8,9 +8,7 @@
 
 .groupStem {
   margin-bottom: layout.$spacing-06;
-  padding: layout.$spacing-05;
-  border: 1px solid var(--cds-border-subtle-01);
-  background: var(--cds-layer-01);
+  border-bottom: 1px solid var(--cds-border-subtle-01);
 }
 
 .groupStemHeader {
@@ -22,12 +20,12 @@
 }
 
 .groupStemTitle {
-  @include type.type-style("heading-compact-01");
+  @include type.type-style("heading-compact-02");
   color: var(--cds-text-primary);
 }
 
 .groupStemScore {
-  @include type.type-style("label-01");
+  @include type.type-style("body-compact-01");
   flex-shrink: 0;
   color: var(--cds-text-helper);
 }
@@ -50,6 +48,46 @@
 .score {
   @include type.type-style("body-compact-01");
   color: var(--cds-text-helper);
+}
+
+.objectiveQuestion {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: layout.$spacing-03;
+  align-items: start;
+  margin-bottom: layout.$spacing-05;
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.objectiveNumber {
+  font-weight: 600;
+}
+
+.objectiveContent {
+  min-width: 0;
+}
+
+.objectivePrompt {
+  display: contents;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+
+  p, li, td, th {
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  > p:last-child {
+    display: inline;
+  }
+}
+
+.objectiveMeta {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-helper);
+  white-space: nowrap;
 }
 
 .prompt {

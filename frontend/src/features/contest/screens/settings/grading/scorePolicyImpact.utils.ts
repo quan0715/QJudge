@@ -10,7 +10,7 @@ import type { GradingAnswerRow, QuestionProgress } from "./gradingTypes";
 
 // ── Internal types ─────────────────────────────────────────────────────────
 
-interface SimQuestion {
+export interface SimQuestion {
   id: string;
   maxScore: number;
   scorePolicy: ExamQuestionScorePolicy;
@@ -50,7 +50,7 @@ export interface SimulateImpactInput {
 
 // ── Core simulation — mirrors ExamScoringService._compute_effective_max ───
 
-function simulateEffectiveMax(questions: SimQuestion[]): Map<string, number> {
+export function simulateEffectiveMax(questions: SimQuestion[]): Map<string, number> {
   const effectiveMax = new Map<string, number>();
   const normalIds = new Set(questions.filter((q) => q.scorePolicy === "normal").map((q) => q.id));
 

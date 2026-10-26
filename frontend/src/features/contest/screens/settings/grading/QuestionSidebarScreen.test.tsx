@@ -31,7 +31,7 @@ describe("QuestionSidebarScreen", () => {
         questionId: "q-1",
         questionIndex: 1,
         questionType: "short_answer",
-        prompt: "Q1",
+        prompt: "1.",
         maxScore: 10,
         totalAnswers: 4,
         gradedCount: 2,
@@ -58,7 +58,7 @@ describe("QuestionSidebarScreen", () => {
         questionId: "q-1",
         questionIndex: 1,
         questionType: "short_answer",
-        prompt: "Q1",
+        prompt: "1.",
         maxScore: 10,
         totalAnswers: 4,
         gradedCount: 4,
@@ -83,7 +83,7 @@ describe("QuestionSidebarScreen", () => {
       questionId: "q-1",
       questionIndex: 1,
       questionType: "short_answer",
-      prompt: "Q1",
+      prompt: "1.",
       maxScore: 2,
       totalAnswers: 1,
       gradedCount: 1,
@@ -95,7 +95,7 @@ describe("QuestionSidebarScreen", () => {
       <QuestionSidebarScreen
         questions={[
           baseQuestion,
-          { ...baseQuestion, questionId: "q-2", questionIndex: 2, prompt: "Q2" },
+          { ...baseQuestion, questionId: "q-2", questionIndex: 2, prompt: "2." },
         ]}
         selectedQuestionId="q-1"
         onSelect={vi.fn()}
@@ -109,7 +109,7 @@ describe("QuestionSidebarScreen", () => {
     questionId: "q-1",
     questionIndex: 1,
     questionType: "essay",
-    prompt: "Q1",
+    prompt: "1.",
     maxScore: 10,
     totalAnswers: 3,
     gradedCount: 1,
@@ -126,7 +126,7 @@ describe("QuestionSidebarScreen", () => {
         batchStates={{
           "q-1": {
             questionId: "q-1",
-            label: "Q1",
+            label: "1.",
             index: 1,
             status: "running",
             ungradedCount: 2,

@@ -46,6 +46,7 @@ export interface ExamQuestionDto {
   score_policy_config?: { redistribute_to?: string[] } | null;
   order?: number;
   group_id?: number | string | null;
+  expand_question_numbers?: boolean;
   order_in_group?: number | null;
   answer_format?: ExamQuestionAnswerFormat | string;
   source_bank?: {
@@ -70,6 +71,7 @@ export interface ExamQuestionGroupDto {
 }
 
 export interface ExamPaperDto {
+  expand_question_numbers?: boolean;
   questions?: ExamQuestionDto[];
   groups?: ExamQuestionGroupDto[];
   blocks?: ExamPaperBlockDto[];
@@ -113,6 +115,7 @@ export interface ContestDetailDto extends ContestDto {
   webcam_required?: boolean;
   scoreboard_visible_during_contest?: boolean;
   allow_multiple_joins?: boolean;
+  expand_question_numbers?: boolean;
   results_published?: boolean;
   question_edit_locked?: boolean;
   exam_questions_count?: number;
@@ -212,6 +215,7 @@ export interface ParticipantTimelineItemDto {
 }
 
 export interface ParticipantPaperReportRowDto {
+  question_label?: string;
   question_id?: number | string;
   index?: number;
   question_type?: string;

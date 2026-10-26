@@ -121,3 +121,41 @@ class ExamBatchGradeWrite(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['answer', 'session_id', 'run_id'], name='unique_batch_run_answer_write'),
         ]
+
+
+class ExamGradingUnit(models.Model):
+    """Durable AI grading snapshot, drafts and per-answer commit outcomes."""
+    contest = models.ForeignKey("contests.Contest", on_delete=models.CASCADE)
+    grader = models.ForeignKey(User, on_delete=models.CASCADE)
+    session_id = models.UUIDField(db_index=True)
+    run_id = models.UUIDField()
+    unit_id = models.CharField(max_length=255)
+    snapshot = models.JSONField(default=dict)
+    rubric = models.JSONField(null=True, blank=True)
+    drafts = models.JSONField(default=dict)
+    results = models.JSONField(default=dict)
+    progress = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        targets = [a for a in self.snapshot.get('answers', []) if a['writable']]
+        complete = all(self.results.get(a['exam_answer_id'], {}).get('status') in ('ok', 'skipped') for a in targets)
+        self.progress = {
+            'unit_id': self.unit_id, 'run_id': str(self.run_id),
+            'question_ids': self.snapshot.get('question_ids', []),
+            'total_count': len(targets), 'draft_count': len(self.drafts),
+            'written_count': sum(r['status'] == 'ok' for r in self.results.values()),
+            'skipped_count': sum(r['status'] == 'skipped' for r in self.results.values()),
+            'status': 'completed' if complete and self.snapshot.get('submitted') else ('draft' if self.drafts else 'pending'),
+        }
+        if kwargs.get('update_fields') is not None:
+            kwargs['update_fields'] = set(kwargs['update_fields']) | {'progress'}
+        super().save(*args, **kwargs)
+
+    class Meta:
+        db_table = 'exam_grading_units'
+        constraints = [models.UniqueConstraint(
+            fields=['contest', 'grader', 'session_id', 'run_id', 'unit_id'],
+            name='uq_exam_grading_unit_attempt',
+        )]

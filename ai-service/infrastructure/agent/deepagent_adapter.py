@@ -5,24 +5,28 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from collections.abc import AsyncIterator, Mapping
-from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+from contextlib import AbstractAsyncContextManager, aclosing, asynccontextmanager, nullcontext
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
+from pathlib import Path
 from typing import Any, AsyncGenerator, Protocol
 from uuid import UUID
 
+import httpx
 from deepagents import FilesystemPermission, create_deep_agent
 from deepagents.backends.composite import CompositeBackend
 from deepagents.backends.filesystem import FilesystemBackend
 from deepagents.backends.state import StateBackend
 from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
 from deepagents.middleware.summarization import SummarizationMiddleware
+from langchain.agents.middleware import ModelRetryMiddleware
 from langgraph.types import Command
 
 from application.artifacts import ArtifactService
 from infrastructure.checkpoints.langgraph_store import LangGraphCheckpointStore
+from infrastructure.agent.event_coalescer import coalesce_text_events
 from infrastructure.agent.event_adapter import (
     AgentMessageDelta,
     AwaitingApproval,
@@ -56,20 +60,40 @@ from domain.model_catalog import ModelConfigInvalid, ModelNotAvailable
 from infrastructure.agent.approval_policy import WRITE_ACTIONS
 from infrastructure.agent.checkpoint_recovery_manager import CheckpointRecoveryManager
 from infrastructure.agent.recursion_failure_handler import RecursionFailureHandler
+from infrastructure.agent.tool_error_middleware import ToolErrorFeedbackMiddleware
 from infrastructure.agent.usage_accumulator import UsageAccumulator
 from infrastructure.artifacts.tools import build_artifact_tools
 from infrastructure.mcp.provider import MCPToolProvider
 
 logger = logging.getLogger(__name__)
 
+_GRADING_PRINCIPLES_PATH = (
+    Path(__file__).resolve().parents[2]
+    / ".deepagents/skills/qjudge-exam-grading-sop/references/core-principles.md"
+)
+_GRADING_SOP_PATH = _GRADING_PRINCIPLES_PATH.parents[1] / "SKILL.md"
+
 _MODEL_QUOTA_EXHAUSTED_MESSAGE = (
     "The selected AI model has no remaining provider quota. "
     "Select another model or contact an administrator."
 )
+_MODEL_STREAM_ERRORS = (httpx.ReadError, httpx.RemoteProtocolError)
+
+
+def _model_stream_retry() -> ModelRetryMiddleware:
+    # Retry just the model response, never replay completed grading/tool writes.
+    return ModelRetryMiddleware(
+        max_retries=2, retry_on=_MODEL_STREAM_ERRORS, on_failure="error",
+        initial_delay=1.0, backoff_factor=2.0,
+    )
 
 
 def _classify_agent_failure(exc: Exception) -> tuple[str, str]:
     """Convert safe-to-recognize upstream model failures into API contract errors."""
+    if isinstance(exc, _MODEL_STREAM_ERRORS):
+        return "MODEL_CONNECTION_ERROR", (
+            "模型連線中斷，重試後仍失敗。已完成的操作已保留，請稍後重試。"
+        )
     detail = str(exc).casefold()
     if "insufficient_quota" in detail or "insufficient balance" in detail:
         return "MODEL_QUOTA_EXHAUSTED", _MODEL_QUOTA_EXHAUSTED_MESSAGE
@@ -93,6 +117,7 @@ class AgentCommand:
     mcp_token: str
     approval: dict[str, Any] | None
     answer: str | None
+    execution_epoch: int = 0
 
 
 class AgentRunner(Protocol):
@@ -331,7 +356,7 @@ _DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教，對話對象是老師�
 - `/app/.deepagents/skills/qjudge-ta-protocol/SKILL.md`
 - `/app/.deepagents/skills/qjudge-mcp-tool-operator/SKILL.md`
 - `/app/.deepagents/skills/coding-problem-ta-skill/SKILL.md`
-- `/app/.deepagents/skills/qjudge-exam-grading-sop/SKILL.md`（open-ended 題批改 SOP；遇到老師要評分/改分時讀此）
+- `/app/.deepagents/skills/qjudge-exam-grading-sop/SKILL.md`（批改工具可用時，SOP 與核心原則已載入）
 
 如工具錯誤或路由不確定，先呼叫：
 `qjudge_browse(action="get_help", tool_name="<tool_name>")`
@@ -410,6 +435,19 @@ class _DeepAgentRuntime:
         custom middleware that is not already included.
         """
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
+        grading_instructions = ""
+        if any(getattr(tool, "name", None) in {"get_grading_unit", "qjudge_grading"} for tool in tools):
+            # The SOP owns the text. Both model contexts receive it without a
+            # discretionary skill read or a parent-written delegation summary.
+            try:
+                sop = _GRADING_SOP_PATH.read_text(encoding="utf-8").strip()
+                principles = _GRADING_PRINCIPLES_PATH.read_text(encoding="utf-8").strip()
+            except (OSError, UnicodeError) as exc:
+                raise RuntimeError("Grading SOP or core principles could not be loaded") from exc
+            if not sop or not principles:
+                raise RuntimeError("Grading SOP or core principles are empty")
+            grading_instructions = f"{sop}\n\n{principles}"
+            prompt = f"{prompt}\n\n{grading_instructions}"
         skills = [p for p in self._skills_paths if p]
         memory = [p for p in self._memory_paths if p]
 
@@ -439,11 +477,20 @@ class _DeepAgentRuntime:
             "subagents": [
                 {
                     **GENERAL_PURPOSE_SUBAGENT,
+                    "system_prompt": "\n\n".join(filter(None, [
+                        GENERAL_PURPOSE_SUBAGENT["system_prompt"], grading_instructions,
+                    ])),
                     "skills": skills,
-                    "middleware": [SubagentWriteGuardMiddleware(write_actions=WRITE_ACTIONS)],
+                    "middleware": [
+                        _model_stream_retry(),
+                        ToolErrorFeedbackMiddleware(),
+                        SubagentWriteGuardMiddleware(write_actions=WRITE_ACTIONS),
+                    ],
                 }
             ],
             "middleware": [
+                _model_stream_retry(),
+                ToolErrorFeedbackMiddleware(),
                 # Must be the last middleware: inspects the final tool_calls produced by
                 # the model turn and pauses execution for human approval on write actions.
                 ActionAwareHITLMiddleware(
@@ -833,9 +880,13 @@ class DeepAgentAdapter:
         artifact_service: ArtifactService,
         checkpoint_store: CheckpointIdentity,
         runner: AgentRunner | None = None,
+        run_tools: Callable[[AgentCommand], Awaitable[list[Any]]] | None = None,
+        finalize_run: Callable[[AgentCommand], Awaitable[None]] | None = None,
         skills_paths: list[str] | None = None,
         memory_paths: list[str] | None = None,
     ) -> None:
+        self._run_tools = run_tools
+        self._finalize_run = finalize_run
         self._mcp_provider = mcp_provider
         self._artifact_service = artifact_service
         self._checkpoint_store = checkpoint_store
@@ -862,18 +913,34 @@ class DeepAgentAdapter:
             **self._checkpoint_store.configurable(command.session_id),
             "run_id": str(command.run_id),
         }
-        async with self._mcp_provider.connect(command.mcp_token) as mcp_tools:
-            tools = [
+        bound_tools = await self._run_tools(command) if self._run_tools is not None else []
+        tool_grading = any(getattr(tool, "name", None) == "get_grading_unit" for tool in bound_tools)
+        connection = nullcontext([]) if tool_grading else self._mcp_provider.connect(command.mcp_token)
+        async with connection as mcp_tools:
+            tools = [*bound_tools] if tool_grading else [
                 *mcp_tools,
-                *build_artifact_tools(
-                    session_id=command.session_id,
-                    run_id=command.run_id,
-                    artifact_service=self._artifact_service,
-                ),
+                *build_artifact_tools(session_id=command.session_id, run_id=command.run_id,
+                                      artifact_service=self._artifact_service),
+                *bound_tools,
             ]
-            async for raw_event in self._runner.execute(
-                command=command,
+            model_command = command
+            if tool_grading and command.operation == AgentOperation.START and command.prompt:
+                # The units line scopes the bound tools; the model reads the teacher's words.
+                visible = '\n'.join(line for line in command.prompt.splitlines()
+                                    if not line.startswith('batch_units:'))
+                model_command = replace(command, prompt=visible)
+            raw_events = self._runner.execute(
+                command=model_command,
                 tools=tools,
                 configurable=configurable,
-            ):
-                yield {**raw_event, "run_id": str(command.run_id)}
+            )
+            async with aclosing(coalesce_text_events(raw_events)) as events:
+                async for raw_event in events:
+                    if raw_event.get("type") == "run_completed" and self._finalize_run is not None:
+                        try:
+                            await self._finalize_run(command)
+                        except Exception:
+                            logger.exception("Run %s artifact export failed", command.run_id)
+                            yield {"type": "agent_message_delta", "run_id": str(command.run_id),
+                                   "content": "\n\n批改檔案匯出失敗；已保存的草稿與正式成績不受影響。"}
+                    yield {**raw_event, "run_id": str(command.run_id)}

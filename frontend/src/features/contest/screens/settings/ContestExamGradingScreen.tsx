@@ -6,7 +6,7 @@ import {
   Layer,
   Popover,
   PopoverContent,
-  FluidSearch,
+  Search,
   FluidDropdown,
 } from "@carbon/react";
 import { Catalog, DocumentExport, Filter, UserMultiple } from "@carbon/icons-react";
@@ -23,13 +23,8 @@ import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useAdminPanelRefresh } from "@/features/contest/contexts";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import {
-  IconModeSwitcher,
   type IconModeOption,
 } from "@/shared/ui/navigation";
-import { useBatchGrading } from "./grading/batchGrading/useBatchGrading";
-import { selectBatchQuestions } from "./grading/batchGrading/batchGradingModel";
-import { BatchGradingToolbarControl } from "./grading/batchGrading/BatchGradingToolbarControl";
-import { BatchGradingStartModal } from "./grading/batchGrading/BatchGradingStartModal";
 import styles from "./grading/ContestExamGrading.module.scss";
 
 type GradingViewMode = "byQuestion" | "byStudent" | "matrix";
@@ -44,7 +39,7 @@ const isValidFilter = (value: string): value is GradingFilter =>
 const ContestExamGradingScreen: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [, startTransition] = useTransition();
-  const { contest, refreshContest } = useContest();
+  const { refreshContest } = useContest();
   const { registerPanelRefresh } = useAdminPanelRefresh();
   const [selectionRequest, setSelectionRequest] = useState<{
     questionId: string;
@@ -98,22 +93,10 @@ const ContestExamGradingScreen: React.FC = () => {
     gradeAnswer,
     ungradeAnswer,
     refreshData,
-    reloadAnswers,
     loading,
   } = useGradingData();
 
   const { flaggedIds, toggleFlag } = useGradingFlags();
-
-  const batch = useBatchGrading(contest?.id ?? "", answers, {
-    resultsPublished: contest?.resultsPublished ?? false,
-    reloadAnswers,
-  });
-  const [batchStartOpen, setBatchStartOpen] = useState(false);
-  const batchQuestions = useMemo(() => selectBatchQuestions(answers), [answers]);
-  const batchStates = useMemo(
-    () => Object.fromEntries(batch.questions.map((q) => [q.questionId, q])),
-    [batch.questions],
-  );
 
   const hasActiveFilters = searchQuery.trim().length > 0 || filter !== "all";
   const filterOptions = useMemo<GlobalFilterOption[]>(
@@ -190,16 +173,24 @@ const ContestExamGradingScreen: React.FC = () => {
     <div className={styles.editorRoot}>
       <div className={styles.globalToolbar}>
         <div className={styles.toolbarGroup}>
-          <IconModeSwitcher
-            value={viewMode}
-            options={viewModeOptions}
-            onChange={handleViewChange}
-            ariaLabel={t("grading.viewMode", "批改模式")}
-            className={styles.modeSwitcher}
-            tooltipPosition="bottom"
-          />
+          <div className={styles.modeSwitcher} role="group" aria-label={t("grading.viewMode", "批改模式")}>
+            {viewModeOptions.map((option) => (
+              <Button key={option.value} kind={viewMode === option.value ? "secondary" : "ghost"}
+                size="sm" renderIcon={option.icon} aria-pressed={viewMode === option.value}
+                onClick={() => handleViewChange(option.value)}>
+                {option.label}
+              </Button>
+            ))}
+          </div>
           {viewMode !== "matrix" ? (
-            <Layer>
+            <div className={styles.toolbarFilters}>
+              <Search id="grading-global-search" size="sm"
+                labelText={t("grading.searchStudent", "搜尋學生")}
+                placeholder={t("grading.searchStudent", "搜尋學生")}
+                value={searchQuery}
+                onChange={(event) => updateGradingParams({ grading_search: event.target.value || null })}
+              />
+            {viewMode === "byQuestion" && <Layer>
               <Popover
                 open={filterOpen}
                 align="bottom-left"
@@ -209,24 +200,16 @@ const ContestExamGradingScreen: React.FC = () => {
                 <Button
                   kind="ghost"
                   size="sm"
-                  hasIconOnly
                   renderIcon={Filter}
                   iconDescription={t("grading.filter", "篩選")}
                   data-testid="grading-global-filter-btn"
                   onClick={() => setFilterOpen((prev) => !prev)}
                   className={hasActiveFilters ? styles.globalFilterActive : undefined}
-                />
+                >
+                  {filterOptions.find((option) => option.id === filter)?.label}
+                </Button>
                 <PopoverContent className={styles.globalFilterPopoverContent}>
                   <div className={styles.globalFilterPopoverFields}>
-                    <FluidSearch
-                      id="grading-global-search"
-                      labelText={t("grading.searchStudent", "搜尋學生")}
-                      placeholder={`${t("grading.searchStudent", "搜尋學生")}...`}
-                      value={searchQuery}
-                      onChange={(event) =>
-                        updateGradingParams({ grading_search: event.target.value || null })
-                      }
-                    />
                     {viewMode === "byQuestion" ? (
                       <FluidDropdown
                         id="grading-global-filter"
@@ -266,25 +249,12 @@ const ContestExamGradingScreen: React.FC = () => {
                   </div>
                 </PopoverContent>
               </Popover>
-            </Layer>
+            </Layer>}
+            </div>
           ) : null}
         </div>
 
-        <div className={styles.toolbarSpacer} />
-        <BatchGradingToolbarControl
-          batch={batch}
-          resultsPublished={contest?.resultsPublished ?? false}
-          onRequestStart={() => setBatchStartOpen(true)}
-        />
       </div>
-      <BatchGradingStartModal
-        open={batchStartOpen}
-        questionCount={batchQuestions.filter((q) => q.ungradedRows.length > 0).length}
-        answerCount={batchQuestions.reduce((sum, q) => sum + q.ungradedRows.length, 0)}
-        skippedCount={batchQuestions.reduce((sum, q) => sum + q.skippedCount, 0)}
-        onClose={() => setBatchStartOpen(false)}
-        onConfirm={batch.start}
-      />
 
       {/* Editor body */}
       <div className={styles.editorBody}>
@@ -310,17 +280,6 @@ const ContestExamGradingScreen: React.FC = () => {
               }
               selectionRequest={selectionRequest}
               onRefreshData={refreshData}
-              batch={
-                batch.sessionId
-                  ? {
-                      states: batchStates,
-                      onRevert: batch.revertQuestion,
-                      onRegrade: batch.regradeQuestion,
-                      onLoadFiles: batch.loadQuestionFiles,
-                      onResume: () => void batch.resume(),
-                    }
-                  : undefined
-              }
             />
           ) : viewMode === "byStudent" ? (
             <GradingByStudentTabScreen

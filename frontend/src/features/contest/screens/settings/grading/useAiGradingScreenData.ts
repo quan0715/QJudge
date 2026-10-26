@@ -74,7 +74,7 @@ export function useAiGradingScreenData(
     enabled: !!user && !!contestId,
     queryFn: async () => {
       const [questions, dashboard] = await Promise.all([
-        getExamQuestions(contestId!, { kind: "subjective" }),
+        getExamQuestions(contestId!),
         getExamDashboardSummary(contestId!, { kind: "subjective" }),
       ]);
       return { questions: questions.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)), dashboard };
@@ -135,6 +135,7 @@ export function useAiGradingScreenData(
           isObjective: !isSubjectiveType(qType),
         };
       })
+      .filter((q) => !q.isObjective)
       .sort((a, b) => a.questionIndex - b.questionIndex);
   }, [questions, questionStatsById]);
 

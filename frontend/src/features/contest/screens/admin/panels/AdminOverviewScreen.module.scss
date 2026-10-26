@@ -39,3 +39,5 @@
   align-items: center;
   gap: layout.$spacing-02;
 }
+
+.scoreMatrix { height: min(65vh, 44rem); min-height: 20rem; }

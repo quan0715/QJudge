@@ -1,4 +1,5 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 .markdown-editor {
   display: flex;
   flex-direction: column;
@@ -352,5 +353,41 @@
         background-color: var(--cds-field);
       }
     }
+  }
+}
+
+// An understated authoring surface; existing editor consumers keep their styling.
+.markdown-field--subtle .markdown-field__editor {
+  padding: 0;
+  border: 1px solid var(--cds-border-subtle-01);
+}
+.markdown-field--subtle .markdown-editor {
+  border: 0;
+}
+.markdown-editor--subtle {
+  .markdown-editor__topbar {
+    height: auto;
+    min-height: 2rem;
+    flex-wrap: wrap;
+    background: var(--cds-layer-01);
+  }
+  .markdown-editor__tab-btn {
+    @include type.type-style("label-01");
+    padding-inline: layout.$spacing-04;
+    border: 0;
+    border-block-end: 2px solid transparent;
+    color: var(--cds-text-secondary);
+    &[aria-selected="true"] {
+      color: var(--cds-text-primary);
+      border-block-end-color: var(--cds-border-interactive);
+    }
+  }
+  .markdown-editor__topbar-toolbar {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .markdown-toolbar {
+    background: transparent;
+    border-bottom: 0;
   }
 }
