@@ -71,6 +71,50 @@ def paper_url(contest_id):
 
 @pytest.mark.django_db
 class TestExamQuestionGroupsApi:
+    def test_paper_numbering_cannot_change_after_a_candidate_starts(self, api_client, teacher, contest):
+        contest.contest_type = 'paper_exam'
+        contest.save(update_fields=['contest_type'])
+        ContestParticipant.objects.create(contest=contest, user=teacher, started_at=timezone.now())
+        api_client.force_authenticate(user=teacher)
+        updated = api_client.patch(f'/api/v1/contests/{contest.id}/', {'expand_question_numbers': True}, format='json')
+        assert updated.status_code == status.HTTP_400_BAD_REQUEST
+        contest.refresh_from_db()
+        assert contest.expand_question_numbers is False
+
+    def test_group_child_can_keep_an_empty_prompt(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        created = api_client.post(paper_url(contest.id), {
+            'kind': 'group', 'group': {'shared_stem_markdown': 'Choose the word for blank 1.'},
+            'children': [{'question_type': 'single_choice', 'prompt': '', 'options': ['a', 'b'], 'correct_answer': 0, 'score': 2}],
+        }, format='json')
+        assert created.status_code == status.HTTP_201_CREATED
+        assert created.data['children'][0]['prompt'] == ''
+        child_id = created.data['children'][0]['id']
+        updated = api_client.patch(f'{paper_url(contest.id)}{child_id}/', {
+            'kind': 'question', 'question': {'prompt': ''},
+        }, format='json')
+        assert updated.status_code == status.HTTP_200_OK
+        assert updated.data['question']['prompt'] == ''
+
+    def test_paper_numbering_rule_applies_to_all_groups_and_student_questions(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        for title in ['First group', 'Second group']:
+            created = api_client.post(paper_url(contest.id), {
+                'kind': 'group', 'group': {'title': title},
+                'children': [{'question_type': 'essay', 'prompt': 'Part a', 'score': 2}],
+            }, format='json')
+            assert created.status_code == status.HTTP_201_CREATED
+        updated = api_client.patch(f'/api/v1/contests/{contest.id}/', {
+            'expand_question_numbers': True,
+        }, format='json')
+        assert updated.status_code == status.HTTP_200_OK
+        contest.refresh_from_db()
+        assert contest.expand_question_numbers is True
+        paper = api_client.get(paper_url(contest.id)).data
+        assert paper['expand_question_numbers'] is True
+        assert all(question['expand_question_numbers'] for question in paper['questions'])
+        assert all('expand_question_numbers' not in group for group in paper['groups'])
+
     def test_teacher_can_create_group_and_assign_child_questions(self, api_client, teacher, contest):
         api_client.force_authenticate(user=teacher)
 
@@ -218,6 +262,7 @@ class TestExamQuestionGroupsApi:
         assert res.status_code == status.HTTP_200_OK
         assert [item["id"] for item in res.data["questions"]] == [str(first.id), str(second.id), ANY]
         assert "correct_answer" not in res.data["questions"][0]
+        assert res.data["questions"][0]["expand_question_numbers"] is False
         assert res.data["questions"][1]["answer_format"] == "markdown_math"
         assert res.data["groups"] == [
             {

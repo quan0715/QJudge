@@ -122,6 +122,7 @@ export interface ParticipantOverviewSummary {
 }
 
 export interface ParticipantPaperReportOverviewRow {
+  questionLabel?: string;
   questionId: string;
   index: number;
   questionType: ExamQuestionType;
@@ -132,6 +133,7 @@ export interface ParticipantPaperReportOverviewRow {
 }
 
 export interface ParticipantPaperQuestionDetail {
+  questionLabel?: string;
   questionId: string;
   index: number;
   questionType: ExamQuestionType;
@@ -282,6 +284,7 @@ export interface ContestDetail extends Contest {
 
   // Advanced settings
   allowMultipleJoins: boolean;
+  expandQuestionNumbers?: boolean;
 
   // Results
   resultsPublished: boolean;
@@ -477,6 +480,7 @@ export interface ExamQuestion {
   scorePolicyConfig?: { redistributeTo?: string[] } | null;
   order: number;
   groupId?: string | null;
+  expandQuestionNumbers?: boolean;
   orderInGroup?: number | null;
   answerFormat?: ExamQuestionAnswerFormat;
   sourceBank?: {
@@ -503,6 +507,7 @@ export type ExamPaperBlock =
     };
 
 export interface ExamPaper {
+  expandQuestionNumbers?: boolean;
   questions: ExamQuestion[];
   groups: ExamQuestionGroup[];
   sections: ExamPaperSection[];
@@ -539,6 +544,7 @@ export interface ContestUpdateRequest {
   webcamRequired?: boolean;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
+  expandQuestionNumbers?: boolean;
   resultsPublished?: boolean;
 }
 

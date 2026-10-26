@@ -47,7 +47,7 @@ export {
   reorderExamPaperBlocks,
   updateExamPaperBlock,
 } from "./examPaper.repository";
-export type { ExamPaperQuestionPayload } from "./examPaper.repository";
+export type { ExamPaperQuestionPayload, ExamPaperReorderBlock } from "./examPaper.repository";
 export { importExamQuestionsFromBank } from "./examQuestions.repository";
 export type {
   ExamQuestionUpsertPayload,

@@ -6,7 +6,7 @@ import type {
   ExamQuestionGroup,
 } from "@/core/entities/contest.entity";
 
-import { buildQuestionPresentationById } from "./paperExamSectionView";
+import { buildQuestionPresentationById } from "./questionPresentation";
 
 const createQuestion = (id: string, groupId?: string | null): ExamQuestion => ({
   id,

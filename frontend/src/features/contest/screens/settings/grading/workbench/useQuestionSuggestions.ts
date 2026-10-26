@@ -88,7 +88,7 @@ export function useQuestionSuggestions(
     async (targetRows: readonly GradingAnswerRow[], modelId?: string) => {
       if (!questionId || targetRows.length === 0) return;
       const label = targetRows[0].questionLabel ?? String(targetRows[0].questionIndex);
-      const started = await ai.start(contestId, questionId, [...targetRows], { modelId, title: `AI 建議 · Q${label}` });
+      const started = await ai.start(contestId, questionId, [...targetRows], { modelId, title: `AI 建議 · ${label}.` });
       if (!started) throw new Error("AI 建議啟動失敗，請稍後再試");
       await refreshSessions();
       // The copilot only attaches to a session's run when the session is selected.

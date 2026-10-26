@@ -18,6 +18,7 @@ from ..exporters import (
     sanitize_filename,
 )
 from .exam_scoring import ExamScoringService
+from .paper_question_labels import build_paper_question_labels
 from .participation import _classroom_staff_ids, attempted_participants, get_contest_classroom
 
 
@@ -152,6 +153,9 @@ def build_paper_exam_results_csv_response(contest):
     questions = list(
         ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
     )
+    question_labels = build_paper_question_labels(
+        questions, expand_question_numbers=contest.expand_question_numbers
+    )
     scoring = ExamScoringService(contest)
     participants = list(
         attempted_participants(contest)
@@ -174,9 +178,9 @@ def build_paper_exam_results_csv_response(contest):
     # Header
     writer = csv.writer(response)
     header = ['帳號', '顯示名稱', 'Email', '考試狀態', '已批改/總題數', '總分', '滿分']
-    for idx, q in enumerate(questions, 1):
+    for q in questions:
         type_label = ExamQuestionType(q.question_type).label
-        header.append(f'Q{idx} ({type_label}, {q.score}分)')
+        header.append(f'{question_labels[q.id]}. ({type_label}, {q.score}分)')
     writer.writerow(header)
 
     # Data rows — collect scores for average calculation

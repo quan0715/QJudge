@@ -18,7 +18,7 @@ const PAPER_EXAM_ADMIN_PANELS: AdminPanelId[] = [
 ];
 /** The workbench replaces these; they stay reachable by URL until removed. */
 const LEGACY_GRADING_PANELS: AdminPanelId[] = ["grading", "ai-grading"];
-const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor"];
+const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor", "grading-workbench"];
 
 export const paperExamContestModule: ContestTypeModule = {
   type: "paper_exam",

@@ -3,12 +3,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAiGradingScreenData } from "./useAiGradingScreenData";
 import { getAllExamAnswersForGrading } from "@/infrastructure/api/repositories/examAnswers.repository";
 import type { ExamAnswerGrading } from "@/infrastructure/api/repositories/examAnswers.repository";
+import type { ExamQuestion } from "@/core/entities/contest.entity";
+import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 
 const scope = vi.hoisted(() => ({ contestId: "contest-a", user: { id: "teacher-a" } }));
 vi.mock("react-router-dom", () => ({ useParams: () => ({ contestId: scope.contestId }) }));
 vi.mock("@/features/auth/contexts/AuthContext", () => ({ useAuth: () => ({ user: scope.user }) }));
 vi.mock("@/infrastructure/api/repositories/examAnswers.repository", () => ({ getAllExamAnswersForGrading: vi.fn() }));
-vi.mock("@/infrastructure/api/repositories/examQuestions.repository", () => ({ getExamQuestions: async () => [] }));
+vi.mock("@/infrastructure/api/repositories/examQuestions.repository", () => ({ getExamQuestions: vi.fn(async () => []) }));
 vi.mock("@/infrastructure/api/repositories/exam.repository", () => ({ getExamDashboardSummary: async () => ({ questions: [] }) }));
 
 function deferred<T>() {
@@ -26,7 +28,30 @@ function setup() {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(getExamQuestions).mockResolvedValue([]);
   scope.contestId = "contest-a"; scope.user = { id: "teacher-a" };
+});
+
+it.each([
+  [false, ["2(b)", "3"]],
+  [true, ["3", "4"]],
+] as const)("labels subjective questions from the full paper (expanded: %s)", async (expanded, expectedLabels) => {
+  const questions = [
+    { id: "objective", order: 0, questionType: "single_choice" },
+    { id: "group-objective", order: 1, groupId: "group", questionType: "single_choice" },
+    { id: "A", order: 2, groupId: "group", questionType: "essay" },
+    { id: "essay", order: 3, questionType: "short_answer" },
+  ].map((question) => ({ ...question, expandQuestionNumbers: expanded })) as ExamQuestion[];
+  vi.mocked(getExamQuestions).mockResolvedValue(questions);
+  vi.mocked(getAllExamAnswersForGrading).mockResolvedValue({ data: [answer("a", "A")] } as Awaited<ReturnType<typeof getAllExamAnswersForGrading>>);
+
+  const { result } = setup();
+
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  expect(getExamQuestions).toHaveBeenCalledWith("contest-a");
+  expect(result.current.questionProgress.map((question) => question.questionId)).toEqual(["A", "essay"]);
+  expect(result.current.questionProgress.map((question) => question.questionLabel)).toEqual(expectedLabels);
+  expect(result.current.answersByQuestion.get("A")?.[0].questionLabel).toBe(expectedLabels[0]);
 });
 
 it("settles A → B → A while both requests are pending and refreshes after a grade write", async () => {

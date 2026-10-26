@@ -97,7 +97,7 @@ export default function GradeAppealDialog({ contestId, appealId, answerId, quest
   const displayLabel = ticket?.question_label ?? questionLabel ?? (ticket ? String(ticket.question_order + 1) : undefined);
   const tooLong = Array.from(draft.trim()).length > 5000;
   return (
-    <Modal open passiveModal modalHeading={displayLabel ? `成績申訴 · 第 ${displayLabel} 題` : "成績申訴"} size="lg" onRequestClose={onClose} preventCloseOnClickOutside>
+    <Modal open passiveModal modalHeading={displayLabel ? `成績申訴 · ${displayLabel}.` : "成績申訴"} size="lg" onRequestClose={onClose} preventCloseOnClickOutside>
       <div className={styles.root}>
         <div className={styles.actions}>
           {ticket && <Tag type={ticket.status === "closed" ? "gray" : "blue"}>{ticket.status === "closed" ? "已結案" : "未結案"}</Tag>}

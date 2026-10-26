@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { WorkbenchRailHeader } from "./workbench/WorkbenchRailHeader";
 import type { ExamPaper, ExamQuestion } from "@/core/entities/contest.entity";
 import type { GradingAnswerRow } from "./grading/gradingTypes";
 import ContestGradingWorkbenchScreen from "./ContestGradingWorkbenchScreen";
@@ -182,6 +183,19 @@ beforeEach(() => {
 });
 
 describe("grading workbench", () => {
+  it.each(["empty", "error"])("keeps editing reachable from the %s grading state", async (state) => {
+    if (state === "empty") mocks.getExamPaper.mockResolvedValue({ ...paper, questions: [], blocks: [] });
+    else mocks.getExamPaper.mockRejectedValue(new Error("Paper unavailable"));
+    function View() {
+      const [mode, setMode] = useState<"edit" | "grade">("grade");
+      return mode === "edit" ? <p>Editing resumed</p> : <ContestGradingWorkbenchScreen header={<WorkbenchRailHeader mode="grade" gradeDisabled={false} onModeChange={setMode} />} />;
+    }
+    render(<QueryClientProvider client={new QueryClient()}><MemoryRouter><View /></MemoryRouter></QueryClientProvider>);
+    await screen.findByText(state === "empty" ? "尚無作答資料" : "Paper unavailable");
+    fireEvent.click(screen.getByRole("tab", { name: "編輯" }));
+    expect(screen.getByText("Editing resumed")).toBeInTheDocument();
+  });
+
   it("saves a sub-question and advances", async () => {
     await setup();
     edit("1(a)", 3, "Complete", 0);
@@ -374,8 +388,8 @@ describe("grading workbench", () => {
     }));
     await setup("grading_question=c");
     const rail = within(screen.getByRole("navigation", { name: "題目" }));
-    expect(rail.getByRole("progressbar", { name: "第 1 題草稿完成進度" })).toHaveAttribute("title", "草稿已完成 3/4 · 已寫入 0/2");
-    expect(rail.getByRole("progressbar", { name: "第 1 題草稿完成進度" })).toHaveAttribute("aria-valuenow", "75");
+    expect(rail.getByRole("progressbar", { name: "1.草稿完成進度" })).toHaveAttribute("title", "草稿已完成 3/4 · 已寫入 0/2");
+    expect(rail.getByRole("progressbar", { name: "1.草稿完成進度" })).toHaveAttribute("aria-valuenow", "75");
     expect(screen.getByText("Read the SOP")).toBeInTheDocument();
   });
 
@@ -386,7 +400,7 @@ describe("grading workbench", () => {
     try {
       await setup("grading_question=c");
       const rail = within(screen.getByRole("navigation", {name: "題目"}));
-      expect(rail.getByRole("progressbar", { name: "第 1 題草稿完成進度" })).toHaveAttribute("title", "等待批改草稿 · 已寫入 1/2");
+      expect(rail.getByRole("progressbar", { name: "1.草稿完成進度" })).toHaveAttribute("title", "等待批改草稿 · 已寫入 1/2");
     } finally {
       saved.forEach(row => { row.score = null; });
     }
@@ -394,7 +408,7 @@ describe("grading workbench", () => {
 
   it("a single question has one header menu holding the AI actions", async () => {
     mocks.batch.questions = [
-      { questionId: "c", status: "completed", ungradedCount: 0, writtenCount: 2, label: "Q3", index: 2, runId: "r1" } as never,
+      { questionId: "c", status: "completed", ungradedCount: 0, writtenCount: 2, label: "3.", index: 2, runId: "r1" } as never,
     ];
     await setup("grading_question=c");
     expect(screen.queryByRole("button", { name: "AI 操作" })).toBeNull();
@@ -421,7 +435,7 @@ describe("grading workbench", () => {
   it("rail progress counts fully graded students", async () => {
     await setup("grading_question=c");
     const rail = within(screen.getByRole("navigation", { name: "題目" }));
-    expect(rail.getByRole("button", { name: /第 1 題/ })).toHaveTextContent("0/2");
+    expect(rail.getByRole("button", { name: /1./ })).toHaveTextContent("0/2");
   });
 });
 

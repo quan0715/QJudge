@@ -17,4 +17,5 @@ export interface ContestUpdatePayload {
   webcamRequired?: boolean;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
+  expandQuestionNumbers?: boolean;
 }

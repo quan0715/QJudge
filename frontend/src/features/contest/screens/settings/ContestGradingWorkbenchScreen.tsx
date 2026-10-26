@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Button,
@@ -59,7 +59,7 @@ import styles from "./grading/workbench/GradingWorkbench.module.scss";
 
 type AiScope = "exam" | "question";
 
-export default function ContestGradingWorkbenchScreen() {
+export default function ContestGradingWorkbenchScreen({ header }: { header?: ReactNode } = {}) {
   const { t } = useTranslation("contest");
   const { t: tChatbot } = useTranslation("chatbot");
   const { contest } = useContest();
@@ -314,7 +314,7 @@ export default function ContestGradingWorkbenchScreen() {
     const progress = `${students.filter((row) => row.total !== null).length}/${students.length}`;
     return {
       id: item.id,
-      label: t("workbench.questionNumber", "第 {{number}} 題", { number: item.label }),
+      label: t("workbench.questionNumber", "{{number}}.", { number: item.label }),
       aiProgress: progress,
       activity: { progress: draft?.total_count ? draft.draft_count / draft.total_count * 100 : 0, label: draft ? `草稿已完成 ${draft.draft_count}/${draft.total_count}` : "等待批改草稿" },
       progress,
@@ -331,6 +331,7 @@ export default function ContestGradingWorkbenchScreen() {
   if (error)
     return (
       <div className={styles.empty}>
+        {header}
         <InlineNotification kind="error" title={error} hideCloseButton />
         <Button onClick={() => setRetry((n) => n + 1)}>{t("workbench.retry", "重新載入")}</Button>
       </div>
@@ -338,10 +339,17 @@ export default function ContestGradingWorkbenchScreen() {
   if (data.loading || !paper)
     return (
       <div className={styles.empty}>
+        {header}
         <InlineLoading description={t("grading.loading", "載入批改資料...")} />
       </div>
     );
-  if (!unit) return <EmptyState title={t("grading.noAnswers", "尚無作答資料")} />;
+  if (!unit)
+    return (
+      <div className={styles.empty}>
+        {header}
+        <EmptyState title={t("grading.noAnswers", "尚無作答資料")} />
+      </div>
+    );
 
   const ungradedCount = unitAnswers.filter((row) => row.score === null).length;
   const regradeCount = unitAnswers.filter((row) => !["manual", "auto"].includes(resolveAnswerSource(row, ctx))).length;
@@ -395,6 +403,7 @@ export default function ContestGradingWorkbenchScreen() {
   return (
     <div className={styles.root}>
       <WorkbenchQuestionRail
+        header={header}
         units={railUnits}
         activeId={unit.id}
         disabled={saving}
@@ -443,7 +452,7 @@ export default function ContestGradingWorkbenchScreen() {
       >
         <header className={styles.header}>
           <h1 title={unit.title}>
-            {t("workbench.questionNumber", "第 {{number}} 題", { number: unit.label })}
+            {t("workbench.questionNumber", "{{number}}.", { number: unit.label })}
             <span className={styles.headerTitle}>{unit.title}</span>
           </h1>
           <div className={styles.headerActions}>
@@ -642,7 +651,7 @@ export default function ContestGradingWorkbenchScreen() {
         title={
           aiScope === "exam"
             ? t("workbench.examAi", "AI 批改整份考卷")
-            : t("workbench.questionAiTitle", "AI 批改第 {{number}} 題", { number: unit.label })
+            : t("workbench.questionAiTitle", "AI 批改 {{number}}.", { number: unit.label })
         }
         examSummary={examSummary}
         ungradedCount={ungradedCount}
@@ -695,7 +704,7 @@ export default function ContestGradingWorkbenchScreen() {
         open={revertOpen}
         danger
         size="sm"
-        modalHeading={t("grading.batch.revertTitle", { label: t("workbench.questionNumber", "第 {{number}} 題", { number: unit.label }) })}
+        modalHeading={t("grading.batch.revertTitle", { label: t("workbench.questionNumber", "{{number}}.", { number: unit.label }) })}
         primaryButtonText={t("grading.batch.revertConfirm")}
         secondaryButtonText={t("grading.batch.cancel")}
         onRequestClose={() => setRevertOpen(false)}

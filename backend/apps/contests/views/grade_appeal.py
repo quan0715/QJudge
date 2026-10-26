@@ -53,7 +53,8 @@ class GradeAppealViewSet(viewsets.GenericViewSet):
     @staticmethod
     def _question_labels(contest):
         return build_paper_question_labels(
-            contest.exam_questions.only("id", "group_id", "order").order_by("order", "id")
+            contest.exam_questions.only("id", "group_id", "order").order_by("order", "id"),
+            expand_question_numbers=contest.expand_question_numbers
         )
 
     @staticmethod

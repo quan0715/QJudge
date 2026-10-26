@@ -27,6 +27,7 @@ type EvidenceSourceModule = "screen_share" | "webcam" | "attendance";
 
 interface ExamDashboardQuestionSummaryDto {
   question_id: string;
+  question_label?: string;
   order: number;
   title: string;
   kind: string;

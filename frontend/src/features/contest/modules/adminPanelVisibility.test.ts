@@ -11,12 +11,12 @@ describe("admin panel visibility in draft", () => {
     expect(panels).toEqual(["overview", "problem_editor"]);
   });
 
-  it("limits paper exam panels to overview/problem_editor in draft", () => {
+  it("offers the workbench for paper exam drafts", () => {
     const panels = paperExamContestModule.admin.getAvailablePanels({
       status: "draft",
     } as any);
 
-    expect(panels).toEqual(["overview", "problem_editor"]);
+    expect(panels).toEqual(["overview", "problem_editor", "grading-workbench"]);
   });
 
   it("keeps grading-related panels after publish", () => {

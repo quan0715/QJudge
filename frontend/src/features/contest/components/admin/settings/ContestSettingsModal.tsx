@@ -67,7 +67,9 @@ export default function ContestSettingsModal({
   };
   const navItems = NAV_ITEM_DEFS.map(({ labelKey, fallback, ...item }) => ({
     ...item,
-    label: t(labelKey, fallback),
+    label: item.id === "display" && contest.contestType === "paper_exam"
+      ? t("settings.paperOptions", "考卷設定")
+      : t(labelKey, fallback),
   }));
 
   const renderPanel = (activeId: string) => {

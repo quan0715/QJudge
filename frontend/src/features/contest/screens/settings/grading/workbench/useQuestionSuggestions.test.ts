@@ -111,7 +111,7 @@ describe("useQuestionSuggestions", () => {
 
     await act(() => result.current.start([ROWS[1]], "model-x"));
 
-    expect(mocks.ai.start).toHaveBeenCalledWith("c1", "q1", [ROWS[1]], { modelId: "model-x", title: "AI 建議 · Q3" });
+    expect(mocks.ai.start).toHaveBeenCalledWith("c1", "q1", [ROWS[1]], { modelId: "model-x", title: "AI 建議 · 3." });
   });
 
   it("start selects the new session so the copilot streams its run", async () => {

@@ -103,9 +103,13 @@ export const deleteExamPaperBlock = async (
   );
 };
 
+export type ExamPaperReorderBlock =
+  | { kind: "question"; id: string }
+  | { kind: "group"; id: string; children?: string[] };
+
 export const reorderExamPaperBlocks = async (
   contestId: string,
-  blocks: Array<{ kind: ExamPaperBlock["kind"]; id: string }>,
+  blocks: ExamPaperReorderBlock[],
 ): Promise<ExamPaper> => {
   const data = await requestJson<ExamPaperDto>(
     httpClient.patch(`/api/v1/contests/${contestId}/exam-paper/`, { blocks }),

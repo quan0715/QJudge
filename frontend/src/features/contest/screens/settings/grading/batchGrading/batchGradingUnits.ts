@@ -24,7 +24,7 @@ export function buildGradingUnits(
     const id = question.groupId ? `group_${question.groupId}` : `question_${question.id}`;
     const unit = units.get(id) ?? {
       id,
-      label: `第 ${(labels.get(question.id)?.label ?? target.label).replace(/\([a-z]+\)$/, "")} 題`,
+      label: `${labels.get(question.id)?.groupLabel ?? labels.get(question.id)?.label ?? target.label}.`,
       question_ids: [],
       ...(teacherNote ? { teacher_note: teacherNote } : {}),
     };

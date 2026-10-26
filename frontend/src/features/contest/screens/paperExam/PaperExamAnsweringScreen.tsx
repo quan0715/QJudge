@@ -29,7 +29,7 @@ import { hasExamPrecheckPassed } from "@/features/contest/anticheat/examPrecheck
 import { useExamCapture } from "@/features/contest/contexts/ExamCaptureContext";
 import type { ExamItem } from "../../types/exam.types";
 import { buildPaperQuestionLabels } from "../../domain/paperQuestionLabels";
-import { buildQuestionPresentationById } from "./paperExamSectionView";
+import { buildQuestionPresentationById } from "../../components/exam/questionPresentation";
 import styles from "./PaperExamAnswering.module.scss";
 import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
 import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
@@ -302,7 +302,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
           showGroupStem={presentation?.showGroupStem ?? false}
           index={item.data.order}
           displayLabel={questionLabels.get(item.data.id)?.label}
-          groupNumber={questionLabels.get(item.data.id)?.mainNumber}
+          groupLabel={questionLabels.get(item.data.id)?.groupLabel}
           answer={answers[item.data.id]}
           onAnswerChange={handleAnswerChange}
           onBlur={handleBlur}

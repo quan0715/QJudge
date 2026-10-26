@@ -28,7 +28,7 @@ const row = (overrides: Partial<GradingAnswerRow>): GradingAnswerRow =>
 
 const question = (overrides: Partial<BatchQuestion> = {}): BatchQuestion => ({
   questionId: "q1",
-  label: "Q1",
+  label: "1.",
   index: 1,
   maxScore: 10,
   ungradedRows: [row({})],
@@ -39,7 +39,7 @@ const question = (overrides: Partial<BatchQuestion> = {}): BatchQuestion => ({
 const request = (runId: string, questionIds: string[]): ChatMessage => ({
   id: `u-${runId}`,
   role: "user",
-  content: `batch_units: ${JSON.stringify([{ id: "u", label: "第 1 題", question_ids: questionIds }])}\n請批改第 1 題。`,
+  content: `batch_units: ${JSON.stringify([{ id: "u", label: "1.", question_ids: questionIds }])}\n請批改1.。`,
   timestamp: new Date(0),
   runId,
 });

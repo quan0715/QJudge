@@ -54,7 +54,7 @@ it("keeps a draft when another tab already created the ticket", async () => {
 it("keeps complete original context and group identity after opening an existing appeal", async () => {
   vi.mocked(api.getGradeAppeal).mockResolvedValue({ ...ticket, question_label: "1(b)", question_prompt: "Child only", answer: { ...ticket.answer, question_prompt: "Shared rules\n\nOriginal child" } });
   render(<GradeAppealDialog contestId="c1" appealId={7} managing={false} onClose={vi.fn()} onChanged={vi.fn()} />);
-  expect(await screen.findByRole("heading", { name: "成績申訴 · 第 1(b) 題" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "成績申訴 · 1(b)." })).toBeInTheDocument();
   expect(screen.getByRole("region", { name: "申訴題目與作答" })).toHaveTextContent("Shared rules");
   expect(screen.getByText("Saved answer")).toBeInTheDocument();
   expect(screen.queryByText("Child only")).not.toBeInTheDocument();

@@ -39,6 +39,7 @@ import type {
 import type { ExamQuestionUpsertPayload } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts";
 import { formatScore } from "@/shared/utils/scoreFormat";
+import { formatPaperQuestionLabel } from "@/features/contest/domain/paperQuestionLabels";
 import {
   EXAM_QUESTION_TYPE_ICON as TYPE_ICON,
   EXAM_QUESTION_TYPE_TAG_COLOR as TYPE_TAG_COLOR,
@@ -63,245 +64,17 @@ import LockedGradingSaveModal from "./LockedGradingSaveModal";
 import {
   classifyLockedQuestionSave,
   type ExistingGradesAction,
-  type LockedQuestionComparableState,
 } from "./lockedQuestionSaveImpact";
 
 // --- Constants ---
 
 import { useTranslation } from "react-i18next";
 
-const TRUE_FALSE_OPTIONS = ["True", "False"];
-const ALLOWED_TYPE_SWITCHES: Record<ExamQuestionType, ExamQuestionType[]> = {
-  single_choice: ["single_choice", "multiple_choice"],
-  multiple_choice: ["multiple_choice", "single_choice"],
-  short_answer: ["short_answer", "essay"],
-  essay: ["essay", "short_answer"],
-  true_false: ["true_false"],
-};
-
-// --- Form types & helpers ---
-
-interface QuestionFormState extends LockedQuestionComparableState {
-  prompt: string;
-  options: string[];
-  answerFormat: ExamQuestionAnswerFormat;
-}
-
-const getDefaultOptions = (type: ExamQuestionType): string[] => {
-  if (type === "true_false") return [...TRUE_FALSE_OPTIONS];
-  if (type === "essay" || type === "short_answer") return [];
-  return ["", ""];
-};
-
-const isChoiceType = (type: ExamQuestionType) =>
-  type === "true_false" ||
-  type === "single_choice" ||
-  type === "multiple_choice";
-
-const isSubjectiveType = (type: ExamQuestionType) =>
-  type === "short_answer" || type === "essay";
-
-/**
- * Stored objective answers only count when they are the 0-based option
- * indexes students submit; anything else grades every answer wrong, so it is
- * shown as unset and the teacher has to pick the answer again.
- */
-const isAnswerIndex = (value: unknown, size: number): value is number =>
-  typeof value === "number" && Number.isInteger(value) && value >= 0 && value < size;
-
-const toAnswerIndex = (
-  value: unknown,
-  options: string[],
-  questionType: ExamQuestionType,
-): number | null => {
-  const size = questionType === "true_false" ? 2 : options.length;
-  return isAnswerIndex(value, size) ? value : null;
-};
-
-const toAnswerIndexes = (value: unknown, options: string[]): number[] => {
-  if (!Array.isArray(value)) return [];
-  return new Set(value).size === value.length &&
-    value.every((item) => isAnswerIndex(item, options.length))
-    ? (value as number[])
-    : [];
-};
-
-const toFormState = (question: ExamQuestion): QuestionFormState => {
-  const options = question.options || [];
-  const base: QuestionFormState = {
-    questionType: question.questionType,
-    prompt: question.prompt,
-    explanation: question.explanation || "",
-    score: String(question.score || 0),
-    options: [],
-    singleAnswerIndex: "",
-    multiAnswerIndexes: [],
-    essayReferenceAnswer: "",
-    shortAnswer: "",
-    answerFormat: question.answerFormat ?? "plain_text",
-    referenceAnswerDocument: question.referenceAnswerDocument ?? null,
-    explanationDocument: question.explanationDocument ?? null,
-  };
-
-  if (question.questionType === "multiple_choice") {
-    return {
-      ...base,
-      options,
-      multiAnswerIndexes: toAnswerIndexes(question.correctAnswer, options).map(String),
-    };
-  }
-  if (question.questionType === "short_answer") {
-    const answer = question.correctAnswer;
-    return {
-      ...base,
-      shortAnswer:
-        answer == null
-          ? ""
-          : typeof answer === "string"
-            ? answer
-            : String(answer),
-    };
-  }
-  if (question.questionType === "essay") {
-    return {
-      ...base,
-      essayReferenceAnswer:
-        typeof question.correctAnswer === "string"
-          ? question.correctAnswer
-          : question.correctAnswer == null
-            ? ""
-            : JSON.stringify(question.correctAnswer),
-    };
-  }
-  const resolvedOptions =
-    question.questionType === "true_false"
-      ? options.length >= 2
-        ? options.slice(0, 2)
-        : [...TRUE_FALSE_OPTIONS]
-      : options;
-  return {
-    ...base,
-    options: resolvedOptions,
-    singleAnswerIndex: String(
-      toAnswerIndex(question.correctAnswer, resolvedOptions, question.questionType) ?? "",
-    ),
-  };
-};
-
-const buildPayload = (
-  form: QuestionFormState,
-  includeScore = true,
-): ExamQuestionUpsertPayload => {
-  const payload: ExamQuestionUpsertPayload = {
-    question_type: form.questionType,
-    prompt: form.prompt.trim(),
-    explanation:
-      form.answerFormat === "open_document" ? "" : form.explanation.trim(),
-    score: includeScore ? Number(form.score || 0) : 1,
-    answer_format: isChoiceType(form.questionType)
-      ? "plain_text"
-      : form.answerFormat,
-  };
-  if (
-    isSubjectiveType(form.questionType) &&
-    form.answerFormat === "open_document"
-  ) {
-    payload.correct_answer = null;
-    payload.reference_answer_document = form.referenceAnswerDocument;
-    payload.explanation_document = form.explanationDocument;
-    return payload;
-  }
-  if (form.questionType === "essay") {
-    if (form.essayReferenceAnswer.trim()) {
-      payload.correct_answer = form.essayReferenceAnswer.trim();
-    }
-    return payload;
-  }
-  if (form.questionType === "short_answer") {
-    if (form.shortAnswer.trim()) {
-      payload.correct_answer = form.shortAnswer.trim();
-    }
-    return payload;
-  }
-  if (form.questionType === "true_false") {
-    payload.options = form.options.map((o) => o.trim());
-    if (form.singleAnswerIndex !== "") {
-      payload.correct_answer = Number(form.singleAnswerIndex);
-    }
-    return payload;
-  }
-  const options = form.options.map((o) => o.trim());
-  payload.options = options;
-  if (form.questionType === "multiple_choice") {
-    payload.correct_answer = form.multiAnswerIndexes.length
-      ? form.multiAnswerIndexes.map(Number)
-      : null;
-    return payload;
-  }
-  if (form.singleAnswerIndex !== "") {
-    payload.correct_answer = Number(form.singleAnswerIndex);
-  }
-  return payload;
-};
-
-/**
- * A locked question only accepts grading fields. Content fields are dropped so
- * values the form filled in for display (e.g. default true/false options) are
- * not sent back as content edits.
- */
-const toLockedGradingPayload = (
-  payload: ExamQuestionUpsertPayload,
-): Partial<ExamQuestionUpsertPayload> => {
-  const {
-    question_type: _questionType,
-    prompt: _prompt,
-    options: _options,
-    answer_format: _answerFormat,
-    ...grading
-  } = payload;
-  return grading;
-};
-
-/** Deep-compare two form states to detect dirty */
-const isFormDirty = (
-  a: QuestionFormState,
-  b: QuestionFormState,
-  includeScore = true,
-): boolean => {
-  if (a.questionType !== b.questionType) return true;
-  if (a.prompt !== b.prompt) return true;
-  if (a.explanation !== b.explanation) return true;
-  if (includeScore && a.score !== b.score) return true;
-  if (a.singleAnswerIndex !== b.singleAnswerIndex) return true;
-  if (a.essayReferenceAnswer !== b.essayReferenceAnswer) return true;
-  if (a.shortAnswer !== b.shortAnswer) return true;
-  if (a.answerFormat !== b.answerFormat) return true;
-  if (
-    JSON.stringify(a.referenceAnswerDocument) !==
-    JSON.stringify(b.referenceAnswerDocument)
-  )
-    return true;
-  if (
-    JSON.stringify(a.explanationDocument) !==
-    JSON.stringify(b.explanationDocument)
-  )
-    return true;
-  if (a.options.length !== b.options.length) return true;
-  if (a.options.some((o, i) => o !== b.options[i])) return true;
-  if (a.multiAnswerIndexes.length !== b.multiAnswerIndexes.length) return true;
-  if (a.multiAnswerIndexes.some((o, i) => o !== b.multiAnswerIndexes[i]))
-    return true;
-  return false;
-};
-
-// --- Preview helpers ---
-
-/** Get the correct answer index for true_false / single_choice */
-const getCorrectSingleIndex = (question: ExamQuestion): number | null =>
-  toAnswerIndex(question.correctAnswer, question.options, question.questionType);
-
-const getCorrectMultiIndexes = (question: ExamQuestion): Set<number> =>
-  new Set(toAnswerIndexes(question.correctAnswer, question.options));
+import {
+  TRUE_FALSE_OPTIONS, ALLOWED_TYPE_SWITCHES, getDefaultOptions, isChoiceType, isSubjectiveType,
+  toFormState, buildPayload, toLockedGradingPayload, isFormDirty, getQuestionValidationError,
+  getCorrectSingleIndex, getCorrectMultiIndexes, type QuestionFormState,
+} from "./examQuestionFormModel";
 
 const OptionMarkdownLabel = ({
   letter,
@@ -333,6 +106,7 @@ const toNumberInputValue = (value: string | number): string => {
 interface ExamQuestionEditCardProps {
   question: ExamQuestion;
   index: number;
+  questionLabel?: string;
   showScoreField?: boolean;
   frozen?: boolean;
   contentLocked?: boolean;
@@ -344,6 +118,7 @@ interface ExamQuestionEditCardProps {
   /** All questions for redistribute target selection */
   allQuestions?: Array<{
     id: string;
+    questionLabel?: string;
     order: number;
     prompt: string;
     score: number;
@@ -370,6 +145,7 @@ interface ExamQuestionEditCardProps {
 const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   question,
   index,
+  questionLabel,
   showScoreField = true,
   frozen,
   contentLocked = false,
@@ -438,23 +214,13 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   }, []);
 
   const getValidationError = useCallback((): string | null => {
-    if (!form.prompt.trim()) {
-      return t("examEditor.validation.emptyPrompt", "題目內容不可為空");
-    }
-    if (showScoreField) {
-      const score = Number(form.score || 0);
-      if (!Number.isFinite(score) || score <= 0) {
-        return t("examEditor.validation.invalidScore", "配分必須大於 0");
-      }
-    }
-    if (!isChoiceType(form.questionType)) return null;
-    if (form.options.length < 2) {
-      return t("examEditor.validation.minOptions", "至少需要 2 個選項");
-    }
-    if (form.options.some((o) => !o.trim())) {
-      return t("examEditor.validation.blankOption", "選項文字不可空白");
-    }
-    return null;
+    const code = getQuestionValidationError(form, { requireScore: showScoreField });
+    const messages = {
+      invalidScore: t("examEditor.validation.invalidScore", "配分必須大於 0"),
+      minOptions: t("examEditor.validation.minOptions", "至少需要 2 個選項"),
+      blankOption: t("examEditor.validation.blankOption", "選項文字不可空白"),
+    };
+    return code ? messages[code] : null;
   }, [form, showScoreField, t]);
 
   const persistAutoSave = useCallback(
@@ -792,7 +558,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
           <div className={styles.previewBody}>
             <div className={styles.header}>
               <span className={styles.label}>
-                {t("examEditor.questionNumber", { num: index + 1 })}{" "}
+                {formatPaperQuestionLabel(questionLabel ?? index + 1)}{" "}
                 <Tag
                   size="sm"
                   type={TYPE_TAG_COLOR[question.questionType] as never}
@@ -859,6 +625,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     <ScorePolicyMenu
                       questionId={question.id}
                       questionIndex={index + 1}
+                      questionLabel={questionLabel}
                       currentPolicy={question.scorePolicy ?? "normal"}
                       allQuestions={allQuestions}
                       onPolicyChanged={onScorePolicyChanged}
@@ -909,11 +676,13 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               </div>
             </div>
 
-            <ExamQuestionPrompt
-              content={question.prompt}
-              emptyText={t("examEditor.promptEmpty", "（尚未填寫題目敘述）")}
-              ariaLabel={t("grading.question", "題目")}
-            />
+            {!frozen || question.prompt.trim() ? (
+              <ExamQuestionPrompt
+                content={question.prompt}
+                emptyText={t("examEditor.promptEmpty", "（尚未填寫題目敘述）")}
+                ariaLabel={t("grading.question", "題目")}
+              />
+            ) : null}
 
             <ExamQuestionPreviewSection
               label={

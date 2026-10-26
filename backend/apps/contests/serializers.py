@@ -141,6 +141,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'exam_status',
             'problems',
             'allow_multiple_joins',
+            'expand_question_numbers',
             'participant_count',
             'bound_classroom_id',
             'results_published',
@@ -361,6 +362,7 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'webcam_required',
             'scoreboard_visible_during_contest',
             'allow_multiple_joins',
+            'expand_question_numbers',
             'status',
             'results_published',
         ]
@@ -378,6 +380,10 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         """Validate contest data."""
+        if (self.instance and 'expand_question_numbers' in data
+                and data['expand_question_numbers'] != self.instance.expand_question_numbers
+                and is_contest_question_edit_locked(self.instance)):
+            raise serializers.ValidationError({'expand_question_numbers': '考生開始作答後無法變更題號規則。'})
         status_in_data = 'status' in data
         target_status = data.get('status') if status_in_data else (self.instance.status if self.instance else None)
 
@@ -592,6 +598,7 @@ class ExamQuestionStudentSerializer(serializers.ModelSerializer):
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
     binding_id = serializers.SerializerMethodField()
     group_id = serializers.UUIDField(source='group.id', read_only=True, allow_null=True)
+    expand_question_numbers = serializers.BooleanField(source='contest.expand_question_numbers', read_only=True, default=False)
 
     class Meta:
         model = ExamQuestion
@@ -606,6 +613,7 @@ class ExamQuestionStudentSerializer(serializers.ModelSerializer):
             'score_policy_config',
             'order',
             'group_id',
+            'expand_question_numbers',
             'order_in_group',
             'answer_format',
             'question_asset_id',
@@ -629,6 +637,7 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
     binding_id = serializers.SerializerMethodField()
     group_id = serializers.UUIDField(required=False, allow_null=True)
+    expand_question_numbers = serializers.BooleanField(source='contest.expand_question_numbers', read_only=True, default=False)
     effective_max_score = serializers.SerializerMethodField()
     existing_grades_action = serializers.ChoiceField(
         choices=("regrade", "keep", "mark_pending"),
@@ -656,6 +665,7 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             'existing_grades_action',
             'order',
             'group_id',
+            'expand_question_numbers',
             'order_in_group',
             'answer_format',
             'source_bank',

@@ -93,6 +93,7 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
     scoreboardVisibleDuringContest: !!dto.scoreboard_visible_during_contest,
 
     allowMultipleJoins: !!dto.allow_multiple_joins,
+    expandQuestionNumbers: !!dto.expand_question_numbers,
     resultsPublished: !!dto.results_published,
     questionEditLocked: !!dto.question_edit_locked,
     examQuestionsCount: dto.exam_questions_count ?? 0,
@@ -310,6 +311,7 @@ export function mapExamQuestionDto(dto: ExamQuestionDto): ExamQuestion {
       : undefined,
     order: Number(dto.order || 0),
     groupId: dto.group_id != null ? dto.group_id.toString() : null,
+    expandQuestionNumbers: dto.expand_question_numbers ?? false,
     orderInGroup:
       typeof dto.order_in_group === "number" ? dto.order_in_group : null,
     answerFormat: mapAnswerFormat(dto.answer_format),
@@ -418,6 +420,7 @@ export function mapExamPaperDto(dto: ExamPaperDto): ExamPaper {
   return {
     questions,
     groups,
+    expandQuestionNumbers: dto.expand_question_numbers ?? false,
     sections,
     blocks,
   };
@@ -439,6 +442,7 @@ export function mapContestUpdateRequestToDto(
     webcam_required: request.webcamRequired,
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
     allow_multiple_joins: request.allowMultipleJoins,
+    expand_question_numbers: request.expandQuestionNumbers,
     results_published: request.resultsPublished,
   };
   // Strip undefined keys so PATCH only sends changed fields

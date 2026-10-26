@@ -78,6 +78,24 @@ describe("ExamQuestionEditCard", () => {
     vi.useRealTimers();
   });
 
+  it("uses the canonical frozen question label and omits an intentional blank prompt", () => {
+    renderWithProviders(
+      <ExamQuestionEditCard
+        question={createQuestion({ prompt: "" })}
+        index={8}
+        questionLabel="3(b)"
+        frozen
+        onAutoSave={vi.fn()}
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("3(b).")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "題目" })).not.toBeInTheDocument();
+    expect(screen.queryByText("（尚未填寫題目敘述）")).not.toBeInTheDocument();
+  });
+
   it("renders choice preview options through markdown math renderer", () => {
     renderWithProviders(
       <ExamQuestionEditCard

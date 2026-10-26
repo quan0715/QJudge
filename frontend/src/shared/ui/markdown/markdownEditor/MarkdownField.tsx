@@ -1,8 +1,10 @@
 import React from "react";
-import { MarkdownEditor } from "./MarkdownEditor";
+import { MarkdownEditor, type MarkdownEditorProps } from "./MarkdownEditor";
 import "./MarkdownEditor.scss";
 
 interface MarkdownFieldProps {
+  /** Quiet inline styling for focused authoring surfaces. */
+  variant?: MarkdownEditorProps["variant"];
   /** Unique field ID */
   id?: string;
   /** Label for the field (optional; not rendered visually) */
@@ -37,7 +39,8 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
   value,
   onChange,
   placeholder: _placeholder,
-  minHeight = "200px",
+  variant = "default",
+  minHeight = variant === "subtle" ? "160px" : "200px",
   showPreview = true,
   helperText,
   disabled = false,
@@ -46,6 +49,7 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
 }) => {
   const classNames = [
     "markdown-field",
+    variant === "subtle" && "markdown-field--subtle",
     invalid && "markdown-field--invalid",
     disabled && "markdown-field--disabled",
   ]
@@ -56,6 +60,7 @@ export const MarkdownField: React.FC<MarkdownFieldProps> = ({
     <div className={classNames}>
       <div className="markdown-field__editor">
         <MarkdownEditor
+          variant={variant}
           value={value}
           onChange={onChange}
           minHeight={minHeight}

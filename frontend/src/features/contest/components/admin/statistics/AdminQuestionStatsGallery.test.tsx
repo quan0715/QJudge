@@ -39,6 +39,29 @@ const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
   }) as ContestDetail;
 
 describe("AdminQuestionStatsGallery", () => {
+  it("uses canonical labels when searching and opening grouped question statistics", async () => {
+    const contest = buildContest();
+    const dashboard = createContestResultDashboardMock(contest);
+    dashboard.questions = [{ ...dashboard.questions[0], order: 10, questionLabel: "5(b)" }];
+    render(
+      <AdminQuestionStatsGallery
+        contest={contest}
+        dashboard={dashboard}
+        loading={false}
+        error={null}
+        loadQuestionDetail={vi.fn().mockResolvedValue(undefined)}
+        detailLoadingIds={{}}
+        detailErrors={{}}
+      />,
+    );
+
+    await userEvent.type(screen.getByRole("searchbox", { name: "搜尋題目" }), "5(b)");
+    await userEvent.click(screen.getByText(dashboard.questions[0].title).closest("button")!);
+    const drawer = screen.getByRole("dialog", { name: "5(b). 作答數據" });
+    expect(within(drawer).getByRole("heading", { level: 3 })).toHaveTextContent("5(b). ·");
+    expect(within(drawer).getByRole("heading", { level: 3 })).not.toHaveTextContent("Q");
+  });
+
   it("renders question answer data cards from the result dashboard", async () => {
     const contest = buildContest();
     const loadQuestionDetail = vi.fn();
@@ -86,7 +109,7 @@ describe("AdminQuestionStatsGallery", () => {
 
     await userEvent.type(
       screen.getByRole("searchbox", { name: "搜尋題目" }),
-      "Q4",
+      "4.",
     );
 
     expect(screen.getByText("簡答：演算法複雜度說明")).toBeInTheDocument();
@@ -100,7 +123,7 @@ describe("AdminQuestionStatsGallery", () => {
     );
 
     expect(
-      screen.getByRole("dialog", { name: "Q3 作答數據" }),
+      screen.getByRole("dialog", { name: "3. 作答數據" }),
     ).toBeInTheDocument();
     expect(screen.getByText("批改進度")).toBeInTheDocument();
     expect(screen.getByText("29 / 47")).toBeInTheDocument();
@@ -112,7 +135,7 @@ describe("AdminQuestionStatsGallery", () => {
 
     await waitFor(() =>
       expect(
-        screen.queryByRole("dialog", { name: "Q3 作答數據" }),
+        screen.queryByRole("dialog", { name: "3. 作答數據" }),
       ).not.toBeInTheDocument(),
     );
   });
@@ -133,7 +156,7 @@ describe("AdminQuestionStatsGallery", () => {
     );
 
     await userEvent.click(screen.getByText("基礎語法與觀念檢核").closest("button")!);
-    const drawer = screen.getByRole("dialog", { name: "Q2 作答數據" });
+    const drawer = screen.getByRole("dialog", { name: "2. 作答數據" });
     expect(within(drawer).getByText("選項分布")).toBeInTheDocument();
     expect(within(drawer).getByText("分數分布")).toBeInTheDocument();
     expect(loadQuestionDetail).toHaveBeenCalledWith("q1");

@@ -32,6 +32,7 @@ from ..serializers import (
 )
 from ..services.coding_result_summary import build_coding_dashboard_summary
 from ..services.exam_scoring import ExamScoringService
+from ..services.paper_question_labels import build_paper_question_labels
 from ..permissions import can_manage_contest
 from apps.core.api.envelope import envelope
 from ..services.open_answer_document import validate_open_answer_document
@@ -431,6 +432,9 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
         )
 
         questions = scoring.get_questions()
+        question_labels = build_paper_question_labels(
+            questions, expand_question_numbers=contest.expand_question_numbers
+        )
 
         answers = list(
             ExamAnswer.objects.filter(participant_id__in=participant_ids)
@@ -464,6 +468,7 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
             summary = {
                 'question_id': qid_str,
                 'order': q.order,
+                'question_label': question_labels[q.id],
                 'title': q.prompt,
                 'kind': q.question_type,
                 'max_score': q.score,
