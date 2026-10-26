@@ -23,9 +23,11 @@ export default function ExamQuestionGroupStem({ group, label }: {
           })}
         </span>
       </div>
-      <MarkdownRenderer enableMath enableHighlight>
-        {group.sharedStemMarkdown}
-      </MarkdownRenderer>
+      <div className={styles.prompt}>
+        <MarkdownRenderer enableMath enableHighlight>
+          {group.sharedStemMarkdown}
+        </MarkdownRenderer>
+      </div>
     </section>
   );
 }
