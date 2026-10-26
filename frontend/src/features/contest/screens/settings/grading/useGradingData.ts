@@ -333,6 +333,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
                 gradedBy: "you",
                 gradedAt: new Date().toISOString(),
                 isAutoGraded: false,
+                isAiGraded: false,
               }
             : a
         )
@@ -355,6 +356,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
                 gradedBy: null,
                 gradedAt: null,
                 isAutoGraded: false,
+                isAiGraded: false,
               }
             : a
         )

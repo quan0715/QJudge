@@ -34,7 +34,7 @@ const answer = (over: Partial<GradingAnswerRow>): GradingAnswerRow =>
     ...over,
   }) as GradingAnswerRow;
 
-const emptyCtx: SourceContext = { aiWrittenAnswerIds: new Set(), suggestions: {} };
+const emptyCtx: SourceContext = { suggestions: {} };
 
 const unit = (ids: string[]): GradingWorkbenchUnit => ({
   id: "u",
@@ -56,7 +56,6 @@ const studentRow = (studentId: string, total: number | null, username = studentI
 describe("workbenchRowModel", () => {
   it("resolves sources in priority order", () => {
     const ctx: SourceContext = {
-      aiWrittenAnswerIds: new Set(["ai"]),
       suggestions: {
         sugg: { score: 5, reason: "new", synced: false },
         synced: { score: 3, reason: "ok", synced: true },
@@ -65,9 +64,14 @@ describe("workbenchRowModel", () => {
     expect(resolveAnswerSource(answer({ id: "auto", isAutoGraded: true, score: 4 }), ctx)).toBe("auto");
     expect(resolveAnswerSource(answer({ id: "sugg", score: 2, feedback: "old" }), ctx)).toBe("suggestion");
     expect(resolveAnswerSource(answer({ id: "none" }), ctx)).toBe("none");
-    expect(resolveAnswerSource(answer({ id: "ai", score: 2 }), ctx)).toBe("ai");
-    expect(resolveAnswerSource(answer({ id: "synced", score: 3, feedback: "ok" }), ctx)).toBe("ai");
+    expect(resolveAnswerSource(answer({ id: "ai", score: 2, isAiGraded: true }), ctx)).toBe("ai");
+    expect(resolveAnswerSource(answer({ id: "synced", score: 3, feedback: "ok" }), ctx)).toBe("manual");
     expect(resolveAnswerSource(answer({ id: "other", score: 3 }), ctx)).toBe("manual");
+  });
+
+  it("shows persisted AI provenance without the grading owner's session", () => {
+    expect(resolveAnswerSource(answer({ score: 3, isAiGraded: true }), emptyCtx)).toBe("ai");
+    expect(resolveAnswerSource(answer({ score: null, isAiGraded: true }), emptyCtx)).toBe("none");
   });
 
   it("identical suggestion is not pending", () => {

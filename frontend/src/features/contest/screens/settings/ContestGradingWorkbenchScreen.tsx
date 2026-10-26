@@ -128,8 +128,8 @@ export default function ContestGradingWorkbenchScreen() {
     unitAnswers,
   );
   const ctx = useMemo(
-    () => ({ aiWrittenAnswerIds: batch.aiWrittenAnswerIds, suggestions: suggestions.suggestions }),
-    [batch.aiWrittenAnswerIds, suggestions.suggestions],
+    () => ({ suggestions: suggestions.suggestions }),
+    [suggestions.suggestions],
   );
   const allRows = useMemo(() => (unit ? buildStudentRows(unit, data.answers, ctx) : []), [ctx, data.answers, unit]);
   const visible = sortStudentRows(
@@ -355,7 +355,7 @@ export default function ContestGradingWorkbenchScreen() {
     auto: t("workbench.filterAuto", "自動批改"),
     none: t("workbench.filterNone", "未批改"),
     ai: t("workbench.filterAi", "AI 給分"),
-    manual: t("workbench.filterManual", "人工調整"),
+    manual: t("workbench.filterManual", "人工確認"),
     suggestion: t("workbench.filterSuggestion", "待審建議"),
   };
   const firstState = unitStates.find((state) => state.runId);

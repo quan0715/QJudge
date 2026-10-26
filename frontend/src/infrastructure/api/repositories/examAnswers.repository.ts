@@ -83,6 +83,7 @@ interface ExamAnswerGradingDto {
   feedback: string;
   graded_by_username: string | null;
   graded_at: string | null;
+  is_ai_graded: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -97,6 +98,7 @@ export interface ExamAnswerGrading {
   feedback: string;
   gradedByUsername: string | null;
   gradedAt: string | null;
+  isAiGraded: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -128,6 +130,7 @@ const mapAnswerGradingDto = (dto: ExamAnswerGradingDto): ExamAnswerGrading => ({
   feedback: dto.feedback ?? "",
   gradedByUsername: dto.graded_by_username,
   gradedAt: dto.graded_at,
+  isAiGraded: dto.is_ai_graded === true,
   createdAt: dto.created_at,
   updatedAt: dto.updated_at,
 });
