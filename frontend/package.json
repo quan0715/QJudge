@@ -23,6 +23,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:workbench-browser": "playwright test -c playwright.config.workbench.ts",
     "test:coverage": "vitest run --coverage",
     "typecheck:copilot": "tsc -p tsconfig.copilot-type-tests.json",
     "check:copilot-boundary": "node scripts/check-copilot-package-boundary.js",

@@ -15,7 +15,7 @@ import type { TFunction } from "i18next";
 
 const motion = vi.hoisted(() => ({
   groups: new Map<string, (keys: string[]) => void>(),
-  end: new Map<string, () => void>(),
+  end: new Map<string, (type?: string) => void>(),
   start: new Map<string, () => void>(),
 }));
 // jsdom cannot measure animated layout; drive the Motion boundary and verify
@@ -50,10 +50,10 @@ vi.mock("motion/react", () => ({
     }: {
       children: ReactNode;
       value: string;
-      onDragEnd(): void;
+      onDragEnd(event: { type: string }): void;
       onDragStart(): void;
     }) => {
-      motion.end.set(value, onDragEnd);
+      motion.end.set(value, (type = "pointerup") => onDragEnd({ type }));
       motion.start.set(value, onDragStart);
       return <div>{children}</div>;
     },
@@ -85,7 +85,7 @@ const rowKeys = () =>
     (node) => node.dataset.rowKey,
   );
 const start = (key: string) => {
-  const button = document.querySelector(`[data-row-key="${key}"] button`)!;
+  const button = within(document.querySelector(`[data-row-key="${key}"]`) as HTMLElement).getByRole("button", { name: /拖曳排序/ });
   fireEvent.pointerDown(button, { button: 0, pointerId: 1 });
   act(() => motion.start.get(key)!());
 };
@@ -105,7 +105,7 @@ describe("edit rail", () => {
     expect(within(question).getByRole("img", { name: "單選題" })).toBeVisible();
     expect(within(question).queryByText("單選題")).toBeNull();
     expect(within(question).queryByText("5")).toBeNull();
-    expect(screen.queryByRole("button", { name: /拖曳/ })).toBeNull();
+    expect(screen.getAllByRole("button", { name: /拖曳排序/ })).toHaveLength(5);
     expect(
       screen.getByRole("button", { name: /^2..*題組.*Shared task/ }),
     ).toBeVisible();
@@ -167,14 +167,29 @@ describe("edit rail", () => {
       expect(rowKeys()).toEqual(["q1", "g", "c1", "c2", "q2"]),
     );
   });
-  it("cancels the preview without saving when the pointer is cancelled", () => {
+  it("cancels the preview without saving when the pointer is cancelled", async () => {
     const props = base();
     render(<WorkbenchEditRail {...props} />);
     start("q1");
     act(() => motion.groups.get("題目")!(["g", "q1", "q2"]));
     fireEvent.pointerCancel(document.querySelector(`[data-row-key="q1"]`)!);
+    act(() => motion.end.get("q1")!("pointercancel"));
     expect(rowKeys()).toEqual(["q1", "g", "c1", "c2", "q2"]);
+    await act(async () => motion.end.get("q1")!());
     expect(props.onMove).not.toHaveBeenCalled();
+    start("q1");
+    act(() => motion.groups.get("題目")!(["g", "q1", "q2"]));
+    await act(async () => motion.end.get("q1")!());
+    expect(props.onMove).toHaveBeenCalledTimes(1);
+  });
+  it("does not save a cancellation delivered by Motion outside the row", () => {
+    const props = base();
+    render(<WorkbenchEditRail {...props} />);
+    act(() => motion.start.get("c2")!());
+    act(() => motion.groups.get("2.")!(["c2", "c1"]));
+    act(() => motion.end.get("c2")!("pointercancel"));
+    expect(props.onMove).not.toHaveBeenCalled();
+    expect(rowKeys()).toEqual(["q1", "g", "c1", "c2", "q2"]);
   });
   it("does not select the dragged card on release but still selects on the next click", async () => {
     const props = base();

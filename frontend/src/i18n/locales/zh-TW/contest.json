@@ -2280,6 +2280,7 @@
       "questions": "題目",
       "summary": "總分 {{totalScore}}",
       "hasIssue": "有發布前問題",
+      "dragHandle": "拖曳排序 {{label}}",
       "moveUp": "上移",
       "moveDown": "下移",
       "publishCount": "發布前檢查 {{count}} 項",
