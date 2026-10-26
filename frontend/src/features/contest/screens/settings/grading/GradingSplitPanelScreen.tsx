@@ -450,7 +450,7 @@ export default function GradingSplitPanelScreen({
       >
         <div className={styles.panelHeaderLeading}>
           <span className={styles.panelHeaderLabel}>
-            Q{answer.questionLabel ?? answer.questionIndex}
+            {answer.questionLabel ?? answer.questionIndex}.
           </span>
           <span className={styles.panelStudent}>{answer.studentUsername}</span>
         </div>

@@ -265,8 +265,7 @@ export const getCorrectMultiIndexes = (question: ExamQuestion): Set<number> =>
 export function getQuestionValidationError(
   form: QuestionFormState,
   opts: { requireScore: boolean },
-): "emptyPrompt" | "invalidScore" | "minOptions" | "blankOption" | null {
-  if (!form.prompt.trim()) return "emptyPrompt";
+): "invalidScore" | "minOptions" | "blankOption" | null {
   if (
     opts.requireScore &&
     (!Number.isFinite(Number(form.score || 0)) || Number(form.score || 0) <= 0)

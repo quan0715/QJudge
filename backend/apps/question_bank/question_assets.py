@@ -277,7 +277,7 @@ def sync_exam_question_question_asset(
     *,
     exam_question: ExamQuestion,
 ) -> QuestionAsset:
-    title = (exam_question.prompt or "").replace("\n", " ").strip()[:120] or f"Q{(exam_question.order or 0) + 1}"
+    title = (exam_question.prompt or "").replace("\n", " ").strip()[:120] or f"{(exam_question.order or 0) + 1}."
     prompt = exam_question.prompt or ""
     payload = {
         "question_type": exam_question.question_type,

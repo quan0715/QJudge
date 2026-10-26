@@ -28,9 +28,9 @@ describe("question draft", () => {
     );
     expect(result.current.dirty).toBe(false);
   });
-  it("does not save invalid content", async () => {
+  it("saves an intentionally empty prompt", async () => {
     vi.useFakeTimers();
-    const save = vi.fn();
+    const save = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() =>
       useQuestionDraft(questionFixture("q1"), {
         autosave: true,
@@ -42,8 +42,8 @@ describe("question draft", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
-    expect(save).not.toHaveBeenCalled();
-    expect(result.current.error).toBe("emptyPrompt");
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({ prompt: "" }));
+    expect(result.current.error).toBeNull();
   });
   it("rejects navigation flush for an invalid dirty draft", async () => {
     const save = vi.fn();

@@ -219,7 +219,7 @@ export default function GradingMatrixViewScreen({
               className={`${styles.gridCell} ${styles.colHeaderCell}`}
               role="columnheader"
             >
-              Q{q.questionLabel ?? q.questionIndex}
+              {q.questionLabel ?? q.questionIndex}.
             </div>
           ))}
 
@@ -293,7 +293,7 @@ export default function GradingMatrixViewScreen({
                         type="button"
                         className={`${styles.cell} ${styles[cellState]}`}
                         title={cellTitle}
-                        aria-label={`${username} Q${question.questionLabel ?? question.questionIndex}: ${cellTitle}`}
+                        aria-label={`${username} ${question.questionLabel ?? question.questionIndex}.: ${cellTitle}`}
                         data-testid={`matrix-cell-${rowIndex}-${colIndex}`}
                         data-row={rowIndex}
                         data-col={colIndex}

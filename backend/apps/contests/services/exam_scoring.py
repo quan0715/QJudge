@@ -36,6 +36,7 @@ class QuestionScoreInfo:
     question_type: str
     prompt: str = ''  # question title/prompt for display
     score_policy_config: dict = field(default_factory=dict)
+    group_id: object | None = None
 
     @property
     def is_excluded(self) -> bool:
@@ -133,6 +134,7 @@ class ExamScoringService:
                     question_type=q.question_type,
                     prompt=q.prompt or '',
                     score_policy_config=q.score_policy_config or {},
+                    group_id=q.group_id,
                 )
                 for q in qs
             ]

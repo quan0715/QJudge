@@ -98,7 +98,7 @@ describe("edit rail", () => {
   it("shows the title and question type in each selectable entry", () => {
     render(<WorkbenchEditRail {...base()} />);
     const question = screen.getByRole("button", {
-      name: /^Q1.*單選題.*Prompt q1/,
+      name: /^1..*單選題.*Prompt q1/,
     });
     expect(within(question).getByText("Prompt q1")).toBeVisible();
     expect(question).toHaveAttribute("aria-current", "page");
@@ -107,7 +107,7 @@ describe("edit rail", () => {
     expect(within(question).queryByText("5")).toBeNull();
     expect(screen.queryByRole("button", { name: /拖曳/ })).toBeNull();
     expect(
-      screen.getByRole("button", { name: /^Q2.*題組.*Shared task/ }),
+      screen.getByRole("button", { name: /^2..*題組.*Shared task/ }),
     ).toBeVisible();
   });
   it("previews moving an entire group and saves only on release", async () => {
@@ -128,7 +128,7 @@ describe("edit rail", () => {
     const props = base();
     render(<WorkbenchEditRail {...props} />);
     start("c2");
-    act(() => motion.groups.get("Q2")!(["c2", "c1"]));
+    act(() => motion.groups.get("2.")!(["c2", "c1"]));
     expect(rowKeys()).toEqual(["q1", "g", "c2", "c1", "q2"]);
     expect(props.onMove).not.toHaveBeenCalled();
     await act(async () => motion.end.get("c2")!());
@@ -182,7 +182,7 @@ describe("edit rail", () => {
     start("q1");
     act(() => motion.groups.get("題目")!(["g", "q1", "q2"]));
     await act(async () => motion.end.get("q1")!());
-    const card = screen.getByRole("button", { name: /^Q1.*Prompt q1/ });
+    const card = screen.getByRole("button", { name: /^1..*Prompt q1/ });
     fireEvent.click(card, { detail: 1 });
     expect(props.onSelect).not.toHaveBeenCalled();
     fireEvent.pointerDown(card, { button: 0, pointerId: 2 });

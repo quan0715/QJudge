@@ -7,17 +7,19 @@ import {
   Loading,
 } from "@carbon/react";
 import { getContest } from "@/infrastructure/api/repositories";
-import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
+import { getExamPaper } from "@/infrastructure/api/repositories/examPaper.repository";
 import { getContestProblem } from "@/infrastructure/api/repositories/contestProblems.repository";
 import { ProblemPreview, ProblemHeaderCard } from "@/shared/ui/problem";
 import { useCodingRuntimeNavigator } from "@/features/contest/hooks/useCodingRuntimeNavigator";
 import { formatScore } from "@/shared/utils/scoreFormat";
+import { buildPaperQuestionLabels } from "@/features/contest/domain/paperQuestionLabels";
+import { buildQuestionPresentationById } from "../../components/exam/questionPresentation";
 import { ProblemFullPageSolve } from "@/features/problems/components/solve/editorview/ProblemFullPageSolve";
 import ContestProblemSubmissions from "../../components/solver/submissions/ContestProblemSubmissions";
 import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { PaperExamCore } from "../../components/exam/PaperExamCore";
 import type { ExamItem } from "../../types/exam.types";
-import type { ExamQuestion } from "@/core/entities/contest.entity";
+import type { ExamPaperSection, ExamQuestion } from "@/core/entities/contest.entity";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import styles from "./StudentExamDemoScreen.module.scss";
@@ -32,6 +34,7 @@ const StudentExamDemoScreen: FC = () => {
   const [contest, setContest] = useState<ContestDetail | null>(null);
   const [contestLoading, setContestLoading] = useState(true);
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
+  const [sections, setSections] = useState<ExamPaperSection[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [problemDetails, setProblemDetails] = useState<Record<string, CodingProblemDetail>>({});
@@ -61,6 +64,19 @@ const StudentExamDemoScreen: FC = () => {
     });
   }, [contest?.problems, examQuestions]);
 
+  const questionLabels = useMemo(
+    () => buildPaperQuestionLabels(examQuestions),
+    [examQuestions],
+  );
+  const singleModePresentationById = useMemo(
+    () => buildQuestionPresentationById(sections, "single"),
+    [sections],
+  );
+  const allModePresentationById = useMemo(
+    () => buildQuestionPresentationById(sections, "all"),
+    [sections],
+  );
+
   const answeredIds = useMemo(() => {
     const ids = new Set<string>();
     for (const [id, value] of Object.entries(answers)) {
@@ -84,9 +100,15 @@ const StudentExamDemoScreen: FC = () => {
   useEffect(() => {
     if (!contestId || contest?.contestType !== "paper_exam") return;
     setLoadingQuestions(true);
-    getExamQuestions(contestId)
-      .then(setExamQuestions)
-      .catch(() => setExamQuestions([]))
+    getExamPaper(contestId)
+      .then((paper) => {
+        setExamQuestions(paper.questions);
+        setSections(paper.sections);
+      })
+      .catch(() => {
+        setExamQuestions([]);
+        setSections([]);
+      })
       .finally(() => setLoadingQuestions(false));
   }, [contestId, contest?.contestType]);
 
@@ -135,10 +157,19 @@ const StudentExamDemoScreen: FC = () => {
   const renderItem = useCallback(
     (item: ExamItem, index: number, mode: "single" | "all") => {
       if (item.kind === "question") {
+        const presentation =
+          mode === "single"
+            ? singleModePresentationById.get(item.data.id)
+            : allModePresentationById.get(item.data.id);
+        const label = questionLabels.get(item.data.id);
         return (
           <ExamQuestionCard
             question={item.data}
+            group={presentation?.group}
+            showGroupStem={presentation?.showGroupStem ?? false}
             index={index}
+            displayLabel={label?.label}
+            groupLabel={label?.groupLabel}
             answer={answers[item.data.id]}
             onAnswerChange={handleAnswerChange}
           />
@@ -148,7 +179,7 @@ const StudentExamDemoScreen: FC = () => {
       const detail = problemDetails[item.data.problemId];
       const heading =
         mode === "all"
-          ? `第 ${index + 1} 題 — ${item.data.label}. ${item.data.title}`
+          ? `${index + 1}. — ${item.data.label}. ${item.data.title}`
           : `${item.data.label}. ${item.data.title}`;
 
       return (
@@ -179,7 +210,14 @@ const StudentExamDemoScreen: FC = () => {
         </div>
       );
     },
-    [answers, handleAnswerChange, problemDetails]
+    [
+      allModePresentationById,
+      answers,
+      handleAnswerChange,
+      problemDetails,
+      questionLabels,
+      singleModePresentationById,
+    ]
   );
 
   if (contestLoading || loadingQuestions) {

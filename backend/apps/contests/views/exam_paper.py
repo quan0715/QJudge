@@ -79,7 +79,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
     def _paper_queryset(self, contest):
         questions = (
             ExamQuestion.objects.filter(contest=contest)
-            .select_related('group', 'question_asset')
+            .select_related('group', 'contest', 'question_asset')
             .order_by('order', 'id')
         )
         groups = (
@@ -94,7 +94,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
         seen_group_ids = set()
         questions = list(
             ExamQuestion.objects.filter(contest=contest)
-            .select_related('group')
+            .select_related('group', 'contest')
             .order_by('order', 'id')
         )
         groups_by_id = {
@@ -120,6 +120,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
             group = groups_by_id.get(question.group_id) or question.group
             children = list(
                 ExamQuestion.objects.filter(contest=contest, group_id=question.group_id)
+                .select_related('group', 'contest', 'question_asset')
                 .order_by('order_in_group', 'order', 'id')
             )
             sections.append({
@@ -177,6 +178,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
                     context=q_ctx,
                 ).data,
                 'groups': ExamQuestionGroupSerializer(groups, many=True).data,
+                'expand_question_numbers': contest.expand_question_numbers,
                 'blocks': [
                     self._serialize_block(section, request, contest, q_ctx)
                     for section in sections

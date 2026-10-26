@@ -3,7 +3,7 @@ import type { ExamQuestion } from "@/core/entities/contest.entity";
 import { getExamPublishIssues, getExamPublishIssueItems } from "./examPublishIssues";
 
 const question = (overrides: Partial<ExamQuestion>): ExamQuestion => ({
-  id: "q",
+  id: `q-${overrides.order ?? 0}`,
   contestId: "c",
   questionType: "single_choice",
   prompt: "Pick the capital",
@@ -25,7 +25,7 @@ describe("getExamPublishIssues", () => {
       question({ order: 4, questionType: "essay", options: [], correctAnswer: null }),
     ]);
 
-    expect(issues.missingAnswer).toEqual([2, 3, 4]);
+    expect(issues.missingAnswer).toEqual(["2", "3", "4"]);
   });
 
   it("lists questions still holding the editor's placeholder content", () => {
@@ -36,7 +36,7 @@ describe("getExamPublishIssues", () => {
       question({ order: 3 }),
     ]);
 
-    expect(issues.defaultContent).toEqual([1, 2, 3]);
+    expect(issues.defaultContent).toEqual(["1", "2", "3"]);
   });
 
   it("matches editor and answering labels when stored orders have gaps", () => {
@@ -44,8 +44,29 @@ describe("getExamPublishIssues", () => {
       question({ order: 7, correctAnswer: null, prompt: "New question" }),
       question({ order: 2 }),
     ]);
-    expect(issues.missingAnswer).toEqual([8]);
-    expect(issues.defaultContent).toEqual([8]);
+    expect(issues.missingAnswer).toEqual(["2"]);
+    expect(issues.defaultContent).toEqual(["2"]);
+  });
+
+  it.each([
+    [false, ["2(a)", "2(b)", "3"]],
+    [true, ["2", "3", "4"]],
+  ] as const)("uses the full paper numbering rule for grouped warnings (expanded: %s)", (expanded, labels) => {
+    const issues = getExamPublishIssues([
+      question({ order: 0, expandQuestionNumbers: expanded }),
+      question({ order: 1, groupId: "group", correctAnswer: null, prompt: "New question" }),
+      question({ order: 2, groupId: "group", correctAnswer: null, prompt: "New question" }),
+      question({ order: 3, correctAnswer: null, prompt: "New question" }),
+    ]);
+
+    expect(issues.missingAnswer).toEqual(labels);
+    expect(issues.defaultContent).toEqual(labels);
+  });
+
+  it("allows intentionally empty prompts without reporting placeholder content", () => {
+    expect(getExamPublishIssues([question({ prompt: "" })])).toEqual({
+      missingAnswer: [], defaultContent: [],
+    });
   });
 
   it("returns no issues for a finished paper", () => {

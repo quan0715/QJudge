@@ -86,7 +86,7 @@ class ExamQuestion(models.Model):
         default=ExamQuestionType.SINGLE_CHOICE,
         verbose_name='題型'
     )
-    prompt = models.TextField(verbose_name='題目內容')
+    prompt = models.TextField(blank=True, default='', verbose_name='題目內容')
     options = models.JSONField(
         default=list,
         blank=True,

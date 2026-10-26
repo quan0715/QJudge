@@ -88,7 +88,7 @@ export default function PaperQuestionReportCard({
       <div className={styles.header}>
         <div>
           <div className={styles.title}>
-            Q{questionLabel ?? index} · {typeLabel}
+            {questionLabel ?? index}. · {typeLabel}
             {isExcluded && <span className={styles.policyExcluded}> (不計分)</span>}
             {isFullMarks && <span className={styles.policyFullMarks}> (送分)</span>}
             {isRedistribute && <span className={styles.policyExcluded}> (配分重分配)</span>}

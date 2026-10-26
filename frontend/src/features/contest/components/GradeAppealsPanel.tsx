@@ -18,7 +18,7 @@ export default function GradeAppealsPanel({ contestId }: { contestId: string }) 
     {loading ? <SkeletonText paragraph lineCount={3} /> : error ? <InlineNotification kind="error" title={error} hideCloseButton lowContrast /> : <div className={styles.list}>
       {!appeals.length && <p>目前沒有成績申訴。</p>}
       {appeals.map(appeal => <article key={appeal.id} className={styles.ticket}>
-        <div><strong>{appeal.student_username} · 第 {appeal.question_label ?? appeal.question_order + 1} 題</strong><p className={styles.meta}>{formatDate(appeal.last_message_at, { includeSeconds: false })}</p></div>
+        <div><strong>{appeal.student_username} · {appeal.question_label ?? appeal.question_order + 1}.</strong><p className={styles.meta}>{formatDate(appeal.last_message_at, { includeSeconds: false })}</p></div>
         <div className={styles.actions}><Tag type={appeal.status === "closed" ? "gray" : "blue"}>{appeal.status === "closed" ? "已結案" : "未結案"}</Tag><Button kind="tertiary" size="sm" onClick={() => setSelected(appeal)}>查看申訴 #{appeal.id}</Button></div>
       </article>)}
     </div>}

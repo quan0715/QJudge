@@ -22,6 +22,7 @@ from apps.contests.models import (
 )
 from apps.contests.services.attendance import build_participant_attendance_summary
 from apps.contests.services.integrity_evidence import evidence_statuses_for_events
+from apps.contests.services.paper_question_labels import build_paper_question_labels
 from apps.contests.services.integrity_event_projection import (
     event_penalized,
     event_phase,
@@ -177,6 +178,9 @@ def _build_paper_exam_report(
     questions = list(
         ExamQuestion.objects.filter(contest=contest).order_by("order", "id")
     )
+    question_labels = build_paper_question_labels(
+        questions, expand_question_numbers=contest.expand_question_numbers
+    )
     answers = {
         answer.question_id: answer
         for answer in ExamAnswer.objects.filter(participant=participant).select_related(
@@ -229,6 +233,7 @@ def _build_paper_exam_report(
             {
                 "question_id": str(question.id),
                 "index": index,
+                "question_label": question_labels[question.id],
                 "question_type": question.question_type,
                 "status": status,
                 "score": earned_score,
@@ -241,6 +246,7 @@ def _build_paper_exam_report(
             {
                 "question_id": str(question.id),
                 "index": index,
+                "question_label": question_labels[question.id],
                 "question_type": question.question_type,
                 "prompt": question.prompt,
                 "options": question.options or [],

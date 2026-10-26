@@ -5,8 +5,8 @@ import type { ExamPaperBlock } from "@/core/entities/contest.entity";
 import { paperFixture } from "./workbenchEdit.fixture";
 import type { WorkbenchEditActions } from "./WorkbenchEditScreen";
 import { WorkbenchGroupEditor } from "./WorkbenchGroupEditor";
-vi.mock("@/shared/ui/markdown/markdownEditor", () => ({
-  MarkdownField: ({
+vi.mock("./WorkbenchMarkdownField", () => ({
+  default: ({
     value,
     onChange,
     labelText,
@@ -50,7 +50,8 @@ const base = () => ({
     confirmDiscard: vi.fn().mockResolvedValue(true),
   } satisfies WorkbenchEditActions,
 });
-beforeEach(() =>
+beforeEach(() => {
+  Element.prototype.scrollIntoView = vi.fn();
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
     x: 0,
     y: 0,
@@ -61,13 +62,32 @@ beforeEach(() =>
     left: 0,
     right: 240,
     toJSON: () => ({}),
-  }),
-);
+  });
+});
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
 describe("group editor", () => {
+  it("jumps to a child and expands it from the group navigation", async () => {
+    const props = base();
+    function View() {
+      const [expanded, setExpanded] = useState<string | null>(null);
+      return (
+        <WorkbenchGroupEditor
+          {...props}
+          expandedChildId={expanded}
+          onExpandChild={setExpanded}
+        />
+      );
+    }
+    render(<View />);
+    fireEvent.click(screen.getByRole("button", { name: "編輯 2(b)" }));
+    expect(await screen.findByRole("textbox", { name: "題目敘述" })).toHaveValue(
+      "Prompt c2",
+    );
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  });
   it("autosaves the changed group title after 1000ms", async () => {
     vi.useFakeTimers();
     const props = base();

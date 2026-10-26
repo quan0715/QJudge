@@ -4,7 +4,7 @@ import { Reorder } from "motion/react";
 import { useTranslation } from "react-i18next";
 import type { PaperMoveTarget } from "@/features/contest/domain/paperMoveModel";
 import type { EditRailRow } from "./editRailModel";
-import { WorkbenchAddMenu, type AddMenuChoice } from "./WorkbenchAddMenu";
+import { WorkbenchQuestionTypeMenu, type AddMenuChoice } from "./WorkbenchQuestionTypeMenu";
 import { WorkbenchEditRailEntry } from "./WorkbenchEditRailEntry";
 import styles from "./WorkbenchEdit.module.scss";
 export interface WorkbenchEditRailProps {
@@ -183,7 +183,7 @@ export function WorkbenchEditRail({
         <p className={styles.summary}>
           {t("workbench.edit.summary", "總分 {{totalScore}}", summary)}
         </p>
-        {!locked && <WorkbenchAddMenu onAdd={onAdd} />}
+        {!locked && <WorkbenchQuestionTypeMenu onAdd={onAdd} />}
       </div>
       <Reorder.Group
         as="nav"

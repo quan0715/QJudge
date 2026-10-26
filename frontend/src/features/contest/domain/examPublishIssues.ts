@@ -1,4 +1,5 @@
 import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
+import { buildPaperQuestionLabels } from "./paperQuestionLabels";
 
 /** Placeholder content the editors give a newly added question. */
 export const DEFAULT_QUESTION_PROMPT = "New question";
@@ -11,10 +12,10 @@ const OBJECTIVE_TYPES: ReadonlySet<ExamQuestionType> = new Set([
 ]);
 
 export interface ExamPublishIssues {
-  /** Display numbers used by the editor and answering pages (stored order + 1). */
-  missingAnswer: number[];
-  /** Display numbers of questions whose prompt or options are still placeholders. */
-  defaultContent: number[];
+  /** Canonical paper labels used by the editor and answering pages. */
+  missingAnswer: string[];
+  /** Canonical labels of questions whose prompt or options are still placeholders. */
+  defaultContent: string[];
 }
 
 const hasAnswer = (answer: unknown): boolean =>
@@ -22,18 +23,19 @@ const hasAnswer = (answer: unknown): boolean =>
 
 export const getExamPublishIssues = (questions: ExamQuestion[]): ExamPublishIssues => {
   const sorted = [...questions].sort((a, b) => a.order - b.order);
-  const numbered = sorted.map((question) => ({ question, number: question.order + 1 }));
+  const labels = buildPaperQuestionLabels(sorted);
+  const numbered = sorted.map((question) => ({ question, label: labels.get(question.id)!.label }));
   return {
     missingAnswer: numbered
       .filter(({ question: q }) => OBJECTIVE_TYPES.has(q.questionType) && !hasAnswer(q.correctAnswer))
-      .map(({ number }) => number),
+      .map(({ label }) => label),
     defaultContent: numbered
       .filter(
         ({ question: q }) =>
           q.prompt.trim() === DEFAULT_QUESTION_PROMPT ||
           q.options.some((option) => DEFAULT_CHOICE_OPTIONS.includes(option.trim())),
       )
-      .map(({ number }) => number),
+      .map(({ label }) => label),
   };
 };
 

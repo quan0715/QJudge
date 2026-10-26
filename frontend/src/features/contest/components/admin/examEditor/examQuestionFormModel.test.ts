@@ -35,7 +35,7 @@ describe("shared question form", () => {
       ).answer_format,
     ).toBe("markdown_math"));
   it.each([
-    [{ prompt: " " }, "emptyPrompt"],
+    [{ prompt: " " }, null],
     [{ score: "0" }, "invalidScore"],
     [{ options: ["A"] }, "minOptions"],
     [{ options: ["A", " "] }, "blankOption"],

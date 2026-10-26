@@ -13,20 +13,20 @@ it("labels groups as a main question with lettered children", () => {
     t,
   );
   expect(rows.map((r) => r.label)).toEqual([
-    "Q1",
-    "Q2",
-    "Q2(a)",
-    "Q2(b)",
-    "Q3",
+    "1.",
+    "2.",
+    "2(a).",
+    "2(b).",
+    "3.",
   ]);
-  expect(rows.filter((r) => r.hasIssue).map((r) => r.key)).toEqual(["c2"]);
+  expect(rows.filter((r) => r.hasIssue).map((r) => r.key)).toEqual(["g", "c2"]);
 });
 it("keeps an empty group and its main-question number", () => {
   const paper = paperFixture();
   if (paper.blocks[1].kind === "group") paper.blocks[1].children = [];
   const rows = buildEditRailRows(paper, [], t);
   expect(rows[1]).toMatchObject({ title: "Shared task", typeText: "題組" });
-  expect(rows[2].label).toBe("Q3");
+  expect(rows[2].label).toBe("3.");
 });
 
 it("provides readable single-line titles and a distinct group type", () => {

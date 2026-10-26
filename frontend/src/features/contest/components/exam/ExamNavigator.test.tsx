@@ -45,9 +45,20 @@ describe("ExamNavigator", () => {
       { kind: "question", data: createQuestion({ id: "c" }) },
     ];
     render(<ExamNavigator items={items} activeIndex={0} collapsed={collapsed} answeredIds={new Set()} onSelect={onSelect} />);
-    expect(screen.getByText("Q1(a)")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Q1(b)"));
+    expect(screen.getByText("1(a).")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("1(b)."));
     expect(onSelect).toHaveBeenCalledWith(1);
-    expect(screen.getByText("Q2")).toBeInTheDocument();
+    expect(screen.getByText("2.")).toBeInTheDocument();
+  });
+  it("shows expanded children as consecutive numbers while keeping their navigation indexes", () => {
+    const onSelect = vi.fn();
+    const items: ExamItem[] = ["a", "b", "c"].map((id) => ({
+      kind: "question",
+      data: createQuestion({ id, groupId: "g", expandQuestionNumbers: true }),
+    }));
+    render(<ExamNavigator items={items} activeIndex={0} answeredIds={new Set()} onSelect={onSelect} />);
+    expect(screen.getByText("1.")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("3."));
+    expect(onSelect).toHaveBeenCalledWith(2);
   });
 });

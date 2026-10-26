@@ -4,7 +4,7 @@ import type {
   ExamQuestion,
   ExamQuestionType,
 } from "@/core/entities/contest.entity";
-import { buildPaperQuestionLabels } from "@/features/contest/domain/paperQuestionLabels";
+import { buildPaperQuestionLabels, formatPaperQuestionLabel } from "@/features/contest/domain/paperQuestionLabels";
 import type { PaperRowRef } from "@/features/contest/domain/paperMoveModel";
 import type { ExamPublishIssueItem } from "@/features/contest/domain/examPublishIssues";
 export interface EditRailRow extends PaperRowRef {
@@ -20,16 +20,15 @@ export function buildEditRailRows(
   issues: ExamPublishIssueItem[],
   t: TFunction,
 ): EditRailRow[] {
-  // Empty groups still occupy a main question number in the authoring rail.
-  const numbered = paper.blocks.flatMap<Pick<ExamQuestion, "id" | "groupId">>(
+  const numbered = paper.blocks.flatMap<Pick<ExamQuestion, "id" | "groupId" | "expandQuestionNumbers">>(
     (b) =>
       b.kind === "question"
         ? [b.question]
         : b.children.length
           ? b.children
-          : [{ id: b.id, groupId: b.id }],
+          : paper.expandQuestionNumbers ? [] : [{ id: b.id, groupId: b.id }],
   );
-  const labels = buildPaperQuestionLabels(numbered);
+  const labels = buildPaperQuestionLabels(numbered, paper.expandQuestionNumbers);
   const issueIds = new Set(issues.map((item) => item.questionId));
   const rows: EditRailRow[] = [];
   const typeNames = {
@@ -50,12 +49,10 @@ export function buildEditRailRows(
         kind: "group",
         blockId: b.id,
         questionId: null,
-        label: t("workbench.edit.groupNumber", "Q{{number}}", {
-          number,
-        }),
+        label: formatPaperQuestionLabel(labels.get(b.children[0]?.id ?? b.id)?.groupLabel ?? ""),
         title: b.group.title || t("workbench.edit.addGroup", "題組"),
         typeText: t("workbench.edit.addGroup", "題組"),
-        hasIssue: false,
+        hasIssue: b.children.some((q) => issueIds.has(q.id)),
       });
     const questions = b.kind === "question" ? [b.question] : b.children;
     questions.forEach((q) =>
@@ -64,12 +61,7 @@ export function buildEditRailRows(
         kind: b.kind === "group" ? "child" : "question",
         blockId: b.id,
         questionId: q.id,
-        label:
-          b.kind === "group"
-            ? `Q${labels.get(q.id)?.label ?? ""}`
-            : t("workbench.edit.questionNumber", "Q{{number}}", {
-                number,
-              }),
+        label: formatPaperQuestionLabel(labels.get(q.id)?.label ?? number),
         title: (q.prompt.split("\n").find((line) => line.trim()) ?? "")
           .replace(/[#*_`>]/g, "")
           .trim(),

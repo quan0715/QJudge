@@ -72,7 +72,7 @@ export function selectBatchQuestions(rows: readonly GradingAnswerRow[]): BatchQu
     const question = byQuestion.get(row.questionId) ?? {
       questionId: row.questionId,
       groupId: row.questionGroupId,
-      label: `Q${row.questionLabel ?? row.questionIndex}`,
+      label: `${row.questionLabel ?? row.questionIndex}.`,
       index: row.questionIndex,
       maxScore: row.maxScore,
       ungradedRows: [],

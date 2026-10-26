@@ -112,7 +112,7 @@ export default function RedistributeTargetModal({
       open={open}
       modalHeading={t("grading.scorePolicy.redistributeTitle", {
         index: questionLabel ?? questionIndex,
-        defaultValue: "第 {{index}} 題 — 配分重分配",
+        defaultValue: "{{index}}. — 配分重分配",
       })}
       primaryButtonText={t("common.confirm", "確認")}
       secondaryButtonText={t("common.cancel", "取消")}
@@ -223,7 +223,7 @@ export default function RedistributeTargetModal({
                 <Checkbox
                   key={q.id}
                   id={`target-${questionIndex}-${q.id}`}
-                  labelText={`第 ${q.questionLabel ?? q.order + 1} 題 (${formatScore(q.score)}分) — ${q.prompt?.slice(0, 40) || "..."}`}
+                  labelText={`${q.questionLabel ?? q.order + 1}. (${formatScore(q.score)}分) — ${q.prompt?.slice(0, 40) || "..."}`}
                   checked={selectedIds.has(q.id)}
                   onChange={(_, { checked }) => handleToggle(q.id, checked)}
                   style={{ marginBottom: "0.25rem" }}

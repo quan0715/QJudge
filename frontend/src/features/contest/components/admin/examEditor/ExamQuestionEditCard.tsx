@@ -39,6 +39,7 @@ import type {
 import type { ExamQuestionUpsertPayload } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts";
 import { formatScore } from "@/shared/utils/scoreFormat";
+import { formatPaperQuestionLabel } from "@/features/contest/domain/paperQuestionLabels";
 import {
   EXAM_QUESTION_TYPE_ICON as TYPE_ICON,
   EXAM_QUESTION_TYPE_TAG_COLOR as TYPE_TAG_COLOR,
@@ -105,6 +106,7 @@ const toNumberInputValue = (value: string | number): string => {
 interface ExamQuestionEditCardProps {
   question: ExamQuestion;
   index: number;
+  questionLabel?: string;
   showScoreField?: boolean;
   frozen?: boolean;
   contentLocked?: boolean;
@@ -116,6 +118,7 @@ interface ExamQuestionEditCardProps {
   /** All questions for redistribute target selection */
   allQuestions?: Array<{
     id: string;
+    questionLabel?: string;
     order: number;
     prompt: string;
     score: number;
@@ -142,6 +145,7 @@ interface ExamQuestionEditCardProps {
 const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   question,
   index,
+  questionLabel,
   showScoreField = true,
   frozen,
   contentLocked = false,
@@ -212,7 +216,6 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   const getValidationError = useCallback((): string | null => {
     const code = getQuestionValidationError(form, { requireScore: showScoreField });
     const messages = {
-      emptyPrompt: t("examEditor.validation.emptyPrompt", "題目內容不可為空"),
       invalidScore: t("examEditor.validation.invalidScore", "配分必須大於 0"),
       minOptions: t("examEditor.validation.minOptions", "至少需要 2 個選項"),
       blankOption: t("examEditor.validation.blankOption", "選項文字不可空白"),
@@ -555,7 +558,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
           <div className={styles.previewBody}>
             <div className={styles.header}>
               <span className={styles.label}>
-                {t("examEditor.questionNumber", { num: index + 1 })}{" "}
+                {formatPaperQuestionLabel(questionLabel ?? index + 1)}{" "}
                 <Tag
                   size="sm"
                   type={TYPE_TAG_COLOR[question.questionType] as never}
@@ -622,6 +625,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     <ScorePolicyMenu
                       questionId={question.id}
                       questionIndex={index + 1}
+                      questionLabel={questionLabel}
                       currentPolicy={question.scorePolicy ?? "normal"}
                       allQuestions={allQuestions}
                       onPolicyChanged={onScorePolicyChanged}
@@ -672,11 +676,13 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               </div>
             </div>
 
-            <ExamQuestionPrompt
-              content={question.prompt}
-              emptyText={t("examEditor.promptEmpty", "（尚未填寫題目敘述）")}
-              ariaLabel={t("grading.question", "題目")}
-            />
+            {!frozen || question.prompt.trim() ? (
+              <ExamQuestionPrompt
+                content={question.prompt}
+                emptyText={t("examEditor.promptEmpty", "（尚未填寫題目敘述）")}
+                ariaLabel={t("grading.question", "題目")}
+              />
+            ) : null}
 
             <ExamQuestionPreviewSection
               label={

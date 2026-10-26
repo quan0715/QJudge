@@ -1,4 +1,4 @@
-import { paperQuestionPoints } from "@/features/contest/domain/scorePolicyChoice";
+import { paperQuestionPoints } from "@/features/contest/domain/paperQuestionPoints";
 import {
   useCallback,
   useEffect,
@@ -7,14 +7,15 @@ import {
   useState,
 } from "react";
 import { Button, InlineNotification, TextInput } from "@carbon/react";
-import { ChevronDown, ChevronUp } from "@carbon/icons-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ExamPaperBlock } from "@/core/entities/contest.entity";
+import type { ExamPublishIssueItem } from "@/features/contest/domain/examPublishIssues";
 import type { ToolbarSaveStatus } from "@/features/contest/components/admin/examEditor/hooks/useToolbarSaveStatus";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave";
-import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
+import WorkbenchMarkdownField from "./WorkbenchMarkdownField";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
-import { WorkbenchAddMenu } from "./WorkbenchAddMenu";
+import { WorkbenchQuestionTypeMenu } from "./WorkbenchQuestionTypeMenu";
 import { WorkbenchQuestionEditor } from "./WorkbenchQuestionEditor";
 import type { WorkbenchEditActions } from "./WorkbenchEditScreen";
 import type { QuestionAnswerSummary } from "./questionAnswerSummary";
@@ -37,7 +38,7 @@ export interface WorkbenchGroupEditorProps {
   impactError?: boolean;
   onRetryImpact?: () => void;
   onGradeQuestion?: (id: string) => void;
-  onOpenScorePolicy?: (id: string) => void;
+  highlightField?: ExamPublishIssueItem["field"];
 }
 export function WorkbenchGroupEditor({
   block,
@@ -53,7 +54,7 @@ export function WorkbenchGroupEditor({
   impactError,
   onRetryImpact,
   onGradeQuestion,
-  onOpenScorePolicy,
+  highlightField,
 }: WorkbenchGroupEditorProps) {
   const { t } = useTranslation("contest");
   const [form, setForm] = useState(() => ({
@@ -66,6 +67,15 @@ export function WorkbenchGroupEditor({
     latest.current = { form, saved, locked, actions, id: block.id };
   });
   const pending = useRef<Promise<void> | null>(null);
+  const childSections = useRef(new Map<string, HTMLElement>());
+  const scrollToChild = useCallback((id: string) => {
+    const section = childSections.current.get(id);
+    section?.scrollIntoView({ block: "start", behavior: "smooth" });
+    section?.querySelector("button")?.focus({ preventScroll: true });
+  }, []);
+  useEffect(() => {
+    if (expandedChildId) scrollToChild(expandedChildId);
+  }, [expandedChildId, scrollToChild]);
   const childFlush = useRef<(() => Promise<void>) | null>(null);
   const registerChildFlush = useCallback(
     (flush: (() => Promise<void>) | null) => {
@@ -118,10 +128,14 @@ export function WorkbenchGroupEditor({
     registerFlush?.(flushAll);
     return () => registerFlush?.(null);
   }, [registerFlush, flushAll]);
-  const expand = async (id: string) => {
+  const expand = async (id: string, toggle = true) => {
+    if (!toggle && expandedChildId === id) {
+      scrollToChild(id);
+      return;
+    }
     try {
-      await childFlush.current?.();
-      onExpandChild(expandedChildId === id ? null : id);
+      await flushAll();
+      onExpandChild(toggle && expandedChildId === id ? null : id);
     } catch {
       /* Stay on the unsaved child; the save action reports the error. */
     }
@@ -190,6 +204,31 @@ export function WorkbenchGroupEditor({
           </strong>
         </div>
       </div>
+      {block.children.length > 0 && (
+        <nav
+          className={styles.childJump}
+          aria-label={t("workbench.edit.childNavigation", "子題導覽")}
+        >
+          <span>{t("workbench.edit.children", "子題")}</span>
+          {block.children.map((child) => (
+            <Button
+              key={child.id}
+              className={styles.childJumpButton}
+              kind="ghost"
+              size="sm"
+              aria-label={t("workbench.edit.editChild", "編輯 {{label}}", {
+                label: childLabels.get(child.id),
+              })}
+              aria-pressed={expandedChildId === child.id}
+              onClick={() => {
+                void expand(child.id, false);
+              }}
+            >
+              {childLabels.get(child.id)}
+            </Button>
+          ))}
+        </nav>
+      )}
       <section
         className={styles.field}
         aria-label={t("workbench.edit.sharedStem", "共同題幹")}
@@ -198,13 +237,11 @@ export function WorkbenchGroupEditor({
         {locked ? (
           <MarkdownRenderer>{form.stem}</MarkdownRenderer>
         ) : (
-          <MarkdownField
-            variant="subtle"
+          <WorkbenchMarkdownField
             id={`group-stem-${block.id}`}
             labelText={t("workbench.edit.sharedStem", "共同題幹")}
             value={form.stem}
             onChange={(stem) => setForm((p) => ({ ...p, stem }))}
-            showPreview
           />
         )}
       </section>
@@ -212,7 +249,7 @@ export function WorkbenchGroupEditor({
         <div className={styles.childListHeader}>
           <h2>{t("workbench.edit.children", "子題")}</h2>
           {!locked && (
-            <WorkbenchAddMenu
+            <WorkbenchQuestionTypeMenu
               questionsOnly
               label={t("workbench.edit.addChild", "新增子題")}
               onAdd={(choice) => {
@@ -225,10 +262,17 @@ export function WorkbenchGroupEditor({
         {block.children.length === 0 && (
           <p>{t("workbench.edit.emptyGroup", "尚無子題")}</p>
         )}
-        {block.children.map((child) => {
+        {block.children.map((child, index) => {
           const open = expandedChildId === child.id;
           return (
-            <section key={child.id} className={styles.childSection}>
+            <section
+              key={child.id}
+              className={styles.childSection}
+              ref={(node) => {
+                if (node) childSections.current.set(child.id, node);
+                else childSections.current.delete(child.id);
+              }}
+            >
               <Button
                 className={styles.childHeading}
                 kind="ghost"
@@ -272,27 +316,41 @@ export function WorkbenchGroupEditor({
                     impactError={impactError}
                     onRetryImpact={onRetryImpact}
                     onGradeQuestion={() => onGradeQuestion?.(child.id)}
-                    onOpenScorePolicy={() => onOpenScorePolicy?.(child.id)}
+                    highlightField={highlightField}
                   />
                   {!locked && (
                     <div className={styles.childActions}>
                       <Button
                         kind="ghost"
                         size="sm"
+                        renderIcon={ArrowUp}
+                        disabled={index === 0}
                         onClick={() => {
-                          void actions.duplicate(child.id);
+                          void actions.move(child.id, {
+                            zone: "group",
+                            groupId: block.id,
+                            refQuestionId: block.children[index - 1].id,
+                            position: "before",
+                          });
                         }}
                       >
-                        {t("workbench.edit.duplicate", "複製這題")}
+                        {t("workbench.edit.moveUp", "上移")}
                       </Button>
                       <Button
-                        kind="danger--ghost"
+                        kind="ghost"
                         size="sm"
+                        renderIcon={ArrowDown}
+                        disabled={index === block.children.length - 1}
                         onClick={() => {
-                          void actions.remove(child.id);
+                          void actions.move(child.id, {
+                            zone: "group",
+                            groupId: block.id,
+                            refQuestionId: block.children[index + 1].id,
+                            position: "after",
+                          });
                         }}
                       >
-                        {t("workbench.edit.deleteQuestion", "刪除這題")}
+                        {t("workbench.edit.moveDown", "下移")}
                       </Button>
                     </div>
                   )}

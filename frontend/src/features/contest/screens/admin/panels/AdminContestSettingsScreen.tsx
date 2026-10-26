@@ -100,11 +100,14 @@ const ContestSettingsOverlay = ({
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
 
-  const { contest } = useContest();
+  const { contest, refreshContest } = useContest();
   const { confirm, modalProps } = useConfirmModal();
   const autoSave = useExamAutoSave({
     contestId: contestId || "",
     debounceMs: 1500,
+    onSaveSuccess: (field) => {
+      if (field === "expandQuestionNumbers") void refreshContest();
+    },
   });
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [startTimeInput, setStartTimeInput] = useState("");
@@ -252,6 +255,7 @@ const ContestSettingsOverlay = ({
       webcamRequired: contest.webcamRequired ?? false,
       scoreboardVisibleDuringContest: contest.scoreboardVisibleDuringContest ?? false,
       allowMultipleJoins: contest.allowMultipleJoins ?? false,
+      expandQuestionNumbers: contest.expandQuestionNumbers ?? false,
     });
     const startDate = parseDate(contest.startTime);
     setStartTimeInput(startDate ? toTimeInput(startDate) : "");

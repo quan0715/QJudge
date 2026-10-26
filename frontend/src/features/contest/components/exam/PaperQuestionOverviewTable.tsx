@@ -18,6 +18,7 @@ import styles from "./PaperQuestionOverviewTable.module.scss";
 export interface PaperQuestionOverviewRow {
   id: string;
   index: number;
+  questionLabel?: string;
   prompt: string;
   typeLabel: string;
   maxScore: number;
@@ -94,7 +95,7 @@ const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
     () =>
       rows.map((row) => ({
         id: row.id,
-        index: row.index,
+        index: row.questionLabel ?? row.index,
         prompt: row.prompt,
         type: row.typeLabel,
         status: row.statusLabel || "-",
@@ -156,7 +157,7 @@ const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
                       if (h === "index") {
                         return (
                           <TableCell key={cell.id} className={styles.colCompact}>
-                            Q{cell.value}
+                            {cell.value}.
                           </TableCell>
                         );
                       }

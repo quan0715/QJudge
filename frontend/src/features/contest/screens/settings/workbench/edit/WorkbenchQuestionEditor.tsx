@@ -11,15 +11,10 @@ import {
   IconButton,
   InlineNotification,
   NumberInput,
-  OverflowMenu,
-  OverflowMenuItem,
   RadioButton,
-  Select,
-  SelectItem,
   Tag,
-  TextInput,
 } from "@carbon/react";
-import { Add, ArrowLeft, ArrowRight, TrashCan } from "@carbon/icons-react";
+import { Add, ArrowLeft, ArrowRight, Copy, DocumentAdd, TrashCan } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type {
   ExamQuestion,
@@ -37,7 +32,8 @@ import {
 } from "@/features/contest/components/admin/examEditor/examQuestionFormModel";
 import type { ToolbarSaveStatus } from "@/features/contest/components/admin/examEditor/hooks/useToolbarSaveStatus";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave";
-import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
+import { WorkbenchQuestionTypeMenu } from "./WorkbenchQuestionTypeMenu";
+import WorkbenchMarkdownField from "./WorkbenchMarkdownField";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import {
   OpenAnswerDocumentEditor,
@@ -59,7 +55,6 @@ export interface WorkbenchQuestionEditorProps {
   onNavigate(direction: "prev" | "next"): void;
   actions: WorkbenchEditActions;
   saveStatus: ToolbarSaveStatus;
-  onOpenScorePolicy(): void;
   compact?: boolean;
   answerSummary?: QuestionAnswerSummary;
   answerCounts?: { total: number; graded: number } | null;
@@ -78,7 +73,6 @@ export function WorkbenchQuestionEditor({
   onNavigate,
   actions,
   saveStatus,
-  onOpenScorePolicy,
   compact = false,
   registerFlush,
   answerSummary,
@@ -120,15 +114,6 @@ export function WorkbenchQuestionEditor({
     registerFlush?.(locked ? leaveLocked : draft.flush);
     return () => registerFlush?.(null);
   }, [draft.flush, locked, registerFlush, actions]);
-  const names = {
-    single_choice: "單選題",
-    multiple_choice: "多選題",
-    true_false: "是非題",
-    short_answer: "簡答題",
-    essay: "問答題",
-  };
-  const typeText = (type: ExamQuestionType) =>
-    t(`common:questionType.label.${type}`, names[type]);
   const switchType = (type: ExamQuestionType) =>
     setForm((p) => ({
       ...p,
@@ -172,13 +157,6 @@ export function WorkbenchQuestionEditor({
     form,
     answerCounts ?? null,
   );
-  const policy = question.scorePolicy ?? "normal";
-  const policyText =
-    policy === "full_marks"
-      ? t("workbench.edit.fullMarks", "送分")
-      : policy === "excluded" || policy === "redistribute"
-        ? t("workbench.edit.excluded", "不計分")
-        : t("workbench.edit.normal", "正常計分");
   return (
     <article className={styles.editor}>
       {locked && !compact && (
@@ -194,14 +172,14 @@ export function WorkbenchQuestionEditor({
         />
       )}
 
-      {!compact && (
+      {(
         <header className={styles.editorHeader}>
-          <h1>
+          {!compact && <h1>
             <span className={styles.questionLabel}>{label}</span>
             <span className={styles.questionTitle} title={form.prompt}>
               {form.prompt.split("\n")[0]}
             </span>
-          </h1>
+          </h1>}
           {locked && draft.dirty ? (
             <>
               <Tag type="gray" size="sm">
@@ -222,34 +200,17 @@ export function WorkbenchQuestionEditor({
             <GlobalSaveStatus status={saveStatus} />
           )}
 
-          <OverflowMenu
-            flipped
-            iconDescription={t("workbench.edit.more", "更多操作")}
-            aria-label={t("workbench.edit.more", "更多操作")}
-          >
-            {!locked && (
-              <OverflowMenuItem
-                itemText={t("workbench.edit.duplicate", "複製這題")}
-                onClick={() => {
-                  void actions.duplicate(question.id);
-                }}
-              />
-            )}
-            <OverflowMenuItem
-              itemText={t("workbench.edit.saveToBank", "收錄到題庫")}
-              onClick={() => actions.saveToBank(question)}
-            />
-            {!locked && (
-              <OverflowMenuItem
-                hasDivider
-                isDelete
-                itemText={t("workbench.edit.deleteQuestion", "刪除這題")}
-                onClick={() => {
-                  void actions.remove(question.id);
-                }}
-              />
-            )}
-          </OverflowMenu>
+          <div className={styles.questionActions}>
+            {!locked && <IconButton kind="ghost" size="sm"
+              label={t("workbench.edit.duplicate", "複製這題")}
+              onClick={() => { void actions.duplicate(question.id); }}><Copy size={16} /></IconButton>}
+            <IconButton kind="ghost" size="sm"
+              label={t("workbench.edit.saveToBank", "收錄到題庫")}
+              onClick={() => actions.saveToBank(question)}><DocumentAdd size={16} /></IconButton>
+            {!locked && <IconButton kind="ghost" size="sm"
+              label={t("workbench.edit.deleteQuestion", "刪除這題")}
+              onClick={() => { void actions.remove(question.id); }}><TrashCan size={16} /></IconButton>}
+          </div>
         </header>
       )}
       {locked && (
@@ -292,17 +253,16 @@ export function WorkbenchQuestionEditor({
         </section>
       )}
       <div className={styles.settingsRow}>
-        <Select
-          id={`type-${question.id}`}
-          labelText={t("workbench.edit.type", "題型")}
-          value={form.questionType}
-          disabled={locked}
-          onChange={(e) => switchType(e.target.value as ExamQuestionType)}
-        >
-          {ALLOWED_TYPE_SWITCHES[form.questionType].map((type) => (
-            <SelectItem key={type} value={type} text={typeText(type)} />
-          ))}
-        </Select>
+        <div role="group" aria-label={t("workbench.edit.type", "題型")}>
+          <div className={styles.typeLabel}>{t("workbench.edit.type", "題型")}</div>
+          <WorkbenchQuestionTypeMenu
+            questionsOnly
+            value={form.questionType}
+            allowedTypes={ALLOWED_TYPE_SWITCHES[form.questionType]}
+            disabled={locked}
+            onAdd={(choice) => { if (choice.kind === "question") switchType(choice.type); }}
+          />
+        </div>
         <NumberInput
           id={`score-${question.id}`}
           label={t("workbench.edit.score", "配分")}
@@ -315,35 +275,7 @@ export function WorkbenchQuestionEditor({
             setForm((p) => ({ ...p, score: String(data.value) }))
           }
         />
-        <div className={styles.policyControl}>
-          <span>{t("workbench.edit.scorePolicy", "分數政策")}</span>
-          <div>
-            <Tag size="sm" type="gray">
-              {policyText}
-            </Tag>
-            <Button kind="ghost" size="sm" onClick={onOpenScorePolicy}>
-              {t("workbench.edit.change", "變更")}
-            </Button>
-          </div>
-        </div>
       </div>
-      {compact && locked && draft.dirty && (
-        <div className={styles.compactDraft}>
-          <Tag type="gray" size="sm">
-            {t("workbench.edit.unsaved", "{{count}} 項未儲存", {
-              count: dirtyCount,
-            })}
-          </Tag>
-          <Button
-            kind="ghost"
-            size="sm"
-            disabled={manualSaving}
-            onClick={draft.reset}
-          >
-            {t("workbench.edit.discard", "捨棄變更")}
-          </Button>
-        </div>
-      )}
       <section
         className={`${styles.field} ${highlightField === "prompt" ? styles.highlightField : ""}`}
         aria-label={t("workbench.edit.prompt", "題目敘述")}
@@ -357,15 +289,11 @@ export function WorkbenchQuestionEditor({
         {locked ? (
           <MarkdownRenderer>{form.prompt}</MarkdownRenderer>
         ) : (
-          <MarkdownField
-            variant="subtle"
+          <WorkbenchMarkdownField
             id={`prompt-${question.id}`}
             labelText={t("workbench.edit.prompt", "題目敘述")}
             value={form.prompt}
             onChange={(value) => setForm((p) => ({ ...p, prompt: value }))}
-            showPreview
-            invalid={draft.error === "emptyPrompt"}
-            invalidText={t("workbench.edit.emptyPrompt", "題目內容不可為空")}
           />
         )}
       </section>
@@ -397,7 +325,7 @@ export function WorkbenchQuestionEditor({
                   : form.singleAnswerIndex === String(index);
               return (
                 <div
-                  className={`${styles.optionRow} ${correct ? styles.correctOption : ""}`}
+                  className={styles.optionRow}
                   key={index}
                 >
                   {form.questionType === "multiple_choice" ? (
@@ -431,35 +359,33 @@ export function WorkbenchQuestionEditor({
                       }
                     />
                   )}
-                  <TextInput
+                  <WorkbenchMarkdownField
                     id={`option-${question.id}-${index}`}
+                    suffix={correct ? <Tag type="green" size="sm">
+                      {t("workbench.edit.correctAnswer", "正確答案")}
+                    </Tag> : undefined}
                     labelText={t("workbench.edit.option", "選項 {{letter}}", {
                       letter,
                     })}
-                    hideLabel
                     value={option}
-                    readOnly={locked || form.questionType === "true_false"}
+                    disabled={locked || form.questionType === "true_false"}
                     invalid={!option.trim()}
                     invalidText={t(
                       "workbench.edit.blankOption",
                       "選項文字不可空白",
                     )}
-                    onChange={(e) =>
+                    onChange={(value) =>
                       setForm((p) => ({
                         ...p,
                         options: p.options.map((v, i) =>
-                          i === index ? e.target.value : v,
+                          i === index ? value : v,
                         ),
                       }))
                     }
                   />
-                  {correct && (
-                    <Tag type="green" size="sm">
-                      {t("workbench.edit.correctAnswer", "正確答案")}
-                    </Tag>
-                  )}
                   {!locked && form.questionType !== "true_false" && (
                     <IconButton
+                      className={styles.optionAction}
                       kind="ghost"
                       size="sm"
                       label={t(
@@ -500,8 +426,7 @@ export function WorkbenchQuestionEditor({
             ariaLabel={t("workbench.edit.reference", "評分參考答案")}
           />
         ) : (
-          <MarkdownField
-            variant="subtle"
+          <WorkbenchMarkdownField
             id={`reference-${question.id}`}
             labelText={t("workbench.edit.reference", "評分參考答案")}
             value={
@@ -517,7 +442,6 @@ export function WorkbenchQuestionEditor({
                   : { shortAnswer: value }),
               }))
             }
-            showPreview
           />
         )}
       </section>
@@ -535,13 +459,11 @@ export function WorkbenchQuestionEditor({
             ariaLabel={t("workbench.edit.explanation", "詳解")}
           />
         ) : (
-          <MarkdownField
-            variant="subtle"
+          <WorkbenchMarkdownField
             id={`explanation-${question.id}`}
             labelText={t("workbench.edit.explanation", "詳解")}
             value={form.explanation}
             onChange={(value) => setForm((p) => ({ ...p, explanation: value }))}
-            showPreview
           />
         )}
       </section>
@@ -579,7 +501,7 @@ export function WorkbenchQuestionEditor({
                   .catch(() => {});
             }}
           >
-            {prevLabel ?? t("workbench.edit.previous", "上一題")}
+            {prevLabel ? t("workbench.edit.previousLabel", "上一題 {{label}}", { label: prevLabel }) : t("workbench.edit.previous", "上一題")}
           </Button>
           <Button
             kind="ghost"
@@ -595,7 +517,7 @@ export function WorkbenchQuestionEditor({
                   .catch(() => {});
             }}
           >
-            {nextLabel ?? t("workbench.edit.next", "下一題")}
+            {nextLabel ? t("workbench.edit.nextLabel", "下一題 {{label}}", { label: nextLabel }) : t("workbench.edit.next", "下一題")}
           </Button>
         </nav>
       )}

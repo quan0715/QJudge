@@ -2,13 +2,13 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { ContestDetail } from "@/core/entities/contest.entity";
+import type { ContestDetail, ExamQuestion } from "@/core/entities/contest.entity";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import StudentExamDemoScreen from "./StudentExamDemoScreen";
 
 const mocks = vi.hoisted(() => ({
   getContest: vi.fn(),
-  getExamQuestions: vi.fn(),
+  getExamPaper: vi.fn(),
   getContestProblem: vi.fn(),
 }));
 
@@ -16,8 +16,8 @@ vi.mock("@/infrastructure/api/repositories", () => ({
   getContest: mocks.getContest,
 }));
 
-vi.mock("@/infrastructure/api/repositories/examQuestions.repository", () => ({
-  getExamQuestions: mocks.getExamQuestions,
+vi.mock("@/infrastructure/api/repositories/examPaper.repository", () => ({
+  getExamPaper: mocks.getExamPaper,
 }));
 
 vi.mock("@/infrastructure/api/repositories/contestProblems.repository", () => ({
@@ -116,7 +116,7 @@ describe("StudentExamDemoScreen", () => {
 
   it("shows the working coding editor and submissions for coding contests", async () => {
     mocks.getContest.mockResolvedValue(buildContest("coding"));
-    mocks.getExamQuestions.mockResolvedValue([]);
+    mocks.getExamPaper.mockResolvedValue({ questions: [], groups: [], sections: [], blocks: [] });
     mocks.getContestProblem.mockResolvedValue(codingProblem);
 
     renderScreen();
@@ -130,11 +130,24 @@ describe("StudentExamDemoScreen", () => {
 
   it("keeps the paper-exam preview for paper exams", async () => {
     mocks.getContest.mockResolvedValue(buildContest("paper_exam"));
-    mocks.getExamQuestions.mockResolvedValue([]);
+    mocks.getExamPaper.mockResolvedValue({ questions: [], groups: [], sections: [], blocks: [] });
     mocks.getContestProblem.mockResolvedValue(codingProblem);
 
     renderScreen();
 
     expect(await screen.findByTestId("paper-exam-preview")).toBeInTheDocument();
+  });
+  it("renders the shared stem and consecutive labels for an expanded question group", async () => {
+    mocks.getContest.mockResolvedValue({ ...buildContest("paper_exam"), problems: [] });
+    const group = { id: "g", title: "Reading", sharedStemMarkdown: "Shared reading passage", expandQuestionNumbers: true, totalScore: 2 };
+    const questions = ["a", "b"].map((id, order) => ({
+      id, groupId: "g", expandQuestionNumbers: true, prompt: "Read and choose", questionType: "single_choice",
+      options: ["Yes", "No"], score: 1, order,
+    })) as ExamQuestion[];
+    mocks.getExamPaper.mockResolvedValue({ questions, groups: [group], sections: [{ kind: "group", group, items: questions }], blocks: [] });
+    renderScreen();
+    expect(await screen.findByText("Shared reading passage")).toBeInTheDocument();
+    expect(screen.getByText("1–2. · Reading")).toBeInTheDocument();
+    expect(screen.getByText("1.")).toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 import { roundScore } from "@/shared/utils/scoreFormat";
 import {
+  startTransition,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -48,16 +49,11 @@ import {
 } from "@/features/contest/domain/paperMoveModel";
 import { buildEditRailRows } from "./editRailModel";
 import { WorkbenchEditRail } from "./WorkbenchEditRail";
-import type { AddMenuChoice } from "./WorkbenchAddMenu";
+import type { AddMenuChoice } from "./WorkbenchQuestionTypeMenu";
 import { useEditorImpactData } from "@/features/contest/components/admin/examEditor/hooks/useEditorImpactData";
 import { summarizeQuestionAnswers } from "./questionAnswerSummary";
 import { PublishCheckDrawer } from "./PublishCheckDrawer";
 import { PublishCheckBar } from "./PublishCheckBar";
-import { ScorePolicyDialog } from "./ScorePolicyDialog";
-import {
-  simulateEffectiveMax,
-  type SimQuestion,
-} from "../../grading/scorePolicyImpact.utils";
 import {
   WorkbenchGroupEditor,
   type QuestionEditAnswerData,
@@ -131,8 +127,6 @@ export default function WorkbenchEditScreen({
     });
     return next;
   }, []);
-  const [policyQuestionId, setPolicyQuestionId] = useState<string | null>(null);
-  const [expandedChildId, setExpandedChildId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [bankQuestion, setBankQuestion] = useState<ExamQuestion | null>(null);
   const { confirm, modalProps } = useConfirmModal();
@@ -155,7 +149,7 @@ export default function WorkbenchEditScreen({
     return () => {
       active = false;
     };
-  }, [contestId, applyPaper]);
+  }, [contestId, contest?.expandQuestionNumbers, applyPaper]);
   const impactData = useEditorImpactData(contestId, paper?.questions ?? []);
   const refreshImpact = impactData.refresh;
   const answerData = useMemo(() => {
@@ -193,6 +187,8 @@ export default function WorkbenchEditScreen({
   const selected = rows.some((row) => row.key === params.get("edit_item"))
     ? params.get("edit_item")
     : (rows[0]?.key ?? null);
+  const selectedRow = rows.find((row) => row.key === selected);
+  const selectedBlockId = selectedRow?.blockId;
   useEffect(() => {
     if (selected && params.get("edit_item") !== selected) {
       setParams(
@@ -209,29 +205,35 @@ export default function WorkbenchEditScreen({
   const registerFlush = useCallback((flush: (() => Promise<void>) | null) => {
     beforeLeave.current = flush;
   }, []);
+  const writeSelection = useCallback(
+    (id: string) => {
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("edit_item", id);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setParams],
+  );
   const select = useCallback(
     async (id: string, keepReview = false) => {
-      if (!keepReview) setReview(null);
       try {
         await beforeLeave.current?.();
-        setParams(
-          (prev) => {
-            const next = new URLSearchParams(prev);
-            next.set("edit_item", id);
-            return next;
-          },
-          { replace: true },
-        );
+        if (!keepReview) setReview(null);
+        writeSelection(id);
         return true;
       } catch {
         /* The save action reports the error; stay on the draft. */ return false;
       }
     },
-    [setParams],
+    [writeSelection],
   );
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (mainRef.current) mainRef.current.scrollTop = 0;
-  }, [selected]);
+  }, [selectedBlockId]);
   const goIssue = async (item: ExamPublishIssueItem) => {
     if (await select(item.questionId, true)) {
       setReview({
@@ -339,8 +341,7 @@ export default function WorkbenchEditScreen({
           });
           await loadPaper();
           if (updated.kind === "group")
-            setExpandedChildId(updated.children.at(-1)?.id ?? null);
-          void select(groupId);
+            writeSelection(updated.children.at(-1)?.id ?? groupId);
         }),
       duplicate: async (id) =>
         structural(async () => {
@@ -356,14 +357,14 @@ export default function WorkbenchEditScreen({
             );
             await loadPaper();
             if (block.kind === "group")
-              select(block.children.at(-1)?.id ?? block.id);
+              writeSelection(block.children.at(-1)?.id ?? block.id);
           } else {
             const block = await createExamPaperBlock(contestId, {
               kind: "question",
               question: payload,
             });
             await loadPaper();
-            select(block.id);
+            writeSelection(block.id);
           }
         }),
       remove: async (id) => {
@@ -377,8 +378,18 @@ export default function WorkbenchEditScreen({
         });
         if (!accepted) return;
         await structural(async () => {
+          const parent = paper?.blocks.find(
+            (block) =>
+              block.kind === "group" &&
+              block.children.some((child) => child.id === id),
+          );
           await deleteExamPaperBlock(contestId, id);
-          await loadPaper();
+          const next = await getExamPaper(contestId);
+          // Router navigation is a transition; update its paper snapshot together.
+          startTransition(() => {
+            if (parent && selected === id) writeSelection(parent.id);
+            applyPaper(next);
+          });
         });
       },
       saveToBank: setBankQuestion,
@@ -400,7 +411,8 @@ export default function WorkbenchEditScreen({
       structural,
       paper,
       loadPaper,
-      select,
+      selected,
+      writeSelection,
       confirm,
       t,
       applyPaper,
@@ -417,11 +429,7 @@ export default function WorkbenchEditScreen({
         b.id === selected ||
         (b.kind === "group" && b.children.some((q) => q.id === selected)),
     );
-    if (
-      choice.kind === "question" &&
-      block?.kind === "group" &&
-      selected === block.id
-    ) {
+    if (choice.kind === "question" && block?.kind === "group") {
       await actions.addChild(block.id, choice.type);
       return;
     }
@@ -450,7 +458,7 @@ export default function WorkbenchEditScreen({
             },
       );
       await loadPaper();
-      select(created.id);
+      writeSelection(created.id);
     });
   };
   if (error || !paper)
@@ -488,41 +496,19 @@ export default function WorkbenchEditScreen({
         </div>
       </div>
     );
-  const currentQuestion = paper.questions.find((q) => q.id === selected);
-  const currentBlock = paper.blocks.find((b) => b.id === selected);
-  const policyQuestion = paper.questions.find((q) => q.id === policyQuestionId);
-  const sample = paper.questions.find(
-    (q) =>
-      q.id !== policyQuestionId && (q.scorePolicy ?? "normal") === "normal",
-  );
-  const simQuestions: SimQuestion[] = paper.questions.map((q) => ({
-    id: q.id,
-    maxScore: q.score,
-    scorePolicy: q.scorePolicy ?? "normal",
-    redistributeTargetIds: q.scorePolicyConfig?.redistributeTo ?? [],
-  }));
-  const baseline = policyQuestion
-    ? simulateEffectiveMax(
-        simQuestions.map((q) =>
-          q.id === policyQuestion.id ? { ...q, scorePolicy: "normal" } : q,
-        ),
-      )
-    : null;
-  const redistributed = policyQuestion
-    ? simulateEffectiveMax(
-        simQuestions.map((q) =>
-          q.id === policyQuestion.id
-            ? { ...q, scorePolicy: "redistribute", redistributeTargetIds: [] }
-            : q,
-        ),
-      )
-    : null;
+  const currentBlock = paper.blocks.find((b) => b.id === selectedBlockId);
+  const currentQuestion =
+    currentBlock?.kind === "question" ? currentBlock.question : undefined;
+  const questionRows = rows.filter((row) => row.kind !== "group");
+  const questionIndex = questionRows.findIndex((row) => row.key === currentQuestion?.id);
+  const previousQuestion = questionRows[questionIndex - 1];
+  const nextQuestion = questionRows[questionIndex + 1];
   return (
     <div className={styles.root}>
       <WorkbenchEditRail
         header={header}
-        rows={rows}
-        activeKey={selected}
+        rows={rows.filter((row) => row.kind !== "child")}
+        activeKey={selectedBlockId ?? null}
         locked={locked}
         issueCount={issues.length}
         summary={{
@@ -592,32 +578,11 @@ export default function WorkbenchEditScreen({
               actions={actions}
               saveStatus={saveStatus}
               registerFlush={registerFlush}
-              onOpenScorePolicy={() => setPolicyQuestionId(currentQuestion.id)}
-              prevLabel={
-                rows.find(
-                  (r) =>
-                    r.key ===
-                    paper.questions[
-                      paper.questions.indexOf(currentQuestion) - 1
-                    ]?.id,
-                )?.label
-              }
-              nextLabel={
-                rows.find(
-                  (r) =>
-                    r.key ===
-                    paper.questions[
-                      paper.questions.indexOf(currentQuestion) + 1
-                    ]?.id,
-                )?.label
-              }
+              prevLabel={previousQuestion?.label}
+              nextLabel={nextQuestion?.label}
               onNavigate={(direction) => {
-                const next =
-                  paper.questions[
-                    paper.questions.indexOf(currentQuestion) +
-                      (direction === "prev" ? -1 : 1)
-                  ];
-                if (next) void select(next.id);
+                const target = direction === "prev" ? previousQuestion : nextQuestion;
+                if (target) void select(target.key);
               }}
             />
           ) : currentBlock?.kind === "group" ? (
@@ -633,15 +598,26 @@ export default function WorkbenchEditScreen({
                 )
               }
               locked={locked}
-              expandedChildId={expandedChildId}
-              onExpandChild={setExpandedChildId}
+              expandedChildId={
+                selectedRow?.kind === "child" ? selectedRow.key : null
+              }
+              onExpandChild={(id) => {
+                setReview(null);
+                writeSelection(id ?? currentBlock.id);
+              }}
+              highlightField={
+                review &&
+                !review.resolved &&
+                review.item.questionId === selected
+                  ? review.item.field
+                  : undefined
+              }
               actions={actions}
               saveStatus={saveStatus}
               registerFlush={registerFlush}
               answerData={answerData}
               impactError={impactData.status === "error"}
               onRetryImpact={refreshImpact}
-              onOpenScorePolicy={setPolicyQuestionId}
               onGradeQuestion={(id) =>
                 setParams((prev) => {
                   const next = new URLSearchParams(prev);
@@ -678,38 +654,6 @@ export default function WorkbenchEditScreen({
           onClose={() => setChecksOpen(false)}
         />
       </div>
-      {policyQuestion && (
-        <ScorePolicyDialog
-          key={`${policyQuestion.id}:${policyQuestion.scorePolicy}`}
-          open
-          question={policyQuestion}
-          label={rows.find((r) => r.key === policyQuestion.id)?.label ?? ""}
-          paperTotal={paper.questions.reduce(
-            (sum, q) =>
-              sum +
-              (q.id === policyQuestion.id || q.scorePolicy !== "excluded"
-                ? q.score
-                : 0),
-            0,
-          )}
-          sampleTarget={
-            sample
-              ? {
-                  label: rows.find((r) => r.key === sample.id)?.label ?? "",
-                  score: baseline?.get(sample.id) ?? sample.score,
-                }
-              : null
-          }
-          sampleAfterScore={sample ? redistributed?.get(sample.id) : undefined}
-          affectedStudents={impactData.impactContext.studentIds.length}
-          impactReady={impactData.status === "loaded"}
-          onClose={() => setPolicyQuestionId(null)}
-          onApplied={async () => {
-            await loadPaper();
-            refreshImpact();
-          }}
-        />
-      )}
       <ConfirmModal {...modalProps} />
       <QuestionBankImportModal
         open={importOpen}

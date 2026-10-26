@@ -52,6 +52,46 @@
   color: var(--cds-text-helper);
 }
 
+.objectiveQuestion {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: layout.$spacing-03;
+  align-items: start;
+  margin-bottom: layout.$spacing-05;
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.objectiveNumber {
+  font-weight: 600;
+}
+
+.objectiveContent {
+  min-width: 0;
+}
+
+.objectivePrompt {
+  display: contents;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+
+  p, li, td, th {
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  > p:last-child {
+    display: inline;
+  }
+}
+
+.objectiveMeta {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-helper);
+  white-space: nowrap;
+}
+
 .prompt {
   margin-bottom: layout.$spacing-06;
   font-size: 1rem;

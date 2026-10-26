@@ -380,8 +380,8 @@ describe("grading workbench", () => {
     }));
     await setup("grading_question=c");
     const rail = within(screen.getByRole("navigation", { name: "題目" }));
-    expect(rail.getByRole("progressbar", { name: "第 1 題草稿完成進度" })).toHaveAttribute("title", "草稿已完成 3/4 · 已寫入 0/2");
-    expect(rail.getByRole("progressbar", { name: "第 1 題草稿完成進度" })).toHaveAttribute("aria-valuenow", "75");
+    expect(rail.getByRole("progressbar", { name: "1.草稿完成進度" })).toHaveAttribute("title", "草稿已完成 3/4 · 已寫入 0/2");
+    expect(rail.getByRole("progressbar", { name: "1.草稿完成進度" })).toHaveAttribute("aria-valuenow", "75");
     expect(screen.getByText("Read the SOP")).toBeInTheDocument();
   });
 
@@ -392,7 +392,7 @@ describe("grading workbench", () => {
     try {
       await setup("grading_question=c");
       const rail = within(screen.getByRole("navigation", {name: "題目"}));
-      expect(rail.getByRole("progressbar", { name: "第 1 題草稿完成進度" })).toHaveAttribute("title", "等待批改草稿 · 已寫入 1/2");
+      expect(rail.getByRole("progressbar", { name: "1.草稿完成進度" })).toHaveAttribute("title", "等待批改草稿 · 已寫入 1/2");
     } finally {
       saved.forEach(row => { row.score = null; });
     }
@@ -400,7 +400,7 @@ describe("grading workbench", () => {
 
   it("a single question has one header menu holding the AI actions", async () => {
     mocks.batch.questions = [
-      { questionId: "c", status: "completed", ungradedCount: 0, writtenCount: 2, label: "Q3", index: 2, runId: "r1" } as never,
+      { questionId: "c", status: "completed", ungradedCount: 0, writtenCount: 2, label: "3.", index: 2, runId: "r1" } as never,
     ];
     await setup("grading_question=c");
     expect(screen.queryByRole("button", { name: "AI 操作" })).toBeNull();
@@ -427,7 +427,7 @@ describe("grading workbench", () => {
   it("rail progress counts fully graded students", async () => {
     await setup("grading_question=c");
     const rail = within(screen.getByRole("navigation", { name: "題目" }));
-    expect(rail.getByRole("button", { name: /第 1 題/ })).toHaveTextContent("0/2");
+    expect(rail.getByRole("button", { name: /1./ })).toHaveTextContent("0/2");
   });
 });
 

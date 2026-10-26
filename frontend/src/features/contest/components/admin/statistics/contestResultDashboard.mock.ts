@@ -29,6 +29,7 @@ export interface DashboardMockData {
 
 export interface QuestionSummaryMock {
   questionId: string;
+  questionLabel?: string;
   order: number;
   title: string;
   kind: DashboardQuestionKind;

@@ -389,7 +389,7 @@ export default function GradingByStudentTabScreen({
                 }
                 className={`${idx === selectedAnswerIdx ? mini.statusActive : ""} ${statusClass}`}
               >
-                Q{answer.questionLabel ?? answer.questionIndex}
+                {answer.questionLabel ?? answer.questionIndex}.
               </ListItem>
             );
           })
@@ -455,7 +455,7 @@ export default function GradingByStudentTabScreen({
                 />
               </ListItemLeading>
               <ListItemContent>
-                <ListItemTitle>Q{a.questionLabel ?? a.questionIndex}</ListItemTitle>
+                <ListItemTitle>{a.questionLabel ?? a.questionIndex}.</ListItemTitle>
               </ListItemContent>
               <ListItemTrailing>
                 {isAbsent ? (
@@ -540,7 +540,7 @@ export default function GradingByStudentTabScreen({
                 ? selectedStudentSummary.username
                 : t("grading.student", "學生"),
               secondary: currentAnswer
-                ? `Q${currentAnswer.questionLabel ?? currentAnswer.questionIndex}`
+                ? `${currentAnswer.questionLabel ?? currentAnswer.questionIndex}.`
                 : undefined,
             }}
           />

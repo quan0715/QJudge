@@ -28,7 +28,7 @@ export function buildWorkbenchUnits(paper: ExamPaper): GradingWorkbenchUnit[] {
       const firstLabel = labels.get(questions[0]?.id)?.label ?? "";
       return {
         id: block.id,
-        label: firstLabel.replace(/\([a-z]+\)$/, ""),
+        label: block.kind === "group" ? labels.get(questions[0]?.id)?.groupLabel ?? "" : firstLabel,
         title:
           block.kind === "group"
             ? plainTitle(block.group.title)

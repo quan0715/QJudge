@@ -314,7 +314,7 @@ export default function ContestGradingWorkbenchScreen({ header }: { header?: Rea
     const progress = `${students.filter((row) => row.total !== null).length}/${students.length}`;
     return {
       id: item.id,
-      label: t("workbench.questionNumber", "第 {{number}} 題", { number: item.label }),
+      label: t("workbench.questionNumber", "{{number}}.", { number: item.label }),
       aiProgress: progress,
       activity: { progress: draft?.total_count ? draft.draft_count / draft.total_count * 100 : 0, label: draft ? `草稿已完成 ${draft.draft_count}/${draft.total_count}` : "等待批改草稿" },
       progress,
@@ -452,7 +452,7 @@ export default function ContestGradingWorkbenchScreen({ header }: { header?: Rea
       >
         <header className={styles.header}>
           <h1 title={unit.title}>
-            {t("workbench.questionNumber", "第 {{number}} 題", { number: unit.label })}
+            {t("workbench.questionNumber", "{{number}}.", { number: unit.label })}
             <span className={styles.headerTitle}>{unit.title}</span>
           </h1>
           <div className={styles.headerActions}>
@@ -651,7 +651,7 @@ export default function ContestGradingWorkbenchScreen({ header }: { header?: Rea
         title={
           aiScope === "exam"
             ? t("workbench.examAi", "AI 批改整份考卷")
-            : t("workbench.questionAiTitle", "AI 批改第 {{number}} 題", { number: unit.label })
+            : t("workbench.questionAiTitle", "AI 批改 {{number}}.", { number: unit.label })
         }
         examSummary={examSummary}
         ungradedCount={ungradedCount}
@@ -704,7 +704,7 @@ export default function ContestGradingWorkbenchScreen({ header }: { header?: Rea
         open={revertOpen}
         danger
         size="sm"
-        modalHeading={t("grading.batch.revertTitle", { label: t("workbench.questionNumber", "第 {{number}} 題", { number: unit.label }) })}
+        modalHeading={t("grading.batch.revertTitle", { label: t("workbench.questionNumber", "{{number}}.", { number: unit.label }) })}
         primaryButtonText={t("grading.batch.revertConfirm")}
         secondaryButtonText={t("grading.batch.cancel")}
         onRequestClose={() => setRevertOpen(false)}

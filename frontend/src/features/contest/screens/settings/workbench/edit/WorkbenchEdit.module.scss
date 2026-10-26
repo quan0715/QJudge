@@ -167,26 +167,104 @@
 }
 .settingsRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.75fr) minmax(0, 1.5fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: start;
   gap: layout.$spacing-05;
   padding-bottom: layout.$spacing-05;
   border-bottom: 1px solid var(--cds-border-subtle);
 }
-.policyControl {
+.typeLabel {
   @include type.type-style("label-01");
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-02;
   color: var(--cds-text-secondary);
+  margin-bottom: layout.$spacing-03;
 }
-.policyControl > div {
+.questionActions {
   display: flex;
+  margin-inline-start: auto;
+  gap: layout.$spacing-02;
   align-items: center;
-  flex-wrap: wrap;
 }
 .field {
   min-width: 0;
+}
+.markdownSurface {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: layout.$spacing-03;
+  min-width: 0;
+  min-height: layout.$spacing-07;
+}
+.markdownToggle {
+  grid-column: 2;
+  grid-row: 1;
+}
+.markdownEditable {
+  outline: 1px solid transparent;
+  outline-offset: layout.$spacing-02;
+  &:hover {
+    outline-color: var(--cds-border-strong);
+  }
+  &:focus-within {
+    outline: 2px solid var(--cds-focus);
+  }
+  .markdownRendered {
+    cursor: pointer;
+    outline: none;
+  }
+}
+.markdownSurface > :not(.markdownToggle) {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+.markdownSource > :not(.markdownToggle) {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+.markdownRendered {
+  font-size: 1rem;
+  line-height: 1.8;
+}
+.markdownContent {
+  font-size: inherit;
+  line-height: inherit;
+  p, li, td, th {
+    font-size: inherit;
+    line-height: inherit;
+  }
+  > :first-child { margin-top: 0; }
+  > :last-child { margin-bottom: 0; }
+}
+.markdownWithSuffix {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+  > :first-child {
+    min-width: 0;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .markdownEditable .markdownToggle,
+  .optionAction {
+    opacity: 0;
+  }
+  .markdownEditable:hover .markdownToggle,
+  .markdownEditable:focus-within .markdownToggle,
+  .optionRow:hover .markdownToggle,
+  .optionRow:focus-within .markdownToggle,
+  .optionRow:hover .optionAction,
+  .optionRow:focus-within .optionAction {
+    opacity: 1;
+  }
+}
+.markdownEmpty {
+  color: var(--cds-text-placeholder);
+}
+.markdownInvalid {
+  @include type.type-style("label-01");
+  color: var(--cds-text-error);
 }
 .field h2 {
   @include type.type-style("heading-compact-01");
@@ -203,13 +281,6 @@
   flex: 1;
   min-width: 0;
 }
-.correctOption {
-  background: color-mix(
-    in srgb,
-    var(--cds-support-success) 10%,
-    var(--cds-layer-01)
-  );
-}
 .questionNavigation {
   display: flex;
   justify-content: space-between;
@@ -223,9 +294,6 @@
   }
   .settingsRow {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-  .policyControl {
-    grid-column: 1 / -1;
   }
   .optionRow {
     flex-wrap: wrap;
@@ -290,6 +358,23 @@
 .groupSettings strong {
   @include type.type-style("heading-02");
 }
+.childJump {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: layout.$spacing-02;
+}
+.childJump > span {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+  margin-right: layout.$spacing-03;
+}
+.childJumpButton {
+  color: var(--cds-text-primary);
+}
+.childJumpButton[aria-pressed="true"] {
+  background: var(--cds-layer-selected-01);
+}
 .childListHeader {
   display: flex;
   justify-content: space-between;
@@ -302,7 +387,9 @@
 }
 .childSection {
   border-bottom: 1px solid var(--cds-border-subtle);
+  scroll-margin-top: layout.$spacing-12;
 }
+
 .childHeading {
   width: 100%;
   max-width: none;
@@ -325,8 +412,7 @@
   padding: layout.$spacing-05;
   background: var(--cds-layer-01);
 }
-.childActions,
-.compactDraft {
+.childActions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -350,30 +436,6 @@
   .childEditor {
     padding: layout.$spacing-04 layout.$spacing-03;
   }
-}
-
-.policyDialog {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-05;
-}
-.policySubchoices {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-04;
-  padding-left: layout.$spacing-06;
-}
-.policyDialog p {
-  @include type.type-style("body-compact-01");
-  margin: 0;
-}
-.policyFootnote {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-03;
-  padding-top: layout.$spacing-05;
-  border-top: 1px solid var(--cds-border-subtle);
-  color: var(--cds-text-secondary);
 }
 
 .mainArea {

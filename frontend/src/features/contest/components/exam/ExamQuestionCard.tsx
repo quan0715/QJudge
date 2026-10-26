@@ -20,9 +20,10 @@ import {
   createEmptyOpenAnswerDocument,
   isOpenAnswerDocument,
 } from "@/shared/ui/editor";
-import { formatScore } from "@/features/contest/utils/scoreFormat";
+import { formatScore, roundScore } from "@/features/contest/utils/scoreFormat";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import ExamQuestionPrompt from "./ExamQuestionPrompt";
+import ExamQuestionGroupStem from "./ExamQuestionGroupStem";
 import styles from "./ExamQuestionCard.module.scss";
 
 const TYPE_COLORS: Record<ExamQuestionType, string> = {
@@ -92,7 +93,7 @@ interface ExamQuestionCardProps {
   showGroupStem?: boolean;
   index: number;
   displayLabel?: string;
-  groupNumber?: number;
+  groupLabel?: string;
   answer?: unknown;
   onAnswerChange?: (
     questionId: string,
@@ -112,7 +113,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
   showGroupStem = false,
   index,
   displayLabel,
-  groupNumber,
+  groupLabel,
   answer,
   onAnswerChange,
   onBlur,
@@ -121,6 +122,9 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
   onToggleMark,
 }) => {
   const { t } = useTranslation(["contest", "common"]);
+  const isObjective = question.questionType === "single_choice"
+    || question.questionType === "multiple_choice"
+    || question.questionType === "true_false";
 
   const handleChange = (value: unknown) => {
     onAnswerChange?.(question.id, value, question.questionType, question.answerFormat);
@@ -314,58 +318,59 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
     }
   };
 
+  const markButton = !readOnly && onToggleMark ? (
+    <button
+      className={`${styles.markBtn} ${isMarked ? styles.markBtnActive : ""}`}
+      onClick={() => onToggleMark(question.id)}
+      aria-label={t("answering.mark.toggle")}
+      type="button"
+    >
+      {isMarked ? <FlagFilled size={16} /> : <Flag size={16} />}
+      <span>{t("answering.mark.toggle")}</span>
+    </button>
+  ) : null;
+
   return (
     <div className={styles.card} data-testid={`exam-question-card-${question.id}`}>
-      {group && showGroupStem && (
-        <section className={styles.groupStem} aria-label={t("answering.group.sharedStem")}>
-          <div className={styles.groupStemHeader}>
-            <span className={styles.groupStemTitle}>
-              {groupNumber ? t("answering.submit.questionPreview", { index: groupNumber }) : group.title || t("answering.group.sharedStem")}
-              {groupNumber && group.title ? ` · ${group.title}` : ""}
-            </span>
-            <span className={styles.groupStemScore}>
-              {t("answering.group.totalScore", {
-                score: formatScore(group.totalScore),
-                defaultValue: "小計 {{score}} 分",
-              })}
-            </span>
-          </div>
-          <MarkdownRenderer enableMath enableHighlight>
-            {group.sharedStemMarkdown}
-          </MarkdownRenderer>
-        </section>
-      )}
+      {group && showGroupStem && <ExamQuestionGroupStem group={group} label={groupLabel} />}
 
+      {isObjective ? (
+        <div className={styles.objectiveQuestion}>
+          <span className={styles.objectiveNumber}>{displayLabel ?? index + 1}.</span>
+          <div className={styles.objectiveContent}>
+            {question.prompt.trim() ? (
+              <MarkdownRenderer enableMath enableHighlight className={styles.objectivePrompt}>
+                {question.prompt}
+              </MarkdownRenderer>
+            ) : null}
+            {" "}<span className={styles.objectiveMeta}>
+              （{t(`answering.questionTypes.${question.questionType}`)}，{roundScore(question.score)} {t("scoreboard.status.pts")}）
+            </span>
+            {markButton}
+          </div>
+        </div>
+      ) : (<>
       <div className={styles.header}>
         <span className={styles.label}>
-          {t("answering.submit.questionPreview", { index: displayLabel ?? index + 1 })}
+          {displayLabel ?? index + 1}.
           <Tag size="sm" type={TYPE_COLORS[question.questionType] as never}>
             {t(`answering.questionTypes.${question.questionType}`)}
           </Tag>
         </span>
         <div className={styles.headerRight}>
-          {!readOnly && onToggleMark && (
-            <button
-              className={`${styles.markBtn} ${isMarked ? styles.markBtnActive : ""}`}
-              onClick={() => onToggleMark(question.id)}
-              aria-label={t("answering.mark.toggle")}
-              type="button"
-            >
-              {isMarked ? <FlagFilled size={16} /> : <Flag size={16} />}
-              <span>{t("answering.mark.toggle")}</span>
-            </button>
-          )}
+          {markButton}
           <span className={styles.score}>{formatScore(question.score)} {t("scoreboard.status.pts")}</span>
         </div>
       </div>
 
-      <ExamQuestionPrompt
+      {question.prompt.trim() && <ExamQuestionPrompt
         content={question.prompt}
         emptyText={t("answering.question.promptEmpty")}
-      />
+      />}
+      </>)}
 
       <div className={styles.answerArea}>
-        <div className={styles.answerLabel}>{t("answering.question.answerLabel")}</div>
+        {!isObjective && <div className={styles.answerLabel}>{t("answering.question.answerLabel")}</div>}
         {renderAnswerInput()}
       </div>
     </div>

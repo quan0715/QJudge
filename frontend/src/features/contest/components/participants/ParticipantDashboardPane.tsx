@@ -595,7 +595,8 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                         return {
                           id: row.questionId,
                           index: row.index,
-                          prompt: questionDetail?.prompt || `Q${row.index}`,
+                          questionLabel: row.questionLabel,
+                          prompt: questionDetail?.prompt || `${row.questionLabel ?? row.index}.`,
                           typeLabel: t(
                             `common:questionType.label.${row.questionType}`,
                             questionTypeLabel[row.questionType],
@@ -620,6 +621,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                           key={row.questionId}
                           questionId={row.questionId}
                           index={row.index}
+                          questionLabel={row.questionLabel}
                           questionType={row.questionType}
                           typeLabel={t(
                             `common:questionType.label.${row.questionType}`,

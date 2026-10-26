@@ -70,6 +70,7 @@ class Contest(models.Model):
     )
 
     allow_multiple_joins = models.BooleanField(default=False, verbose_name='允許多次加入')
+    expand_question_numbers = models.BooleanField(default=False, verbose_name='展開題號')
 
     # Contest type
     CONTEST_TYPE_CHOICES = [
