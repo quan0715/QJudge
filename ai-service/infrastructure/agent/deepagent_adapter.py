@@ -14,12 +14,14 @@ from pathlib import Path
 from typing import Any, AsyncGenerator, Protocol
 from uuid import UUID
 
+import httpx
 from deepagents import FilesystemPermission, create_deep_agent
 from deepagents.backends.composite import CompositeBackend
 from deepagents.backends.filesystem import FilesystemBackend
 from deepagents.backends.state import StateBackend
 from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
 from deepagents.middleware.summarization import SummarizationMiddleware
+from langchain.agents.middleware import ModelRetryMiddleware
 from langgraph.types import Command
 
 from application.artifacts import ArtifactService
@@ -69,15 +71,29 @@ _GRADING_PRINCIPLES_PATH = (
     Path(__file__).resolve().parents[2]
     / ".deepagents/skills/qjudge-exam-grading-sop/references/core-principles.md"
 )
+_GRADING_SOP_PATH = _GRADING_PRINCIPLES_PATH.parents[1] / "SKILL.md"
 
 _MODEL_QUOTA_EXHAUSTED_MESSAGE = (
     "The selected AI model has no remaining provider quota. "
     "Select another model or contact an administrator."
 )
+_MODEL_STREAM_ERRORS = (httpx.ReadError, httpx.RemoteProtocolError)
+
+
+def _model_stream_retry() -> ModelRetryMiddleware:
+    # Retry just the model response, never replay completed grading/tool writes.
+    return ModelRetryMiddleware(
+        max_retries=2, retry_on=_MODEL_STREAM_ERRORS, on_failure="error",
+        initial_delay=1.0, backoff_factor=2.0,
+    )
 
 
 def _classify_agent_failure(exc: Exception) -> tuple[str, str]:
     """Convert safe-to-recognize upstream model failures into API contract errors."""
+    if isinstance(exc, _MODEL_STREAM_ERRORS):
+        return "MODEL_CONNECTION_ERROR", (
+            "模型連線中斷，重試後仍失敗。已完成的操作已保留，請稍後重試。"
+        )
     detail = str(exc).casefold()
     if "insufficient_quota" in detail or "insufficient balance" in detail:
         return "MODEL_QUOTA_EXHAUSTED", _MODEL_QUOTA_EXHAUSTED_MESSAGE
@@ -340,7 +356,7 @@ _DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教，對話對象是老師�
 - `/app/.deepagents/skills/qjudge-ta-protocol/SKILL.md`
 - `/app/.deepagents/skills/qjudge-mcp-tool-operator/SKILL.md`
 - `/app/.deepagents/skills/coding-problem-ta-skill/SKILL.md`
-- `/app/.deepagents/skills/qjudge-exam-grading-sop/SKILL.md`（open-ended 題批改 SOP；遇到老師要評分/改分時讀此）
+- `/app/.deepagents/skills/qjudge-exam-grading-sop/SKILL.md`（批改工具可用時，SOP 與核心原則已載入）
 
 如工具錯誤或路由不確定，先呼叫：
 `qjudge_browse(action="get_help", tool_name="<tool_name>")`
@@ -419,17 +435,19 @@ class _DeepAgentRuntime:
         custom middleware that is not already included.
         """
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
-        grading_principles = ""
+        grading_instructions = ""
         if any(getattr(tool, "name", None) in {"get_grading_unit", "qjudge_grading"} for tool in tools):
             # The SOP owns the text. Both model contexts receive it without a
             # discretionary skill read or a parent-written delegation summary.
             try:
-                grading_principles = _GRADING_PRINCIPLES_PATH.read_text(encoding="utf-8").strip()
+                sop = _GRADING_SOP_PATH.read_text(encoding="utf-8").strip()
+                principles = _GRADING_PRINCIPLES_PATH.read_text(encoding="utf-8").strip()
             except (OSError, UnicodeError) as exc:
-                raise RuntimeError("Core grading principles could not be loaded") from exc
-            if not grading_principles:
-                raise RuntimeError("Core grading principles are empty")
-            prompt = f"{prompt}\n\n{grading_principles}"
+                raise RuntimeError("Grading SOP or core principles could not be loaded") from exc
+            if not sop or not principles:
+                raise RuntimeError("Grading SOP or core principles are empty")
+            grading_instructions = f"{sop}\n\n{principles}"
+            prompt = f"{prompt}\n\n{grading_instructions}"
         skills = [p for p in self._skills_paths if p]
         memory = [p for p in self._memory_paths if p]
 
@@ -460,16 +478,18 @@ class _DeepAgentRuntime:
                 {
                     **GENERAL_PURPOSE_SUBAGENT,
                     "system_prompt": "\n\n".join(filter(None, [
-                        GENERAL_PURPOSE_SUBAGENT["system_prompt"], grading_principles,
+                        GENERAL_PURPOSE_SUBAGENT["system_prompt"], grading_instructions,
                     ])),
                     "skills": skills,
                     "middleware": [
+                        _model_stream_retry(),
                         ToolErrorFeedbackMiddleware(),
                         SubagentWriteGuardMiddleware(write_actions=WRITE_ACTIONS),
                     ],
                 }
             ],
             "middleware": [
+                _model_stream_retry(),
                 ToolErrorFeedbackMiddleware(),
                 # Must be the last middleware: inspects the final tool_calls produced by
                 # the model turn and pauses execution for human approval on write actions.

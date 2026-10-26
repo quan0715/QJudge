@@ -1,5 +1,7 @@
 import { useState, type ComponentProps } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { Theme } from "@carbon/react";
+import "@/i18n";
 
 import { ComposerBar } from "../ComposerBar";
 
@@ -54,9 +56,11 @@ const meta: Meta<typeof ComposerBar> = {
   },
   decorators: [
     (Story) => (
-      <div style={{ maxWidth: 900, padding: "1rem", position: "relative" }}>
-        <Story />
-      </div>
+      <Theme theme="g100">
+        <div style={{ maxWidth: 900, padding: "1rem", position: "relative", background: "var(--cds-background)" }}>
+          <Story />
+        </div>
+      </Theme>
     ),
   ],
 };
@@ -67,8 +71,28 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 
 export const Streaming: Story = {
-  name: "串流中",
+  name: "處理中（等待回應）",
   args: { isStreaming: true },
+};
+
+export const RunningTool: Story = {
+  name: "處理中（執行操作）",
+  args: {
+    isStreaming: true,
+    messages: [{
+      id: "assistant-running", role: "assistant", createdAt: new Date(),
+      parts: [{
+        type: "tool", toolCallId: "read-unit", toolName: "get_grading_unit",
+        state: "input-ready",
+      }],
+    }],
+  },
+};
+
+export const LightStreaming: Story = {
+  name: "處理中（淺色）",
+  args: { isStreaming: true },
+  decorators: [(Story) => <Theme theme="white"><Story /></Theme>],
 };
 
 export const Disabled: Story = {

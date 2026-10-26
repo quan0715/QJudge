@@ -2200,7 +2200,7 @@
       "suggestion": "提案",
       "none": "未採点",
       "ai": "AI",
-      "manual": "手動"
+      "manual": "人による確認済み"
     },
     "studentPick": "学生の選択",
     "correct": "正解",
@@ -2228,7 +2228,7 @@
     "filterAuto": "自動採点",
     "filterNone": "未採点",
     "filterAi": "AI 採点",
-    "filterManual": "手動調整",
+    "filterManual": "人による確認済み",
     "filterSuggestion": "確認待ちの提案",
     "examProgress": "{{done}}/{{total}} 問",
     "autoGraded": "自動採点",

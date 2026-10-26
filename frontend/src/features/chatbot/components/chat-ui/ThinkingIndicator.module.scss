@@ -1,0 +1,30 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.indicator {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-04;
+  min-width: 0;
+  padding: layout.$spacing-03 0;
+  margin-bottom: layout.$spacing-03;
+}
+
+.label {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: textBreathe 2.4s ease-in-out infinite;
+}
+
+@keyframes textBreathe {
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .label { animation: none; }
+}

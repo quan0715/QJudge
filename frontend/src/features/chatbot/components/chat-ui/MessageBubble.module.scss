@@ -43,6 +43,28 @@
   align-items: center;
   justify-content: flex-start;
   margin-top: layout.$spacing-02;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.bubble:hover .messageActions,
+.bubble:focus-within .messageActions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .messageActions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .messageActions {
+    transition: none;
+  }
 }
 
 .user .messageActions {

@@ -63,6 +63,7 @@ export function buildGradingRows(
       feedback: a.feedback ?? "",
       gradedBy: a.gradedByUsername,
       gradedAt: a.gradedAt,
+      isAiGraded: a.isAiGraded,
       isAutoGraded: isAuto && a.score !== null,
       correctAnswer: q?.correctAnswer ?? null,
       referenceAnswerDocument: q?.referenceAnswerDocument ?? null,

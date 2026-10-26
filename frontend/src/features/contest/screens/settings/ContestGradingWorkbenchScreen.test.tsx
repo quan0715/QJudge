@@ -127,7 +127,7 @@ const answer = (studentId: string, question: ExamQuestion, over: Partial<Grading
 const rows = [
   ...["s1", "s2"].flatMap((id) => groupQuestions.map((question) => answer(id, question))),
   answer("s1", single, { score: 10, feedback: "ok" }),
-  answer("s2", single, { score: 15, feedback: "great" }),
+  answer("s2", single, { score: 15, feedback: "great", isAiGraded: true }),
   answer("s1", choice, { answerContent: { selected: 2 }, score: 4, isAutoGraded: true }),
   answer("s2", choice, { answerContent: { selected: 0 }, score: 0, isAutoGraded: true }),
 ];
@@ -289,9 +289,17 @@ describe("grading workbench", () => {
     await waitFor(() => expect(mocks.batch.startQuestion).toHaveBeenCalledWith(["a", "b"], "m1"));
   });
 
+  it("shows shared AI provenance and human-confirmed adoption without an owned batch", async () => {
+    mocks.batch.aiWrittenAnswerIds = new Set();
+    mocks.suggestions = { "s1-c": { score: 10, reason: "ok", synced: true } };
+    await setup("grading_question=c");
+    expect(within(rowButton("s1")).getByText("人工確認")).toBeInTheDocument();
+    expect(within(rowButton("s2")).getByText("AI")).toBeInTheDocument();
+  });
+
   it("regrade without anything AI-written explains instead of doing nothing", async () => {
     mocks.batch.aiWrittenAnswerIds = new Set();
-    // An adopted suggestion reads as "AI" but the batch session cannot revert it.
+    // Another grader's AI result is visible, but this session cannot revoke it.
     mocks.suggestions = { "s1-c": { score: 10, reason: "ok", synced: true } };
     await setup("grading_question=c");
     fireEvent.click(screen.getByRole("button", { name: "AI 批改這題" }));

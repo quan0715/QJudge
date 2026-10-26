@@ -2200,7 +2200,7 @@
       "suggestion": "Suggested",
       "none": "Ungraded",
       "ai": "AI",
-      "manual": "Manual"
+      "manual": "Human-confirmed"
     },
     "studentPick": "Student's pick",
     "correct": "Correct",
@@ -2228,7 +2228,7 @@
     "filterAuto": "Auto-graded",
     "filterNone": "Ungraded",
     "filterAi": "AI graded",
-    "filterManual": "Manually adjusted",
+    "filterManual": "Human-confirmed",
     "filterSuggestion": "Pending suggestions",
     "examProgress": "{{done}}/{{total}} questions",
     "autoGraded": "Auto-graded",
