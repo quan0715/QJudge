@@ -436,6 +436,8 @@ describe("grading workbench", () => {
     await setup("grading_question=c");
     const rail = within(screen.getByRole("navigation", { name: "題目" }));
     expect(rail.getByRole("button", { name: /1./ })).toHaveTextContent("0/2");
+    expect(rail.getByRole("button", { name: /1\. Shared task/ })).toBeInTheDocument();
+    expect(rail.getByRole("button", { name: /2\. Write a bill/ })).toHaveAttribute("aria-current", "page");
   });
 });
 

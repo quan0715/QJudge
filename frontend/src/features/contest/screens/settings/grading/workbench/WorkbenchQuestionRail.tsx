@@ -1,13 +1,18 @@
 import type { ReactNode } from "react";
 import { Button, Dropdown, ProgressBar } from "@carbon/react";
-import { MachineLearningModel, WarningAlt } from "@carbon/icons-react";
+import { GroupObjects, MachineLearningModel, WarningAlt } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { TodoList, type TodoListItem } from "@/shared/ai/TodoList";
+import type { ExamQuestionType } from "@/core/entities/contest.entity";
+import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
+import { ListItem, ListItemLeading, ListItemContent, ListItemTitle, ListItemTrailing } from "@/shared/ui/list/ListPanel";
 import styles from "./GradingWorkbench.module.scss";
 
 export interface RailUnit {
   id: string;
   label: string;
+  title: string;
+  questionType?: ExamQuestionType;
   progress: string;
   aiStatus?: "running" | "queued" | "failed";
   /** Fully graded students / total students, based on persisted answer scores. */
@@ -87,38 +92,48 @@ export function WorkbenchQuestionRail({
         )}
       </div>
       <nav className={styles.railList} aria-label={t("workbench.questions", "題目")}>
-        {units.map((unit) => (
-          <button
-            key={unit.id}
-            type="button"
-            className={unit.id === activeId ? styles.railItemActive : styles.railItem}
-            aria-current={unit.id === activeId ? "page" : undefined}
-            disabled={disabled}
-            onClick={() => onSelect(unit.id)}
-          >
-            <span className={styles.railLabel}>{unit.label}</span>
-            {unit.aiStatus === "running" || unit.aiStatus === "queued" || unit.activity?.progress === 100 ? (
-              <span
-                className={styles.railRing}
-                role="progressbar"
-                aria-label={`${unit.label}草稿完成進度`}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={unit.activity?.progress ?? 0}
-                aria-valuetext={unit.activity?.label ?? (unit.aiStatus ? statusText[unit.aiStatus] : "已完成寫分")}
-                title={`${unit.activity?.label ?? (unit.aiStatus ? statusText[unit.aiStatus] : "已完成寫分")} · 已寫入 ${unit.aiProgress ?? unit.progress}`}
-              >
-                <svg viewBox="0 0 32 32" aria-hidden="true">
-                  <circle className={styles.railRingTrack} cx="16" cy="16" r="12" />
-                  <circle className={styles.railRingValue} cx="16" cy="16" r="12" pathLength="100"
-                    strokeDasharray="100" strokeDashoffset={100 - (unit.activity?.progress ?? 0)} />
-                </svg>
-              </span>
-            ) : unit.aiStatus === "failed" ? (
-              <WarningAlt size={20} className={styles.railStatus_failed} aria-label={statusText.failed} />
-            ) : <span className={styles.railProgress}>{unit.progress}</span>}
-          </button>
-        ))}
+        {units.map((unit) => {
+          const TypeIcon = unit.questionType ? EXAM_QUESTION_TYPE_ICON[unit.questionType] : GroupObjects;
+          return (
+            <ListItem
+              key={unit.id}
+              active={unit.id === activeId}
+              ariaCurrent={unit.id === activeId ? "page" : undefined}
+              disabled={disabled}
+              onClick={() => onSelect(unit.id)}
+            >
+              <ListItemLeading>
+                <span className={styles.railLabel}>{unit.label}</span>
+                <TypeIcon size={16} />
+              </ListItemLeading>
+              <ListItemContent>
+                <ListItemTitle><span title={unit.title}>{unit.title}</span></ListItemTitle>
+              </ListItemContent>
+              <ListItemTrailing>
+              {unit.aiStatus === "running" || unit.aiStatus === "queued" || unit.activity?.progress === 100 ? (
+                <span
+                  className={styles.railRing}
+                  role="progressbar"
+                  aria-label={`${unit.label}草稿完成進度`}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={unit.activity?.progress ?? 0}
+                  aria-valuetext={unit.activity?.label ?? (unit.aiStatus ? statusText[unit.aiStatus] : "已完成寫分")}
+                  title={`${unit.activity?.label ?? (unit.aiStatus ? statusText[unit.aiStatus] : "已完成寫分")} · 已寫入 ${unit.aiProgress ?? unit.progress}`}
+                >
+                  <svg viewBox="0 0 32 32" aria-hidden="true">
+                    <circle className={styles.railRingTrack} cx="16" cy="16" r="12" />
+                    <circle className={styles.railRingValue} cx="16" cy="16" r="12" pathLength="100"
+                      strokeDasharray="100" strokeDashoffset={100 - (unit.activity?.progress ?? 0)} />
+                  </svg>
+                </span>
+              ) : unit.aiStatus === "failed" ? (
+                <WarningAlt size={20} className={styles.railStatus_failed} aria-label={statusText.failed} />
+              ) : <span className={styles.railProgress}>{unit.progress}</span>}
+              </ListItemTrailing>
+            </ListItem>
+          );
+        })}
       </nav>
       {(examAi.state === "running" || (examAi.totalUnits ?? 0) > 0) && (
         <div className={styles.railFooter} aria-live="polite">
@@ -139,7 +154,7 @@ export function WorkbenchQuestionRail({
           hideLabel
           label={t("workbench.questions", "題目")}
           items={units}
-          itemToString={(unit) => (unit ? `${unit.label}\u3000${right(unit)}` : "")}
+          itemToString={(unit) => (unit ? `${unit.label} ${unit.title}\u3000${right(unit)}` : "")}
           selectedItem={units.find((unit) => unit.id === activeId)}
           disabled={disabled}
           onChange={({ selectedItem }) => selectedItem && onSelect(selectedItem.id)}

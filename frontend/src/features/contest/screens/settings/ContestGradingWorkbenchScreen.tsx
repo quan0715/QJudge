@@ -316,6 +316,8 @@ export default function ContestGradingWorkbenchScreen({ header }: { header?: Rea
       id: item.id,
       label: t("workbench.questionNumber", "{{number}}.", { number: item.label }),
       aiProgress: progress,
+      title: item.title,
+      questionType: item.questions[0]?.groupId ? undefined : item.questions[0]?.questionType,
       activity: { progress: draft?.total_count ? draft.draft_count / draft.total_count * 100 : 0, label: draft ? `草稿已完成 ${draft.draft_count}/${draft.total_count}` : "等待批改草稿" },
       progress,
       aiStatus,

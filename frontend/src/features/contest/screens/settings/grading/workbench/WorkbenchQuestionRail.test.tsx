@@ -9,9 +9,9 @@ vi.mock("react-i18next", () => ({
 }));
 
 const units = [
-  { id: "u1", label: "第 1 題", progress: "16/16" },
-  { id: "u3", label: "第 3 題", progress: "14/16", aiStatus: "running" as const },
-  { id: "u6", label: "第 6 題", progress: "13/16", aiStatus: "failed" as const },
+  { id: "u1", label: "1.", title: "Boolean operations", questionType: "single_choice" as const, progress: "16/16" },
+  { id: "u3", label: "3.", title: "Notation conversion", progress: "14/16", aiStatus: "running" as const },
+  { id: "u6", label: "6.", title: "Array traversal", progress: "13/16", aiStatus: "failed" as const },
 ];
 
 const base = {
@@ -28,13 +28,21 @@ describe("WorkbenchQuestionRail", () => {
     render(<WorkbenchQuestionRail {...base} examAi={{ state: "idle", progressText: "", canStart: true }} />);
     expect(screen.getByRole("heading", { name: "工作台" })).toBeTruthy();
     expect(screen.getByText("16/16")).toBeTruthy();
-    expect(screen.getByRole("progressbar", { name: "第 3 題草稿完成進度" })).toBeTruthy();
+    expect(screen.getByRole("progressbar", { name: "3.草稿完成進度" })).toBeTruthy();
     expect(screen.getByLabelText("AI 失敗")).toBeTruthy();
     expect(screen.queryByText("14/16")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /第 6 題/ }));
+    fireEvent.click(screen.getByRole("button", { name: /6\. Array traversal/ }));
     expect(base.onSelect).toHaveBeenCalledWith("u6");
     fireEvent.click(screen.getByRole("button", { name: "AI 批改整份考卷" }));
     expect(base.onStartExam).toHaveBeenCalled();
+  });
+
+  it("shows question titles and preserves disabled navigation", () => {
+    render(<WorkbenchQuestionRail {...base} disabled examAi={{ state: "idle", progressText: "", canStart: true }} />);
+    const question = screen.getByRole("button", { name: /1\. Boolean operations/ });
+    expect(question).toBeDisabled();
+    expect(question).toHaveAttribute("aria-current", "page");
+    expect(screen.getByTitle("Notation conversion")).toBeInTheDocument();
   });
 
   it("rail running state shows stop", () => {
@@ -69,7 +77,7 @@ describe("WorkbenchQuestionRail", () => {
     render(
       <WorkbenchQuestionRail
         {...base}
-        units={[{ id: "u3", label: "第 3 題", progress: "14/16", aiStatus: "running", aiProgress: "3/16" }]}
+        units={[{ id: "u3", label: "3.", title: "Notation conversion", progress: "14/16", aiStatus: "running", aiProgress: "3/16" }]}
         activeId="u3"
         examAi={{
           state: "running",
@@ -80,7 +88,7 @@ describe("WorkbenchQuestionRail", () => {
       />,
     );
     expect(screen.getByText("制定第 3 題規準")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /第 3 題/ })).not.toHaveTextContent("AI 批改中");
-    expect(screen.getByRole("progressbar", { name: "第 3 題草稿完成進度" })).toHaveAttribute("title", "AI 批改中 · 已寫入 3/16");
+    expect(screen.getByRole("button", { name: /3\. Notation conversion/ })).not.toHaveTextContent("AI 批改中");
+    expect(screen.getByRole("progressbar", { name: "3.草稿完成進度" })).toHaveAttribute("title", "AI 批改中 · 已寫入 3/16");
   });
 });
