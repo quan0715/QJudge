@@ -56,14 +56,15 @@
 .rowSelect {
   flex: 1;
   min-width: 0;
+}
+.dragHandle {
+  flex-shrink: 0;
   cursor: grab;
   touch-action: none;
-}
-.rowSelect > button {
-  cursor: inherit;
-}
-.lockedRow .rowSelect {
-  cursor: pointer;
+
+  &:active {
+    cursor: grabbing;
+  }
 }
 .rowLabel {
   @include type.type-style("label-01");
@@ -85,7 +86,7 @@
   display: none;
   flex-shrink: 0;
 }
-.rowSelect:has(button:focus-visible) .moveControls {
+.rowSelect:focus-within .moveControls {
   display: flex;
 }
 .publishNotice {

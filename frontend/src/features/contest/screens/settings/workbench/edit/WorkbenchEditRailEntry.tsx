@@ -3,6 +3,7 @@ import { IconButton } from "@carbon/react";
 import {
   ArrowDown,
   ArrowUp,
+  Draggable,
   GroupObjects,
   WarningAlt,
 } from "@carbon/icons-react";
@@ -62,7 +63,11 @@ export function WorkbenchEditRailEntry({
         wasDragged.current = true;
         onDragStart();
       }}
-      onDragEnd={onDragEnd}
+      onDragEnd={(event) => {
+        // Let Motion release its layout lock before rolling back a cancelled drag.
+        if (event.type === "pointercancel") onDragCancel();
+        else onDragEnd();
+      }}
       className={styles.reorderItem}
     >
       <div
@@ -71,17 +76,12 @@ export function WorkbenchEditRailEntry({
           styles.railRow,
           row.kind === "child" ? styles.childRow : "",
           active ? styles.activeRow : "",
-          locked ? styles.lockedRow : "",
         ]
           .filter(Boolean)
           .join(" ")}
-        onPointerDown={(event) => {
+        onPointerDown={() => {
           wasDragged.current = false;
-          if (locked || busy) return;
-          event.stopPropagation();
-          dragControls.start(event);
         }}
-        onPointerCancel={onDragCancel}
         onClickCapture={(event) => {
           if (wasDragged.current && event.detail > 0) {
             event.preventDefault();
@@ -89,6 +89,25 @@ export function WorkbenchEditRailEntry({
           }
         }}
       >
+        {!locked && (
+          <IconButton
+            size="sm"
+            kind="ghost"
+            label={t("workbench.edit.dragHandle", "拖曳排序 {{label}}", {
+              label: row.label,
+            })}
+            className={styles.dragHandle}
+            disabled={busy}
+            onPointerDown={(event) => {
+              wasDragged.current = false;
+              if (busy) return;
+              event.stopPropagation();
+              dragControls.start(event);
+            }}
+          >
+            <Draggable size={16} />
+          </IconButton>
+        )}
         <ListItem
           active={active}
           ariaCurrent={active ? "page" : undefined}
