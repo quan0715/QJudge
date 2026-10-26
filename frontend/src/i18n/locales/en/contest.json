@@ -2280,6 +2280,7 @@
       "questions": "Questions",
       "summary": "Total {{totalScore}}",
       "hasIssue": "Has publishing issues",
+      "dragHandle": "Drag to reorder {{label}}",
       "moveUp": "Move up",
       "moveDown": "Move down",
       "publishCount": "{{count}} publishing checks",
