@@ -108,7 +108,7 @@ export function WorkbenchStudentRow({
     suggestion: t("workbench.source.suggestion", "建議"),
     none: t("workbench.source.none", "未批改"),
     ai: t("workbench.source.ai", "AI"),
-    manual: t("workbench.source.manual", "人工"),
+    manual: t("workbench.source.manual", "人工確認"),
   };
 
   return (

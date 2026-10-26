@@ -6,6 +6,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from django.utils import timezone
 from django.core.cache import cache
 from django.db import transaction
+from django.db.models import Exists, OuterRef
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -349,6 +350,16 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
 
         projection = request.query_params.get('projection')
         if projection == 'grading':
+            # Shared provenance belongs to the current grade, not the viewer's session.
+            answers = answers.annotate(is_ai_graded=Exists(
+                ExamBatchGradeWrite.objects.filter(
+                    answer_id=OuterRef('pk'),
+                    score=OuterRef('score'),
+                    feedback=OuterRef('feedback'),
+                    grader_id=OuterRef('graded_by_id'),
+                    graded_at=OuterRef('graded_at'),
+                )
+            ))
             data = ExamAnswerGradingSerializer(answers, many=True).data
             meta = {
                 'count': len(data),

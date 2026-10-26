@@ -1144,6 +1144,7 @@ class ExamAnswerGradingSerializer(serializers.ModelSerializer):
     contest participants list — both are O(题数) / O(学生数) rather than
     O(answers)."""
 
+    is_ai_graded = serializers.BooleanField(read_only=True)
     participant_user_id = serializers.SerializerMethodField()
     graded_by_username = serializers.CharField(
         source='graded_by.username', read_only=True, default=None
@@ -1154,7 +1155,7 @@ class ExamAnswerGradingSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'question_id', 'participant_user_id',
             'answer', 'is_correct', 'score', 'feedback',
-            'graded_by_username', 'graded_at',
+            'graded_by_username', 'graded_at', 'is_ai_graded',
             'created_at', 'updated_at',
         ]
         read_only_fields = fields

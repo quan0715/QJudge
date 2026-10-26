@@ -2195,7 +2195,7 @@
       "suggestion": "建議",
       "none": "未批改",
       "ai": "AI",
-      "manual": "人工"
+      "manual": "人工確認"
     },
     "studentPick": "學生選擇",
     "correct": "正解",
@@ -2223,7 +2223,7 @@
     "filterAuto": "自動批改",
     "filterNone": "未批改",
     "filterAi": "AI 給分",
-    "filterManual": "人工調整",
+    "filterManual": "人工確認",
     "filterSuggestion": "待審建議",
     "examProgress": "{{done}}/{{total}} 題",
     "autoGraded": "自動批改",

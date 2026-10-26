@@ -118,3 +118,24 @@ it("releases failed score requests so the next refresh can retry", async () => {
   expect(getAllExamAnswersForGrading).toHaveBeenCalledTimes(3);
   expect(getExamQuestions).toHaveBeenCalledTimes(1);
 });
+
+
+it("clears shared AI provenance immediately after human confirmation or ungrading", async () => {
+  context.contest.contestType = "paper_exam";
+  const aiAnswer = {
+    id: "answer-1", questionId: "q1", participantUserId: "student-1",
+    answer: { text: "answer" }, score: 8, feedback: "AI", isAiGraded: true,
+    gradedByUsername: "other-teacher", gradedAt: "2026-10-26T00:00:00Z",
+  };
+  vi.mocked(getAllExamAnswersForGrading).mockResolvedValue({ data: [aiAnswer] } as never);
+  const { result } = renderHook(() => useGradingData());
+  await waitFor(() => expect(result.current.answers[0]?.isAiGraded).toBe(true));
+  await act(async () => { await result.current.gradeAnswer("answer-1", 8, "AI"); });
+  expect(result.current.answers[0].isAiGraded).toBe(false);
+  expect(result.current.answers[0].score).toBe(8);
+  await act(async () => { await result.current.reloadAnswers(); });
+  expect(result.current.answers[0].isAiGraded).toBe(true);
+  await act(async () => { await result.current.ungradeAnswer("answer-1"); });
+  expect(result.current.answers[0].isAiGraded).toBe(false);
+  expect(result.current.answers[0].score).toBeNull();
+});

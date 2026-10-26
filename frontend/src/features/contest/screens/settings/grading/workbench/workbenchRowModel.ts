@@ -10,7 +10,6 @@ export interface SuggestionLike {
 }
 
 export interface SourceContext {
-  aiWrittenAnswerIds: ReadonlySet<string>;
   suggestions: Readonly<Record<string, SuggestionLike>>;
 }
 
@@ -42,8 +41,7 @@ export function resolveAnswerSource(row: GradingAnswerRow, ctx: SourceContext): 
   const suggestion = ctx.suggestions[row.id];
   if (isPendingSuggestion(row, suggestion)) return "suggestion";
   if (row.score === null) return "none";
-  if (ctx.aiWrittenAnswerIds.has(row.id)) return "ai";
-  if (suggestion?.synced && suggestion.score === row.score && suggestion.reason === row.feedback) return "ai";
+  if (row.isAiGraded) return "ai";
   return "manual";
 }
 

@@ -48,7 +48,7 @@ export function useIsCopilotRequested(): boolean {
  * 宣告此畫面需要 Copilot runtime：mount 時啟用，unmount 時釋放。
  * 讓 chatbot feature 不必認得其他 feature 的路由。
  */
-export function useRequestCopilot(): void {
+export function useRequestCopilot(enabled = true): void {
   const { requestCopilot } = useContext(CopilotDemandContext);
-  useEffect(() => requestCopilot(), [requestCopilot]);
+  useEffect(() => enabled ? requestCopilot() : undefined, [enabled, requestCopilot]);
 }
