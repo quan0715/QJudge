@@ -381,6 +381,11 @@
   color: #161616;
 }
 
+.answer-block-content-plain-text {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
 .answer-block-content p:last-child {
   margin-bottom: 0;
 }
