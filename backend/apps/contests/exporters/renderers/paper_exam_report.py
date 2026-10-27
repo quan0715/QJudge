@@ -8,6 +8,7 @@ from pathlib import Path
 from django.contrib.staticfiles import finders
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.html import escape
 
 from .base import BaseRenderer
 from ..utils import render_pdf, scale_css_pixels, inline_markdown, render_markdown
@@ -580,10 +581,15 @@ class PaperExamReportRenderer(BaseRenderer):
 
         if student_text:
             ans_label = self.get_label('your_answer')
+            is_plain_text = question.answer_format == 'plain_text'
+            student_html = escape(student_text) if is_plain_text else render_markdown(student_text)
+            content_class = 'answer-block-content'
+            if is_plain_text:
+                content_class += ' answer-block-content-plain-text'
             lines.append(
                 f'<div class="answer-block answer-block-student">'
                 f'<div class="answer-block-label">{ans_label}</div>'
-                f'<div class="answer-block-content">{render_markdown(student_text)}</div>'
+                f'<div class="{content_class}">{student_html}</div>'
                 f'</div>'
             )
 

@@ -91,10 +91,6 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
     const openDocumentAnswer = isOpenAnswerDocument(answerContent.document)
       ? answerContent.document
       : null;
-    const Content =
-      answerFormat === "plain_text"
-        ? MarkdownContent.Simple
-        : MarkdownContent.Rich;
     return (
       <div className={styles.root}>
         {showAnswerContent && <ExamQuestionPreviewSection
@@ -103,7 +99,11 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
           {openDocumentAnswer ? (
             <OpenAnswerDocumentRenderer document={openDocumentAnswer} />
           ) : text ? (
-            <Content>{text}</Content>
+            answerFormat === "plain_text" ? (
+              <div className={styles.plainText}>{text}</div>
+            ) : (
+              <MarkdownContent.Rich>{text}</MarkdownContent.Rich>
+            )
           ) : (
             <span className={styles.noAnswer}>
               {t("dashboard.noAnswer", "未作答")}
