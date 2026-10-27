@@ -3,7 +3,7 @@ import { defineConfig } from "@playwright/test";
 // Database-free interaction tests: real Carbon/Motion, synthetic paper only.
 export default defineConfig({
   testDir: "./tests/browser",
-  testMatch: "workbench-rail.spec.ts",
+  testMatch: ["workbench-rail.spec.ts", "answer-display.spec.ts"],
   workers: 1,
   use: {
     baseURL: "http://127.0.0.1:4178",
