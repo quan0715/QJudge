@@ -39,6 +39,18 @@ class GradingUnitTests(ExamAnswerTestBase):
         self.assertEqual(self.post('grading-unit').data['answers'], first.data['answers'])
         self.assertEqual(ExamGradingUnit.objects.count(), 1)
 
+    def test_snapshot_labels_match_the_paper_numbering(self):
+        group = ExamQuestionGroup.objects.create(contest=self.contest, shared_stem_markdown='Shared passage')
+        for question in (self.q_multi, self.q_essay):
+            question.group = group
+            question.save()
+        questions = self.post('grading-unit').data['questions']
+        self.assertEqual([(q['label'], q['order']) for q in questions], [('2(a)', 2), ('2(b)', 3)])
+        self.contest.expand_question_numbers = True
+        self.contest.save()
+        expanded = self.post('grading-unit', run_id=str(uuid4())).data['questions']
+        self.assertEqual([q['label'] for q in expanded], ['2', '3'])
+
     def test_drafts_do_not_write_grades_and_submit_is_idempotent_after_teacher_revoke(self):
         self.post('grading-unit')
         self.assertEqual(self.draft().data['draft_count'], 1)

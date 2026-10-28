@@ -18,7 +18,8 @@ def render_rubric(value: Any, depth: int = 0) -> str:
 
 
 def grading_files(data: dict) -> dict[str, bytes]:
-    units = sorted(data["units"], key=lambda u: min(int(q["label"]) for q in u["questions"]))
+    # Labels are display text such as "3(a)"; the paper order sorts units.
+    units = sorted(data["units"], key=lambda u: min(q["order"] for q in u["questions"]))
     markdown = ["# AI 批改評分標準", "由資料庫匯出；未保存的判準不會以參考答案補填。"]
     output = io.StringIO(newline="")
     writer = csv.writer(output)
