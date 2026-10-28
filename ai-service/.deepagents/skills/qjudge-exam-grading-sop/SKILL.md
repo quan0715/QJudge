@@ -28,7 +28,7 @@ unit has a verified result; otherwise report the unfinished units. Reading data 
 a model turn does not mean the requested grading was completed.
 
 Include a concise rubric (criteria and points)
-in the first `save_grading_draft` call for every unit; later saves may omit it. At run completion,
+in the first `save_grading_draft` call for every unit; later saves may omit it. When the run ends,
 the system exports the stored criteria and grades as `rubric.md` and `grade.csv` artifacts;
 do not rewrite those files yourself. Every writable answer should end with a submitted grade, and your summary
 should report what `submit_grading_unit` actually returned. Before claiming completion, call

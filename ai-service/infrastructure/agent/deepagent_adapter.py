@@ -989,13 +989,31 @@ class DeepAgentAdapter:
                 tools=tools,
                 configurable=configurable,
             )
-            async with aclosing(coalesce_text_events(raw_events)) as events:
-                async for raw_event in events:
-                    if raw_event.get("type") == "run_completed" and self._finalize_run is not None:
-                        try:
-                            await self._finalize_run(command)
-                        except Exception:
-                            logger.exception("Run %s artifact export failed", command.run_id)
-                            yield {"type": "agent_message_delta", "run_id": str(command.run_id),
-                                   "content": "\n\n批改檔案匯出失敗；已保存的草稿與正式成績不受影響。"}
-                    yield {**raw_event, "run_id": str(command.run_id)}
+            exported = False
+            try:
+                async with aclosing(coalesce_text_events(raw_events)) as events:
+                    async for raw_event in events:
+                        # Grades may be written before a run fails, so both endings export.
+                        if raw_event.get("type") in {"run_completed", "run_failed"}:
+                            exported = True
+                            if not await self._export_run(command):
+                                yield {"type": "agent_message_delta", "run_id": str(command.run_id),
+                                       "content": "\n\n批改檔案匯出失敗；已保存的草稿與正式成績不受影響。"}
+                        yield {**raw_event, "run_id": str(command.run_id)}
+            except (GeneratorExit, Exception):
+                # The worker closes the stream after recording a cancellation, or records
+                # the failure itself when the stream raised; export what was graded.
+                if not exported:
+                    await self._export_run(command)
+                raise
+
+    async def _export_run(self, command: AgentCommand) -> bool:
+        """Export the run's grading files; a failure never changes how the run ended."""
+        if self._finalize_run is None:
+            return True
+        try:
+            await self._finalize_run(command)
+        except Exception:
+            logger.exception("Run %s artifact export failed", command.run_id)
+            return False
+        return True
