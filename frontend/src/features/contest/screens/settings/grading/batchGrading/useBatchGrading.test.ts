@@ -172,6 +172,18 @@ describe("batch state", () => {
     await waitFor(() => expect(next.current.questions[0].status).toBe("completed"));
   });
 
+  it("explains why a completed run left the question unwritten", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH }];
+    mocks.getSession.mockResolvedValue({ messages: [request("r1", ["q1"]),
+      { id: "a-r1", role: "assistant", content: "", timestamp: new Date(0), runId: "r1", runStatus: "completed" }] });
+    mocks.getGradingProgress.mockResolvedValue([{ unit_id: "u", run_id: "r1", question_ids: ["q1"], total_count: 1, status: "draft" }]);
+    const { result } = render();
+
+    await waitFor(() => expect(result.current.questions[0]).toMatchObject({
+      status: "failed", error: "grading.batch.unitNotSubmitted",
+    }));
+  });
+
   it("lists answers still holding the AI's grade", async () => {
     mocks.sessions = [{ id: "s1", metadata: BATCH }];
     mocks.getBatchGradeWrites.mockResolvedValue([receipt("a1", 8), receipt("a2", 3)]);

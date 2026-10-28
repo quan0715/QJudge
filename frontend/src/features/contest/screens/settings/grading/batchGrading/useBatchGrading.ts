@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useCopilotRun, useCopilotSessions } from "@copilot";
 import { useRequestCopilot } from "@/features/chatbot/contexts/CopilotDemandContext";
 import { createTaskSession, findLatestTaskSession } from "@/features/ai-tasks/lib/aiTaskRuntime";
@@ -86,6 +87,7 @@ export function useBatchGrading(
   },
 ): UseBatchGradingResult {
   useRequestCopilot();
+  const { t } = useTranslation("contest");
   const { sessions, select, refresh: refreshSessions } = useCopilotSessions();
   const { state: copilotRun } = useCopilotRun();
   const { reloadAnswers, resultsPublished } = options;
@@ -167,8 +169,8 @@ export function useBatchGrading(
   }, [refresh, sessionId]);
 
   const questionStates = useMemo(
-    () => deriveBatchState({ questions, ...currentSnapshot }),
-    [questions, currentSnapshot],
+    () => deriveBatchState({ questions, ...currentSnapshot, notSubmittedError: t("grading.batch.unitNotSubmitted") }),
+    [questions, currentSnapshot, t],
   );
 
   const overall = useMemo<BatchGradingOverall>(() => {
