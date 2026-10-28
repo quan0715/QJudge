@@ -119,6 +119,27 @@ describe("deriveBatchState", () => {
     });
   });
 
+  it("follows a plain continuation without reviving an old failure", () => {
+    const messages = [request("r1", ["q1"]), ended("r1", "failed", "quota"),
+      { ...request("r2", []), content: "繼續" }];
+    expect(derive({ messages, activeRuns: [{ id: "r2", status: "running" }] })[0])
+      .toMatchObject({ status: "running", runId: "r2" });
+    expect(derive({ messages, units: [unit({ run_id: "r2" })] })[0].status).toBe("completed");
+  });
+
+  it("keeps completed units complete during a plain continuation", () => {
+    const messages = [request("r1", ["q1"]), { ...request("r2", []), content: "繼續" }];
+    expect(derive({ messages, activeRuns: [{ id: "r2", status: "running" }], units: [unit({})] })[0].status)
+      .toBe("completed");
+  });
+
+  it("clears a historical failure after all answers are graded without inventing AI writes", () => {
+    const state = derive({ questions: [question({ ungradedRows: [] })],
+      messages: [request("r1", ["q1"]), ended("r1", "failed", "quota")] })[0];
+    expect(state).toMatchObject({ status: "completed", writtenCount: 0 });
+    expect(state.error).toBeUndefined();
+  });
+
   it("marks a question without ungraded answers as skipped", () => {
     expect(derive({ questions: [question({ ungradedRows: [] })] })[0].status).toBe("skipped");
   });

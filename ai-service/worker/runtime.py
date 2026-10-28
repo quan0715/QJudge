@@ -88,6 +88,7 @@ class TerminalRunInfo:
     error_message: str | None
     user_message: str
     session_context: dict[str, Any]
+    batch_request: str = ""
 
 
 class WorkerRunOperations(Protocol):
@@ -520,12 +521,25 @@ class SqlAlchemyWorkerRunStore:
                 .order_by(MessageRow.ordinal)
                 .limit(1)
             )
+            # Follow-ups keep the latest teacher-authored scope, bounded by this
+            # run's message so a later queued request cannot broaden its tools.
+            ordinal = await session.scalar(select(MessageRow.ordinal).where(
+                MessageRow.run_id == run_id, MessageRow.role == "user"
+            ).order_by(MessageRow.ordinal).limit(1))
+            batch_request = ""
+            if ordinal is not None:
+                batch_request = await session.scalar(select(MessageRow.content).where(
+                    MessageRow.session_id == row.session_id,
+                    MessageRow.role == "user", MessageRow.ordinal <= ordinal,
+                    MessageRow.content.op("~")(r"(^|\n)batch_units:"),
+                ).order_by(MessageRow.ordinal.desc()).limit(1)) or ""
             return TerminalRunInfo(
                 session_id=row.session_id,
                 status=row.status,
                 error_code=row.error_code,
                 error_message=row.error_message,
                 user_message=user_message or "",
+                batch_request=batch_request,
                 session_context=dict(session_row.context) if session_row else {},
             )
 
