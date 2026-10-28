@@ -25,6 +25,7 @@ import {
   selectRevertableAnswers,
   type BatchQuestion,
   type BatchQuestionState,
+  type WrittenRecord,
 } from "./batchGradingModel";
 import { buildBatchRunPrompt, buildGradingUnits } from "./batchGradingUnits";
 
@@ -70,6 +71,10 @@ export interface UseBatchGradingResult {
 }
 
 const messageOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+/** A replaced write can leave the count unchanged, so compare the writes themselves. */
+const writesSignature = (written: readonly WrittenRecord[]) =>
+  JSON.stringify(written.map((record) => [record.examAnswerId, record.score, record.feedback]).sort());
 
 export function useBatchGrading(
   contestId: string,
@@ -126,7 +131,7 @@ export function useBatchGrading(
     async (id: string): Promise<boolean> => {
       const previous = snapshotRef.current.sessionId === id ? snapshotRef.current : undefined;
       const next = { ...(await fetchBatchRemoteState(contestId, id, previous)), sessionId: id };
-      if (next.written.length !== (previous?.written.length ?? 0)) await reloadAnswers();
+      if (writesSignature(next.written) !== writesSignature(previous?.written ?? [])) await reloadAnswers();
       snapshotRef.current = next;
       setSnapshot(next);
       setPollError(undefined);

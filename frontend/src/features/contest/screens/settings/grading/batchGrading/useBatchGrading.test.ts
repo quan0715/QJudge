@@ -253,5 +253,13 @@ describe("polling", () => {
     mocks.getBatchGradeWrites.mockResolvedValue([receipt("a1", 8)]);
     await vi.advanceTimersByTimeAsync(5_100);
     expect(reload).toHaveBeenCalledTimes(1);
+
+    // One write changed and another arrived: same count, different content.
+    mocks.getBatchGradeWrites.mockResolvedValue([{ ...receipt("a2", 5), question_id: "q2" }]);
+    await vi.advanceTimersByTimeAsync(5_100);
+    expect(reload).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(5_100);
+    expect(reload).toHaveBeenCalledTimes(2);
   });
 });
