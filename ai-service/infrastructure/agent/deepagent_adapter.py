@@ -411,7 +411,7 @@ _DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教，對話對象是老師�
 - `/app/.deepagents/skills/qjudge-ta-protocol/SKILL.md`
 - `/app/.deepagents/skills/qjudge-mcp-tool-operator/SKILL.md`
 - `/app/.deepagents/skills/coding-problem-ta-skill/SKILL.md`
-- `/app/.deepagents/skills/qjudge-exam-grading-sop/SKILL.md`（批改工具可用時，SOP 與核心原則已載入）
+- `/app/.deepagents/skills/qjudge-exam-grading-sop/SKILL.md`（批改或改分前先讀；整批批改時已載入）
 
 如工具錯誤或路由不確定，先呼叫：
 `qjudge_browse(action="get_help", tool_name="<tool_name>")`
@@ -491,17 +491,24 @@ class _DeepAgentRuntime:
         """
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
         grading_instructions = ""
-        if any(getattr(tool, "name", None) in {"get_grading_unit", "qjudge_grading"} for tool in tools):
-            # The SOP owns the text. Both model contexts receive it without a
-            # discretionary skill read or a parent-written delegation summary.
+        tool_names = {getattr(tool, "name", None) for tool in tools}
+        # The SOP owns the text. Both model contexts receive it without a
+        # discretionary skill read or a parent-written delegation summary. A tool
+        # grading run follows the whole SOP; a teacher chat that can reach MCP
+        # grading keeps only the core principles and reads the SOP when it grades.
+        sources = (
+            [_GRADING_SOP_PATH, _GRADING_PRINCIPLES_PATH] if "get_grading_unit" in tool_names
+            else [_GRADING_PRINCIPLES_PATH] if "qjudge_grading" in tool_names
+            else []
+        )
+        if sources:
             try:
-                sop = _GRADING_SOP_PATH.read_text(encoding="utf-8").strip()
-                principles = _GRADING_PRINCIPLES_PATH.read_text(encoding="utf-8").strip()
+                texts = [path.read_text(encoding="utf-8").strip() for path in sources]
             except (OSError, UnicodeError) as exc:
                 raise RuntimeError("Grading SOP or core principles could not be loaded") from exc
-            if not sop or not principles:
+            if not all(texts):
                 raise RuntimeError("Grading SOP or core principles are empty")
-            grading_instructions = f"{sop}\n\n{principles}"
+            grading_instructions = "\n\n".join(texts)
             prompt = f"{prompt}\n\n{grading_instructions}"
         skills = [p for p in self._skills_paths if p]
         memory = [p for p in self._memory_paths if p]

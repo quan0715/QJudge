@@ -6,8 +6,8 @@ description: Use when a teacher asks the QJudge TA agent to grade, review, or wr
 # QJudge Open-ended Exam Grading
 
 Follow the [core grading principles](references/core-principles.md). The runtime supplies
-this SOP and those principles directly to both the main agent and grading subagents
-whenever grading tools are available; no extra skill read or copied workflow is needed.
+those principles directly to the main agent and its subagents whenever grading tools are
+available, and this whole SOP as well in batch grading runs; no copied workflow is needed.
 
 ## Batch grading (when `get_grading_assignment` is available)
 
