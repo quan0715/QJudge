@@ -5,8 +5,8 @@ import { createTaskSession, findLatestTaskSession } from "@/features/ai-tasks/li
 import { ungradeExamAnswer } from "@/infrastructure/api/repositories/examAnswers.repository";
 import type { GradingAnswerRow } from "../gradingTypes";
 import {
+  batchModelId,
   cancelBatchRun,
-  defaultBatchModelId,
   fetchBatchRemoteState,
   listSessionActiveRuns,
   readBatchQuestions,
@@ -192,7 +192,7 @@ export function useBatchGrading(
         await readBatchQuestions(contestId),
         note,
       );
-      if (units.length) await startBatchRun(id, buildBatchRunPrompt(units), modelId ?? await defaultBatchModelId());
+      if (units.length) await startBatchRun(id, buildBatchRunPrompt(units), modelId ?? await batchModelId(id));
       // The copilot attaches to a run only when its session is selected.
       await selectOnce(id, true);
     },

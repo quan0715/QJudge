@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   startRun: vi.fn(),
   cancelRun: vi.fn(),
   getModels: vi.fn(),
+  getChatRun: vi.fn(),
   getExamQuestions: vi.fn(),
   getBatchGradeWrites: vi.fn(),
   getGradingProgress: vi.fn(),
@@ -37,6 +38,7 @@ vi.mock("@/infrastructure/api/repositories/chatbot.repository", () => ({
     startRun: mocks.startRun,
     cancelRun: mocks.cancelRun,
     getModels: mocks.getModels,
+    getChatRun: mocks.getChatRun,
   },
 }));
 vi.mock("@/infrastructure/api/repositories/examAnswers.repository", () => ({
@@ -125,6 +127,22 @@ describe("starting AI grading", () => {
 
     expect(mocks.startRun.mock.calls[0][0]).toBe("s2");
     await waitFor(() => expect(result.current.sessionId).toBe("s2"));
+  });
+
+  it("resume and regrade keep the model the batch was started with", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH }];
+    mocks.getSession.mockResolvedValue({
+      messages: [request("r0", ["q1"]), { id: "u-chat", role: "user", timestamp: new Date(0), runId: "r9", content: "這題為什麼扣分？" }],
+    });
+    mocks.getChatRun.mockImplementation(async (id: string) => ({ id, modelId: id === "r0" ? "model-x" : "chat-model" }));
+    const { result } = render();
+    await waitFor(() => expect(result.current.questions[0].status).toBe("failed"));
+
+    await act(() => result.current.resume());
+    await act(() => result.current.regradeQuestion("q1"));
+
+    expect(mocks.getChatRun).toHaveBeenCalledWith("r0");
+    expect(mocks.startRun.mock.calls.map(([, , options]) => options.modelOverride)).toEqual(["model-x", "model-x"]);
   });
 
   it("stop cancels the session's active runs", async () => {

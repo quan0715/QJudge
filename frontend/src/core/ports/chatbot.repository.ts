@@ -19,6 +19,7 @@ export interface ChatbotRepository {
     options?: SendMessageOptions
   ): Promise<ChatRun>;
   getActiveRuns(): Promise<ChatRun[]>;
+  getChatRun(runId: string): Promise<ChatRun>;
   subscribeRunEvents(
     run: ChatRun,
     callbacks: StreamCallbacks,

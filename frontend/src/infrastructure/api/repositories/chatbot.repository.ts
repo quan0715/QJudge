@@ -798,6 +798,14 @@ const chatbotRepository: ChatbotRepository = {
     }
   },
 
+  async getChatRun(runId: string): Promise<ChatRun> {
+    const data = await requestJson<BackendRun>(
+      httpClient.get(`${AI_BASE}/runs/${runId}/`),
+      "無法載入 AI 任務"
+    );
+    return convertBackendRun(data);
+  },
+
   async cancelRun(runId: string): Promise<ChatRun> {
     const data = await requestJson<BackendRun>(
       httpClient.post(`${AI_BASE}/runs/${runId}/cancel/`, {}),
