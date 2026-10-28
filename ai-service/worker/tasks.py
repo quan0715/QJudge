@@ -200,7 +200,7 @@ async def _execute_run(
             # Scope comes from the teacher's persisted request, never from model arguments.
             info = await raw_runs.load_terminal_run(command.run_id)
             manifest = (info.session_context.get("task_manifest") or {}) if info else {}
-            units = parse_batch_units(info.user_message) if info else None
+            units = parse_batch_units(info.batch_request) if info and manifest.get("task_type") == BATCH_TASK_TYPE else None
             if manifest.get("task_type") != BATCH_TASK_TYPE or not units:
                 return []
             contest_id = str((manifest.get("context") or {}).get("contest_id") or "")

@@ -114,11 +114,20 @@ export function deriveBatchState(input: {
   written: readonly WrittenRecord[];
 }): BatchQuestionState[] {
   const latestRunByQuestion = new Map<string, string>();
+  const explicitRunByQuestion = new Map<string, string>();
+  const runOrder = new Map<string, number>();
+  let scope: string[] = [];
   const runEnd = new Map<string, { status?: ChatRunStatus; error?: string }>();
   for (const message of input.messages) {
     if (!message.runId) continue;
     if (message.role === "user") {
-      for (const questionId of requestedQuestionIds(message)) latestRunByQuestion.set(questionId, message.runId);
+      runOrder.set(message.runId, runOrder.size);
+      const requested = requestedQuestionIds(message);
+      if (requested.length) {
+        scope = requested;
+        for (const questionId of scope) explicitRunByQuestion.set(questionId, message.runId);
+      }
+      for (const questionId of scope) latestRunByQuestion.set(questionId, message.runId);
     } else {
       runEnd.set(message.runId, { status: message.runStatus, error: message.runError });
     }
@@ -137,10 +146,15 @@ export function deriveBatchState(input: {
     const runId = latestRunByQuestion.get(question.questionId);
     if (!runId) return { ...base, status: base.ungradedCount === 0 ? "skipped" : "idle" };
     // A unit is written when submitted, even while the run grades other units.
-    const unit = input.units.find((item) => item.run_id === runId && item.question_ids.includes(question.questionId));
-    if (unit?.status === "completed") return { ...base, runId, status: "completed" };
+    const requestedAt = runOrder.get(explicitRunByQuestion.get(question.questionId) ?? "") ?? Infinity;
+    const unit = input.units.find((item) => item.question_ids.includes(question.questionId)
+      && (runOrder.get(item.run_id) ?? -1) >= requestedAt);
+    if (unit?.status === "completed") return { ...base, runId: unit.run_id, status: "completed" };
     const active = activeById.get(runId);
     if (active) return { ...base, runId, status: statusFromActiveRun(active) };
+    // All answers may have been resolved outside the original failed run.
+    // This clears stale failures without claiming those writes came from AI.
+    if (base.ungradedCount === 0) return { ...base, runId, status: "completed" };
     const end = runEnd.get(runId);
     if (end?.status === "cancelled") return { ...base, runId, status: "cancelled" };
     return { ...base, runId, status: "failed", ...(end?.error ? { error: end.error } : {}) };

@@ -99,3 +99,26 @@ async def test_cancel_queued_in_session_cancels_only_queued_runs(session_factory
     assert running_row.status == RunStatus.RUNNING.value
     assert queued_row.status == RunStatus.CANCELLED.value
     assert assistant.metadata_["run_status"] == RunStatus.CANCELLED.value
+
+
+@pytest.mark.asyncio
+async def test_followup_inherits_latest_prior_teacher_scope_only(session_factory):
+    session = await add_session(session_factory)
+    first = 'batch_units: [{"id":"q1","question_ids":["q1"]}]'
+    latest = 'batch_units: [{"id":"q2","question_ids":["q2"]}]'
+    await add_run(session_factory, session.id, RunStatus.FAILED, prompt=first, ordinal=1)
+    await add_run(session_factory, session.id, RunStatus.FAILED, prompt=latest, ordinal=3)
+    followup = await add_run(session_factory, session.id, RunStatus.RUNNING, prompt="繼續", ordinal=5)
+    await add_run(session_factory, session.id, RunStatus.QUEUED, prompt=first, ordinal=7)
+    store = SqlAlchemyWorkerRunStore(session_factory, Dispatcher())
+    info = await store.load_terminal_run(followup)
+    assert info.user_message == "繼續"
+    assert info.batch_request == latest
+
+
+@pytest.mark.asyncio
+async def test_plain_session_has_no_inherited_batch_request(session_factory):
+    session = await add_session(session_factory)
+    run = await add_run(session_factory, session.id, RunStatus.RUNNING, prompt="繼續")
+    info = await SqlAlchemyWorkerRunStore(session_factory, Dispatcher()).load_terminal_run(run)
+    assert info.batch_request == ""
