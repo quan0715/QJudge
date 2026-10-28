@@ -22,6 +22,8 @@ from deepagents.backends.state import StateBackend
 from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
 from deepagents.middleware.summarization import SummarizationMiddleware
 from langchain.agents.middleware import ModelRetryMiddleware
+from langchain_core.callbacks import AsyncCallbackHandler
+from langchain_core.tracers.context import register_configure_hook
 from langgraph.types import Command
 
 from application.artifacts import ArtifactService
@@ -80,19 +82,72 @@ _MODEL_QUOTA_EXHAUSTED_MESSAGE = (
 _MODEL_STREAM_ERRORS = (httpx.ReadError, httpx.RemoteProtocolError)
 
 
+class _ShownStreamInterrupted(httpx.ReadError):
+    """A model stream broke after its text reached the teacher, so it is not replayed.
+
+    Still a stream error everywhere else: it fails the run and a delegating task.
+    """
+
+
+class _VisibleOutputTracker(AsyncCallbackHandler):
+    """Notice when a model call streams text or reasoning that becomes a delta event."""
+
+    def __init__(self) -> None:
+        self.shown = False
+
+    async def on_llm_new_token(self, token: Any, *, chunk: Any = None, **kwargs: Any) -> None:
+        message = getattr(chunk, "message", None)
+        if message is not None and adapt_langgraph_event(
+            {"event": "on_chat_model_stream", "data": {"chunk": message}}
+        ):
+            self.shown = True
+
+
+_VISIBLE_OUTPUT: ContextVar[_VisibleOutputTracker | None] = ContextVar(
+    "deepagent_visible_model_output", default=None,
+)
+register_configure_hook(_VISIBLE_OUTPUT, inheritable=False)
+
+
+class _ModelStreamRetry(ModelRetryMiddleware):
+    """Retry just the model response, never replay completed grading/tool writes.
+
+    Only a stream that has shown nothing is retried: the first attempt's deltas are
+    already delivered and stored, so a replay would repeat that text.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            max_retries=2, on_failure="error", initial_delay=1.0, backoff_factor=2.0,
+            retry_on=lambda exc: isinstance(exc, _MODEL_STREAM_ERRORS)
+            and not isinstance(exc, _ShownStreamInterrupted),
+        )
+
+    async def awrap_model_call(self, request: Any, handler: Any) -> Any:
+        async def attempt(attempt_request: Any) -> Any:
+            tracker = _VisibleOutputTracker()
+            token = _VISIBLE_OUTPUT.set(tracker)
+            try:
+                return await handler(attempt_request)
+            except _MODEL_STREAM_ERRORS as exc:
+                if tracker.shown:
+                    raise _ShownStreamInterrupted(str(exc)) from exc
+                raise
+            finally:
+                _VISIBLE_OUTPUT.reset(token)
+
+        return await super().awrap_model_call(request, attempt)
+
+
 def _model_stream_retry() -> ModelRetryMiddleware:
-    # Retry just the model response, never replay completed grading/tool writes.
-    return ModelRetryMiddleware(
-        max_retries=2, retry_on=_MODEL_STREAM_ERRORS, on_failure="error",
-        initial_delay=1.0, backoff_factor=2.0,
-    )
+    return _ModelStreamRetry()
 
 
 def _classify_agent_failure(exc: Exception) -> tuple[str, str]:
     """Convert safe-to-recognize upstream model failures into API contract errors."""
     if isinstance(exc, _MODEL_STREAM_ERRORS):
         return "MODEL_CONNECTION_ERROR", (
-            "模型連線中斷，重試後仍失敗。已完成的操作已保留，請稍後重試。"
+            "模型連線中斷。已完成的操作已保留，請稍後重試。"
         )
     detail = str(exc).casefold()
     if "insufficient_quota" in detail or "insufficient balance" in detail:
