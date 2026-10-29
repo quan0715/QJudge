@@ -102,7 +102,7 @@ export default function GradeAppealDialog({ contestId, appealId, answerId, quest
   const tooLong = Array.from(draft.trim()).length > 5000;
   return (
     <Modal open passiveModal modalHeading={displayLabel ? `成績申訴 · ${displayLabel}.` : "成績申訴"} size="lg" onRequestClose={onClose} preventCloseOnClickOutside>
-      <div className={styles.root}>
+      <div className={`${styles.root} ${styles.dialogContent}`}>
         <div className={styles.actions}>
           {ticket && <Tag type={ticket.status === "closed" ? "gray" : "blue"}>{ticket.status === "closed" ? "已結案" : "未結案"}</Tag>}
           {currentId && <Button kind="ghost" size="sm" disabled={loading || saving} onClick={() => void load(currentId)}>重新整理留言</Button>}
