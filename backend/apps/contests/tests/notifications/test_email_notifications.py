@@ -54,8 +54,16 @@ def test_broker_failure_does_not_fail_saved_action_or_skip_other_recipients():
 
 @pytest.mark.parametrize('actor_id,event,expected', [(2, 'message', [1, 3]), (1, 'message', [2]), (1, 'closed', [2]), (2, 'reopened', [1, 3])])
 def test_appeal_only_notifies_other_party(actor_id, event, expected):
-    ticket = SimpleNamespace(pk=9, exam_answer=SimpleNamespace(
-        participant=SimpleNamespace(contest=contest(), user_id=2)))
+    exam = contest()
+    exam.expand_question_numbers = False
+    question = SimpleNamespace(id='q1', group_id=None, order=0, prompt='Explain binary search')
+    exam.exam_questions = Mock()
+    exam.exam_questions.only.return_value.order_by.return_value = [question]
+    messages = Mock()
+    messages.order_by.return_value.first.return_value = SimpleNamespace(pk=1, content='Please explain the deduction')
+    messages.order_by.return_value.last.return_value = SimpleNamespace(pk=2, content='More details\nSecond line')
+    ticket = SimpleNamespace(pk=9, messages=messages, exam_answer=SimpleNamespace(
+        question=question, question_id='q1', participant=SimpleNamespace(contest=exam, user_id=2)))
     with patch.object(notifications, 'manager_ids', return_value={1, 3}), \
          patch.object(notifications, 'contest_url', return_value='https://qjudge.test/contest'), \
          patch.object(notifications, 'queue_emails') as queue:
@@ -65,6 +73,11 @@ def test_appeal_only_notifies_other_party(actor_id, event, expected):
     assert '9' in body
     assert 'https://qjudge.test/contest' in body
     assert 'email' in body
+    assert '題號：第 1 題' in body
+    assert 'Explain binary search' in body
+    assert 'Please explain the deduction' in body
+    assert 'More details\nSecond line' in body
+    assert ('重開理由：' if event == 'reopened' else '最新訊息：') in body
 
 
 @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')

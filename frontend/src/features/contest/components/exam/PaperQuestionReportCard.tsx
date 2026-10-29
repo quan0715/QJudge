@@ -28,6 +28,7 @@ type StatusTone =
 
 interface PaperQuestionReportCardProps {
   questionId: string;
+  hideHeader?: boolean;
   index: number;
   questionLabel?: string;
   questionType: ExamQuestionType;
@@ -53,6 +54,7 @@ interface PaperQuestionReportCardProps {
 }
 
 export default function PaperQuestionReportCard({
+  hideHeader = false,
   index,
   questionLabel,
   questionType,
@@ -85,7 +87,7 @@ export default function PaperQuestionReportCard({
 
   return (
     <article className={styles.root}>
-      <div className={styles.header}>
+      {!hideHeader && <div className={styles.header}>
         <div>
           <div className={styles.title}>
             {questionLabel ?? index}. · {typeLabel}
@@ -106,13 +108,16 @@ export default function PaperQuestionReportCard({
         >
           {statusLabel}
         </Tag>
-      </div>
-      <div className={styles.body}>
+      </div>}
+      <div className={hideHeader ? styles.expandedBody : styles.body}>
         <div className={styles.markdownBlock}>
+          {hideHeader && <div className={styles.sectionLabel}>題目</div>}
           <MarkdownRenderer enableMath enableHighlight>
             {prompt}
           </MarkdownRenderer>
         </div>
+        <div className={hideHeader ? styles.answerColumns : undefined}>
+        <div className={styles.answerColumn}>
         <AnswerDisplay
           questionType={questionType}
           answerFormat={answerFormat}
@@ -124,8 +129,9 @@ export default function PaperQuestionReportCard({
           explanationDocument={showGrading ? explanationDocument : null}
           showCorrectness={showGrading}
         />
+        </div>
         {showGrading && feedback?.trim() ? (
-          <div>
+          <div className={hideHeader ? styles.feedbackColumn : undefined}>
             <div className={styles.feedbackLabel}>批改評語</div>
             <div className={styles.feedbackBlock}>
               <MarkdownRenderer enableMath enableHighlight>
@@ -134,7 +140,11 @@ export default function PaperQuestionReportCard({
             </div>
           </div>
         ) : null}
-        {actions}
+        </div>
+        {actions && <div className={styles.appealFooter}>
+          <p>成績有疑問，請透過申訴系統提出。</p>
+          {actions}
+        </div>}
       </div>
     </article>
   );

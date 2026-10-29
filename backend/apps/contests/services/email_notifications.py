@@ -1,6 +1,6 @@
 """Email reminders for committed appeal and publication actions.
 
-Messages deliberately contain no answers, scores or conversation contents.
+Appeal reminders include the question and discussion text.
 The authenticated system remains the source of record.
 """
 import logging
@@ -11,6 +11,8 @@ from django.db import transaction
 from apps.core.services.mail import mail_enabled
 
 from .participation import get_contest_classroom, roster_user_ids
+from .paper_question_labels import build_paper_question_labels
+from .question_context import question_prompt_with_context
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +64,23 @@ def notify_appeal(ticket, actor_id, event='message'):
     recipients = set(recipients) - {actor_id}
     label = {'closed': '申訴已結案', 'reopened': '申訴已重新開啟'}.get(event, '申訴有新訊息')
     subject = f'[QJudge] {label}'
+    answer = ticket.exam_answer
+    labels = build_paper_question_labels(
+        contest.exam_questions.only('id', 'group_id', 'order').order_by('order', 'id'),
+        expand_question_numbers=contest.expand_question_numbers,
+    )
+    messages = ticket.messages.order_by('created_at', 'id')
+    first = messages.first()
+    latest = messages.last()
+    discussion = f'申訴內容：\n{first.content}\n\n' if first else ''
+    if latest and first and latest.pk != first.pk:
+        message_label = '重開理由' if event == 'reopened' else '最新訊息'
+        discussion += f'{message_label}：\n{latest.content}\n\n'
     body = (
         f'「{contest.name}」的申訴 #{ticket.pk}：{label}。\n\n'
+        f'題號：第 {labels[answer.question_id]} 題\n'
+        f'題目：\n{question_prompt_with_context(answer.question)}\n\n'
+        f'{discussion}'
         f'請登入 QJudge 查看：\n{contest_url(contest, manager=to_managers)}\n\n'
         '請使用申訴系統查看及回覆，不要私訊教師或寄 email。'
         '申訴與處理結果以系統紀錄為主；請勿直接回覆此通知信。'
