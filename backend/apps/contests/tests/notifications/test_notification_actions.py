@@ -97,3 +97,60 @@ def test_transaction_rollback_discards_notification(django_capture_on_commit_cal
                     queue_emails([1], 'Notice', 'Body')
                     raise ValueError('rollback')
         send.assert_not_called()
+
+
+def test_student_reopens_same_appeal_and_notifies_owner_and_ta_once(case, django_capture_on_commit_callbacks):
+    from apps.contests.models import GradeAppeal, GradeAppealMessage
+    users, contest, answer = case
+    contest.status, contest.results_published = 'published', True
+    contest.save()
+    ticket = GradeAppeal.objects.create(exam_answer=answer, status='closed', closed_at=timezone.now(), closed_by=users['ta'])
+    old = GradeAppealMessage.objects.create(appeal=ticket, author=users['teacher'], content='Original response')
+    url = f'/api/v1/contests/{contest.pk}/grade-appeals/{ticket.pk}/'
+    with patch('apps.contests.tasks.deliver_contest_email.delay') as send:
+        with django_capture_on_commit_callbacks(execute=True):
+            response = api(users['student']).post(url+'reopen/', {'content': '  Still unclear  '}, format='json')
+        assert response.status_code == 200, response.data
+        data = response.data['data']
+        assert data['id'] == ticket.pk and data['status'] == 'open'
+        assert data['closed_at'] is None and data['closed_by'] is None
+        assert [m['content'] for m in data['messages']] == ['Original response', 'Still unclear']
+        assert data['messages'][0]['id'] == old.pk
+        assert {c.args[0] for c in send.call_args_list} == {users['teacher'].pk, users['ta'].pk}
+        assert all(c.args[1] == '[QJudge] 申訴已重新開啟' for c in send.call_args_list)
+        send.reset_mock()
+        with django_capture_on_commit_callbacks(execute=True):
+            duplicate = api(users['student']).post(url+'reopen/', {'content': 'Still unclear'}, format='json')
+        assert duplicate.status_code == 409
+        assert ticket.messages.count() == 2
+        send.assert_not_called()
+        # The same conversation may be closed and reopened again.
+        with django_capture_on_commit_callbacks(execute=True):
+            assert api(users['ta']).post(url+'close/').status_code == 200
+            assert api(users['student']).post(url+'reopen/', {'content': 'Another question'}, format='json').status_code == 200
+        assert ticket.messages.count() == 3
+    answer.refresh_from_db()
+    assert answer.score == 6
+
+
+@pytest.mark.parametrize('actor,content,published,expected', [
+    ('teacher', 'Reason', True, 403), ('ta', 'Reason', True, 403),
+    ('unstarted', 'Reason', True, 403), ('outsider', 'Reason', True, 403),
+    ('student', '', True, 400), ('student', '   ', True, 400),
+    ('student', 'a'*5001, True, 400), ('student', 'Reason', False, 403),
+])
+def test_reopen_rejects_invalid_actor_reason_or_unpublished_results(case, actor, content, published, expected, django_capture_on_commit_callbacks):
+    from apps.contests.models import GradeAppeal
+    users, contest, answer = case
+    contest.status, contest.results_published = 'published', published
+    contest.save()
+    ticket = GradeAppeal.objects.create(exam_answer=answer, status='closed', closed_at=timezone.now(), closed_by=users['teacher'])
+    url = f'/api/v1/contests/{contest.pk}/grade-appeals/{ticket.pk}/reopen/'
+    with patch('apps.contests.tasks.deliver_contest_email.delay') as send:
+        with django_capture_on_commit_callbacks(execute=True):
+            response = api(users[actor]).post(url, {'content': content}, format='json')
+        assert response.status_code == expected, response.data
+        send.assert_not_called()
+    ticket.refresh_from_db()
+    assert ticket.status == 'closed' and ticket.closed_at is not None
+    assert ticket.messages.count() == 0

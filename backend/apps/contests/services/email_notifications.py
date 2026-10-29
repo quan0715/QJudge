@@ -60,7 +60,7 @@ def notify_appeal(ticket, actor_id, event='message'):
     to_managers = actor_id == participant.user_id and event != 'closed'
     recipients = manager_ids(contest) if to_managers else {participant.user_id}
     recipients = set(recipients) - {actor_id}
-    label = '申訴已結案' if event == 'closed' else '申訴有新訊息'
+    label = {'closed': '申訴已結案', 'reopened': '申訴已重新開啟'}.get(event, '申訴有新訊息')
     subject = f'[QJudge] {label}'
     body = (
         f'「{contest.name}」的申訴 #{ticket.pk}：{label}。\n\n'
