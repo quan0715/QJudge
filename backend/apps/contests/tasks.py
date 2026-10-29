@@ -6,6 +6,8 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 
+from apps.core.services.mail import mail_enabled
+
 
 @shared_task(
     ignore_result=True,
@@ -16,6 +18,8 @@ from django.core.mail import send_mail
     max_retries=5,
 )
 def deliver_contest_email(user_id, subject, body):
+    if not mail_enabled():
+        return
     user = get_user_model().objects.filter(pk=user_id, is_active=True).first()
     if user is None or not user.email:
         return

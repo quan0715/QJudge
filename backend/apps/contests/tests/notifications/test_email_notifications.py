@@ -1,6 +1,6 @@
 """Database-free coverage of notification policy and delivery boundaries."""
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from django.core import mail
@@ -8,6 +8,11 @@ from django.test import override_settings
 
 from apps.contests.services import email_notifications as notifications
 from apps.contests.tasks import deliver_contest_email
+
+
+@pytest.fixture(autouse=True)
+def enabled_mail(settings):
+    settings.EMAIL_MODE = 'external'
 
 
 def contest(status='published', results=True):
@@ -105,3 +110,26 @@ def test_smtp_failure_retries_only_failed_recipient():
         with pytest.raises(Retry):
             deliver_contest_email.run(2, 'Notice', 'Body')
     retry.assert_called_once()
+
+
+def test_managers_use_owner_and_ta_memberships():
+    classroom = SimpleNamespace(owner_id=4, memberships=Mock())
+    classroom.memberships.filter.return_value.values_list.return_value = [3, 4]
+    with patch.object(notifications, 'get_contest_classroom', return_value=classroom):
+        assert notifications.manager_ids(contest()) == {1, 3, 4}
+    classroom.memberships.filter.assert_called_once_with(role='ta')
+
+
+def test_disabled_mail_does_not_queue(settings):
+    settings.EMAIL_MODE = 'disabled'
+    with patch.object(notifications.transaction, 'on_commit') as commit:
+        notifications.queue_emails([2], 'Notice', 'Body')
+    commit.assert_not_called()
+
+
+def test_disabled_mail_skips_existing_worker_job(settings):
+    settings.EMAIL_MODE = 'disabled'
+    with patch('apps.contests.tasks.get_user_model') as model, patch('apps.contests.tasks.send_mail') as send:
+        deliver_contest_email.run(2, 'Notice', 'Body')
+    model.assert_not_called()
+    send.assert_not_called()

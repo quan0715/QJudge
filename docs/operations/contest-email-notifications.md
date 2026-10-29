@@ -1,10 +1,10 @@
 # 競賽與申訴 email 通知
 
-通知使用既有 Django email 設定與 Celery `default` queue。部署時須一併更新 backend 與 Celery worker；不需新增 migration。`FRONTEND_URL` 必須指向使用者可登入的前端網址。
+通知使用既有 Django email 設定與 Celery `default` queue。只有 `EMAIL_MODE=external` 或 `bundled` 時啟用；`disabled` 不排入新通知，已排入任務也不寄送。部署時須一併更新 backend 與 Celery worker；不需新增 migration。`FRONTEND_URL` 必須指向使用者可登入的前端網址。
 
 | 事件 | 收件人 |
 | --- | --- |
-| 學生第一次提出申訴或新增說明 | 競賽主辦者、課程擁有者、管理員及 TA，排除發訊者 |
+| 學生第一次提出申訴或新增說明 | 競賽主辦者、課程擁有者、TA，排除發訊者 |
 | 教師回覆或結案 | 該申訴的學生，排除操作者 |
 | 競賽從草稿發布 | 全體課程學生（含尚未進入競賽者），以及曾作答的參與者 |
 | 成績從未發布改為發布 | 同上 |

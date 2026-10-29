@@ -16,12 +16,12 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def case():
+def case(settings):
+    settings.EMAIL_MODE = 'external'
     users = {name: User.objects.create_user(username=f'notice_{name}', email=f'{name}@example.com',
                                           role='teacher' if name == 'teacher' else 'student')
-             for name in ['teacher', 'admin', 'ta', 'student', 'unstarted', 'outsider']}
+             for name in ['teacher', 'ta', 'student', 'unstarted', 'outsider']}
     classroom = Classroom.objects.create(name='Course', owner=users['teacher'], invite_code='NOTICE01')
-    classroom.admins.add(users['admin'])
     for name in ['ta', 'student', 'unstarted']:
         ClassroomMember.objects.create(classroom=classroom, user=users[name], role='ta' if name == 'ta' else 'student')
     contest = Contest.objects.create(name='Midterm', owner=users['teacher'], contest_type='paper_exam',
@@ -70,7 +70,7 @@ def test_appeal_open_reply_close_and_duplicates(case, django_capture_on_commit_c
         with django_capture_on_commit_callbacks(execute=True):
             opened = student.post(url, {'exam_answer': answer.pk, 'content': 'Private explanation'}, format='json')
             assert opened.status_code == 201, opened.data
-        assert {c.args[0] for c in send.call_args_list} == {users[n].pk for n in ['teacher', 'admin', 'ta']}
+        assert {c.args[0] for c in send.call_args_list} == {users[n].pk for n in ['teacher', 'ta']}
         assert all('Private' not in c.args[2] for c in send.call_args_list)
         send.reset_mock()
         with django_capture_on_commit_callbacks(execute=True):
@@ -88,7 +88,8 @@ def test_appeal_open_reply_close_and_duplicates(case, django_capture_on_commit_c
         send.assert_not_called()
 
 
-def test_transaction_rollback_discards_notification(django_capture_on_commit_callbacks):
+def test_transaction_rollback_discards_notification(django_capture_on_commit_callbacks, settings):
+    settings.EMAIL_MODE = 'external'
     with patch('apps.contests.tasks.deliver_contest_email.delay') as send:
         with django_capture_on_commit_callbacks(execute=True):
             with pytest.raises(ValueError):

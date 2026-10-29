@@ -8,12 +8,16 @@ import logging
 from django.conf import settings
 from django.db import transaction
 
+from apps.core.services.mail import mail_enabled
+
 from .participation import get_contest_classroom, roster_user_ids
 
 logger = logging.getLogger(__name__)
 
 
 def queue_emails(user_ids, subject, body):
+    if not mail_enabled():
+        return
     # Snapshot recipients at the action, but look up active accounts in the worker.
     recipients = sorted({user_id for user_id in user_ids if user_id is not None})
 
@@ -46,7 +50,6 @@ def manager_ids(contest):
     classroom = get_contest_classroom(contest)
     if classroom is not None:
         ids.add(classroom.owner_id)
-        ids.update(classroom.admins.values_list('id', flat=True))
         ids.update(classroom.memberships.filter(role='ta').values_list('user_id', flat=True))
     return ids
 
