@@ -173,43 +173,45 @@ const AdminDashboardPanels = () => {
   };
 
   return (
-    <div className={styles.page}>
-      <div className={styles.panelBody}>
-        <AdminPanelSlot
-          panelId={activePanel}
-          contestModule={contestModule}
-          contestId={contestId || ""}
-          contest={contest}
-          onExport={() => setExportOpen(true)}
-          onPreview={handlePreview}
-          onOpenSettings={(section?: ContestSettingsSectionId) => {
-            setSettingsSection(section);
-            setSettingsOpen(true);
-          }}
-        />
-      </div>
-
-      {exportOpen && contest && contestId && (
-        <Suspense fallback={<Loading description={t("message.loading")} />}>
-          <ContestExportDialog
-            open
-            onClose={() => setExportOpen(false)}
+    <ContestAdminProvider contestId={contestId} loadEvents={activePanel === "overview"}>
+      <div className={styles.page}>
+        <div className={styles.panelBody}>
+          <AdminPanelSlot
+            panelId={activePanel}
+            contestModule={contestModule}
+            contestId={contestId || ""}
             contest={contest}
-            contestId={contestId}
+            onExport={() => setExportOpen(true)}
+            onPreview={handlePreview}
+            onOpenSettings={(section?: ContestSettingsSectionId) => {
+              setSettingsSection(section);
+              setSettingsOpen(true);
+            }}
           />
-        </Suspense>
-      )}
+        </div>
 
-      {isSettingsOpen && (
-        <Suspense fallback={<Loading description={t("message.loading")} />}>
-          <ContestSettingsOverlay
-            open
-            onClose={closeSettings}
-            initialSection={settingsSection}
-          />
-        </Suspense>
-      )}
-    </div>
+        {exportOpen && contest && contestId && (
+          <Suspense fallback={<Loading description={t("message.loading")} />}>
+            <ContestExportDialog
+              open
+              onClose={() => setExportOpen(false)}
+              contest={contest}
+              contestId={contestId}
+            />
+          </Suspense>
+        )}
+
+        {isSettingsOpen && (
+          <Suspense fallback={<Loading description={t("message.loading")} />}>
+            <ContestSettingsOverlay
+              open
+              onClose={closeSettings}
+              initialSection={settingsSection}
+            />
+          </Suspense>
+        )}
+      </div>
+    </ContestAdminProvider>
   );
 };
 
@@ -218,11 +220,9 @@ const AdminDashboardScreen = () => {
 
   return (
     <ContestProvider contestId={contestId} enableRuntimePolling={false}>
-      <ContestAdminProvider contestId={contestId}>
-        <AdminPanelRefreshProvider>
-          <AdminDashboardInner />
-        </AdminPanelRefreshProvider>
-      </ContestAdminProvider>
+      <AdminPanelRefreshProvider>
+        <AdminDashboardInner />
+      </AdminPanelRefreshProvider>
     </ContestProvider>
   );
 };

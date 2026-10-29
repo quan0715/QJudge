@@ -39,7 +39,10 @@ class ExamEventsMixin:
         events = list(
             ExamEvent.objects.filter(contest_id=contest_pk)
             .exclude(event_type="health_snapshot")
-            .select_related("user", "integrity_run")
+            .select_related("user")
+            # Runs contain large JSON metrics shared by many events. Fetch once
+            # per run instead of transferring and decoding it for every event.
+            .prefetch_related("integrity_run")
             .order_by("created_at", "id")
         )
         activities = list(
