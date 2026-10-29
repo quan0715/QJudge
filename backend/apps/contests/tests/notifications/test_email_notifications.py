@@ -52,7 +52,7 @@ def test_broker_failure_does_not_fail_saved_action_or_skip_other_recipients():
     assert send.call_count == 2
 
 
-@pytest.mark.parametrize('actor_id,event,expected', [(2, 'message', [1, 3]), (1, 'message', [2]), (1, 'closed', [2])])
+@pytest.mark.parametrize('actor_id,event,expected', [(2, 'message', [1, 3]), (1, 'message', [2]), (1, 'closed', [2]), (2, 'reopened', [1, 3])])
 def test_appeal_only_notifies_other_party(actor_id, event, expected):
     ticket = SimpleNamespace(pk=9, exam_answer=SimpleNamespace(
         participant=SimpleNamespace(contest=contest(), user_id=2)))

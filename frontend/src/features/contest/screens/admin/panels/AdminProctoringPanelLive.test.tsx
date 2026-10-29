@@ -291,8 +291,8 @@ describe("MinimalLiveStage", () => {
 
     await waitFor(() => expect(view.getByText("Screen")).toBeInTheDocument());
     expect(view.queryByText("Webcam")).not.toBeInTheDocument();
-    expect(mocks.createTransport.mock.results[0].value.selectTarget)
-      .toHaveBeenCalledWith("qj-student-a");
+    await waitFor(() => expect(mocks.createTransport.mock.results[0].value.selectTarget)
+      .toHaveBeenCalledWith("qj-student-a"));
 
     view.rerender(
       <MinimalLiveStage
@@ -306,7 +306,7 @@ describe("MinimalLiveStage", () => {
 
     await waitFor(() => expect(view.getByText("Webcam")).toBeInTheDocument());
     expect(view.queryByText("Screen")).not.toBeInTheDocument();
-    expect(mocks.createTransport.mock.results[0].value.selectTarget)
-      .toHaveBeenLastCalledWith("qj-student-b");
+    await waitFor(() => expect(mocks.createTransport.mock.results[0].value.selectTarget)
+      .toHaveBeenLastCalledWith("qj-student-b"));
   });
 });
