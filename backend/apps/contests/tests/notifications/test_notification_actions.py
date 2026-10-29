@@ -71,7 +71,8 @@ def test_appeal_open_reply_close_and_duplicates(case, django_capture_on_commit_c
             opened = student.post(url, {'exam_answer': answer.pk, 'content': 'Private explanation'}, format='json')
             assert opened.status_code == 201, opened.data
         assert {c.args[0] for c in send.call_args_list} == {users[n].pk for n in ['teacher', 'ta']}
-        assert all('Private' not in c.args[2] for c in send.call_args_list)
+        assert all('Private explanation' in c.args[2] and '題號：第 1 題' in c.args[2] and 'Explain' in c.args[2] for c in send.call_args_list)
+        assert all('Private answer' not in c.args[2] for c in send.call_args_list)
         send.reset_mock()
         with django_capture_on_commit_callbacks(execute=True):
             assert student.post(url, {'exam_answer': answer.pk, 'content': 'Duplicate'}, format='json').status_code == 200
@@ -118,6 +119,7 @@ def test_student_reopens_same_appeal_and_notifies_owner_and_ta_once(case, django
         assert data['messages'][0]['id'] == old.pk
         assert {c.args[0] for c in send.call_args_list} == {users['teacher'].pk, users['ta'].pk}
         assert all(c.args[1] == '[QJudge] 申訴已重新開啟' for c in send.call_args_list)
+        assert all('重開理由：\nStill unclear' in c.args[2] for c in send.call_args_list)
         send.reset_mock()
         with django_capture_on_commit_callbacks(execute=True):
             duplicate = api(users['student']).post(url+'reopen/', {'content': 'Still unclear'}, format='json')

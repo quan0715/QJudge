@@ -1,4 +1,5 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 .root {
   padding: 0;
   border-bottom: 1px solid var(--cds-border-subtle);
@@ -66,4 +67,55 @@
   .header {
     display: grid;
   }
+}
+
+.appealFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: layout.$spacing-04;
+  margin-top: layout.$spacing-04;
+  padding-top: layout.$spacing-05;
+  p { margin: layout.$spacing-02 0 0; color: var(--cds-text-secondary); }
+}
+
+.expandedBody {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+}
+
+.sectionLabel {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+  margin-bottom: layout.$spacing-03;
+}
+
+.answerColumns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-06;
+}
+
+.answerColumn {
+  flex: 1 1 22rem;
+  min-width: 0;
+}
+
+.feedbackColumn {
+  flex: 1 1 18rem;
+  min-width: 0;
+  padding-top: layout.$spacing-05;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+
+.feedbackColumn .feedbackLabel {
+  margin-bottom: layout.$spacing-04;
+}
+
+.expandedBody .appealFooter {
+  margin-top: 0;
+  padding-top: layout.$spacing-05;
+  border-top: 1px solid var(--cds-border-subtle);
 }

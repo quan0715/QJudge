@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -36,6 +36,7 @@ vi.mock("react-i18next", () => ({
 vi.mock("@carbon/react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@carbon/react")>();
   return ({
+  ...actual,
   Accordion: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   AccordionItem: ({ title, children }: { title: ReactNode; children: ReactNode }) => <div>{title}{children}</div>,
   Button: ({
@@ -514,9 +515,12 @@ describe("StudentContestDashboard", () => {
     expect(screen.queryByText("已嘗試")).not.toBeInTheDocument();
     expect(screen.getByText("已作答")).toBeInTheDocument();
     expect(screen.getByText("未作答")).toBeInTheDocument();
+    expect(screen.queryByText("draft answer")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "作答紀錄" }));
+    fireEvent.click(screen.getAllByRole("button", { name: /展開第/ })[0]);
     expect(screen.getByText("draft answer")).toBeInTheDocument();
-    expect(screen.getByText(/^1\(a\)\./)).toBeInTheDocument();
-    expect(screen.getByText(/^1\(b\)\./)).toBeInTheDocument();
+    expect(screen.getByText("第 1(a) 題")).toBeInTheDocument();
+    expect(screen.getByText("第 1(b) 題")).toBeInTheDocument();
     expect(getMyExamAnswers).toHaveBeenCalledWith("contest-1");
     expect(getExamResults).not.toHaveBeenCalled();
   });
@@ -737,7 +741,10 @@ describe("StudentContestDashboard", () => {
     );
 
     expect(await screen.findAllByText("8.00 / 12.00")).not.toHaveLength(0);
-    expect(screen.getByText(/8\.00 \/ 12\.00 · teacher/)).toBeInTheDocument();
+    expect(screen.queryByText("Good")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "作答紀錄" }));
+    fireEvent.click(screen.getAllByRole("button", { name: /展開第/ })[0]);
+    expect(screen.queryByText("批改者：teacher")).not.toBeInTheDocument();
     expect(screen.queryByText(/5\.00 \/ 10\.00/)).not.toBeInTheDocument();
     expect(screen.getByText("考試成績")).toBeInTheDocument();
     expect(screen.getByText("Good")).toBeInTheDocument();

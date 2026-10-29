@@ -90,6 +90,7 @@ import {
 } from "./studentDashboardState";
 import styles from "./StudentContestDashboard.module.scss";
 import CodingAnswerRecords from "./CodingAnswerRecords";
+import PaperAnswerRecordsTable from "./PaperAnswerRecordsTable";
 
 const ATTENDANCE_READY_STATUSES = new Set(["photo_confirmed", "teacher_assisted"]);
 
@@ -765,8 +766,7 @@ export default function StudentContestDashboard({
     );
 
     return (
-      <div className={styles.questionList}>
-        {paperData.questions.map((question, index) => {
+      <PaperAnswerRecordsTable key={contest.id} showGrading={contest.resultsPublished} rows={paperData.questions.map((question, index) => {
           const result = resultMap.get(String(question.id));
           const answer = answerMap.get(String(question.id));
           const marked = markedQuestionIds.has(String(question.id));
@@ -817,7 +817,7 @@ export default function StudentContestDashboard({
                           tone: "red" as const,
                         }
                     : {
-                        label: result?.gradedAt
+                        label: result?.score != null || result?.gradedAt
                           ? t("studentDashboard.answerStatus.graded", "已批改")
                           : t("studentDashboard.answerStatus.pendingGrading", "待批改"),
                         tone: "warm-gray" as const,
@@ -826,8 +826,15 @@ export default function StudentContestDashboard({
             result?.questionPrompt ??
             question.prompt;
 
-          return (
-            <PaperQuestionReportCard
+          const label = questionLabels.get(question.id)?.label ?? String(index + 1);
+          const scoreText = question.scorePolicy === "redistribute" ? "— / —"
+            : `${question.scorePolicy === "excluded" ? "—" : formatScore(result?.effectiveScore ?? result?.score)} / ${formatScore(maxScore)}`;
+          return {
+            id: String(question.id), label,
+            typeLabel: t(`common:questionType.label.${questionType}`, QUESTION_TYPE_LABEL[questionType] ?? questionType) + (question.scorePolicy === "excluded" ? " · 不計分" : question.scorePolicy === "full_marks" ? " · 送分" : question.scorePolicy === "redistribute" ? " · 配分重分配" : ""),
+            score: scoreText, status: status.label, tone: status.tone,
+            detail: <PaperQuestionReportCard
+              hideHeader
               key={question.id}
               questionId={String(question.id)}
               index={index + 1}
@@ -858,10 +865,9 @@ export default function StudentContestDashboard({
               explanationDocument={question.explanationDocument}
               scorePolicy={question.scorePolicy}
               actions={contest.resultsPublished && result?.score != null ? <Button kind="tertiary" size="sm" onClick={() => setAppealTarget({ answerId: Number(result.id), appealId: appeals.find(a => a.exam_answer === Number(result.id))?.id, prompt, label: questionLabels.get(question.id)?.label })}>{appeals.some(a => a.exam_answer === Number(result.id)) ? "查看申訴" : "提出申訴"}</Button> : undefined}
-            />
-          );
-        })}
-      </div>
+            />,
+          };
+        })} />
     );
   };
 
