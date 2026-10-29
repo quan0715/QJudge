@@ -11,6 +11,7 @@ from apps.core.api.envelope import envelope
 from ..models import Contest, ContestParticipant, ExamAnswer, GradeAppeal, GradeAppealMessage
 from ..permissions import can_manage_contest
 from ..serializers import ExamAnswerDetailSerializer
+from ..services.email_notifications import notify_appeal
 from ..services.exam_scoring import ExamScoringService
 from ..services.paper_question_labels import build_paper_question_labels
 from ..services.question_context import question_prompt_with_context
@@ -124,6 +125,7 @@ class GradeAppealViewSet(viewsets.GenericViewSet):
         ticket, created = GradeAppeal.objects.get_or_create(exam_answer=answer)
         if created:
             GradeAppealMessage.objects.create(appeal=ticket, author=request.user, content=serializer.validated_data['content'])
+            notify_appeal(ticket, request.user.id)
         return envelope(self._detail(ticket), status=201 if created else 200)
 
     @action(detail=True, methods=['post'])
@@ -135,6 +137,7 @@ class GradeAppealViewSet(viewsets.GenericViewSet):
         serializer = MessageInput(data=request.data)
         serializer.is_valid(raise_exception=True)
         GradeAppealMessage.objects.create(appeal=ticket, author=request.user, content=serializer.validated_data['content'])
+        notify_appeal(ticket, request.user.id)
         return envelope(self._detail(ticket), status=201)
 
     @action(detail=True, methods=['post'])
@@ -149,4 +152,5 @@ class GradeAppealViewSet(viewsets.GenericViewSet):
             ticket.closed_at = timezone.now()
             ticket.closed_by = request.user
             ticket.save(update_fields=['status', 'closed_at', 'closed_by'])
+            notify_appeal(ticket, request.user.id, 'closed')
         return envelope(self._detail(ticket))
