@@ -2478,3 +2478,35 @@ def test_archive_chain_enforces_cumulative_key_budget_while_loading(
 
     object_store.delete_objects.assert_not_called()
     assert body.closed
+
+
+@pytest.mark.django_db
+def test_event_journal_reuses_one_run_instance_for_shared_events(
+    api_client, incident_event, participant, monkeypatch,
+):
+    # Large run metrics must not be decoded into a separate object per event.
+    from apps.contests.views import exam_events as event_view
+    run = incident_event.integrity_run
+    run.metrics = {"payload": "x" * 100_000}
+    run.save(update_fields=["metrics"])
+    extra = ExamEvent.objects.create(
+        contest=incident_event.contest, user=incident_event.user,
+        event_type=incident_event.event_type, integrity_run=run,
+        incident_id=incident_event.incident_id,
+        metadata=incident_event.metadata,
+    )
+    original = event_view.evidence_statuses_for_events
+    observed = []
+
+    def summarize(events):
+        observed.extend(e for e in events if e.integrity_run_id == run.pk)
+        return original(events)
+
+    monkeypatch.setattr(event_view, "evidence_statuses_for_events", summarize)
+    api_client.force_authenticate(participant.contest.owner)
+    response = api_client.get(f"/api/v1/contests/{participant.contest_id}/exam/events/")
+    assert response.status_code == 200
+    assert {incident_event.pk, extra.pk} <= {e["id"] for e in response.json()["events"]}
+    assert len(observed) >= 2
+    assert all(e.integrity_run is observed[0].integrity_run for e in observed)
+    assert all(e.integrity_run.metrics == run.metrics for e in observed)

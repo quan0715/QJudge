@@ -91,12 +91,15 @@ interface ContestAdminProviderProps {
   children: ReactNode;
   contestId?: string;
   autoLoad?: boolean;
+  /** Only panels that consume the whole-contest journal opt in. */
+  loadEvents?: boolean;
 }
 
 export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
   children,
   contestId: propContestId,
   autoLoad = true,
+  loadEvents = false,
 }) => {
   const params = useParams<{ contestId: string }>();
   const contestId = propContestId || params.contestId;
@@ -107,7 +110,7 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
   const [overviewMetrics, setOverviewMetrics] =
     useState<ContestOverviewMetrics | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [examEventsLoading, setExamEventsLoading] = useState(true);
+  const [examEventsLoading, setExamEventsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOverviewRefreshing, setIsOverviewRefreshing] = useState(false);
 
@@ -151,14 +154,12 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
 
     setIsRefreshing(true);
     try {
-      // Fire participants and events in parallel; each updates its slice as
-      // soon as its own request resolves so slow event payloads don't block
-      // the participant grid.
-      await Promise.all([refreshParticipants(), refreshExamEvents()]);
+      // Only refresh the journal when the current panel consumes it.
+      await Promise.all([refreshParticipants(), ...(loadEvents ? [refreshExamEvents()] : [])]);
     } finally {
       setIsRefreshing(false);
     }
-  }, [contestId, refreshExamEvents, refreshParticipants]);
+  }, [contestId, loadEvents, refreshExamEvents, refreshParticipants]);
 
   const refreshOverviewMetrics = useCallback(async () => {
     if (!contestId) return;
@@ -180,20 +181,20 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
 
   useEffect(() => {
     if (!autoLoad || !contestId) return;
-    // Resolve initialLoading on the participants slice; events slice tracks
-    // its own loading via examEventsLoading so the participant grid can
-    // render immediately while the heavier events payload arrives later.
+    // Participant and overview data do not depend on the event journal.
     void Promise.all([refreshParticipants(), refreshOverviewMetrics()]).finally(
       () => setInitialLoading(false),
     );
-    void refreshExamEvents();
   }, [
     autoLoad,
     contestId,
-    refreshExamEvents,
     refreshOverviewMetrics,
     refreshParticipants,
   ]);
+
+  useEffect(() => {
+    if (autoLoad && loadEvents && contestId) void refreshExamEvents();
+  }, [autoLoad, loadEvents, contestId, refreshExamEvents]);
 
   const value = useMemo(
     () => ({

@@ -9,6 +9,7 @@ const mockRefreshAllAdminData = vi.fn();
 const mockRefreshAdminData = vi.fn();
 const mockRefreshParticipants = vi.fn();
 const mockPanelMount = vi.fn();
+const mockEventDemand = vi.fn();
 
 const mockContest = {
   id: "contest-1",
@@ -31,7 +32,10 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/features/contest/contexts", () => ({
   ContestProvider: ({ children }: { children: ReactNode }) => children,
-  ContestAdminProvider: ({ children }: { children: ReactNode }) => children,
+  ContestAdminProvider: ({ children, loadEvents }: { children: ReactNode; loadEvents: boolean }) => {
+    mockEventDemand(loadEvents);
+    return children;
+  },
   AdminPanelRefreshProvider: ({ children }: { children: ReactNode }) => children,
   useContest: () => ({
     ...mockContestState,
@@ -56,7 +60,7 @@ vi.mock("@/features/contest/modules/registry", () => ({
         contest
           ? ["overview", "problem_editor", "participants", "logs", "grading"]
           : ["overview", "problem_editor"],
-      getHiddenPanels: () => ["ai-grading"],
+      getHiddenPanels: () => ["ai-grading", "grading-workbench"],
     },
   }),
 }));
@@ -194,3 +198,16 @@ describe("AdminDashboardScreen", () => {
     expect(screen.getByTestId("location-search")).toHaveTextContent("panel=grading");
   });
 });
+
+
+it.each(["grading-workbench", "grading", "ai-grading", "overview"])(
+  "requests global events only for the overview, not %s grading panels",
+  async (panel) => {
+    mockContestState = { contest: mockContest, loading: false };
+    mockEventDemand.mockClear();
+    render(<MemoryRouter initialEntries={[`/contests/contest-1/admin?panel=${panel}`]}>
+      <Routes><Route path="/contests/:contestId/admin" element={<AdminDashboardScreen />} /></Routes>
+    </MemoryRouter>);
+    await waitFor(() => expect(mockEventDemand).toHaveBeenLastCalledWith(panel === "overview"));
+  },
+);

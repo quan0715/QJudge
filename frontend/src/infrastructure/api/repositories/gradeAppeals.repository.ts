@@ -20,3 +20,7 @@ export async function sendGradeAppealMessage(contestId: string, id: number, cont
 export async function closeGradeAppeal(contestId: string, id: number): Promise<GradeAppealDetail> {
   return (await fetchEnvelope<GradeAppealDetail>(httpClient.post(`${path(contestId)}${id}/close/`, {}))).data;
 }
+
+export async function reopenGradeAppeal(contestId: string, id: number, content: string): Promise<GradeAppealDetail> {
+  return (await fetchEnvelope<GradeAppealDetail>(httpClient.post(`${path(contestId)}${id}/reopen/`, { content }))).data;
+}

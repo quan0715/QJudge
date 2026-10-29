@@ -40,6 +40,7 @@ from ..services.participant_state import (
     reopen_participant_exam,
     unlock_participant as unlock_contest_participant,
 )
+from ..services.email_notifications import notify_publication_changes
 from ..services.exam_scoring import ExamScoringService
 from ..services.anti_cheat_session import get_active_session
 from ..services.integrity_presence import get_last_checkpoint
@@ -177,6 +178,8 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         from ..services.exam_schedule import update_exam_schedule
         with transaction.atomic():
             locked = Contest.objects.select_for_update().get(pk=serializer.instance.pk)
+            previous_status = locked.status
+            previous_results = locked.results_published
             serializer.instance = locked
             # Partial updates must validate against the latest locked counterpart.
             serializer.validate(serializer.validated_data)
@@ -193,6 +196,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             if "webcam_required" in serializer.validated_data:
                 apply_webcam_setting_to_prepared_run(instance.id)
             prepare_integrity_session(instance.id, actor_id=self.request.user.id)
+            notify_publication_changes(instance, previous_status, previous_results)
         cache.delete(f"contest_anticheat_config:{instance.id}")
 
         # Log activity - record what fields were changed
@@ -246,11 +250,15 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         return Response(payload)
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
+    @transaction.atomic
     def toggle_status(self, request, pk=None):
         """
         Toggle contest status between published and draft.
         """
         contest = self.get_object()
+        contest = Contest.objects.select_for_update().get(pk=contest.pk)
+        previous_status = contest.status
+        previous_results = contest.results_published
         if contest.status == 'published':
             contest.status = 'draft'
             contest.results_published = False
@@ -268,6 +276,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             contest.status = 'published'
         contest.save(update_fields=['status', 'results_published'])
         prepare_integrity_session(contest.id, actor_id=request.user.id)
+        notify_publication_changes(contest, previous_status, previous_results)
 
         # Log activity
         log_contest_activity(

@@ -1,4 +1,4 @@
-"""Five operations for private paper-exam appeal tickets; grading stays separate."""
+"""Operations for private paper-exam appeal tickets; grading stays separate."""
 from django.db import transaction
 from django.db.models import Max, Prefetch
 from django.shortcuts import get_object_or_404
@@ -11,6 +11,7 @@ from apps.core.api.envelope import envelope
 from ..models import Contest, ContestParticipant, ExamAnswer, GradeAppeal, GradeAppealMessage
 from ..permissions import can_manage_contest
 from ..serializers import ExamAnswerDetailSerializer
+from ..services.email_notifications import notify_appeal
 from ..services.exam_scoring import ExamScoringService
 from ..services.paper_question_labels import build_paper_question_labels
 from ..services.question_context import question_prompt_with_context
@@ -33,7 +34,7 @@ class ClosedAppeal(APIException):
 class GradeAppealViewSet(viewsets.GenericViewSet):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = AppealInput
-    envelope_error_actions = {'list', 'create', 'retrieve', 'messages', 'close'}
+    envelope_error_actions = {'list', 'create', 'retrieve', 'messages', 'close', 'reopen'}
 
     def _contest(self):
         contest = get_object_or_404(Contest, pk=self.kwargs['contest_pk'], contest_type='paper_exam')
@@ -124,6 +125,7 @@ class GradeAppealViewSet(viewsets.GenericViewSet):
         ticket, created = GradeAppeal.objects.get_or_create(exam_answer=answer)
         if created:
             GradeAppealMessage.objects.create(appeal=ticket, author=request.user, content=serializer.validated_data['content'])
+            notify_appeal(ticket, request.user.id)
         return envelope(self._detail(ticket), status=201 if created else 200)
 
     @action(detail=True, methods=['post'])
@@ -135,6 +137,7 @@ class GradeAppealViewSet(viewsets.GenericViewSet):
         serializer = MessageInput(data=request.data)
         serializer.is_valid(raise_exception=True)
         GradeAppealMessage.objects.create(appeal=ticket, author=request.user, content=serializer.validated_data['content'])
+        notify_appeal(ticket, request.user.id)
         return envelope(self._detail(ticket), status=201)
 
     @action(detail=True, methods=['post'])
@@ -149,4 +152,31 @@ class GradeAppealViewSet(viewsets.GenericViewSet):
             ticket.closed_at = timezone.now()
             ticket.closed_by = request.user
             ticket.save(update_fields=['status', 'closed_at', 'closed_by'])
+            notify_appeal(ticket, request.user.id, 'closed')
+        return envelope(self._detail(ticket))
+
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def reopen(self, request, pk=None, contest_pk=None):
+        contest = self._contest()
+        if not contest.results_published:
+            raise PermissionDenied('成績尚未公布，無法重新開啟申訴。')
+        ticket = get_object_or_404(self._tickets(contest).select_for_update(), pk=pk)
+        if ticket.exam_answer.participant.user_id != request.user.id:
+            raise PermissionDenied('只有提出此申訴的學生可以重新開啟。')
+        serializer = MessageInput(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if ticket.status != 'closed':
+            error = APIException('申訴已開啟，請重新整理後繼續留言。')
+            error.status_code = 409
+            raise error
+        GradeAppealMessage.objects.create(
+            appeal=ticket, author=request.user, content=serializer.validated_data['content'],
+        )
+        ticket.status = 'open'
+        ticket.closed_at = None
+        ticket.closed_by = None
+        ticket.save(update_fields=['status', 'closed_at', 'closed_by'])
+        notify_appeal(ticket, request.user.id, 'reopened')
         return envelope(self._detail(ticket))

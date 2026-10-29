@@ -63,3 +63,32 @@ it("keeps complete original context and group identity after opening an existing
   fireEvent.click(screen.getByRole("button", { name: "送出說明" }));
   await waitFor(() => expect(api.sendGradeAppealMessage).toHaveBeenCalledWith("c1", 7, "Please recheck the original answer"));
 });
+
+it("requires a reason to reopen the same closed appeal and preserves its conversation", async () => {
+  vi.mocked(api.getGradeAppeal).mockResolvedValue({ ...ticket, status: "closed", closed_at: "2026-10-03T01:00:00Z", closed_by: 1 });
+  vi.mocked(api.reopenGradeAppeal).mockResolvedValue({ ...ticket, messages: [...ticket.messages, { ...ticket.messages[0], id: 2, content: "Still unclear" }] });
+  const changed = vi.fn();
+  render(<GradeAppealDialog contestId="c1" appealId={7} managing={false} onClose={vi.fn()} onChanged={changed} />);
+  await screen.findByText("Please review");
+  const reopen = screen.getByRole("button", { name: "重新開啟申訴" });
+  expect(reopen).toBeDisabled();
+  fireEvent.change(screen.getByRole("textbox", { name: "重開理由" }), { target: { value: "Still unclear" } });
+  fireEvent.click(reopen);
+  await waitFor(() => expect(api.reopenGradeAppeal).toHaveBeenCalledWith("c1", 7, "Still unclear"));
+  expect(await screen.findByText("Still unclear")).toBeInTheDocument();
+  expect(screen.getByText("Please review")).toBeInTheDocument();
+  expect(screen.getByText("未結案")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "送出說明" })).toBeDisabled();
+  expect(changed).toHaveBeenCalledOnce();
+});
+
+it("retains the reopen reason after a failed request", async () => {
+  vi.mocked(api.getGradeAppeal).mockResolvedValue({ ...ticket, status: "closed" });
+  vi.mocked(api.reopenGradeAppeal).mockRejectedValueOnce(new Error("Offline"));
+  render(<GradeAppealDialog contestId="c1" appealId={7} managing={false} onClose={vi.fn()} onChanged={vi.fn()} />);
+  await screen.findByText("Please review");
+  fireEvent.change(screen.getByRole("textbox", { name: "重開理由" }), { target: { value: "My reason" } });
+  fireEvent.click(screen.getByRole("button", { name: "重新開啟申訴" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "重新開啟申訴" })).not.toBeDisabled());
+  expect(screen.getByRole("textbox")).toHaveValue("My reason");
+});
