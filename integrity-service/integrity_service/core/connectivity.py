@@ -15,16 +15,6 @@ from integrity_service.core.commands import (
 from integrity_service.core.registry import Registry
 
 
-_REGISTRY_ACTIONS: dict[str, CommandAction] = {
-    "audit": "audit",
-    "record": "record",
-    "record_event": "record",
-    "pause": "pause",
-    "lock": "lock",
-    "submit": "submit",
-}
-
-
 def connectivity_effect_overlaps_gap(command: IntegrityCommand, started_ms: int, ended_ms: int) -> bool:
     """Only an unavailable interval in the observed silence can mask a sanction."""
     return (
@@ -239,7 +229,7 @@ class ConnectivityMonitor:
         incident = self._incidents[self._incident_key(participant_id)]
         action: CommandAction = "audit"
         if not incident.action_applied:
-            action = _REGISTRY_ACTIONS[self._definition.action]
+            action = self._definition.action
             incident.action_applied = True
         return self._transition_command(
             participant_id=participant_id,
