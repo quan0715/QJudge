@@ -7,7 +7,7 @@ import { examIntegrityRepository } from "@/infrastructure/api/repositories/examI
 import { IntegrityTransport } from "./integrityTransport";
 import { EvidenceCoordinator } from "./evidenceCoordinator";
 import type { IntegritySignalEmitter } from "./IntegrityRuntimeContext";
-import { applyIntegrityHealthUpdate, initialHealthSnapshot, sourceTargets, evidenceBufferPolicy, enabledEvidenceSources } from "./useIntegrityRuntime";
+import { applyIntegrityHealthUpdate, initialHealthSnapshot, sourceTargets, evidenceBufferPolicy, enabledEvidenceSources } from "./integrityRuntimePolicy";
 
 export type IntegrityUploadMode = "capture" | "drain" | "off";
 type Sources = Partial<Record<"screen_share" | "webcam", MediaStream | null>>;

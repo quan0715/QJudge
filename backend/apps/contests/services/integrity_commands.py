@@ -27,18 +27,10 @@ from apps.contests.models import (
 from apps.contests.services.activity_log import log_contest_activity
 from apps.contests.services.anticheat_storage import get_s3_client
 from apps.contests.services.exam_submission import finalize_submission
-from apps.contests.services.integrity_event_projection import registry_action_is_penalty
+from apps.contests.integrity.event_policy import default_registry_action, registry_action_is_penalty
 
 
 _ACTIONS = frozenset({"audit", "record", "pause", "lock", "submit"})
-_REGISTRY_ACTIONS = {
-    "audit": "audit",
-    "record": "record",
-    "record_event": "record",
-    "pause": "pause",
-    "lock": "lock",
-    "submit": "submit",
-}
 _CONNECTIVITY_TRANSITIONS = frozenset(
     {
         "connectivity_suspect",
@@ -76,7 +68,6 @@ class RecordIntegrityEvent:
     device_id: str
     evidence: dict[str, object]
     command_fingerprint: str
-    command_semantics: dict[str, object]
 
 
 def resident_service_digest() -> str:
@@ -454,6 +445,13 @@ def _definition_for_event(
     return match
 
 
+def _default_event_action(definition: dict, phase: str, delayed_delivery: bool) -> str:
+    try:
+        return default_registry_action(definition, phase, delayed_delivery=delayed_delivery)
+    except ValueError as exc:
+        raise IntegrityCommandRejected("invalid_frozen_registry") from exc
+
+
 def _validate_event_action(
     *,
     definition: dict[str, object],
@@ -461,20 +459,8 @@ def _validate_event_action(
     action: str,
     delayed_delivery: bool,
 ) -> None:
-    registry_action = _REGISTRY_ACTIONS.get(definition.get("action"))
-    signals = definition.get("signals")
-    if registry_action is None or type(signals) is not dict:
-        raise IntegrityCommandRejected("invalid_frozen_registry")
-    if delayed_delivery:
-        allowed = {"audit"}
-    elif phase == "restored":
-        allowed = {"audit"}
-    elif phase == "triggered" and (
-        signals.get("escalated") or signals.get("restored")
-    ):
-        allowed = {"record", "audit"}
-    else:
-        allowed = {registry_action, "audit"}
+    default_action = _default_event_action(definition, phase, delayed_delivery)
+    allowed = {default_action, "audit"}
     if action not in allowed:
         raise IntegrityCommandRejected("command_action_registry_mismatch")
 
@@ -486,7 +472,6 @@ def _existing_command_event(
     participant_id: int,
     event_type: str,
     command_fingerprint: str,
-    command_semantics: dict[str, object],
 ) -> ExamEvent | None:
     existing = ExamEvent.objects.filter(integrity_command_id=command_id).first()
     if existing is None:
@@ -652,7 +637,6 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         participant_id=participant.id,
         event_type=command.event_type,
         command_fingerprint=command.command_fingerprint,
-        command_semantics=command.command_semantics,
     )
     if existing is not None:
         return existing
@@ -753,18 +737,7 @@ def _record_event_command(
     action = command.get("action")
     if action is None:
         _definition_id, definition, phase = _definition_for_event(run, event_type)
-        signals = definition.get("signals")
-        registry_action = _REGISTRY_ACTIONS.get(definition.get("action"))
-        if registry_action is None or type(signals) is not dict:
-            raise IntegrityCommandRejected("invalid_frozen_registry")
-        if delayed_delivery or phase == "restored":
-            action = "audit"
-        elif phase == "triggered" and (
-            signals.get("escalated") or signals.get("restored")
-        ):
-            action = "record"
-        else:
-            action = registry_action
+        action = _default_event_action(definition, phase, delayed_delivery)
     if action not in _ACTIONS:
         raise IntegrityCommandRejected("invalid_command_action")
     client_ms = _nonnegative_int(
@@ -843,7 +816,6 @@ def _record_event_command(
             device_id=device_id,
             evidence=evidence,
             command_fingerprint=command_fingerprint,
-            command_semantics=command_semantics,
         )
     )
     return CommandOutcome(
