@@ -28,11 +28,10 @@ export const Metrics: Story = {
   render: () => (
     <div style={{ display: "flex", gap: "2rem" }}>
       <MetricBlock label="題目數量" value={12} />
-      <MetricBlock label="參賽人數" value={42} size="lg" />
+      <MetricBlock label="參賽人數" value={42} />
       <MetricBlock
         label="完成率"
         value="78%"
-        size="lg"
         trailing={<ArrowUp size={16} />}
       />
       <MetricBlock label="剩餘" value="04:12" align="end" />

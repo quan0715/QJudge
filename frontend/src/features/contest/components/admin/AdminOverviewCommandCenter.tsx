@@ -752,14 +752,12 @@ export default function AdminOverviewCommandCenter({
           <MetricBlock
             label={t("adminOverview.command.metrics.examParticipants", "考試人數")}
             value={studentParticipants.length}
-            size="lg"
           />
         </DashboardBlock>
         <DashboardBlock>
           <MetricBlock
             label={t("adminOverview.command.metrics.onlineParticipants", "在線人數")}
             value={liveStudentCount}
-            size="lg"
           />
         </DashboardBlock>
       </DashboardContainer>

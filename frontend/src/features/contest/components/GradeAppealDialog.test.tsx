@@ -4,6 +4,7 @@ import GradeAppealDialog from "./GradeAppealDialog";
 import * as api from "@/infrastructure/api/repositories/gradeAppeals.repository";
 
 vi.mock("@/infrastructure/api/repositories/gradeAppeals.repository");
+vi.mock("@/features/auth/contexts/AuthContext", () => ({ useAuth: () => ({ user: { id: 1, username: "teacher" } }) }));
 vi.mock("@/shared/contexts/ToastContext", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 vi.mock("./exam/AnswerDisplay", () => ({ default: () => <div>Saved answer</div> }));
 vi.mock("@/shared/ui/markdown/MarkdownRenderer", () => ({ default: ({ children }: {children: string}) => <div>{children}</div> }));

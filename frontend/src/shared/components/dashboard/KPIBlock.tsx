@@ -10,8 +10,6 @@ export interface KPIBlockProps {
   value: ReactNode;
   /** Optional inline icon / badge rendered next to the value. */
   trailing?: ReactNode;
-  /** Value size. Defaults to "lg" for KPI emphasis. */
-  size?: "default" | "lg";
   /** Align label + value to start (default) or end. */
   align?: "start" | "end";
   /** Inherit DashboardBlock padding contract. */
@@ -25,7 +23,6 @@ export function KPIBlock({
   title,
   value,
   trailing,
-  size = "lg",
   align = "start",
   padding = "default",
   children,
@@ -38,7 +35,6 @@ export function KPIBlock({
       <MetricBlock
         label={title}
         value={value}
-        size={size}
         align={align}
         trailing={trailing}
       />
