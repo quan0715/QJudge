@@ -105,16 +105,16 @@ export const Grid2x2Matrix: Story = {
   render: () => (
     <DashboardContainer layout="grid" columns={2} bordered dividers="auto">
       <DashboardBlock>
-        <MetricBlock label="A" value="1" size="lg" />
+        <MetricBlock label="A" value="1" />
       </DashboardBlock>
       <DashboardBlock>
-        <MetricBlock label="B" value="2" size="lg" />
+        <MetricBlock label="B" value="2" />
       </DashboardBlock>
       <DashboardBlock>
-        <MetricBlock label="C" value="3" size="lg" />
+        <MetricBlock label="C" value="3" />
       </DashboardBlock>
       <DashboardBlock>
-        <MetricBlock label="D" value="4" size="lg" />
+        <MetricBlock label="D" value="4" />
       </DashboardBlock>
     </DashboardContainer>
   ),
