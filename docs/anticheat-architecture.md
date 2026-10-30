@@ -23,7 +23,7 @@
 
 ## 事件與 incident
 
-事件定義唯一來源是 `backend/apps/contests/integrity/registry.py`。Backend 的預設 action 與計數判定集中在 `integrity/event_policy.py`，由 command service 與 event projection 共用；此模組不依賴 ORM 或傳輸層。新增 detector 的流程是：
+事件定義唯一來源是 `backend/apps/contests/integrity/registry.py`。計數判定也留在 registry 模組，供命令寫入與顯示共同使用。預設 action 只由 command service 使用，因此直接留在該服務。新增 detector 的流程是：
 
 1. 在 registry 新增 definition 與 signal。
 2. 前端 detector 只發出 registry 宣告的 signal。

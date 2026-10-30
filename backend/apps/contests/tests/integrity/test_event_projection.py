@@ -2,8 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from apps.contests.integrity.registry import build_registry_snapshot
-from apps.contests.integrity.event_policy import registry_action_is_penalty
+from apps.contests.integrity.registry import build_registry_snapshot, registry_action_is_penalty
 from apps.contests.services.integrity_event_projection import (
     event_penalized,
     event_priority,

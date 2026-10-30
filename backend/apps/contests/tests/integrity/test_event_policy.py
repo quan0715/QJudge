@@ -1,7 +1,7 @@
 import pytest
 
-from apps.contests.integrity.event_policy import default_registry_action, registry_action_is_penalty
-from apps.contests.integrity.registry import build_registry_snapshot
+from apps.contests.services.integrity_commands import _default_event_action, IntegrityCommandRejected
+from apps.contests.integrity.registry import build_registry_snapshot, registry_action_is_penalty
 
 
 @pytest.mark.parametrize("definition_id, phase, delayed, action, penalized", [
@@ -18,12 +18,12 @@ from apps.contests.integrity.registry import build_registry_snapshot
 ])
 def test_event_policy_contract(definition_id, phase, delayed, action, penalized):
     definition = build_registry_snapshot()["definitions"][definition_id]
-    actual = default_registry_action(definition, phase, delayed_delivery=delayed)
+    actual = _default_event_action(definition, phase, delayed_delivery=delayed)
     assert actual == action
     assert registry_action_is_penalty(phase, actual, definition) is penalized
 
 
 @pytest.mark.parametrize("definition", [{}, {"action": "unknown", "signals": {}}, {"action": "record", "signals": []}])
 def test_invalid_registry_has_no_default_action(definition):
-    with pytest.raises(ValueError, match="invalid_frozen_registry"):
-        default_registry_action(definition, "triggered", delayed_delivery=False)
+    with pytest.raises(IntegrityCommandRejected, match="invalid_frozen_registry"):
+        _default_event_action(definition, "triggered", delayed_delivery=False)

@@ -1,6 +1,6 @@
 """Project normalized events using their run-scoped frozen registry."""
 
-from apps.contests.integrity.event_policy import registry_action_is_penalty
+from apps.contests.integrity.registry import registry_action_is_penalty
 from apps.contests.models import ExamEvent
 
 

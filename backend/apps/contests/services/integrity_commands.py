@@ -27,7 +27,7 @@ from apps.contests.models import (
 from apps.contests.services.activity_log import log_contest_activity
 from apps.contests.services.anticheat_storage import get_s3_client
 from apps.contests.services.exam_submission import finalize_submission
-from apps.contests.integrity.event_policy import default_registry_action, registry_action_is_penalty
+from apps.contests.integrity.registry import registry_action_is_penalty
 
 
 _ACTIONS = frozenset({"audit", "record", "pause", "lock", "submit"})
@@ -446,23 +446,17 @@ def _definition_for_event(
 
 
 def _default_event_action(definition: dict, phase: str, delayed_delivery: bool) -> str:
-    try:
-        return default_registry_action(definition, phase, delayed_delivery=delayed_delivery)
-    except ValueError as exc:
-        raise IntegrityCommandRejected("invalid_frozen_registry") from exc
-
-
-def _validate_event_action(
-    *,
-    definition: dict[str, object],
-    phase: str,
-    action: str,
-    delayed_delivery: bool,
-) -> None:
-    default_action = _default_event_action(definition, phase, delayed_delivery)
-    allowed = {default_action, "audit"}
-    if action not in allowed:
-        raise IntegrityCommandRejected("command_action_registry_mismatch")
+    action = definition.get("action")
+    if action == "record_event":
+        action = "record"
+    signals = definition.get("signals")
+    if action not in _ACTIONS or type(signals) is not dict:
+        raise IntegrityCommandRejected("invalid_frozen_registry")
+    if delayed_delivery or phase == "restored":
+        return "audit"
+    if phase == "triggered" and (signals.get("escalated") or signals.get("restored")):
+        return "record"
+    return action
 
 
 def _existing_command_event(
@@ -617,12 +611,9 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         run,
         command.event_type,
     )
-    _validate_event_action(
-        definition=definition,
-        phase=phase,
-        action=command.action,
-        delayed_delivery=command.delayed_delivery,
-    )
+    default_action = _default_event_action(definition, phase, command.delayed_delivery)
+    if command.action not in {default_action, "audit"}:
+        raise IntegrityCommandRejected("command_action_registry_mismatch")
     if participant.exam_status not in {
         ExamStatus.IN_PROGRESS,
         ExamStatus.PAUSED,
