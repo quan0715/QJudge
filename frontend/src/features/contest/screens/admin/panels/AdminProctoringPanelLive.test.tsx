@@ -83,6 +83,44 @@ beforeEach(() => {
 });
 
 describe("MinimalLiveStage", () => {
+  it.each([4, 9] as const)("filters non-sharing students and displays webcam in the same tile in %i-person mode", async (layout) => {
+    const rows = Array.from({ length: 9 }, (_, index) => participant(String(index + 1)));
+    mocks.getTargets.mockResolvedValue({ stale: false, observedAt: null, targets: [
+      { userId: "8", identity: "screen-and-camera", sources: ["screen_share", "webcam"] },
+      { userId: "9", identity: "camera-only", sources: ["webcam"] },
+    ] });
+    const props = { contestId: "contest-1", participant: rows[0], participants: rows,
+      lockActionBusy: false, monitoringAvailable: true, layout };
+    const view = render(<MinimalLiveStage {...props} discoveryRefreshKey={0} />);
+    await waitFor(() => expect(view.getByRole("button", { name: "放大 Student 8" })).toBeInTheDocument());
+    expect(view.queryAllByRole("button", { name: /^放大/ })).toHaveLength(1);
+    expect(view.getByText("第 1／1 頁・1 人")).toBeInTheDocument();
+    const tile = view.getByRole("button", { name: "放大 Student 8" });
+    expect(tile.querySelectorAll("video")).toHaveLength(2);
+    const transport = mocks.createTransport.mock.results[0].value;
+    await waitFor(() => expect(transport.selectTargets).toHaveBeenLastCalledWith([
+      { identity: "screen-and-camera", sources: ["screen_share", "webcam"] },
+    ]));
+    expect(transport.bindTargetVideo).toHaveBeenCalledWith("screen-and-camera", "webcam", expect.any(HTMLVideoElement));
+
+    mocks.getTargets.mockResolvedValue({ stale: false, observedAt: null, targets: [
+      { userId: "8", identity: "screen-and-camera", sources: ["screen_share"] },
+    ] });
+    view.rerender(<MinimalLiveStage {...props} discoveryRefreshKey={1} />);
+    await waitFor(() => expect(tile.querySelectorAll("video")).toHaveLength(1));
+    expect(transport.bindTargetVideo).toHaveBeenCalledWith("screen-and-camera", "webcam", null);
+    expect(transport.selectTargets).toHaveBeenLastCalledWith([
+      { identity: "screen-and-camera", sources: ["screen_share"] },
+    ]);
+
+    mocks.getTargets.mockResolvedValue({ stale: false, observedAt: null, targets: [] });
+    view.rerender(<MinimalLiveStage {...props} discoveryRefreshKey={2} />);
+    await waitFor(() => expect(view.queryAllByRole("button", { name: /^放大/ })).toHaveLength(0));
+    expect(transport.selectTargets).toHaveBeenLastCalledWith([]);
+    expect(transport.bindTargetVideo).toHaveBeenCalledWith("screen-and-camera", "webcam", null);
+    expect(view.getByText("第 1／1 頁・0 人")).toBeInTheDocument();
+  });
+
   it("shows a screen grid, focuses a student and returns without reconnecting", async () => {
     const onSelect = vi.fn();
     const onLayout = vi.fn();
