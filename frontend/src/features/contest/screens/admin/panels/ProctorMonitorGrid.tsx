@@ -7,9 +7,10 @@ import type { LiveState, LiveTargetSnapshot } from "@/core/entities/liveMonitori
 import type { LiveTransport } from "@/infrastructure/realtime/livekitTransport";
 import styles from "./ProctorMonitorGrid.module.scss";
 
-function ScreenTile({ participant, identity, transport, state, onFocus }: {
+function ScreenTile({ participant, identity, webcam, transport, state, onFocus }: {
   participant: ContestParticipant;
   identity?: string;
+  webcam: boolean;
   transport: LiveTransport | null;
   state: LiveState;
   onFocus: (userId: string) => void;
@@ -19,6 +20,9 @@ function ScreenTile({ participant, identity, transport, state, onFocus }: {
   const name = participant.displayName || participant.username;
   const bindVideo = useCallback((element: HTMLVideoElement | null) => {
     if (identity) transport?.bindTargetVideo(identity, "screen_share", element);
+  }, [identity, transport]);
+  const bindWebcam = useCallback((element: HTMLVideoElement | null) => {
+    if (identity) transport?.bindTargetVideo(identity, "webcam", element);
   }, [identity, transport]);
   const connected = playing?.identity === identity && playing?.transport === transport && !!transport && state === "connected";
   const connecting = state === "connecting" || state === "reconnecting";
@@ -32,6 +36,10 @@ function ScreenTile({ participant, identity, transport, state, onFocus }: {
           onPlaying={() => setPlaying({ identity, transport })} onPause={() => setPlaying(null)}
           onEnded={() => setPlaying(null)} onEmptied={() => setPlaying(null)}
           onWaiting={() => setPlaying(null)} />
+        {webcam && <div className={styles.webcam}>
+          <video ref={bindWebcam} autoPlay playsInline muted
+            aria-label={t("proctoringPanel.sourceWebcam", "Webcam")} />
+        </div>}
         <div className={styles.topOverlay}>
           {participant.violationCount > 0 && <span className={styles.attention}>
             <WarningFilled size={16} aria-hidden="true" />
@@ -67,19 +75,20 @@ export default function ProctorMonitorGrid({ participants, snapshot, transport, 
   onFocus: (userId: string) => void;
 }) {
   const { t } = useTranslation("contest");
-  // Stable name order keeps monitoring tiles from moving when live status changes.
-  const rows = useMemo(() => [...participants].sort((a, b) =>
+  const targets = useMemo(() => new Map(snapshot.targets.map((target) => [target.userId, target])), [snapshot.targets]);
+  // Filter before pagination so students without a screen do not occupy slots.
+  const rows = useMemo(() => participants.filter((participant) =>
+    targets.get(participant.userId)?.sources.includes("screen_share")).sort((a, b) =>
     (a.displayName || a.username).localeCompare(b.displayName || b.username)
-      || a.userId.localeCompare(b.userId)), [participants]);
+      || a.userId.localeCompare(b.userId)), [participants, targets]);
   const pageCount = Math.max(1, Math.ceil(rows.length / size));
   const currentPage = Math.min(page, pageCount - 1);
   const visible = useMemo(() => rows.slice(currentPage * size, (currentPage + 1) * size), [rows, currentPage, size]);
-  const targets = useMemo(() => new Map(snapshot.targets.map((target) => [target.userId, target])), [snapshot.targets]);
   useEffect(() => {
     transport?.selectTargets(visible.flatMap((participant) => {
       const target = targets.get(participant.userId);
       return target?.sources.includes("screen_share")
-        ? [{ identity: target.identity, sources: ["screen_share" as const] }] : [];
+        ? [{ identity: target.identity, sources: target.sources }] : [];
     }));
   }, [transport, visible, targets]);
 
@@ -89,6 +98,7 @@ export default function ProctorMonitorGrid({ participants, snapshot, transport, 
         const target = targets.get(participant.userId);
         return <ScreenTile key={participant.userId} participant={participant}
           identity={target?.sources.includes("screen_share") ? target.identity : undefined}
+          webcam={target?.sources.includes("webcam") ?? false}
           transport={transport} state={state} onFocus={onFocus} />;
       })}
       {visible.length === 0 && <p>{t("proctoringPanel.noMatches", "沒有符合條件的考生")}</p>}
