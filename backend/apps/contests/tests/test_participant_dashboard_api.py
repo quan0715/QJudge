@@ -329,6 +329,8 @@ class ParticipantDashboardApiTests(APITestCase):
             if item["event_type"] == "clipboard_action"
         ]
         self.assertEqual(len(clipboard_items), 2)
+        self.assertTrue(all(item["category"] == "info" for item in clipboard_items))
+        self.assertTrue(all(not item["penalized"] for item in clipboard_items))
         self.assertEqual(
             [item["event_id"] for item in clipboard_items],
             [str(second.id), str(first.id)],

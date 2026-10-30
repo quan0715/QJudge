@@ -7,6 +7,20 @@ import { buildClipboardMetadata, ClipboardDetector } from "./clipboardDetector";
 import type { ViolationEvent } from "./types";
 
 describe("ClipboardDetector", () => {
+  it.each(["copy", "cut", "paste"] as const)("retains source and content for %s", (action) => {
+    expect(buildClipboardMetadata({
+      action,
+      rawText: "selected answer",
+      target: document.createElement("textarea"),
+    })).toMatchObject({
+      source: "clipboard_detector",
+      action,
+      content: "selected answer",
+      content_captured: true,
+      content_truncated: false,
+      target_tag: "textarea",
+    });
+  });
   it("preserves the browser callback timestamp across asynchronous hashing", async () => {
     const now = vi.spyOn(Date, "now")
       .mockReturnValueOnce(1_000)
@@ -33,7 +47,7 @@ describe("ClipboardDetector", () => {
     detector.stop();
   });
 
-  it("truncates captured paste payloads before the durable outbox limit", async () => {
+  it.each(["copy", "cut", "paste"] as const)("truncates captured %s payloads before the durable outbox limit", async (action) => {
     const databaseName = `clipboard-detector-${crypto.randomUUID()}`;
     const outbox = await IndexedDbIntegrityOutbox.open({
       runId: "33333333-3333-3333-3333-333333333333",
@@ -45,7 +59,7 @@ describe("ClipboardDetector", () => {
       createId: () => "00000000-0000-4000-8000-000000000001",
     });
     const metadata = buildClipboardMetadata({
-      action: "paste",
+      action,
       rawText: "\\u0000".repeat(50_000),
       target: document.createElement("textarea"),
       sha256: "a".repeat(64),

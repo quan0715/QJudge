@@ -28,11 +28,15 @@ def event_definition(event: ExamEvent) -> dict[str, object]:
 
 
 def event_priority(event: ExamEvent) -> int:
+    if event.event_type == "clipboard_action":
+        return 2
     priority = event_definition(event).get("priority")
     return priority if isinstance(priority, int) and 0 <= priority <= 3 else 3
 
 
 def event_penalized(event: ExamEvent) -> bool:
+    if event.event_type == "clipboard_action":
+        return False
     metadata = event.metadata if isinstance(event.metadata, dict) else {}
     integrity = metadata.get("integrity")
     if not isinstance(integrity, dict):
@@ -43,11 +47,14 @@ def event_penalized(event: ExamEvent) -> bool:
 
 
 def registry_action_is_penalty(phase, action, definition: dict) -> bool:
+    signals = definition.get("signals")
+    # Apply to frozen registries too: clipboard use is retained as evidence only.
+    if isinstance(signals, dict) and signals.get("triggered") == "clipboard_action":
+        return False
     # System lifecycle records (entry/submission) are evidence of normal use,
     # not violations. Explicit pause/lock/submit actions remain actionable.
     if action == "record" and definition.get("priority") == 3:
         return False
-    signals = definition.get("signals")
     incident_opening = bool(
         phase == "triggered"
         and action == "record"
