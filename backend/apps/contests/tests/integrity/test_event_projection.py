@@ -34,3 +34,22 @@ def test_historical_clipboard_projects_as_information():
 def test_forbidden_actions_still_count():
     definition = build_registry_snapshot()["definitions"]["forbidden_action"]
     assert registry_action_is_penalty("triggered", "record", definition)
+
+
+def test_missing_registry_definition_cannot_become_a_penalty():
+    event = SimpleNamespace(
+        event_type="exit_fullscreen",
+        metadata={"integrity": {"definition_id": "missing", "phase": "escalated", "action": "record"}},
+        integrity_run=SimpleNamespace(registry_snapshot={"definitions": {}}),
+    )
+    assert not event_penalized(event)
+
+
+def test_malformed_historical_definition_id_is_safe():
+    event = SimpleNamespace(
+        event_type="exit_fullscreen",
+        metadata={"integrity": {"definition_id": [], "phase": "escalated", "action": "record"}},
+        integrity_run=SimpleNamespace(registry_snapshot={"definitions": {}}),
+    )
+    assert event_priority(event) == 3
+    assert not event_penalized(event)

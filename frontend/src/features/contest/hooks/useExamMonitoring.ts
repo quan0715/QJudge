@@ -42,7 +42,7 @@ export function useExamMonitoring({
           ...((event.metadata ?? {}) as Record<string, IntegrityJsonValue>),
         },
       });
-      if (event.severity === "info") onBlockedActionRef.current?.(event.message);
+      if (event.eventType === "forbidden_action") onBlockedActionRef.current?.(event.message);
     };
     const activeDetectors: ExamDetector[] = [
       new ClipboardDetector(tRef.current),

@@ -1,4 +1,4 @@
-import type { ExamDetector, ViolationEvent, CheckResult } from "./types";
+import type { ExamDetector, ViolationEvent } from "./types";
 import type { TFunction } from "i18next";
 
 const MAX_CLIPBOARD_METADATA_BYTES = 28 * 1024;
@@ -175,9 +175,5 @@ export class ClipboardDetector implements ExamDetector {
       document.removeEventListener("contextmenu", this.handleContextMenu);
     }
     this.onViolation = null;
-  }
-
-  async runCheck(): Promise<CheckResult> {
-    return { passed: true };
   }
 }

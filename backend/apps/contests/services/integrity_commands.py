@@ -600,6 +600,16 @@ def _apply_registry_action(
         participant.save(update_fields=list(dict.fromkeys(update_fields)))
 
 
+def _policy_suppression_reason(run: ExamIntegrityRun, definition_id: str) -> str | None:
+    # A teacher may disable webcam during a frozen run. Pending worker timers
+    # must retain their evidence without enforcing a requirement that no longer applies.
+    if definition_id == "webcam" and not (
+        run.policy_snapshot.get("webcam_required") is True and run.contest.webcam_required
+    ):
+        return "webcam_not_required"
+    return None
+
+
 @transaction.atomic
 def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
     contest_id = ExamIntegrityRun.objects.values_list("contest_id", flat=True).get(pk=command.run_id)
@@ -659,12 +669,14 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         run=run, participant=participant, device_id=command.device_id,
         attempt_id=participant.integrity_attempt_id, batch_id=receipt_id,
         late_unverified=False).exists()
+    policy_suppression = _policy_suppression_reason(run, definition_id)
     effective_action = (
         "audit"
         if (
             command.delayed_delivery
             or late_unverified
             or platform_gap
+            or policy_suppression is not None
             or participant.exam_status == ExamStatus.SUBMITTED
         )
         else command.action
@@ -682,6 +694,7 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         **({"counted_as_violation": False} if command.event_type == "clipboard_action" else {}),
         **({"evidence_gap": command.metadata["evidence_gap"]} if command.metadata.get("evidence_gap") else {}),
         **({"suppressed_reason": "platform_gap"} if platform_gap else {}),
+        **({"suppressed_reason": policy_suppression} if policy_suppression else {}),
     }
     event = ExamEvent.objects.create(
         contest=run.contest,

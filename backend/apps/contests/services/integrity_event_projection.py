@@ -19,9 +19,10 @@ def event_definition(event: ExamEvent) -> dict[str, object]:
         return {}
     snapshot = run.registry_snapshot if isinstance(run.registry_snapshot, dict) else {}
     definitions = snapshot.get("definitions")
+    definition_id = integrity.get("definition_id")
     definition = (
-        definitions.get(integrity.get("definition_id"))
-        if isinstance(definitions, dict)
+        definitions.get(definition_id)
+        if isinstance(definitions, dict) and isinstance(definition_id, str)
         else None
     )
     return definition if isinstance(definition, dict) else {}
@@ -48,6 +49,8 @@ def event_penalized(event: ExamEvent) -> bool:
 
 def registry_action_is_penalty(phase, action, definition: dict) -> bool:
     signals = definition.get("signals")
+    if not isinstance(phase, str) or not isinstance(signals, dict) or not signals.get(phase):
+        return False
     # Apply to frozen registries too: clipboard use is retained as evidence only.
     if isinstance(signals, dict) and signals.get("triggered") == "clipboard_action":
         return False

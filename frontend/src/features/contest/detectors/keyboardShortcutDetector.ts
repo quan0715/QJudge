@@ -1,4 +1,4 @@
-import type { ExamDetector, ViolationEvent, CheckResult } from "./types";
+import type { ExamDetector, ViolationEvent } from "./types";
 import type { TFunction } from "i18next";
 
 /** Keys that are dangerous when combined with Cmd/Ctrl. */
@@ -78,12 +78,13 @@ export class KeyboardShortcutDetector implements ExamDetector {
       }
 
       // 2. Check Cmd/Ctrl + blocked key
-      if ((e.metaKey || e.ctrlKey) && BLOCKED_CTRL_KEYS.has(e.key)) {
+      const shortcutKey = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if ((e.metaKey || e.ctrlKey) && BLOCKED_CTRL_KEYS.has(shortcutKey)) {
         e.preventDefault();
         e.stopImmediatePropagation();
 
         const message =
-          e.key === "p"
+          shortcutKey === "p"
             ? this.t("exam.printBlocked", "Printing is disabled during exam")
             : this.t(
                 "exam.forbiddenKeyboardShortcut",
@@ -155,9 +156,5 @@ export class KeyboardShortcutDetector implements ExamDetector {
       this.printGuardStyle = null;
     }
     this.onViolation = null;
-  }
-
-  async runCheck(): Promise<CheckResult> {
-    return { passed: true };
   }
 }

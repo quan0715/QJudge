@@ -948,3 +948,27 @@ def test_fullscreen_timeout_cannot_request_a_pause(
     assert response.status_code == 422
     participant.refresh_from_db()
     assert participant.exam_status == ExamStatus.IN_PROGRESS
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("required", [False, True])
+def test_webcam_timer_respects_current_requirement(
+    internal_client, running_integrity_run, participant, required,
+):
+    running_integrity_run.policy_snapshot["webcam_required"] = True
+    running_integrity_run.save(update_fields=["policy_snapshot"])
+    participant.contest.webcam_required = required
+    participant.contest.save(update_fields=["webcam_required"])
+    admit_receipt_batch(running_integrity_run, participant)
+    command = bind_run(record_event_command(
+        participant, event_type="webcam_stopped", action="pause",
+    ), running_integrity_run)
+    response = internal_client.post_commands(running_integrity_run, [command])
+    assert response.status_code == 200
+    participant.refresh_from_db()
+    event = ExamEvent.objects.get(integrity_command_id=command["command_id"])
+    assert participant.violation_count == int(required)
+    assert participant.exam_status == (ExamStatus.PAUSED if required else ExamStatus.IN_PROGRESS)
+    assert event.metadata["integrity"]["action"] == ("pause" if required else "audit")
+    if not required:
+        assert event.metadata["integrity"]["suppressed_reason"] == "webcam_not_required"
