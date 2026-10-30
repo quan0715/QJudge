@@ -15,15 +15,9 @@ export interface ViolationEvent {
   metadata?: Record<string, unknown>;
 }
 
-export interface CheckResult {
-  passed: boolean;
-  detail?: string;
-}
-
 export interface ExamDetector {
   readonly id: ExamDetectorId;
   readonly severity: ViolationSeverity;
   start(onViolation: (e: ViolationEvent) => void): void;
   stop(): void;
-  runCheck(): Promise<CheckResult>;
 }
