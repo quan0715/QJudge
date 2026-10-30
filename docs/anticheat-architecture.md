@@ -11,6 +11,8 @@
 - PostgreSQL：保存 run、正規化事件、incident 關聯與證據 manifest；不保存每五秒的原始 batch。
 - R2：保存被 incident 採用的 WebM 證據片段，不保存整場錄影。
 
+螢幕分享與 webcam 的中斷／恢復觀測共用 `useCaptureMonitoring`；只維護 `interrupted` 與送出事件，webcam 自動恢復及螢幕分享手動重授權各自保留，處罰仍由 worker/backend 決定。
+
 ## 單一資料通道
 
 學生端只使用：
