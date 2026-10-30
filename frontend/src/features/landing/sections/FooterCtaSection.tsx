@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import { Button } from "@carbon/react";
 import { ArrowUpRight, ArrowRight } from "@carbon/icons-react";
@@ -19,6 +20,7 @@ interface FooterCtaSectionProps {
 }
 
 const FooterCtaSection: FC<FooterCtaSectionProps> = ({ content, onPrimary, onSecondary }) => {
+  const { t } = useTranslation("landing");
   return (
     <footer id="landing-footer-cta" className="landing-footer-section" data-testid="landing-section-footer">
 
@@ -50,12 +52,12 @@ const FooterCtaSection: FC<FooterCtaSectionProps> = ({ content, onPrimary, onSec
 
           <div className="landing-footer-section__brand">
             <span className="landing-footer-section__brand-name">QJUDGE</span>
-            <p>專為教育設計的線上考試平台</p>
-            <p>把出題、監考、批改收進一個流程</p>
+            <p>{t("ui.tagline")}</p>
+            <p>{t("ui.taglineDetail")}</p>
           </div>
 
           <div className="landing-footer-section__col">
-            <h3>產品</h3>
+            <h3>{t("ui.product")}</h3>
             <ul>
               {content.productLinks.map((item) => (
                 <li key={item.label}>
@@ -66,7 +68,7 @@ const FooterCtaSection: FC<FooterCtaSectionProps> = ({ content, onPrimary, onSec
           </div>
 
           <div className="landing-footer-section__col">
-            <h3>聯絡</h3>
+            <h3>{t("ui.contact")}</h3>
             <ul>
               {content.contactLinks.map((item) => (
                 <li key={item.label}>
@@ -83,7 +85,7 @@ const FooterCtaSection: FC<FooterCtaSectionProps> = ({ content, onPrimary, onSec
           </div>
 
           <div className="landing-footer-section__col">
-            <h3>法律</h3>
+            <h3>{t("ui.legal")}</h3>
             <ul>
               {content.legalLinks.map((item) => (
                 <li key={item.label}>

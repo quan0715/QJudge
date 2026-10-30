@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import { Button } from "@carbon/react";
 import { TextModeSwitcher, type TextModeOption } from "@/shared/ui/navigation/TextModeSwitcher";
@@ -27,14 +28,15 @@ const LandingHeader: FC<LandingHeaderProps> = ({
   themeOptions,
   onThemeChange,
 }) => {
+  const { t } = useTranslation("landing");
   return (
     <header className="landing-header">
       <div className="landing-header__inner">
-        <a className="landing-header__brand" href="#top" aria-label="QJudge home">
+        <a className="landing-header__brand" href="#top" aria-label={t("ui.home")}>
           <BrandLockup size={36} />
         </a>
 
-        <nav className="landing-header__nav" aria-label="Landing sections">
+        <nav className="landing-header__nav" aria-label={t("ui.navigation")}>
           {items.map((item) => (
             <a key={item.id} href={item.href ?? `#${item.id}`}>
               {item.label}
@@ -48,18 +50,18 @@ const LandingHeader: FC<LandingHeaderProps> = ({
               value={languageValue}
               options={languageOptions}
               onChange={onLanguageChange}
-              ariaLabel="內容語言"
+              ariaLabel={t("ui.language")}
             />
             <IconModeSwitcher
               value={themeValue}
               options={themeOptions}
               onChange={onThemeChange}
-              ariaLabel="主題模式"
+              ariaLabel={t("ui.theme")}
               tooltipPosition="bottom"
             />
           </div>
           <Button kind="ghost" onClick={onLogin}>
-            登入
+            {t("ui.signIn")}
           </Button>
         </div>
       </div>

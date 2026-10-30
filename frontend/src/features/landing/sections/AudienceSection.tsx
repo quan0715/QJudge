@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState, type FC } from "react";
 import { Accordion, AccordionItem, Tab, TabList, TabPanel, TabPanels, Tabs, Tile } from "@carbon/react";
 import SectionHeading from "@/features/landing/components/SectionHeading";
@@ -36,22 +37,24 @@ const AudiencePanel = ({
 }: {
   item: AudienceSectionProps["items"][number];
   index: number;
-}) => (
+}) => {
+  const { t } = useTranslation("landing");
+  return (
   <div className={`landing-audience-section__panel landing-audience-section__panel--${item.key}`}>
     <div className="landing-audience-section__content">
       <p className="landing-audience-section__case-meta">Case {String(index + 1).padStart(2, "0")}</p>
       <h3>{item.label}</h3>
       <dl>
         <div>
-          <dt>背景</dt>
+          <dt>{t("ui.background")}</dt>
           <dd>{item.background}</dd>
         </div>
         <div>
-          <dt>解決方案</dt>
+          <dt>{t("ui.solution")}</dt>
           <dd>{item.solution}</dd>
         </div>
         <div>
-          <dt>結果</dt>
+          <dt>{t("ui.outcome")}</dt>
           <dd>{item.outcome}</dd>
         </div>
       </dl>
@@ -62,7 +65,8 @@ const AudiencePanel = ({
       </div>
     </div>
   </div>
-);
+  );
+};
 
 const AudienceSection: FC<AudienceSectionProps> = ({ eyebrow, title, description, items }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
