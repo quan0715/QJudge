@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import AnswerDisplay from "@/features/contest/components/exam/AnswerDisplay";
 import { isSubjectiveType, type GradingAnswerRow } from "../gradingTypes";
+import { isCountedQuestion } from "../scorePolicyUtils";
 import { correctOptionIndexes, selectedOptionIndexes } from "../objectiveRegrade";
 import type { GradeDraft } from "./gradingWorkbenchModel";
 import type { AnswerSource, WorkbenchStudentRow as Row } from "./workbenchRowModel";
@@ -94,6 +95,12 @@ export function WorkbenchStudentRow({
       : t("workbench.noAnswer", "未作答");
   };
   const answerOf = new Map(row.answers.map((answer) => [answer.questionId, answer]));
+  const unansweredNote = (question: ExamQuestion): { text: string; score: number | null } =>
+    question.scorePolicy === "full_marks"
+      ? { text: t("workbench.noAnswerFullMarks", "未作答，此題送分"), score: question.score }
+      : isCountedQuestion(question.scorePolicy)
+        ? { text: t("workbench.noAnswerZero", "未作答，以 0 分計"), score: 0 }
+        : { text: t("workbench.noAnswerNotCounted", "未作答，此題不計分"), score: null };
   const noAnswer = t("workbench.noAnswer", "未作答");
   const missingText = (question: ExamQuestion) =>
     isGroup ? `${labels.get(question.id)?.label ?? ""} ${noAnswer}` : noAnswer;
@@ -170,12 +177,15 @@ export function WorkbenchStudentRow({
             const answer = answerOf.get(question.id);
             const subLabel = labels.get(question.id)?.label ?? "";
             if (!answer) {
+              const note = unansweredNote(question);
               return (
                 <section key={question.id} className={styles.answerBlock} aria-label={isGroup ? subLabel : undefined}>
                   {isGroup && <h4 className={styles.subLabel}>{subLabel}</h4>}
                   <p className={styles.unansweredNote}>
-                    {t("workbench.noAnswerZero", "未作答，以 0 分計")}
-                    <span className={styles.muted}> 0 / {compactScore(question.score)}</span>
+                    {note.text}
+                    {note.score !== null && (
+                      <span className={styles.muted}> {compactScore(note.score)} / {compactScore(question.score)}</span>
+                    )}
                   </p>
                 </section>
               );

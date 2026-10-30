@@ -1,4 +1,5 @@
 import type { GradingAnswerRow } from "../gradingTypes";
+import { computeStudentDisplayTotal, isCountedQuestion } from "../scorePolicyUtils";
 import type { GradingWorkbenchUnit } from "./gradingWorkbenchModel";
 
 export type AnswerSource = "auto" | "suggestion" | "none" | "ai" | "manual" | "unanswered";
@@ -19,7 +20,7 @@ export interface WorkbenchStudentRow {
   username: string;
   /** Ordered by the unit's questions; unanswered sub-questions have no row and count as 0. */
   answers: GradingAnswerRow[];
-  /** Null while any submitted answer is ungraded. */
+  /** The grade the student gets under each question's score policy; null while a counted answer is ungraded. */
   total: number | null;
   source: AnswerSource;
 }
@@ -51,7 +52,30 @@ export function resolveAnswerSource(row: GradingAnswerRow, ctx: SourceContext): 
   return "manual";
 }
 
-/** Students who took the exam but answered nothing in the unit get a zero-point row. */
+/** Mirrors the backend: full marks count answered or not; excluded and redistributed questions count nothing. */
+function rowTotal(unit: GradingWorkbenchUnit, answers: readonly GradingAnswerRow[]): number | null {
+  const byQuestion = new Map(answers.map((answer) => [answer.questionId, answer]));
+  const awaitsGrade = unit.questions.some(
+    (question) =>
+      isCountedQuestion(question.scorePolicy) &&
+      question.scorePolicy !== "full_marks" &&
+      byQuestion.get(question.id)?.score === null,
+  );
+  if (awaitsGrade) return null;
+  return computeStudentDisplayTotal(
+    unit.questions.map((question) => {
+      const answer = byQuestion.get(question.id);
+      return {
+        maxScore: question.score,
+        effectiveMaxScore: answer?.effectiveMaxScore,
+        scorePolicy: question.scorePolicy,
+        score: answer ? answer.score : 0,
+      };
+    }),
+  );
+}
+
+/** Students who took the exam but answered nothing in the unit still get a row. */
 export function buildStudentRows(
   unit: GradingWorkbenchUnit,
   answers: readonly GradingAnswerRow[],
@@ -67,13 +91,12 @@ export function buildStudentRows(
   const answered = [...byStudent.values()].map((rows) => {
     const sorted = rows.sort((a, b) => (order.get(a.questionId) ?? 0) - (order.get(b.questionId) ?? 0));
     const sources = sorted.map((row) => resolveAnswerSource(row, ctx));
-    const complete = sorted.every((row) => row.score !== null);
     return {
       studentId: sorted[0].studentId,
       name: sorted[0].studentDisplayName || sorted[0].studentUsername,
       username: sorted[0].studentUsername,
       answers: sorted,
-      total: complete ? sorted.reduce((sum, row) => sum + (row.score ?? 0), 0) : null,
+      total: rowTotal(unit, sorted),
       source: SOURCE_PRIORITY.find((source) => sources.includes(source)) ?? "none",
     };
   });
@@ -84,7 +107,7 @@ export function buildStudentRows(
       name: student.displayName || student.username,
       username: student.username,
       answers: [],
-      total: 0,
+      total: rowTotal(unit, []),
       source: "unanswered",
     }));
   return [...answered, ...unanswered];

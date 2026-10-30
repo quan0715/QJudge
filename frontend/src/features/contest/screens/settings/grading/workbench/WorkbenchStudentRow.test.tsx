@@ -258,6 +258,22 @@ it("shows a student who answered nothing as unanswered with zero", () => {
   expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
 });
 
+it("shows full marks for an unanswered child of a full-marks question", () => {
+  render(
+    <WorkbenchStudentRow
+      {...baseProps}
+      labels={new Map([["q1", { label: "2(a)" }], ["q2", { label: "2(b)" }]])}
+      maxScore={10}
+      row={studentRow([answer({ score: 3, maxScore: 5 })])}
+      questions={[question({ score: 5 }), question({ id: "q2", score: 5, scorePolicy: "full_marks" })]}
+      expanded
+    />,
+  );
+  const partB = within(screen.getByRole("region", { name: "2(b)" }));
+  expect(partB.getByText("未作答，此題送分")).toBeInTheDocument();
+  expect(partB.getByText("5 / 5", { exact: false })).toBeInTheDocument();
+});
+
 describe("WorkbenchScoreField input", () => {
   it("shows the kept value again after an out-of-range entry", () => {
     render(<WorkbenchScoreField label="分數" max={5} step={0.5} value={1} aiValue={null} onChange={vi.fn()} />);

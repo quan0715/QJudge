@@ -111,6 +111,30 @@ describe("workbenchRowModel", () => {
     ]);
   });
 
+  it("follows score policies like the published grade", () => {
+    const policyUnit: GradingWorkbenchUnit = {
+      ...unit([]),
+      questions: [
+        { id: "full", score: 5, scorePolicy: "full_marks" },
+        { id: "gift", score: 4, scorePolicy: "full_marks" },
+        { id: "dropped", score: 3, scorePolicy: "excluded" },
+        { id: "normal", score: 10 },
+      ] as ExamQuestion[],
+    };
+    const rows = buildStudentRows(
+      policyUnit,
+      [
+        answer({ id: "1", questionId: "gift", score: null }),
+        answer({ id: "2", questionId: "dropped", score: null }),
+        answer({ id: "3", questionId: "normal", score: 6 }),
+      ],
+      emptyCtx,
+      [{ studentId: "s1", username: "s1" }, { studentId: "s2", username: "blank" }],
+    );
+    // Full marks are awarded answered or not; the excluded question neither counts nor blocks completion.
+    expect(rows.map((row) => row.total)).toEqual([15, 9]);
+  });
+
   it("orders answers by unit question order and sums totals", () => {
     const rows = buildStudentRows(
       unit(["a", "b"]),
