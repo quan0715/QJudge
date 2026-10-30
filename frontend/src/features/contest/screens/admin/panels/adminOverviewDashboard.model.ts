@@ -4,6 +4,7 @@ import type {
   ContestParticipant,
   ExamEvent,
 } from "@/core/entities/contest.entity";
+import { hasStartedExam } from "@/core/entities/contest.entity";
 import type { GlobalStats } from "@/features/contest/screens/settings/grading/gradingTypes";
 import {
   calculateContestTimeProgressAt,
@@ -37,7 +38,6 @@ export type AttentionKind =
   | "locked"
   | "violation"
   | "offline"
-  | "not_started"
   | "needs_review";
 
 export interface OverviewKpiItem {
@@ -59,7 +59,7 @@ export interface TeacherAttentionRow {
 }
 
 export interface DistributionItem {
-  key: "in_progress" | "not_started" | "submitted" | "locked" | "offline";
+  key: "in_progress" | "submitted" | "locked" | "offline";
   label: string;
   value: number;
   percent: number;
@@ -414,27 +414,13 @@ export const getTeacherAttentionRows = ({
       });
       continue;
     }
-
-    if (participant.examStatus === "not_started") {
-      rows.push({
-        ...common,
-        kind: "not_started",
-        statusLabel: tr("adminOverview.model.status.notStarted", "未開始"),
-        eventLabel: tr(
-          "adminOverview.model.attention.notEntered",
-          "尚未進入考試",
-        ),
-        panelTarget: "participants",
-      });
-    }
   }
 
   const order: Record<AttentionKind, number> = {
     locked: 0,
     violation: 1,
     offline: 2,
-    not_started: 3,
-    needs_review: 4,
+    needs_review: 3,
   };
   return rows.sort((a, b) => order[a.kind] - order[b.kind]).slice(0, limit);
 };
@@ -453,11 +439,6 @@ const buildDistribution = (
       key: "in_progress" as const,
       label: tr("adminOverview.model.status.inProgress", "作答中"),
       value: count((p) => p.examStatus === "in_progress"),
-    },
-    {
-      key: "not_started" as const,
-      label: tr("adminOverview.model.status.notStarted", "未開始"),
-      value: count((p) => p.examStatus === "not_started"),
     },
     {
       key: "submitted" as const,
@@ -614,9 +595,9 @@ export const buildAdminOverviewDashboard = ({
   now?: Date;
   tr?: DashboardText;
 }): AdminOverviewDashboardData => {
-  const students = participants;
-  const total = Math.max(students.length, contest.participantCount || 0);
-  const started = students.filter((p) => p.examStatus !== "not_started").length;
+  const students = participants.filter(hasStartedExam);
+  const total = students.length;
+  const started = students.length;
   const submitted = students.filter((p) => p.examStatus === "submitted").length;
   const locked = students.filter(
     (p) => p.examStatus === "locked" || p.examStatus === "paused",
@@ -624,14 +605,11 @@ export const buildAdminOverviewDashboard = ({
   const inProgress = students.filter(
     (p) => p.examStatus === "in_progress",
   ).length;
-  const notStarted = students.filter(
-    (p) => p.examStatus === "not_started",
-  ).length;
   const offline = students.filter(
     (p) => p.connectionStatus === "offline",
   ).length;
   const attentionRows = getTeacherAttentionRows({
-    participants,
+    participants: students,
     examEvents,
     limit: 5,
     tr,
@@ -702,12 +680,6 @@ export const buildAdminOverviewDashboard = ({
         tone: "neutral",
       },
       {
-        key: "not_started",
-        label: tr("adminOverview.model.status.notStarted", "未開始"),
-        value: String(notStarted),
-        tone: notStarted > 0 ? "warning" : "neutral",
-      },
-      {
         key: "submitted",
         label: tr("adminOverview.model.status.submitted", "已交卷"),
         value: String(submitted),
@@ -728,7 +700,7 @@ export const buildAdminOverviewDashboard = ({
       tr,
     }),
     attentionRows,
-    distribution: buildDistribution(participants, tr),
+    distribution: buildDistribution(students, tr),
     examStatus: {
       timeWindowLabel: formatWindow(contest, tr),
       remainingLabel: liveTimeProgress.isEnded

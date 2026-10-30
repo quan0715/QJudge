@@ -11,6 +11,11 @@ export type ContestScopeRole =
   | "outsider"
   | "anonymous";
 
+/** Classroom-bound rosters list everyone; only participants who started the exam count. */
+export function hasStartedExam(participant: Pick<ContestParticipant, "examStatus">): boolean {
+  return participant.examStatus !== "not_started";
+}
+
 export function isContestManagerScopeRole(
   role?: ContestScopeRole | null,
 ): boolean {

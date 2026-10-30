@@ -27,7 +27,7 @@ const meta = {
     labels: new Map(), maxScore: 10, expanded: false, drafts: {}, suggestionScores: {}, busy: false,
     onToggle: () => {}, onDraftChange: () => {}, onPrimary: () => {}, onSecondary: () => {},
   },
-  decorators: [(Story) => <Theme theme="g100"><div style={{ maxWidth: 640 }}><Story /></div></Theme>],
+  decorators: [(Story) => <Theme theme="g100"><div style={{ maxWidth: 1200 }}><Story /></div></Theme>],
 } satisfies Meta<typeof WorkbenchStudentRow>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -39,4 +39,27 @@ export const HumanConfirmed: Story = {
 export const LightHumanConfirmed: Story = {
   ...HumanConfirmed,
   decorators: [(Story) => <Theme theme="white"><Story /></Theme>],
+};
+export const GroupWithUnansweredChild: Story = {
+  args: {
+    row: {
+      ...meta.args.row,
+      answers: [{ ...answer, questionId: "question-14a", maxScore: 5, score: 1, feedback: "有辨認 7 並嘗試加上二進位權重，但迴圈未更新輸入。" }],
+      total: 1,
+      source: "manual",
+    },
+    questions: [
+      { id: "question-14a", questionType: "short_answer", score: 5 },
+      { id: "question-14b", questionType: "short_answer", score: 10 },
+    ] as ExamQuestion[],
+    labels: new Map([["question-14a", { label: "14(a)" }], ["question-14b", { label: "14(b)" }]]),
+    maxScore: 15,
+    expanded: true,
+  },
+};
+export const Unanswered: Story = {
+  args: {
+    row: { ...meta.args.row, name: "空白卷學生", answers: [], total: 0, source: "unanswered" },
+    expanded: true,
+  },
 };

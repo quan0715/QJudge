@@ -223,6 +223,57 @@ describe("WorkbenchStudentRow", () => {
   });
 });
 
+it("shows an unanswered group child as zero without a score field", () => {
+  render(
+    <WorkbenchStudentRow
+      {...baseProps}
+      labels={new Map([["q1", { label: "14(a)" }], ["q2", { label: "14(b)" }]])}
+      maxScore={15}
+      row={studentRow([answer({ score: 1, feedback: "部分正確" })])}
+      questions={[question({ score: 5 }), question({ id: "q2", score: 10 })]}
+      expanded
+    />,
+  );
+  expect(screen.getByRole("button", { expanded: true }).textContent).toContain("14(a) 部分正確\u300014(b) 未作答");
+  const partB = within(screen.getByRole("region", { name: "14(b)" }));
+  expect(partB.getByText("未作答，以 0 分計")).toBeInTheDocument();
+  expect(partB.queryByRole("textbox")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "14(a) 加 0.5 分" })).toBeInTheDocument();
+});
+
+it("shows a student who answered nothing as unanswered with zero", () => {
+  render(
+    <WorkbenchStudentRow
+      {...baseProps}
+      row={studentRow([], { source: "unanswered", total: 0 })}
+      questions={[question({ score: 5 })]}
+      maxScore={5}
+      expanded
+    />,
+  );
+  const header = screen.getByRole("button", { expanded: true });
+  expect(header.textContent).toContain("0 / 5");
+  expect(within(header).getAllByText("未作答")).toHaveLength(2);
+  expect(screen.getByText("未作答，以 0 分計")).toBeInTheDocument();
+  expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+});
+
+it("shows full marks for an unanswered child of a full-marks question", () => {
+  render(
+    <WorkbenchStudentRow
+      {...baseProps}
+      labels={new Map([["q1", { label: "2(a)" }], ["q2", { label: "2(b)" }]])}
+      maxScore={10}
+      row={studentRow([answer({ score: 3, maxScore: 5 })])}
+      questions={[question({ score: 5 }), question({ id: "q2", score: 5, scorePolicy: "full_marks" })]}
+      expanded
+    />,
+  );
+  const partB = within(screen.getByRole("region", { name: "2(b)" }));
+  expect(partB.getByText("未作答，此題送分")).toBeInTheDocument();
+  expect(partB.getByText("5 / 5", { exact: false })).toBeInTheDocument();
+});
+
 describe("WorkbenchScoreField input", () => {
   it("shows the kept value again after an out-of-range entry", () => {
     render(<WorkbenchScoreField label="分數" max={5} step={0.5} value={1} aiValue={null} onChange={vi.fn()} />);

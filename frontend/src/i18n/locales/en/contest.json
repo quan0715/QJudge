@@ -2196,6 +2196,9 @@
     "picked": "Picked {{options}}",
     "noAnswer": "No answer",
     "ungradedSummary": "Not graded yet",
+    "noAnswerZero": "No answer, counted as 0",
+    "noAnswerFullMarks": "No answer, full marks awarded",
+    "noAnswerNotCounted": "No answer, not counted",
     "source": {
       "auto": "Auto",
       "suggestion": "Suggested",
