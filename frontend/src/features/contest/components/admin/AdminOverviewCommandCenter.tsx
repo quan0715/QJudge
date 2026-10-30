@@ -36,6 +36,7 @@ import { useTranslation } from "react-i18next";
 import type {
   ContestParticipant,
 } from "@/core/entities/contest.entity";
+import { hasStartedExam } from "@/core/entities/contest.entity";
 import { formatScore } from "@/shared/utils/scoreFormat";
 import AdminInsightRail, {
   PriorityEventsInsightCard,
@@ -123,12 +124,11 @@ const getParticipantSortScore = (participant: ContestParticipant) => {
   )
     score += 100;
   if (participant.connectionStatus === "offline") score += 60;
-  if (participant.examStatus === "not_started") score += 20;
   return score;
 };
 
 const NEEDS_ATTENTION_STATUSES = new Set(["locked", "paused"]);
-const STATUS_GROUP_ORDER = ["in_progress", "submitted", "not_started"];
+const STATUS_GROUP_ORDER = ["in_progress", "submitted"];
 
 const needsAttention = (participant: ContestParticipant) =>
   (participant.violationCount ?? 0) > 0 ||
@@ -255,7 +255,6 @@ const PARTICIPANT_STATUS_FILTERS: FilterOption<ParticipantStatusFilter>[] = [
   },
   { id: "in_progress", labelKey: "examStatus.in_progress", defaultLabel: "作答中" },
   { id: "submitted", labelKey: "examStatus.submitted", defaultLabel: "已交卷" },
-  { id: "not_started", labelKey: "examStatus.not_started", defaultLabel: "未開始" },
   { id: "locked", labelKey: "examStatus.locked", defaultLabel: "鎖定" },
   { id: "paused", labelKey: "examStatus.paused", defaultLabel: "暫停" },
 ];
@@ -574,7 +573,8 @@ export default function AdminOverviewCommandCenter({
     onDetected: handleStudentQrDetected,
   });
 
-  const studentParticipants = [...participants]
+  const studentParticipants = participants
+    .filter(hasStartedExam)
     .sort(
       (left, right) =>
         getParticipantSortScore(right) - getParticipantSortScore(left) ||

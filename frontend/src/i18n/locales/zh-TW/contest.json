@@ -2196,6 +2196,7 @@
     "picked": "選 {{options}}",
     "noAnswer": "未作答",
     "ungradedSummary": "尚未批改",
+    "noAnswerZero": "未作答，以 0 分計",
     "source": {
       "auto": "自動",
       "suggestion": "建議",

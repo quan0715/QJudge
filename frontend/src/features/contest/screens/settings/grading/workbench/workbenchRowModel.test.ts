@@ -92,6 +92,25 @@ describe("workbenchRowModel", () => {
     expect(rows[0].source).toBe("none");
   });
 
+  it("counts an unanswered group child as zero instead of leaving the row incomplete", () => {
+    const rows = buildStudentRows(unit(["a", "b"]), [answer({ id: "1", questionId: "a", score: 1 })], emptyCtx);
+    expect(rows[0].answers.map((row) => row.questionId)).toEqual(["a"]);
+    expect(rows[0].total).toBe(1);
+  });
+
+  it("adds a zero-point row for exam takers who answered nothing in the unit", () => {
+    const rows = buildStudentRows(
+      unit(["a", "b"]),
+      [answer({ id: "1", studentId: "s1", questionId: "a", score: 1 })],
+      emptyCtx,
+      [{ studentId: "s1", username: "s1" }, { studentId: "s2", username: "blank", displayName: "空白卷" }],
+    );
+    expect(rows.map((row) => [row.studentId, row.name, row.total, row.source])).toEqual([
+      ["s1", "模擬學生 01", 1, "manual"],
+      ["s2", "空白卷", 0, "unanswered"],
+    ]);
+  });
+
   it("orders answers by unit question order and sums totals", () => {
     const rows = buildStudentRows(
       unit(["a", "b"]),

@@ -35,6 +35,7 @@ const TAG_TYPE: Record<AnswerSource, "purple" | "gray" | "teal" | "outline"> = {
   auto: "teal",
   none: "outline",
   suggestion: "outline",
+  unanswered: "outline",
 };
 
 const optionLabel = (row: GradingAnswerRow, index: number) =>
@@ -92,23 +93,33 @@ export function WorkbenchStudentRow({
         })
       : t("workbench.noAnswer", "未作答");
   };
+  const answerOf = new Map(row.answers.map((answer) => [answer.questionId, answer]));
+  const noAnswer = t("workbench.noAnswer", "未作答");
+  const missingText = (question: ExamQuestion) =>
+    isGroup ? `${labels.get(question.id)?.label ?? ""} ${noAnswer}` : noAnswer;
+  const summaryOf = (describe: (answer: GradingAnswerRow) => string) =>
+    questions
+      .map((question) => {
+        const answer = answerOf.get(question.id);
+        return answer ? describe(answer) : missingText(question);
+      })
+      .join("\u3000");
   const summary = objective
-    ? row.answers.map(picked).join("\u3000")
+    ? summaryOf(picked)
     : row.source === "none" && !hasAiDraft && !row.answers.some((answer) => answer.feedback)
       ? t("workbench.ungradedSummary", "尚未批改")
-      : row.answers
-          .map((answer) =>
-            isObjective(answer)
-              ? `${prefix(answer)}${picked(answer)}`
-              : `${prefix(answer)}${suggestionScores[answer.id]?.feedback ?? previewOf(answer)?.feedback ?? answer.feedback}`,
-          )
-          .join("\u3000");
+      : summaryOf((answer) =>
+          isObjective(answer)
+            ? `${prefix(answer)}${picked(answer)}`
+            : `${prefix(answer)}${suggestionScores[answer.id]?.feedback ?? previewOf(answer)?.feedback ?? answer.feedback}`,
+        );
   const sourceText: Record<AnswerSource, string> = {
     auto: t("workbench.source.auto", "自動"),
     suggestion: t("workbench.source.suggestion", "建議"),
     none: t("workbench.source.none", "未批改"),
     ai: t("workbench.source.ai", "AI"),
     manual: t("workbench.source.manual", "人工確認"),
+    unanswered: t("workbench.noAnswer", "未作答"),
   };
 
   return (
@@ -155,9 +166,21 @@ export function WorkbenchStudentRow({
               {t("workbench.currentScore", "目前成績 {{score}} 分", { score: current })}
             </p>
           )}
-          {row.answers.map((answer) => {
+          {questions.map((question) => {
+            const answer = answerOf.get(question.id);
+            const subLabel = labels.get(question.id)?.label ?? "";
+            if (!answer) {
+              return (
+                <section key={question.id} className={styles.answerBlock} aria-label={isGroup ? subLabel : undefined}>
+                  {isGroup && <h4 className={styles.subLabel}>{subLabel}</h4>}
+                  <p className={styles.unansweredNote}>
+                    {t("workbench.noAnswerZero", "未作答，以 0 分計")}
+                    <span className={styles.muted}> 0 / {compactScore(question.score)}</span>
+                  </p>
+                </section>
+              );
+            }
             const value = valueOf(answer);
-            const subLabel = labels.get(answer.questionId)?.label ?? "";
             const label = isGroup ? subLabel : t("workbench.scoreLabel", "分數");
             const aiValue = suggestionScores[answer.id]?.score ?? previewOf(answer)?.score ?? (row.source === "ai" ? answer.score : null);
             const update = (next: Partial<GradeDraft>) =>

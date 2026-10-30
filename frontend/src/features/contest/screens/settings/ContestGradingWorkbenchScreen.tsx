@@ -131,7 +131,7 @@ export default function ContestGradingWorkbenchScreen({ header }: { header?: Rea
     () => ({ suggestions: suggestions.suggestions }),
     [suggestions.suggestions],
   );
-  const allRows = useMemo(() => (unit ? buildStudentRows(unit, data.answers, ctx) : []), [ctx, data.answers, unit]);
+  const allRows = useMemo(() => (unit ? buildStudentRows(unit, data.answers, ctx, data.students) : []), [ctx, data.answers, data.students, unit]);
   const visible = sortStudentRows(
     filterStudentRows(allRows, { score: scoreFilter, source: sourceFilter, search }, maxScore),
     sort,
@@ -300,7 +300,7 @@ export default function ContestGradingWorkbenchScreen({ header }: { header?: Rea
   };
 
   const railUnits: RailUnit[] = units.map((item) => {
-    const students = buildStudentRows(item, data.answers, ctx);
+    const students = buildStudentRows(item, data.answers, ctx, data.students);
     const states = batch.questions.filter((state) => item.questions.some((q) => q.id === state.questionId));
     const aiStatus = states.some((state) => state.status === "running" || state.status === "awaiting-approval")
       ? "running"
@@ -367,6 +367,7 @@ export default function ContestGradingWorkbenchScreen({ header }: { header?: Rea
     ai: t("workbench.filterAi", "AI 給分"),
     manual: t("workbench.filterManual", "人工確認"),
     suggestion: t("workbench.filterSuggestion", "待審建議"),
+    unanswered: t("workbench.noAnswer", "未作答"),
   };
   const firstState = unitStates.find((state) => state.runId);
   // AI actions share the header's one overflow menu (with the score policies on single questions).

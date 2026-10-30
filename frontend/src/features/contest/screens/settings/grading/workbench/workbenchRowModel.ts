@@ -1,7 +1,7 @@
 import type { GradingAnswerRow } from "../gradingTypes";
 import type { GradingWorkbenchUnit } from "./gradingWorkbenchModel";
 
-export type AnswerSource = "auto" | "suggestion" | "none" | "ai" | "manual";
+export type AnswerSource = "auto" | "suggestion" | "none" | "ai" | "manual" | "unanswered";
 
 export interface SuggestionLike {
   score: number | null;
@@ -17,9 +17,9 @@ export interface WorkbenchStudentRow {
   studentId: string;
   name: string;
   username: string;
-  /** Ordered by the unit's questions; absent answers excluded. */
+  /** Ordered by the unit's questions; unanswered sub-questions have no row and count as 0. */
   answers: GradingAnswerRow[];
-  /** Null while any child answer is ungraded. */
+  /** Null while any submitted answer is ungraded. */
   total: number | null;
   source: AnswerSource;
 }
@@ -30,6 +30,12 @@ export type RowSort = "seat" | "asc" | "desc";
 
 /** A student row shows the most attention-worthy source among its answers. */
 const SOURCE_PRIORITY: readonly AnswerSource[] = ["suggestion", "none", "manual", "ai", "auto"];
+
+export interface WorkbenchStudent {
+  studentId: string;
+  username: string;
+  displayName?: string;
+}
 
 export function isPendingSuggestion(row: GradingAnswerRow, suggestion?: SuggestionLike): boolean {
   if (!suggestion || suggestion.score === null || suggestion.synced) return false;
@@ -45,10 +51,12 @@ export function resolveAnswerSource(row: GradingAnswerRow, ctx: SourceContext): 
   return "manual";
 }
 
+/** Students who took the exam but answered nothing in the unit get a zero-point row. */
 export function buildStudentRows(
   unit: GradingWorkbenchUnit,
   answers: readonly GradingAnswerRow[],
   ctx: SourceContext,
+  students: readonly WorkbenchStudent[] = [],
 ): WorkbenchStudentRow[] {
   const order = new Map(unit.questions.map((question, index) => [question.id, index]));
   const byStudent = new Map<string, GradingAnswerRow[]>();
@@ -56,10 +64,10 @@ export function buildStudentRows(
     if (row.isAbsent || !order.has(row.questionId)) continue;
     byStudent.set(row.studentId, [...(byStudent.get(row.studentId) ?? []), row]);
   }
-  return [...byStudent.values()].map((rows) => {
+  const answered = [...byStudent.values()].map((rows) => {
     const sorted = rows.sort((a, b) => (order.get(a.questionId) ?? 0) - (order.get(b.questionId) ?? 0));
     const sources = sorted.map((row) => resolveAnswerSource(row, ctx));
-    const complete = sorted.length === unit.questions.length && sorted.every((row) => row.score !== null);
+    const complete = sorted.every((row) => row.score !== null);
     return {
       studentId: sorted[0].studentId,
       name: sorted[0].studentDisplayName || sorted[0].studentUsername,
@@ -69,6 +77,17 @@ export function buildStudentRows(
       source: SOURCE_PRIORITY.find((source) => sources.includes(source)) ?? "none",
     };
   });
+  const unanswered = students
+    .filter((student) => !byStudent.has(student.studentId))
+    .map((student): WorkbenchStudentRow => ({
+      studentId: student.studentId,
+      name: student.displayName || student.username,
+      username: student.username,
+      answers: [],
+      total: 0,
+      source: "unanswered",
+    }));
+  return [...answered, ...unanswered];
 }
 
 function band(total: number | null, maxScore: number): ScoreFilter | null {
