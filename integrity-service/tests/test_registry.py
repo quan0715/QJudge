@@ -201,3 +201,11 @@ def test_registry_definition_and_indexes_are_deeply_immutable_and_replay_stable(
     with pytest.raises(ValidationError):
         registry.validate_payload("exit_fullscreen_triggered", {})
     registry.validate_payload("exit_fullscreen_triggered", {"reason": "replay"})
+
+
+@pytest.mark.parametrize("action", ["unknown", "", None, True, 1, {}])
+def test_registry_rejects_unsupported_actions(action):
+    snapshot = registry_snapshot()
+    snapshot["definitions"]["fullscreen"]["action"] = action
+    with pytest.raises(ValidationError):
+        Registry(snapshot)

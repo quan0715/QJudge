@@ -575,3 +575,42 @@ def test_server_owned_browser_claims_cannot_change_connectivity_or_alias_monitor
         previous = command_by_id.setdefault(command.command_id, command)
         assert previous == command
     assert len(command_by_id) == len(forged) + len(authoritative)
+
+
+@pytest.mark.parametrize("configured, expected", [
+    ("audit", "audit"), ("record", "record"), ("record_event", "record"),
+    ("pause", "pause"), ("lock", "lock"), ("submit", "submit"),
+])
+@pytest.mark.parametrize("path", ["direct", "incident", "connectivity"])
+def test_registry_actions_are_consistent_across_command_producers(configured, expected, path):
+    snapshot = registry_snapshot()
+    for definition in snapshot["definitions"].values():
+        definition["action"] = configured
+    if path == "direct":
+        snapshot["definitions"]["fullscreen"]["signals"].update(escalated="", restored="")
+    registry = Registry(snapshot)
+    context = EngineContext(run_id=RUN_ID)
+    if path == "connectivity":
+        subject = ConnectivityMonitor(
+            {"suspect_after_ms": 15_000, "disconnected_after_ms": 60_000}, registry, context
+        )
+        subject.observe(participant_id=101, device_id="device-1", server_ms=1_000)
+        opened, command = subject.tick(61_000)
+        assert opened.action == "record"
+        assert subject.tick(62_000) == ()
+    else:
+        subject = IncidentEngine(registry, context)
+        opened = subject.ingest(signal(
+            "exit_fullscreen_triggered", server_ms=1_000,
+            event_id="00000000-0000-0000-0000-000000000001",
+        )).commands[0]
+        if path == "incident":
+            assert opened.action == "record"
+            command, = subject.tick(31_000).commands
+            assert subject.tick(32_000).commands == ()
+        else:
+            command = opened
+    assert command.action == expected
+    # Parsing must never rewrite the persisted run snapshot.
+    assert snapshot["definitions"]["fullscreen"]["action"] == configured
+    assert snapshot["definitions"]["connectivity"]["action"] == configured

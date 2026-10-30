@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IndexedDbIntegrityOutbox } from "@/infrastructure/browser/integrity/indexedDbIntegrityOutbox";
 import { OpfsEvidenceStore } from "@/infrastructure/browser/integrity/opfsEvidenceStore";
-import { applyIntegrityHealthUpdate, enabledEvidenceSources, initialHealthSnapshot } from "./useIntegrityRuntime";
+import { applyIntegrityHealthUpdate, enabledEvidenceSources, initialHealthSnapshot } from "./integrityRuntimePolicy";
 import { ResidentIntegritySession } from "./residentIntegritySession";
 import { IntegrityTransport } from "./integrityTransport";
 const FRONTEND_INTEGRITY_SIGNAL_IDS = ["exam_entered", "mouse_leave_triggered", "head_pose_changed"];

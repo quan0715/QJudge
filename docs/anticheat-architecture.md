@@ -11,6 +11,8 @@
 - PostgreSQL：保存 run、正規化事件、incident 關聯與證據 manifest；不保存每五秒的原始 batch。
 - R2：保存被 incident 採用的 WebM 證據片段，不保存整場錄影。
 
+螢幕分享與 webcam 的中斷／恢復觀測共用 `useCaptureMonitoring`；只維護 `interrupted` 與送出事件，webcam 自動恢復及螢幕分享手動重授權各自保留，處罰仍由 worker/backend 決定。
+
 ## 單一資料通道
 
 學生端只使用：
@@ -23,7 +25,7 @@
 
 ## 事件與 incident
 
-事件定義唯一來源是 `backend/apps/contests/integrity/registry.py`。新增 detector 的流程是：
+事件定義唯一來源是 `backend/apps/contests/integrity/registry.py`。計數判定也留在 registry 模組，供命令寫入與顯示共同使用。預設 action 只由 command service 使用，因此直接留在該服務。新增 detector 的流程是：
 
 1. 在 registry 新增 definition 與 signal。
 2. 前端 detector 只發出 registry 宣告的 signal。

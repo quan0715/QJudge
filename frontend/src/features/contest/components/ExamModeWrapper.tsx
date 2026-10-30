@@ -44,8 +44,7 @@ import {
   detectAnticheatCapability,
   resolveDeviceMonitoringPlan,
 } from "@/features/contest/domain/anticheatModulePolicy";
-import { useWebcamMonitoring } from "@/features/contest/hooks/useWebcamMonitoring";
-import { useScreenShareMonitoring } from "@/features/contest/hooks/useScreenShareMonitoring";
+import { useCaptureMonitoring } from "@/features/contest/hooks/useCaptureMonitoring";
 import { useFullscreenMonitoring } from "@/features/contest/hooks/useFullscreenMonitoring";
 import { useMouseLeaveMonitoring } from "@/features/contest/hooks/useMouseLeaveMonitoring";
 import { useMultiDisplayMonitoring } from "@/features/contest/hooks/useMultiDisplayMonitoring";
@@ -296,7 +295,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     [capture, uploadOwner],
   );
   // --- Domain monitoring hooks ---
-  const screenShare = useScreenShareMonitoring({
+  const screenShare = useCaptureMonitoring({
+    source: "screen_share",
     enabled: screenStreamMonitorEnabled,
     examSubmitted: examStatus === "submitted",
     monitoringDisabled: !effectiveMonitoringEnabled,
@@ -304,7 +304,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     emitter: integrity,
   });
 
-  const webcam = useWebcamMonitoring({
+  const webcam = useCaptureMonitoring({
+    source: "webcam",
     enabled: webcamStreamMonitorEnabled,
     examSubmitted: examStatus === "submitted",
     moduleRole: webcamModuleRole,
@@ -334,7 +335,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     emitter: integrity,
   });
 
-  const runtimeReauthActive = screenShare.reauth.active;
+  const runtimeReauthActive = screenShare.interrupted;
 
   const handleBlockedAction = useCallback(
     (message: string) => {
@@ -643,7 +644,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     () =>
       resolveActiveExamSensorSource({
         policyUnavailable: shouldShowPolicyUnavailableScreen,
-        screenShareInterrupted: screenShare.reauth.inProgress,
+        screenShareInterrupted: screenShare.interrupted,
         webcamInterrupted: webcam.interrupted,
         fullscreenInterrupted: fullscreen.interrupted,
         mouseLeaveInterrupted: mouseLeave.interrupted,
@@ -653,7 +654,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       fullscreen.interrupted,
       mouseLeave.interrupted,
       multiDisplay.interrupted,
-      screenShare.reauth.inProgress,
+      screenShare.interrupted,
       shouldShowPolicyUnavailableScreen,
       webcam.interrupted,
     ],

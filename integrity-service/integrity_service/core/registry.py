@@ -11,7 +11,18 @@ from jsonschema import Draft202012Validator
 from referencing import Registry as ReferencingRegistry
 from referencing.exceptions import NoSuchResource
 
-from integrity_service.core.commands import FrozenDict, freeze_json, json_projection
+from integrity_service.core.commands import CommandAction, FrozenDict, freeze_json, json_projection
+
+
+# Normalize snapshot action names once, without changing the original snapshot.
+_REGISTRY_ACTIONS: dict[str, CommandAction] = {
+    "audit": "audit",
+    "record": "record",
+    "record_event": "record",
+    "pause": "pause",
+    "lock": "lock",
+    "submit": "submit",
+}
 
 
 _PHASES = ("triggered", "escalated", "restored")
@@ -57,7 +68,7 @@ _DEFINITION_SCHEMA = {
                 "max_segment_ms": {"type": "integer", "minimum": 0},
             },
         },
-        "action": {"enum": ["record_event", "record", "pause", "lock", "submit", "audit"]},
+        "action": {"enum": list(_REGISTRY_ACTIONS)},
         "metadata_schema": {"type": "object"},
     },
 }
@@ -94,7 +105,7 @@ class ParsedDefinition:
     evidence_sources: tuple[str, ...]
     evidence_before_ms: int
     evidence_after_ms: int
-    action: str
+    action: CommandAction
     metadata_schema: Mapping[str, object]
 
 
@@ -158,7 +169,7 @@ def parse_definition(definition_id: str, raw: Mapping[str, object]) -> ParsedDef
         evidence_sources=tuple(str(source) for source in evidence["sources"]),
         evidence_before_ms=int(evidence["before_ms"]),
         evidence_after_ms=int(evidence["after_ms"]),
-        action=str(raw["action"]),
+        action=_REGISTRY_ACTIONS[raw["action"]],
         metadata_schema=frozen_schema,
     )
 

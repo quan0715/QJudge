@@ -1,5 +1,6 @@
 """Project normalized events using their run-scoped frozen registry."""
 
+from apps.contests.integrity.registry import registry_action_is_penalty
 from apps.contests.models import ExamEvent
 
 
@@ -44,30 +45,6 @@ def event_penalized(event: ExamEvent) -> bool:
         return False
     return registry_action_is_penalty(
         integrity.get("phase"), integrity.get("action"), event_definition(event),
-    )
-
-
-def registry_action_is_penalty(phase, action, definition: dict) -> bool:
-    signals = definition.get("signals")
-    if not isinstance(phase, str) or not isinstance(signals, dict) or not signals.get(phase):
-        return False
-    # Apply to frozen registries too: clipboard use is retained as evidence only.
-    if isinstance(signals, dict) and signals.get("triggered") == "clipboard_action":
-        return False
-    # System lifecycle records (entry/submission) are evidence of normal use,
-    # not violations. Explicit pause/lock/submit actions remain actionable.
-    if action == "record" and definition.get("priority") == 3:
-        return False
-    incident_opening = bool(
-        phase == "triggered"
-        and action == "record"
-        and isinstance(signals, dict)
-        and (signals.get("escalated") or signals.get("restored"))
-    )
-    return bool(
-        phase in {"triggered", "escalated"}
-        and action in {"record", "pause", "lock", "submit"}
-        and not incident_opening
     )
 
 
