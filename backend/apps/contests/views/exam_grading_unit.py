@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from ..models import Contest, ExamAnswer, ExamBatchGradeWrite, ExamGradingUnit, ExamQuestion
 from ..permissions import can_manage_contest
 from ..serializers import ExamAnswerGradeSerializer
+from ..services.paper_question_labels import build_paper_question_labels
 
 
 def identifier(data, name):
@@ -112,10 +113,15 @@ class ExamGradingUnitMixin:
             groups = {q.group_id for q in selected if q.group_id}
             questions = list(ExamQuestion.objects.filter(contest=contest).filter(Q(pk__in=ids) | Q(group_id__in=groups)).select_related('group').order_by('order', 'created_at'))
             answers = ExamAnswer.objects.filter(participant__contest=contest, question__in=questions).order_by('participant_id', 'question__order', 'pk')
+            # Labels follow the whole paper so a group reads 3(a)/3(b) as students saw it.
+            labels = build_paper_question_labels(
+                contest.exam_questions.only('id', 'group_id', 'order').order_by('order', 'id'),
+                expand_question_numbers=contest.expand_question_numbers,
+            )
             snapshot = {
                 'question_ids': ids, 'teacher_note': data.get('teacher_note', ''),
                 'questions': [{
-                    'question_id': str(q.pk), 'label': str(q.order + 1), 'prompt': q.prompt,
+                    'question_id': str(q.pk), 'label': labels[q.pk], 'order': q.order, 'prompt': q.prompt,
                     'reference_answer': q.correct_answer, 'reference_answer_document': q.reference_answer_document,
                     'explanation': q.explanation, 'explanation_document': q.explanation_document,
                     'max_score': q.score, 'question_type': q.question_type, 'answer_format': q.answer_format,

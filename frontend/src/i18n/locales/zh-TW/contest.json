@@ -1188,6 +1188,7 @@
       },
       "noticeRunning": "AI 正在批改這題，完成後分數會一次寫入；你現在手動給分的作答，AI 會跳過。",
       "noticeFailed": "AI 整批在這題中斷",
+      "unitNotSubmitted": "AI 已結束，但這題的成績沒有全部寫入（可能與老師已改的成績衝突），請查看 AI 對話",
       "noticeIncomplete": "AI 已完成，但還有 {{count}} 份沒有寫入成績",
       "finalizeTimeout": "AI 已結束，但寫入成績的步驟沒有回報結果",
       "noticeStopped": "AI 已停止，這題還有 {{count}} 份未批改",

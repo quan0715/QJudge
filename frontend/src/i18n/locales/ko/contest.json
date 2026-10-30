@@ -1188,6 +1188,7 @@
       },
       "noticeRunning": "AI가 이 문제를 채점하고 있습니다. 완료되면 점수가 한 번에 기록됩니다. 지금 직접 채점한 답안은 AI가 건너뜁니다.",
       "noticeFailed": "이 문제에서 일괄 채점이 중단되었습니다",
+      "unitNotSubmitted": "AI가 종료되었지만 이 문제의 점수가 모두 기록되지 않았습니다(교사가 수정한 점수와 충돌했을 수 있습니다). AI 대화를 확인하세요",
       "noticeIncomplete": "AI가 완료했지만 {{count}}개 답안이 기록되지 않았습니다",
       "finalizeTimeout": "AI가 끝났지만 성적 기록 결과가 돌아오지 않았습니다",
       "noticeStopped": "AI가 중지되었습니다. 이 문제에 미채점 답안 {{count}}개가 남아 있습니다",

@@ -1,4 +1,8 @@
-"""The canonical grading SOP and principles reach parent and delegated requests."""
+"""Grading instructions reach parent and delegated requests.
+
+Tool grading runs get the whole SOP; teacher chats that can reach MCP grading get
+only the core principles, so ordinary conversations stay small.
+"""
 
 from __future__ import annotations
 
@@ -48,9 +52,9 @@ def build_agent(tool_name: str):
     return adapter._runner._build_agent(model=model, system_prompt=None, tools=[tool])
 
 
-@pytest.mark.parametrize("tool_name", ["get_grading_unit", "qjudge_grading"])
-async def test_parent_and_subagent_receive_the_same_canonical_sop_and_principles_once(
-    monkeypatch, tmp_path, tool_name,
+@pytest.mark.parametrize(("tool_name", "sop_count"), [("get_grading_unit", 1), ("qjudge_grading", 0)])
+async def test_parent_and_subagent_receive_the_same_canonical_instructions_once(
+    monkeypatch, tmp_path, tool_name, sop_count,
 ):
     source = tmp_path / "principles.md"
     principles = "Canonical grading instructions supplied by the existing SOP."
@@ -73,11 +77,11 @@ async def test_parent_and_subagent_receive_the_same_canonical_sop_and_principles
     for messages in seen:
         system = "\n".join(str(m.content) for m in messages if isinstance(m, SystemMessage))
         assert system.count(principles) == 1
-        assert system.count(sop) == 1
+        assert system.count(sop) == sop_count
         wire = serializer._get_request_payload(messages)["messages"]
         assert not any(m["role"] in {"system", "developer"} for m in wire)
         assert wire[0]["role"] == "user"
-        assert str(wire[0]["content"]).count(sop) == 1
+        assert str(wire[0]["content"]).count(sop) == sop_count
         assert str(wire[0]["content"]).count(principles) == 1
 
 
@@ -95,6 +99,15 @@ def test_grading_cannot_start_without_its_canonical_instructions(
 
     with pytest.raises(RuntimeError, match="[Gg]rading"):
         build_agent("get_grading_unit")
+
+
+def test_mcp_grading_chat_does_not_load_the_batch_sop(monkeypatch, tmp_path):
+    principles = tmp_path / "principles.md"
+    principles.write_text("Existing grading instructions.", encoding="utf-8")
+    monkeypatch.setattr(runner_mod, "_GRADING_PRINCIPLES_PATH", principles, raising=False)
+    monkeypatch.setattr(runner_mod, "_GRADING_SOP_PATH", tmp_path / "missing-sop.md", raising=False)
+
+    assert build_agent("qjudge_grading") is not None
 
 
 def test_non_grading_agent_does_not_require_grading_principles(monkeypatch, tmp_path):

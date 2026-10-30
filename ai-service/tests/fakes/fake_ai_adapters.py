@@ -37,6 +37,7 @@ _jwk = {
 app = FastAPI(title="QJudge isolated AI dependency adapters")
 _state = {"token_exchanges": 0, "mcp_initializes": 0, "mcp_tool_lists": 0, "model_calls": 0}
 _mcp_sessions: set[str] = set()
+_mcp_tokens: set[str] = {MCP_TOKEN}
 
 
 def _bearer(authorization: str | None) -> str:
@@ -81,6 +82,10 @@ def jwks() -> dict[str, list[dict[str, str]]]:
 async def issue_ai_token(request: Request) -> dict[str, str | int]:
     payload = await request.json()
     subject = str(payload.get("sub") or "compose-test-user")
+    # The disposable grading E2E uses a real backend token for its HTTP calls.
+    # Accept that fixture's token at the fake MCP readiness endpoint as well.
+    if isinstance(payload.get("mcp_token"), str):
+        _mcp_tokens.add(payload["mcp_token"])
     return {
         "access_token": _issue_ai_token(subject),
         "token_type": "Bearer",
@@ -123,7 +128,7 @@ async def mcp(
     authorization: str | None = Header(default=None),
     mcp_session_id: str | None = Header(default=None, alias="Mcp-Session-Id"),
 ) -> Response:
-    if _bearer(authorization) != MCP_TOKEN:
+    if _bearer(authorization) not in _mcp_tokens:
         raise HTTPException(status_code=401, detail="Invalid MCP token")
     payload = await request.json()
     method = payload.get("method")
@@ -178,7 +183,7 @@ async def mcp_stream(
     authorization: str | None = Header(default=None),
     mcp_session_id: str | None = Header(default=None, alias="Mcp-Session-Id"),
 ) -> StreamingResponse:
-    if _bearer(authorization) != MCP_TOKEN:
+    if _bearer(authorization) not in _mcp_tokens:
         raise HTTPException(status_code=401, detail="Invalid MCP token")
     if not mcp_session_id or mcp_session_id not in _mcp_sessions:
         raise HTTPException(status_code=404, detail="Unknown MCP session")
@@ -196,7 +201,7 @@ async def close_mcp_session(
     authorization: str | None = Header(default=None),
     mcp_session_id: str | None = Header(default=None, alias="Mcp-Session-Id"),
 ) -> Response:
-    if _bearer(authorization) != MCP_TOKEN:
+    if _bearer(authorization) not in _mcp_tokens:
         raise HTTPException(status_code=401, detail="Invalid MCP token")
     if not mcp_session_id or mcp_session_id not in _mcp_sessions:
         raise HTTPException(status_code=404, detail="Unknown MCP session")

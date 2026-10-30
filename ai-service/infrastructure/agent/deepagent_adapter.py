@@ -22,6 +22,8 @@ from deepagents.backends.state import StateBackend
 from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
 from deepagents.middleware.summarization import SummarizationMiddleware
 from langchain.agents.middleware import ModelRetryMiddleware
+from langchain_core.callbacks import AsyncCallbackHandler
+from langchain_core.tracers.context import register_configure_hook
 from langgraph.types import Command
 
 from application.artifacts import ArtifactService
@@ -80,19 +82,72 @@ _MODEL_QUOTA_EXHAUSTED_MESSAGE = (
 _MODEL_STREAM_ERRORS = (httpx.ReadError, httpx.RemoteProtocolError)
 
 
+class _ShownStreamInterrupted(httpx.ReadError):
+    """A model stream broke after its text reached the teacher, so it is not replayed.
+
+    Still a stream error everywhere else: it fails the run and a delegating task.
+    """
+
+
+class _VisibleOutputTracker(AsyncCallbackHandler):
+    """Notice when a model call streams text or reasoning that becomes a delta event."""
+
+    def __init__(self) -> None:
+        self.shown = False
+
+    async def on_llm_new_token(self, token: Any, *, chunk: Any = None, **kwargs: Any) -> None:
+        message = getattr(chunk, "message", None)
+        if message is not None and adapt_langgraph_event(
+            {"event": "on_chat_model_stream", "data": {"chunk": message}}
+        ):
+            self.shown = True
+
+
+_VISIBLE_OUTPUT: ContextVar[_VisibleOutputTracker | None] = ContextVar(
+    "deepagent_visible_model_output", default=None,
+)
+register_configure_hook(_VISIBLE_OUTPUT, inheritable=False)
+
+
+class _ModelStreamRetry(ModelRetryMiddleware):
+    """Retry just the model response, never replay completed grading/tool writes.
+
+    Only a stream that has shown nothing is retried: the first attempt's deltas are
+    already delivered and stored, so a replay would repeat that text.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            max_retries=2, on_failure="error", initial_delay=1.0, backoff_factor=2.0,
+            retry_on=lambda exc: isinstance(exc, _MODEL_STREAM_ERRORS)
+            and not isinstance(exc, _ShownStreamInterrupted),
+        )
+
+    async def awrap_model_call(self, request: Any, handler: Any) -> Any:
+        async def attempt(attempt_request: Any) -> Any:
+            tracker = _VisibleOutputTracker()
+            token = _VISIBLE_OUTPUT.set(tracker)
+            try:
+                return await handler(attempt_request)
+            except _MODEL_STREAM_ERRORS as exc:
+                if tracker.shown:
+                    raise _ShownStreamInterrupted(str(exc)) from exc
+                raise
+            finally:
+                _VISIBLE_OUTPUT.reset(token)
+
+        return await super().awrap_model_call(request, attempt)
+
+
 def _model_stream_retry() -> ModelRetryMiddleware:
-    # Retry just the model response, never replay completed grading/tool writes.
-    return ModelRetryMiddleware(
-        max_retries=2, retry_on=_MODEL_STREAM_ERRORS, on_failure="error",
-        initial_delay=1.0, backoff_factor=2.0,
-    )
+    return _ModelStreamRetry()
 
 
 def _classify_agent_failure(exc: Exception) -> tuple[str, str]:
     """Convert safe-to-recognize upstream model failures into API contract errors."""
     if isinstance(exc, _MODEL_STREAM_ERRORS):
         return "MODEL_CONNECTION_ERROR", (
-            "模型連線中斷，重試後仍失敗。已完成的操作已保留，請稍後重試。"
+            "模型連線中斷。已完成的操作已保留，請稍後重試。"
         )
     detail = str(exc).casefold()
     if "insufficient_quota" in detail or "insufficient balance" in detail:
@@ -356,7 +411,7 @@ _DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教，對話對象是老師�
 - `/app/.deepagents/skills/qjudge-ta-protocol/SKILL.md`
 - `/app/.deepagents/skills/qjudge-mcp-tool-operator/SKILL.md`
 - `/app/.deepagents/skills/coding-problem-ta-skill/SKILL.md`
-- `/app/.deepagents/skills/qjudge-exam-grading-sop/SKILL.md`（批改工具可用時，SOP 與核心原則已載入）
+- `/app/.deepagents/skills/qjudge-exam-grading-sop/SKILL.md`（批改或改分前先讀；整批批改時已載入）
 
 如工具錯誤或路由不確定，先呼叫：
 `qjudge_browse(action="get_help", tool_name="<tool_name>")`
@@ -436,17 +491,24 @@ class _DeepAgentRuntime:
         """
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
         grading_instructions = ""
-        if any(getattr(tool, "name", None) in {"get_grading_unit", "qjudge_grading"} for tool in tools):
-            # The SOP owns the text. Both model contexts receive it without a
-            # discretionary skill read or a parent-written delegation summary.
+        tool_names = {getattr(tool, "name", None) for tool in tools}
+        # The SOP owns the text. Both model contexts receive it without a
+        # discretionary skill read or a parent-written delegation summary. A tool
+        # grading run follows the whole SOP; a teacher chat that can reach MCP
+        # grading keeps only the core principles and reads the SOP when it grades.
+        sources = (
+            [_GRADING_SOP_PATH, _GRADING_PRINCIPLES_PATH] if "get_grading_unit" in tool_names
+            else [_GRADING_PRINCIPLES_PATH] if "qjudge_grading" in tool_names
+            else []
+        )
+        if sources:
             try:
-                sop = _GRADING_SOP_PATH.read_text(encoding="utf-8").strip()
-                principles = _GRADING_PRINCIPLES_PATH.read_text(encoding="utf-8").strip()
+                texts = [path.read_text(encoding="utf-8").strip() for path in sources]
             except (OSError, UnicodeError) as exc:
                 raise RuntimeError("Grading SOP or core principles could not be loaded") from exc
-            if not sop or not principles:
+            if not all(texts):
                 raise RuntimeError("Grading SOP or core principles are empty")
-            grading_instructions = f"{sop}\n\n{principles}"
+            grading_instructions = "\n\n".join(texts)
             prompt = f"{prompt}\n\n{grading_instructions}"
         skills = [p for p in self._skills_paths if p]
         memory = [p for p in self._memory_paths if p]
@@ -934,13 +996,31 @@ class DeepAgentAdapter:
                 tools=tools,
                 configurable=configurable,
             )
-            async with aclosing(coalesce_text_events(raw_events)) as events:
-                async for raw_event in events:
-                    if raw_event.get("type") == "run_completed" and self._finalize_run is not None:
-                        try:
-                            await self._finalize_run(command)
-                        except Exception:
-                            logger.exception("Run %s artifact export failed", command.run_id)
-                            yield {"type": "agent_message_delta", "run_id": str(command.run_id),
-                                   "content": "\n\n批改檔案匯出失敗；已保存的草稿與正式成績不受影響。"}
-                    yield {**raw_event, "run_id": str(command.run_id)}
+            exported = False
+            try:
+                async with aclosing(coalesce_text_events(raw_events)) as events:
+                    async for raw_event in events:
+                        # Grades may be written before a run fails, so both endings export.
+                        if raw_event.get("type") in {"run_completed", "run_failed"}:
+                            exported = True
+                            if not await self._export_run(command):
+                                yield {"type": "agent_message_delta", "run_id": str(command.run_id),
+                                       "content": "\n\n批改檔案匯出失敗；已保存的草稿與正式成績不受影響。"}
+                        yield {**raw_event, "run_id": str(command.run_id)}
+            except (GeneratorExit, Exception):
+                # The worker closes the stream after recording a cancellation, or records
+                # the failure itself when the stream raised; export what was graded.
+                if not exported:
+                    await self._export_run(command)
+                raise
+
+    async def _export_run(self, command: AgentCommand) -> bool:
+        """Export the run's grading files; a failure never changes how the run ended."""
+        if self._finalize_run is None:
+            return True
+        try:
+            await self._finalize_run(command)
+        except Exception:
+            logger.exception("Run %s artifact export failed", command.run_id)
+            return False
+        return True

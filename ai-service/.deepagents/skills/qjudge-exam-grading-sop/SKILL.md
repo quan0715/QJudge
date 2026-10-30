@@ -6,8 +6,8 @@ description: Use when a teacher asks the QJudge TA agent to grade, review, or wr
 # QJudge Open-ended Exam Grading
 
 Follow the [core grading principles](references/core-principles.md). The runtime supplies
-this SOP and those principles directly to both the main agent and grading subagents
-whenever grading tools are available; no extra skill read or copied workflow is needed.
+those principles directly to the main agent and its subagents whenever grading tools are
+available, and this whole SOP as well in batch grading runs; no copied workflow is needed.
 
 ## Batch grading (when `get_grading_assignment` is available)
 
@@ -28,7 +28,7 @@ unit has a verified result; otherwise report the unfinished units. Reading data 
 a model turn does not mean the requested grading was completed.
 
 Include a concise rubric (criteria and points)
-in the first `save_grading_draft` call for every unit; later saves may omit it. At run completion,
+in the first `save_grading_draft` call for every unit; later saves may omit it. When the run ends,
 the system exports the stored criteria and grades as `rubric.md` and `grade.csv` artifacts;
 do not rewrite those files yourself. Every writable answer should end with a submitted grade, and your summary
 should report what `submit_grading_unit` actually returned. Before claiming completion, call

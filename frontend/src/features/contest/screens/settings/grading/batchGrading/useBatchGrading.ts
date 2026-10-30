@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useCopilotRun, useCopilotSessions } from "@copilot";
 import { useRequestCopilot } from "@/features/chatbot/contexts/CopilotDemandContext";
 import { createTaskSession, findLatestTaskSession } from "@/features/ai-tasks/lib/aiTaskRuntime";
 import { ungradeExamAnswer } from "@/infrastructure/api/repositories/examAnswers.repository";
 import type { GradingAnswerRow } from "../gradingTypes";
 import {
+  batchModelId,
   cancelBatchRun,
-  defaultBatchModelId,
   fetchBatchRemoteState,
   listSessionActiveRuns,
   readBatchQuestions,
@@ -25,6 +26,7 @@ import {
   selectRevertableAnswers,
   type BatchQuestion,
   type BatchQuestionState,
+  type WrittenRecord,
 } from "./batchGradingModel";
 import { buildBatchRunPrompt, buildGradingUnits } from "./batchGradingUnits";
 
@@ -71,6 +73,10 @@ export interface UseBatchGradingResult {
 
 const messageOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
+/** A replaced write can leave the count unchanged, so compare the writes themselves. */
+const writesSignature = (written: readonly WrittenRecord[]) =>
+  JSON.stringify(written.map((record) => [record.examAnswerId, record.score, record.feedback]).sort());
+
 export function useBatchGrading(
   contestId: string,
   rows: readonly GradingAnswerRow[],
@@ -81,6 +87,7 @@ export function useBatchGrading(
   },
 ): UseBatchGradingResult {
   useRequestCopilot();
+  const { t } = useTranslation("contest");
   const { sessions, select, refresh: refreshSessions } = useCopilotSessions();
   const { state: copilotRun } = useCopilotRun();
   const { reloadAnswers, resultsPublished } = options;
@@ -126,7 +133,7 @@ export function useBatchGrading(
     async (id: string): Promise<boolean> => {
       const previous = snapshotRef.current.sessionId === id ? snapshotRef.current : undefined;
       const next = { ...(await fetchBatchRemoteState(contestId, id, previous)), sessionId: id };
-      if (next.written.length !== (previous?.written.length ?? 0)) await reloadAnswers();
+      if (writesSignature(next.written) !== writesSignature(previous?.written ?? [])) await reloadAnswers();
       snapshotRef.current = next;
       setSnapshot(next);
       setPollError(undefined);
@@ -162,8 +169,8 @@ export function useBatchGrading(
   }, [refresh, sessionId]);
 
   const questionStates = useMemo(
-    () => deriveBatchState({ questions, ...currentSnapshot }),
-    [questions, currentSnapshot],
+    () => deriveBatchState({ questions, ...currentSnapshot, notSubmittedError: t("grading.batch.unitNotSubmitted") }),
+    [questions, currentSnapshot, t],
   );
 
   const overall = useMemo<BatchGradingOverall>(() => {
@@ -187,7 +194,7 @@ export function useBatchGrading(
         await readBatchQuestions(contestId),
         note,
       );
-      if (units.length) await startBatchRun(id, buildBatchRunPrompt(units), modelId ?? await defaultBatchModelId());
+      if (units.length) await startBatchRun(id, buildBatchRunPrompt(units), modelId ?? await batchModelId(id));
       // The copilot attaches to a run only when its session is selected.
       await selectOnce(id, true);
     },
