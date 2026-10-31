@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { Asleep, Light } from "@carbon/icons-react";
@@ -22,15 +22,30 @@ import type { IconModeOption } from "@/shared/ui/navigation/IconModeSwitcher";
 import "@/features/landing/styles/LandingPage.scss";
 
 const DEMO_FORM_URL = "https://bedecked-griffin-98f.notion.site/b532286e832b4846a8f08298b6942fcc?pvs=105";
-const LANDING_PUBLIC_URL = (import.meta.env.VITE_LANDING_PUBLIC_URL || "https://q-judge.com").replace(/\/$/, "");
+const LANDING_PUBLIC_URL = (import.meta.env.VITE_LANDING_PUBLIC_URL || "https://www.q-judge.com").replace(/\/$/, "");
 const MAIN_APP_URL = (import.meta.env.VITE_MAIN_APP_URL || "").replace(/\/$/, "");
 
 const LandingScreen = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation("landing");
   const { preference, setPreference } = useTheme();
   const { contentLanguage, setContentLanguage } = useContentLanguage();
-  const content = useMemo(() => getLandingContent(t), [t, contentLanguage]);
+  const requestedLanguage = searchParams.get("lang");
+  useEffect(() => {
+    if (SUPPORTED_LANGUAGES.some(({ id }) => id === requestedLanguage)) {
+      setContentLanguage(requestedLanguage as SupportedLanguage);
+    }
+  }, [requestedLanguage, setContentLanguage]);
+  const handleLanguageChange = (language: SupportedLanguage) => {
+    setContentLanguage(language);
+    setSearchParams((previous) => {
+      previous.set("lang", language);
+      return previous;
+    }, { replace: true, preventScrollReset: true });
+  };
+  const pageUrl = `${LANDING_PUBLIC_URL}/${contentLanguage === "zh-TW" ? "" : `?lang=${contentLanguage}`}`;
+  const content = useMemo(() => getLandingContent(t), [t]);
 
   const htmlLang = contentLanguage === "zh-TW" ? "zh-TW"
     : contentLanguage === "ja" ? "ja"
@@ -70,7 +85,7 @@ const LandingScreen = () => {
       "availability": "https://schema.org/InStock",
     },
     "featureList": [
-      "多元題型評量", "AI 輔助出題", "AI 輔助批改", "考試管理", "題庫管理", "教學分析"
+      t("flow.items.0.title"), t("flow.items.1.title"), t("flow.items.2.title"), t("flow.items.3.title")
     ],
     "publisher": {
       "@type": "Organization",
@@ -115,10 +130,12 @@ const LandingScreen = () => {
         <title>{t("seo.title")}</title>
         <meta name="description" content={t("seo.description")} />
         <meta name="keywords" content={t("seo.keywords")} />
-        <link rel="canonical" href={`${LANDING_PUBLIC_URL}/`} />
+        <link rel="canonical" href={pageUrl} />
+        <link rel="alternate" hrefLang="zh-TW" href={`${LANDING_PUBLIC_URL}/`} />
+        <link rel="alternate" hrefLang="en" href={`${LANDING_PUBLIC_URL}/?lang=en`} />
         {/* Open Graph */}
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${LANDING_PUBLIC_URL}/`} />
+        <meta property="og:url" content={pageUrl} />
         <meta property="og:site_name" content="QJudge" />
         <meta property="og:title" content={t("seo.ogTitle")} />
         <meta property="og:description" content={t("seo.ogDescription")} />
@@ -141,7 +158,7 @@ const LandingScreen = () => {
         onLogin={handleLogin}
         languageValue={contentLanguage}
         languageOptions={languageOptions}
-        onLanguageChange={setContentLanguage}
+        onLanguageChange={handleLanguageChange}
         themeValue={themeValue}
         themeOptions={themeOptions}
         onThemeChange={setPreference}

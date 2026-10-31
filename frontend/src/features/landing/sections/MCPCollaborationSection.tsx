@@ -60,9 +60,10 @@ const MCPCollaborationSection: FC<MCPCollaborationSectionProps> = ({ content }) 
                   {example.videoSrc && (
                     <video
                       src={example.videoSrc}
-                      autoPlay
-                      loop
-                      muted
+                      controls
+                      preload="none"
+                      poster={example.videoSrc.replace(/\.mp4$/, ".jpg")}
+                      aria-label={example.title}
                       playsInline
                     />
                   )}
