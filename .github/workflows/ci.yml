@@ -169,6 +169,13 @@ jobs:
           web_database_url="$($QJ_DC exec -T backend python -c 'import os; print(os.environ["DATABASE_URL"])')"
           $QJ_DC exec -T -e DJANGO_DATABASE_URL="$web_database_url" ai-service python - < ci/test_database_credentials.py
 
+      - name: Paused grading cancellation-to-download E2E
+        run: |
+          $QJ_DC cp ci/test_paused_grading_export.py backend:/tmp/test_paused_grading_export.py
+          $QJ_DC cp ci/test_paused_grading_export.py ai-service:/tmp/test_paused_grading_export.py
+          $QJ_DC exec -T -e PYTHONPATH=/app backend python /tmp/test_paused_grading_export.py seed | \
+            $QJ_DC exec -T -e PYTHONPATH=/app ai-service python /tmp/test_paused_grading_export.py verify
+
       - uses: actions/setup-python@v7
         with:
           python-version: "3.11"

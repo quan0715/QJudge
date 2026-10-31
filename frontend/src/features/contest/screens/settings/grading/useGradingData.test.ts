@@ -139,3 +139,16 @@ it("clears shared AI provenance immediately after human confirmation or ungradin
   expect(result.current.answers[0].isAiGraded).toBe(false);
   expect(result.current.answers[0].score).toBeNull();
 });
+
+it("lists only participants who started the exam as students", async () => {
+  context.contest.contestType = "paper_exam";
+  vi.mocked(getAllExamAnswersForGrading).mockResolvedValue({ data: [] } as never);
+  const participantsOverride = [
+    { userId: "1", username: "submitted", examStatus: "submitted" },
+    { userId: "2", username: "locked", examStatus: "locked" },
+    { userId: "3", username: "ta_or_absent", examStatus: "not_started" },
+  ] as never;
+  const { result } = renderHook(() => useGradingData({ participantsOverride }));
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  expect(result.current.students.map((student) => student.username)).toEqual(["submitted", "locked"]);
+});

@@ -399,3 +399,48 @@ async def test_export_failure_does_not_fail_completed_grading():
     events = [event async for event in adapter.execute(command_for(AgentOperation.START))]
     assert events[-1]["type"] == "run_completed"
     assert "匯出失敗" in events[-2]["content"]
+
+
+def exporting_adapter(events, calls, *, fail=False):
+    async def finalize(command):
+        calls.append(command.run_id)
+        if fail:
+            raise OSError("object store unavailable")
+    return DeepAgentAdapter(runner=EventRunner(events), mcp_provider=FakeMcpProvider(),
+        artifact_service=FakeArtifactService(), checkpoint_store=FakeCheckpointStore(), finalize_run=finalize)
+
+
+@pytest.mark.parametrize("fail", [False, True], ids=["exported", "export-failed"])
+async def test_failed_run_exports_before_its_terminal_event_and_keeps_failing(fail):
+    calls = []
+    adapter = exporting_adapter(
+        [{"type": "run_failed", "error_code": "MODEL_CONNECTION_ERROR", "message": "lost"}], calls, fail=fail)
+    events = []
+    async for event in adapter.execute(command_for(AgentOperation.START)):
+        if event["type"] == "run_failed":
+            assert calls == [RUN_ID]
+        events.append(event)
+    assert events[-1]["type"] == "run_failed"
+    assert events[-1]["error_code"] == "MODEL_CONNECTION_ERROR"
+    assert any("匯出失敗" in event.get("content", "") for event in events) is fail
+
+
+@pytest.mark.parametrize("fail", [False, True], ids=["exported", "export-failed"])
+async def test_cancelled_run_exports_when_the_worker_closes_its_stream(fail):
+    calls = []
+    adapter = exporting_adapter([{"type": "tool_call_started", "tool_call_id": "t"},
+                                 {"type": "tool_call_finished", "tool_call_id": "t"}], calls, fail=fail)
+    stream = adapter.execute(command_for(AgentOperation.START))
+    await stream.__anext__()
+    # The worker appends run_cancelled itself, then closes the agent stream.
+    await stream.aclose()
+    assert calls == [RUN_ID]
+
+
+async def test_terminal_export_runs_once_when_the_worker_closes_the_stream_afterwards():
+    calls = []
+    adapter = exporting_adapter([{"type": "run_completed"}], calls)
+    stream = adapter.execute(command_for(AgentOperation.START))
+    assert (await stream.__anext__())["type"] == "run_completed"
+    await stream.aclose()
+    assert calls == [RUN_ID]

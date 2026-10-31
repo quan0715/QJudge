@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import type { ContestIntegrityRun, ExamRuntimeState } from "@/core/entities/contest.entity";
 import type { IntegritySignalEmitter } from "../anticheat/integrity/IntegrityRuntimeContext";
 import { asIntegritySignalDispatch, INTEGRITY_SIGNAL_EVENT } from "../anticheat/integrity/IntegrityRuntimeContext";
-import type { UseIntegrityRuntimeOptions } from "../anticheat/integrity/useIntegrityRuntime";
+import type { ExamIntegrityStateSnapshot } from "@/core/entities/examIntegrity.entity";
+import type { EvidenceCoordinator } from "../anticheat/integrity/evidenceCoordinator";
 import {
   INTEGRITY_LOCAL_QUEUE_LIMIT,
   ResidentIntegritySession,
@@ -13,11 +14,20 @@ import { EXAM_SUBMITTED_EVENT } from "@/infrastructure/api/repositories/exam.rep
 import { InlineNotification } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 
+interface IntegrityCaptureOptions {
+  enabled: boolean;
+  contestId: string;
+  integrityRun?: ContestIntegrityRun;
+  snapshotProvider: () => Omit<ExamIntegrityStateSnapshot, "health">;
+  evidenceSources?: Partial<Record<"screen_share" | "webcam", MediaStream | null>>;
+  onEvidenceControllerChange?: (controller: EvidenceCoordinator | null) => void;
+}
+
 interface UploadOwner {
   resident: boolean;
   captureReady: boolean;
   emitter: IntegritySignalEmitter;
-  configure: (options: UseIntegrityRuntimeOptions | null) => void;
+  configure: (options: IntegrityCaptureOptions | null) => void;
   flush: () => Promise<void>;
 }
 const UploadContext = createContext<UploadOwner | null>(null);
@@ -45,7 +55,7 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
   const { t } = useTranslation();
   const [failedScope, setFailedScope] = useState<string | null>(null);
   const [run, setRun] = useState<ContestIntegrityRun | undefined>();
-  const config = useRef<UseIntegrityRuntimeOptions | null>(null);
+  const config = useRef<IntegrityCaptureOptions | null>(null);
   const owner = useRef<ResidentIntegritySession | null>(null);
   const ownerScope = useRef<string | null>(null);
   const earlySignals = useRef<Array<{ scope: string; signal: Parameters<IntegritySignalEmitter["emit"]>[0] }>>([]);
@@ -72,7 +82,7 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
   modeRef.current = mode;
   const captureReady = scopeReady && mode === "capture";
 
-  const configure = useCallback((next: UseIntegrityRuntimeOptions | null) => {
+  const configure = useCallback((next: IntegrityCaptureOptions | null) => {
     config.current = next;
     const nextRun = next?.integrityRun;
     if (nextRun) setRun((previous) => previous?.id === nextRun.id &&
@@ -185,7 +195,7 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
 }
 
 /** Capture registration has no ownership of the outbox or transport. */
-export function useIntegrityCaptureRegistration(options: UseIntegrityRuntimeOptions): UploadOwner | null {
+export function useIntegrityCaptureRegistration(options: IntegrityCaptureOptions): UploadOwner | null {
   const owner = useIntegrityUploadOwner();
   const latest = useRef(options);
   useLayoutEffect(() => { latest.current = options; });

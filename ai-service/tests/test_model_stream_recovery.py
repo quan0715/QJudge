@@ -17,6 +17,7 @@ from infrastructure.agent.deepagent_adapter import DeepAgentAdapter
 class BrokenStreamModel(BaseChatModel):
     failures: int = 1
     failure_type: type[Exception] = httpx.ReadError
+    shown: str = ""
     _attempts: int = PrivateAttr(default=0)
 
     @property
@@ -35,6 +36,8 @@ class BrokenStreamModel(BaseChatModel):
             if last.name == "save_grading_draft":
                 self._attempts += 1
                 if self._attempts <= self.failures:
+                    if self.shown:
+                        yield ChatGenerationChunk(message=AIMessageChunk(content=self.shown))
                     # The failed response contains incomplete tool arguments.
                     yield ChatGenerationChunk(message=AIMessageChunk(
                         content="", tool_call_chunks=[{
@@ -103,6 +106,20 @@ async def test_persistent_stream_failure_stops_after_two_retries_with_saved_grad
 
     assert model._attempts == 3
     assert saved == [2]
+    assert events[-1]["type"] == "run_failed"
+    assert events[-1]["error_code"] == "MODEL_CONNECTION_ERROR"
+    assert "已完成的操作已保留" in events[-1]["message"]
+
+
+@pytest.mark.parametrize("delegated", [False, True], ids=["main", "subagent"])
+async def test_stream_that_already_showed_text_fails_instead_of_repeating_it(delegated):
+    model = BrokenStreamModel(shown="Partial answer")
+
+    saved, events = await run_grading(model, delegated=delegated)
+
+    assert model._attempts == 1
+    assert saved == [2]
+    assert sum(str(event).count("Partial answer") for event in events) == 1
     assert events[-1]["type"] == "run_failed"
     assert events[-1]["error_code"] == "MODEL_CONNECTION_ERROR"
     assert "已完成的操作已保留" in events[-1]["message"]

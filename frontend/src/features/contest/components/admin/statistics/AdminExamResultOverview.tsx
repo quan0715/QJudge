@@ -6,6 +6,7 @@ import { SkeletonPlaceholder, SkeletonText } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { formatScore } from "@/features/contest/utils/scoreFormat";
+import { MetricBlock } from "@/shared/components/dashboard";
 import type { DashboardMockData } from "./contestResultDashboard.mock";
 import styles from "./AdminExamResultOverview.module.scss";
 
@@ -132,13 +133,10 @@ export default function AdminExamResultOverview({
     <section className={styles.root} aria-label="考試結果總覽">
       <div className={styles.contentGrid}>
         <div className={styles.chartColumn}>
-          <div className={styles.chartHeader}>
-            <span>{t("statistics.scoreDistribution", "分數分布")}</span>
-            <strong>
-              {formatScore(dashboard.summary.averageScore)} /{" "}
-              {formatScore(dashboard.summary.maxTotalScore)}
-            </strong>
-          </div>
+          <MetricBlock
+            label={t("statistics.scoreDistribution", "分數分布")}
+            value={`${formatScore(dashboard.summary.averageScore)} / ${formatScore(dashboard.summary.maxTotalScore)}`}
+          />
           <div className={styles.chartFrame}>
             {hasScoreDistributionData ? (
               <LollipopChart data={chartData} options={chartOptions} />

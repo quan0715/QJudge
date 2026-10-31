@@ -1,46 +1,179 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 
-.root, .messages {
+.root {
   display: grid;
   gap: layout.$spacing-05;
   min-width: 0;
 }
-.actions {
+
+.meta {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  margin: 0;
+}
+
+.toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: layout.$spacing-03;
 }
-.context, .message {
-  display: grid;
+
+.toolbarActions {
+  display: flex;
+  flex-wrap: wrap;
   gap: layout.$spacing-03;
-  padding: layout.$spacing-05;
-  background: var(--cds-layer);
-  border: 1px solid var(--cds-border-subtle);
-  min-width: 0;
-  overflow-wrap: anywhere;
+  margin-inline-start: auto;
 }
-.meta {
-  color: var(--cds-text-secondary);
+
+.sectionTitle {
+  @include type.type-style("heading-compact-01");
+  color: var(--cds-text-primary);
   margin: 0;
 }
+
+// 原始題目與作答：只用分隔線切段，不再包框
+.context {
+  display: grid;
+  gap: layout.$spacing-04;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding-block-start: layout.$spacing-05;
+  border-block-start: 1px solid var(--cds-border-subtle);
+}
+
+.feedback {
+  display: grid;
+  gap: layout.$spacing-03;
+}
+
+.conversation {
+  display: grid;
+  gap: layout.$spacing-05;
+  min-width: 0;
+  padding-block-start: layout.$spacing-05;
+  border-block-start: 1px solid var(--cds-border-subtle);
+}
+
+// Threads 式對話列：左側 avatar 以一條直線串起，最後一列（輸入或結案）不延伸
+.thread {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.post {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+  column-gap: layout.$spacing-04;
+  min-width: 0;
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  &::after {
+    content: "";
+    flex: 1;
+    width: 2px;
+    min-height: layout.$spacing-05;
+    margin-block: layout.$spacing-02;
+    background: var(--cds-border-subtle);
+  }
+
+  .post:last-child > &::after {
+    display: none;
+  }
+}
+
+.railIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--cds-icon-secondary);
+}
+
+.body {
+  display: grid;
+  gap: layout.$spacing-02;
+  min-width: 0;
+  padding-block-end: layout.$spacing-06;
+
+  &.meta {
+    align-self: center;
+    padding-block-end: 0;
+  }
+}
+
+.byline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: layout.$spacing-02 layout.$spacing-03;
+  min-height: 1.75rem;
+}
+
+.author {
+  @include type.type-style("heading-compact-01");
+  color: var(--cds-text-primary);
+}
+
+.time {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+}
+
 .content {
+  @include type.type-style("body-01");
+  color: var(--cds-text-primary);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   margin: 0;
 }
-.list {
+
+.composer {
   display: grid;
   gap: layout.$spacing-03;
   min-width: 0;
 }
-.ticket {
+
+.composerActions {
   display: flex;
-  justify-content: space-between;
-  gap: layout.$spacing-03;
   flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: layout.$spacing-03;
+}
+
+// 管理端申訴列表
+.list {
+  display: grid;
+  min-width: 0;
+}
+
+.ticket {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: layout.$spacing-04;
   padding-block: layout.$spacing-04;
-  border-bottom: 1px solid var(--cds-border-subtle);
+  border-block-end: 1px solid var(--cds-border-subtle);
+
+  &:last-child {
+    border-block-end: 0;
+  }
+}
+
+.ticketMain {
+  display: grid;
+  gap: layout.$spacing-01;
+  min-width: 0;
 }
 
 .dialogContent {

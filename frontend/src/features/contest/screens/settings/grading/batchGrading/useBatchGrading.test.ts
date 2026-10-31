@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   startRun: vi.fn(),
   cancelRun: vi.fn(),
   getModels: vi.fn(),
+  getChatRun: vi.fn(),
   getExamQuestions: vi.fn(),
   getBatchGradeWrites: vi.fn(),
   getGradingProgress: vi.fn(),
@@ -37,6 +38,7 @@ vi.mock("@/infrastructure/api/repositories/chatbot.repository", () => ({
     startRun: mocks.startRun,
     cancelRun: mocks.cancelRun,
     getModels: mocks.getModels,
+    getChatRun: mocks.getChatRun,
   },
 }));
 vi.mock("@/infrastructure/api/repositories/examAnswers.repository", () => ({
@@ -127,6 +129,22 @@ describe("starting AI grading", () => {
     await waitFor(() => expect(result.current.sessionId).toBe("s2"));
   });
 
+  it("resume and regrade keep the model the batch was started with", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH }];
+    mocks.getSession.mockResolvedValue({
+      messages: [request("r0", ["q1"]), { id: "u-chat", role: "user", timestamp: new Date(0), runId: "r9", content: "這題為什麼扣分？" }],
+    });
+    mocks.getChatRun.mockImplementation(async (id: string) => ({ id, modelId: id === "r0" ? "model-x" : "chat-model" }));
+    const { result } = render();
+    await waitFor(() => expect(result.current.questions[0].status).toBe("failed"));
+
+    await act(() => result.current.resume());
+    await act(() => result.current.regradeQuestion("q1"));
+
+    expect(mocks.getChatRun).toHaveBeenCalledWith("r0");
+    expect(mocks.startRun.mock.calls.map(([, , options]) => options.modelOverride)).toEqual(["model-x", "model-x"]);
+  });
+
   it("stop cancels the session's active runs", async () => {
     mocks.sessions = [{ id: "s1", metadata: BATCH }];
     mocks.getActiveRuns.mockResolvedValue([{ id: "r1", sessionId: "s1", status: "running" }]);
@@ -152,6 +170,18 @@ describe("batch state", () => {
     mocks.runState = { status: "ready", run: { id: "r1", sessionId: "s1" } };
     const { result: next } = render();
     await waitFor(() => expect(next.current.questions[0].status).toBe("completed"));
+  });
+
+  it("explains why a completed run left the question unwritten", async () => {
+    mocks.sessions = [{ id: "s1", metadata: BATCH }];
+    mocks.getSession.mockResolvedValue({ messages: [request("r1", ["q1"]),
+      { id: "a-r1", role: "assistant", content: "", timestamp: new Date(0), runId: "r1", runStatus: "completed" }] });
+    mocks.getGradingProgress.mockResolvedValue([{ unit_id: "u", run_id: "r1", question_ids: ["q1"], total_count: 1, status: "draft" }]);
+    const { result } = render();
+
+    await waitFor(() => expect(result.current.questions[0]).toMatchObject({
+      status: "failed", error: "grading.batch.unitNotSubmitted",
+    }));
   });
 
   it("lists answers still holding the AI's grade", async () => {
@@ -253,5 +283,13 @@ describe("polling", () => {
     mocks.getBatchGradeWrites.mockResolvedValue([receipt("a1", 8)]);
     await vi.advanceTimersByTimeAsync(5_100);
     expect(reload).toHaveBeenCalledTimes(1);
+
+    // One write changed and another arrived: same count, different content.
+    mocks.getBatchGradeWrites.mockResolvedValue([{ ...receipt("a2", 5), question_id: "q2" }]);
+    await vi.advanceTimersByTimeAsync(5_100);
+    expect(reload).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(5_100);
+    expect(reload).toHaveBeenCalledTimes(2);
   });
 });

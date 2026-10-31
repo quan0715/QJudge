@@ -1,4 +1,4 @@
-import type { ExamDetector, ViolationEvent, CheckResult } from "./types";
+import type { ExamDetector, ViolationEvent } from "./types";
 import type { TFunction } from "i18next";
 
 export class PopupGuardDetector implements ExamDetector {
@@ -104,9 +104,5 @@ export class PopupGuardDetector implements ExamDetector {
       this.originalRequestPermission = null;
     }
     this.onViolation = null;
-  }
-
-  async runCheck(): Promise<CheckResult> {
-    return { passed: true };
   }
 }

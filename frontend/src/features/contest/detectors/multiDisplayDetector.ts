@@ -2,7 +2,7 @@ import {
   DisplayCheckService,
   type ScreenDetailsLike,
 } from "./displayCheckService";
-import type { ExamDetector, ViolationEvent, CheckResult } from "./types";
+import type { ExamDetector, ViolationEvent } from "./types";
 import type { TFunction } from "i18next";
 
 const DISPLAY_API_FAILURE_THRESHOLD = 3;
@@ -70,14 +70,6 @@ export class MultiDisplayDetector implements ExamDetector {
     this.wasMultiDetected = false;
   }
 
-  async runCheck(): Promise<CheckResult> {
-    const diag = await this.displayService.check();
-    if (diag.isExtended) return { passed: false, detail: "Screen is extended" };
-    if (diag.screenCount !== null && diag.screenCount > 1) {
-      return { passed: false, detail: `${diag.screenCount} screens detected` };
-    }
-    return { passed: true };
-  }
 
   triggerCheck(): void {
     void this.ensureSingleDisplay();

@@ -196,34 +196,48 @@ async def _execute_run(
 
         grading_services = {}
 
-        async def run_tools(command):
+        async def grading_service(run_id, session_id, execution_epoch, lease_key):
             # Scope comes from the teacher's persisted request, never from model arguments.
-            info = await raw_runs.load_terminal_run(command.run_id)
+            info = await raw_runs.load_terminal_run(run_id)
             manifest = (info.session_context.get("task_manifest") or {}) if info else {}
             units = parse_batch_units(info.batch_request) if info and manifest.get("task_type") == BATCH_TASK_TYPE else None
             if manifest.get("task_type") != BATCH_TASK_TYPE or not units:
-                return []
+                return None
             contest_id = str((manifest.get("context") or {}).get("contest_id") or "")
             if not contest_id:
                 raise ValueError("批改任務缺少考試")
 
             async def token():
-                return await credentials.worker_token(credential_lease_key, retry_exchange_once=True)
+                return await credentials.worker_token(lease_key, retry_exchange_once=True)
 
             async def is_active():
-                return (await raw_runs.execution_active(command.run_id, command.execution_epoch)
-                        and not await raw_runs.cancel_requested(command.run_id))
+                return (await raw_runs.execution_active(run_id, execution_epoch)
+                        and not await raw_runs.cancel_requested(run_id))
 
-            grading = ToolGrading(
-                session_id=command.session_id, run_id=command.run_id, contest_id=contest_id,
+            return ToolGrading(
+                session_id=session_id, run_id=run_id, contest_id=contest_id,
                 units=units, http=http, backend_url=settings.qjudge_backend_url,
                 token=token, is_active=is_active,
             )
+
+        async def run_tools(command):
+            grading = await grading_service(command.run_id, command.session_id,
+                                            command.execution_epoch, credential_lease_key)
+            if grading is None:
+                return []
             grading_services[command.run_id] = grading
             return grading.tools()
 
         async def finalize_run(command):
             grading = grading_services.get(command.run_id)
+            if grading is not None:
+                await grading.export_artifacts(artifacts)
+
+        async def finalize_paused_cancel(claim):
+            # Cancellation may arrive without a supplied lease key. Bind export
+            # credentials to the persisted owner; never restart the model/tools.
+            grading = await grading_service(claim.run.id, claim.run.session_id,
+                                            claim.execution_epoch, credentials.key_for(claim.owner).value)
             if grading is not None:
                 await grading.export_artifacts(artifacts)
 
@@ -245,6 +259,7 @@ async def _execute_run(
             agent,
             checkpoints,
             heartbeat_seconds=settings.run_heartbeat_seconds,
+            finalize_paused_cancel=finalize_paused_cancel,
         )
         await runtime.execute(
             run_id,

@@ -68,7 +68,6 @@ const ProgressChart = ({ card }: { card: DashboardInsightCard }) => {
 
 const DISTRIBUTION_TONE_COLOR: Record<DistributionItem["key"], string> = {
   in_progress: "var(--cds-support-info)",
-  not_started: "var(--cds-text-placeholder)",
   submitted: "var(--cds-support-success)",
   locked: "var(--cds-support-error)",
   offline: "var(--cds-icon-disabled)",

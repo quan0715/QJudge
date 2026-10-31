@@ -135,8 +135,9 @@ describe("adminOverviewDashboard.model", () => {
       "locked",
       "attention",
     ]);
+    // Only the three students who started count toward the total.
     expect(data.kpis.find((item) => item.key === "online")?.value).toBe(
-      "4 / 5",
+      "4 / 3",
     );
     expect(data.timeline.phaseLabel).toBe("進行中");
     expect(data.timeline.primaryTimeLabel).toBe("剩餘 45:00");
@@ -146,7 +147,6 @@ describe("adminOverviewDashboard.model", () => {
     expect(data.railItems.map((item) => item.key)).toEqual([
       "online",
       "in_progress",
-      "not_started",
       "submitted",
       "locked_offline",
     ]);
@@ -165,7 +165,6 @@ describe("adminOverviewDashboard.model", () => {
     ).toEqual(["P0", "P1", "P2"]);
     expect(data.distribution.map((item) => item.key)).toEqual([
       "in_progress",
-      "not_started",
       "submitted",
       "locked",
       "offline",
@@ -198,7 +197,7 @@ describe("adminOverviewDashboard.model", () => {
     expect(JSON.stringify(data)).not.toMatch(/submission|提交趨勢|提交/);
   });
 
-  it("prioritizes locked, violation, offline, and not-started students", () => {
+  it("prioritizes locked, violation and offline students", () => {
     const events: ExamEvent[] = [
       {
         id: "event-1",
@@ -229,7 +228,6 @@ describe("adminOverviewDashboard.model", () => {
       "locked",
       "violation",
       "offline",
-      "not_started",
     ]);
   });
 });

@@ -88,4 +88,39 @@ describe("question draft", () => {
     expect(result.current.form.prompt).toBe("Prompt q2");
     await act(async () => {});
   });
+  it("saves the previous question's last edit when switching during a save", async () => {
+    let finishFirst!: () => void;
+    const first = vi
+      .fn()
+      .mockImplementationOnce(
+        () => new Promise<void>((resolve) => (finishFirst = resolve)),
+      )
+      .mockResolvedValue(undefined);
+    const second = vi.fn().mockResolvedValue(undefined);
+    const { result, rerender } = renderHook(
+      ({ question, save }) =>
+        useQuestionDraft(question, {
+          autosave: true,
+          requireScore: true,
+          save,
+        }),
+      { initialProps: { question: questionFixture("q1"), save: first } },
+    );
+    act(() => result.current.setForm((p) => ({ ...p, prompt: "First save" })));
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.flush();
+    });
+    act(() => result.current.setForm((p) => ({ ...p, prompt: "Last edit" })));
+    rerender({ question: questionFixture("q2"), save: second });
+    await act(async () => {
+      finishFirst();
+      await pending;
+    });
+    await act(async () => {});
+    expect(first).toHaveBeenLastCalledWith(
+      expect.objectContaining({ prompt: "Last edit" }),
+    );
+    expect(second).not.toHaveBeenCalled();
+  });
 });

@@ -104,7 +104,9 @@ function statusFromActiveRun(status: ChatRunStatus): BatchQuestionStatus {
 
 /**
  * Each question follows the last run that asked for it: completed once its unit was
- * submitted, running while that run is active, otherwise how the run ended.
+ * submitted or had nothing to write, running while that run is active, otherwise how
+ * the run ended. A run that completed without submitting the unit reports
+ * `notSubmittedError`, e.g. when the AI kept a teacher's conflicting grade.
  */
 export function deriveBatchState(input: {
   questions: readonly BatchQuestion[];
@@ -112,6 +114,7 @@ export function deriveBatchState(input: {
   activeRuns: readonly BatchActiveRun[];
   units: readonly GradingUnitProgress[];
   written: readonly WrittenRecord[];
+  notSubmittedError: string;
 }): BatchQuestionState[] {
   const latestRunByQuestion = new Map<string, string>();
   const explicitRunByQuestion = new Map<string, string>();
@@ -149,7 +152,9 @@ export function deriveBatchState(input: {
     const requestedAt = runOrder.get(explicitRunByQuestion.get(question.questionId) ?? "") ?? Infinity;
     const unit = input.units.find((item) => item.question_ids.includes(question.questionId)
       && (runOrder.get(item.run_id) ?? -1) >= requestedAt);
-    if (unit?.status === "completed") return { ...base, runId: unit.run_id, status: "completed" };
+    if (unit && (unit.status === "completed" || unit.total_count === 0)) {
+      return { ...base, runId: unit.run_id, status: "completed" };
+    }
     const active = activeById.get(runId);
     if (active) return { ...base, runId, status: statusFromActiveRun(active) };
     // All answers may have been resolved outside the original failed run.
@@ -157,7 +162,8 @@ export function deriveBatchState(input: {
     if (base.ungradedCount === 0) return { ...base, runId, status: "completed" };
     const end = runEnd.get(runId);
     if (end?.status === "cancelled") return { ...base, runId, status: "cancelled" };
-    return { ...base, runId, status: "failed", ...(end?.error ? { error: end.error } : {}) };
+    const error = end?.status === "completed" ? input.notSubmittedError : end?.error;
+    return { ...base, runId, status: "failed", ...(error ? { error } : {}) };
   });
 }
 

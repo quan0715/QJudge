@@ -1,4 +1,4 @@
-import type { ExamDetector, ViolationEvent, CheckResult } from "./types";
+import type { ExamDetector, ViolationEvent } from "./types";
 import type { TFunction } from "i18next";
 
 const MAX_CLIPBOARD_METADATA_BYTES = 28 * 1024;
@@ -87,26 +87,24 @@ export const buildClipboardMetadata = ({
   const metadata: Record<string, unknown> = {
     source: "clipboard_detector",
     action,
-    content_captured: action === "paste",
+    content_captured: true,
     text_length: rawText.length,
     line_count: getLineCount(rawText),
     ...getTargetMetadata(target),
     ...(sha256 ? { sha256 } : {}),
   };
-  if (action !== "paste") return metadata;
-
-  const buildPasteMetadata = (content: string): Record<string, unknown> => ({
+  const buildContentMetadata = (content: string): Record<string, unknown> => ({
     ...metadata,
     content,
     content_truncated: true,
     original_text_length: rawText.length,
     captured_text_length: content.length,
   });
-  const capturedText = trimToJsonByteLimit(rawText, buildPasteMetadata);
+  const capturedText = trimToJsonByteLimit(rawText, buildContentMetadata);
   if (capturedText === rawText) {
     return { ...metadata, content: capturedText, content_truncated: false };
   }
-  return buildPasteMetadata(capturedText);
+  return buildContentMetadata(capturedText);
 };
 
 export class ClipboardDetector implements ExamDetector {
@@ -177,9 +175,5 @@ export class ClipboardDetector implements ExamDetector {
       document.removeEventListener("contextmenu", this.handleContextMenu);
     }
     this.onViolation = null;
-  }
-
-  async runCheck(): Promise<CheckResult> {
-    return { passed: true };
   }
 }

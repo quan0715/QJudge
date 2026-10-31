@@ -341,7 +341,8 @@ describe("grading workbench", () => {
     try {
       await setup("grading_question=c");
       const stats = within(screen.getByRole("region", { name: "作答統計" }));
-      expect(stats.getByText("63%")).toBeInTheDocument();
+      // Raw 10 and 15 of 17 scale to the redistributed 20 like the backend: (11.76 + 17.65) / 2 / 20.
+      expect(stats.getByText("74%")).toBeInTheDocument();
       expect(stats.getByText("/ 20", { exact: false })).toBeInTheDocument();
     } finally {
       targets.forEach((row) => delete row.effectiveMaxScore);

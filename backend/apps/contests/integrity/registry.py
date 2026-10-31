@@ -270,3 +270,26 @@ def build_registry_snapshot() -> dict:
             for key, definition in DEFINITIONS.items()
         },
     }
+
+
+def registry_action_is_penalty(phase, action, definition: dict) -> bool:
+    signals = definition.get("signals")
+    if not isinstance(phase, str) or not isinstance(signals, dict) or not signals.get(phase):
+        return False
+    # Apply to frozen registries too: clipboard use is retained as evidence only.
+    if signals.get("triggered") == "clipboard_action":
+        return False
+    # System lifecycle records (entry/submission) are evidence of normal use,
+    # not violations. Explicit pause/lock/submit actions remain actionable.
+    if action == "record" and definition.get("priority") == 3:
+        return False
+    incident_opening = bool(
+        phase == "triggered"
+        and action == "record"
+        and (signals.get("escalated") or signals.get("restored"))
+    )
+    return bool(
+        phase in {"triggered", "escalated"}
+        and action in {"record", "pause", "lock", "submit"}
+        and not incident_opening
+    )

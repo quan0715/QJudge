@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useEffect, useRef, useState, type FC } from "react";
 import { ArrowRight } from "@carbon/icons-react";
 import SectionHeading from "@/features/landing/components/SectionHeading";
@@ -24,77 +26,82 @@ interface FlowDetail {
   screenshots: Array<FlowScreenshot | FlowScreenshot[]>;
 }
 
-const FLOW_DETAILS: FlowDetail[] = [
+const getFlowDetails = (t: TFunction<"landing">): FlowDetail[] => [
   {
-    valueTitle: "快速建立正式考試，並完成題目配置",
-    highlights: ["設定考試時間、題型與配分", "精修題目內容並納入考試", "指定班級與作答規則"],
+    valueTitle: t("ui.flowDetail0"),
+    highlights: [t("ui.flowDetail1"), t("ui.flowDetail2"), t("ui.flowDetail3")],
     screenshots: [
       {
         src: "/illustrations/flow_create_exam_overview.png",
-        alt: "QJudge 考試管理後台總覽",
-        caption: "建立考試後先確認狀態、時間與可見性",
+        alt: t("ui.flowDetail4"),
+        caption: t("ui.flowDetail5"),
       },
       {
         src: "/illustrations/flow_exam_question_management.png",
-        alt: "QJudge 題目管理介面",
-        caption: "教師檢查題目內容後再放入正式考試",
+        alt: t("ui.flowDetail6"),
+        caption: t("ui.flowDetail7"),
       },
     ],
   },
   {
-    valueTitle: "掌握學生作答進度與異常狀況",
-    highlights: ["查看學生作答狀態", "追蹤繳交與剩餘時間", "標記需要處理的異常事件"],
+    valueTitle: t("ui.flowDetail8"),
+    highlights: [t("ui.flowDetail9"), t("ui.flowDetail10"), t("ui.flowDetail11")],
     screenshots: [
       {
-        src: "/illustrations/flow_proctor_event_log.png",
-        alt: "QJudge 監考事件紀錄",
-        caption: "需要處理的事件集中在同一個紀錄中",
+        src: "/illustrations/product-exam-q1-20261030.webp",
+        alt: t("ui.examScreenshotAlt"),
+        caption: t("ui.examScreenshotCaption"),
+      },
+      {
+        src: "/illustrations/product-proctoring-demo-20261030.webp",
+        alt: t("ui.flowDetail12"),
+        caption: t("ui.flowDetail13"),
       },
     ],
   },
   {
-    valueTitle: "快速完成批改，並將成績與回饋發布",
-    highlights: ["自動整理成績與答題狀態", "檢查逐題批改結果", "發布可追蹤的成績與回饋"],
+    valueTitle: t("ui.flowDetail14"),
+    highlights: [t("ui.flowDetail15"), t("ui.flowDetail16"), t("ui.flowDetail17")],
     screenshots: [
       {
-        src: "/illustrations/flow_grading_matrix.png",
-        alt: "QJudge 成績批改矩陣",
-        caption: "用矩陣快速檢查每位學生與每題狀態",
+        src: "/illustrations/product-ai-grading-20261030.webp",
+        alt: t("ui.flowDetail18"),
+        caption: t("ui.flowDetail19"),
       },
       {
         src: "/illustrations/flow_answer_results.png",
-        alt: "QJudge 逐題作答結果",
-        caption: "展開單題作答，確認答案與得分依據",
+        alt: t("ui.flowDetail20"),
+        caption: t("ui.flowDetail21"),
       },
       [
         {
           src: "/illustrations/flow_statistics_report_first_page.png",
-          alt: "QJudge 個人成績報告第一頁",
-          caption: "輸出個人成績報告，讓考後回饋可被保存與追蹤",
+          alt: t("ui.flowDetail22"),
+          caption: t("ui.flowDetail23"),
           variant: "document",
         },
         {
           src: "/illustrations/flow_statistics_report_page_3.png",
-          alt: "QJudge 個人成績報告第三頁",
-          caption: "補充題目表現細節，協助教師定位需要加強的觀念",
+          alt: t("ui.flowDetail24"),
+          caption: t("ui.flowDetail25"),
           variant: "document",
         },
       ],
     ],
   },
   {
-    valueTitle: "將考題與分析回收成長期資產",
-    highlights: ["累積可複用的題庫", "標記主題、難度與使用紀錄", "用考後數據改善題目品質"],
+    valueTitle: t("ui.flowDetail26"),
+    highlights: [t("ui.flowDetail27"), t("ui.flowDetail28"), t("ui.flowDetail29")],
     screenshots: [
       {
         src: "/illustrations/flow_exam_statistics.png",
-        alt: "QJudge 考後統計分析總覽",
-        caption: "從考試總覽快速掌握整體表現與題目分佈",
+        alt: t("ui.flowDetail30"),
+        caption: t("ui.flowDetail31"),
       },
       {
         src: "/illustrations/flow_statistics_lowest_score_rate.png",
-        alt: "QJudge 最低得分率題目列表",
-        caption: "自動標記得分率最低的題目，優先回收檢討",
+        alt: t("ui.flowDetail32"),
+        caption: t("ui.flowDetail33"),
       },
     ],
   },
@@ -102,6 +109,8 @@ const FLOW_DETAILS: FlowDetail[] = [
 
 
 const UsageFlowSection: FC<UsageFlowSectionProps> = ({ eyebrow, title, description, items }) => {
+  const { t } = useTranslation("landing");
+  const FLOW_DETAILS = getFlowDetails(t);
   const [activeIndex, setActiveIndex] = useState(0);
   const chapterRefs = useRef<Array<HTMLElement | null>>([]);
 
@@ -167,7 +176,7 @@ const UsageFlowSection: FC<UsageFlowSectionProps> = ({ eyebrow, title, descripti
       <div className="landing-section__inner">
         <SectionHeading eyebrow={eyebrow} title={title} description={description} />
 
-        <div className="landing-flow-section__overview" aria-label="QJudge 完整考試流程總覽">
+        <div className="landing-flow-section__overview" aria-label={t("ui.flowOverview")}>
           {items.map((item, index) => (
             <div key={item.step} className="landing-flow-section__timeline-item">
               <article className="landing-flow-section__step">
@@ -204,7 +213,7 @@ const UsageFlowSection: FC<UsageFlowSectionProps> = ({ eyebrow, title, descripti
                     <h3>{item.title}</h3>
                     <h4>{detail.valueTitle}</h4>
                     <p>{item.description}</p>
-                    <ul aria-label={`${item.title} 操作亮點`}>
+                    <ul aria-label={t("ui.highlights", { title: item.title })}>
                       {detail.highlights.map((highlight) => (
                         <li key={highlight}>{highlight}</li>
                       ))}
@@ -212,9 +221,9 @@ const UsageFlowSection: FC<UsageFlowSectionProps> = ({ eyebrow, title, descripti
                     <small>{item.output}</small>
                   </div>
 
-                  <div className="landing-flow-section__screens" aria-label={`${item.title} 產品畫面`}>
+                  <div className="landing-flow-section__screens" aria-label={t("ui.productScreens", { title: item.title })}>
                     <div className="landing-flow-section__screens-head">
-                      <span>產品畫面</span>
+                      <span>{t("ui.screenshots")}</span>
                     </div>
                     {screenshots.length > 0 ? (
                       <div className="landing-flow-section__screen-track">
@@ -241,9 +250,9 @@ const UsageFlowSection: FC<UsageFlowSectionProps> = ({ eyebrow, title, descripti
           </div>
         </div>
 
-        <div className="landing-flow-section__summary" aria-label="QJudge 流程總結">
-          <p>完整旅程</p>
-          <strong>從建立考試、題目配置、監考、批改發佈到考後改進，QJudge 將正式評量流程收斂成可持續運作的一條龍系統。</strong>
+        <div className="landing-flow-section__summary" aria-label={t("ui.flowSummaryLabel")}>
+          <p>{t("ui.journey")}</p>
+          <strong>{t("ui.flowSummary")}</strong>
         </div>
       </div>
     </section>

@@ -277,6 +277,31 @@ async def test_paused_cancel_repairs_without_credentials_or_agent() -> None:
     assert runs.dispatches == [(run.id, "lease:subject", TRACE)]
 
 
+@pytest.mark.parametrize("status", [RunStatus.AWAITING_APPROVAL, RunStatus.AWAITING_USER_ANSWER])
+@pytest.mark.parametrize("export_fails", [False, True])
+async def test_paused_cancel_exports_before_terminal_without_resuming_model(status, export_fails):
+    run = make_run(status=status, cancel_requested=True)
+    runs = FakeRuns(run, Principal("issuer", "subject"))
+    agent = FakeAgent()
+    exported = []
+
+    async def export(claim):
+        assert runs.events == []  # Downloads are ready when cancellation becomes visible.
+        exported.append(claim.run.id)
+        if export_fails:
+            raise OSError("storage unavailable")
+
+    runtime = WorkerRuntime(runs, FakeCredentials(), agent, FakeCheckpoints(),
+                            finalize_paused_cancel=export)
+    await runtime.execute(run.id, None, TRACE)
+    await runtime.execute(run.id, None, TRACE)  # Duplicate delivery must not export again.
+
+    assert exported == [run.id]
+    assert agent.commands == []
+    assert runs.events == [{"type": "run_cancelled"}]
+    assert runs.dispatches == [(run.id, "lease:subject", TRACE)]
+
+
 @pytest.mark.asyncio
 async def test_heartbeat_runs_independently_of_agent_events() -> None:
     run = make_run()

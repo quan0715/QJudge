@@ -1,7 +1,8 @@
 import type { GradingAnswerRow } from "../gradingTypes";
+import { computeStudentDisplayTotal, isCountedQuestion } from "../scorePolicyUtils";
 import type { GradingWorkbenchUnit } from "./gradingWorkbenchModel";
 
-export type AnswerSource = "auto" | "suggestion" | "none" | "ai" | "manual";
+export type AnswerSource = "auto" | "suggestion" | "none" | "ai" | "manual" | "unanswered";
 
 export interface SuggestionLike {
   score: number | null;
@@ -17,9 +18,9 @@ export interface WorkbenchStudentRow {
   studentId: string;
   name: string;
   username: string;
-  /** Ordered by the unit's questions; absent answers excluded. */
+  /** Ordered by the unit's questions; unanswered sub-questions have no row and count as 0. */
   answers: GradingAnswerRow[];
-  /** Null while any child answer is ungraded. */
+  /** The grade the student gets under each question's score policy; null while a counted answer is ungraded. */
   total: number | null;
   source: AnswerSource;
 }
@@ -30,6 +31,12 @@ export type RowSort = "seat" | "asc" | "desc";
 
 /** A student row shows the most attention-worthy source among its answers. */
 const SOURCE_PRIORITY: readonly AnswerSource[] = ["suggestion", "none", "manual", "ai", "auto"];
+
+export interface WorkbenchStudent {
+  studentId: string;
+  username: string;
+  displayName?: string;
+}
 
 export function isPendingSuggestion(row: GradingAnswerRow, suggestion?: SuggestionLike): boolean {
   if (!suggestion || suggestion.score === null || suggestion.synced) return false;
@@ -45,10 +52,35 @@ export function resolveAnswerSource(row: GradingAnswerRow, ctx: SourceContext): 
   return "manual";
 }
 
+/** Mirrors the backend: full marks count answered or not; excluded and redistributed questions count nothing. */
+function rowTotal(unit: GradingWorkbenchUnit, answers: readonly GradingAnswerRow[]): number | null {
+  const byQuestion = new Map(answers.map((answer) => [answer.questionId, answer]));
+  const awaitsGrade = unit.questions.some(
+    (question) =>
+      isCountedQuestion(question.scorePolicy) &&
+      question.scorePolicy !== "full_marks" &&
+      byQuestion.get(question.id)?.score === null,
+  );
+  if (awaitsGrade) return null;
+  return computeStudentDisplayTotal(
+    unit.questions.map((question) => {
+      const answer = byQuestion.get(question.id);
+      return {
+        maxScore: question.score,
+        effectiveMaxScore: answer?.effectiveMaxScore,
+        scorePolicy: question.scorePolicy,
+        score: answer ? answer.score : 0,
+      };
+    }),
+  );
+}
+
+/** Students who took the exam but answered nothing in the unit still get a row. */
 export function buildStudentRows(
   unit: GradingWorkbenchUnit,
   answers: readonly GradingAnswerRow[],
   ctx: SourceContext,
+  students: readonly WorkbenchStudent[] = [],
 ): WorkbenchStudentRow[] {
   const order = new Map(unit.questions.map((question, index) => [question.id, index]));
   const byStudent = new Map<string, GradingAnswerRow[]>();
@@ -56,19 +88,29 @@ export function buildStudentRows(
     if (row.isAbsent || !order.has(row.questionId)) continue;
     byStudent.set(row.studentId, [...(byStudent.get(row.studentId) ?? []), row]);
   }
-  return [...byStudent.values()].map((rows) => {
+  const answered = [...byStudent.values()].map((rows) => {
     const sorted = rows.sort((a, b) => (order.get(a.questionId) ?? 0) - (order.get(b.questionId) ?? 0));
     const sources = sorted.map((row) => resolveAnswerSource(row, ctx));
-    const complete = sorted.length === unit.questions.length && sorted.every((row) => row.score !== null);
     return {
       studentId: sorted[0].studentId,
       name: sorted[0].studentDisplayName || sorted[0].studentUsername,
       username: sorted[0].studentUsername,
       answers: sorted,
-      total: complete ? sorted.reduce((sum, row) => sum + (row.score ?? 0), 0) : null,
+      total: rowTotal(unit, sorted),
       source: SOURCE_PRIORITY.find((source) => sources.includes(source)) ?? "none",
     };
   });
+  const unanswered = students
+    .filter((student) => !byStudent.has(student.studentId))
+    .map((student): WorkbenchStudentRow => ({
+      studentId: student.studentId,
+      name: student.displayName || student.username,
+      username: student.username,
+      answers: [],
+      total: rowTotal(unit, []),
+      source: "unanswered",
+    }));
+  return [...answered, ...unanswered];
 }
 
 function band(total: number | null, maxScore: number): ScoreFilter | null {
