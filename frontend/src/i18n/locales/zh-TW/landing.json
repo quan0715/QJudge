@@ -1,6 +1,6 @@
 {
   "audience": {
-    "description": "大專課程評量、教育機構測驗與程式能力考試，都能依教學目標選擇合適的題型與流程。",
+    "description": "",
     "eyebrow": "適用對象",
     "items": {
       "apcs": {
@@ -28,7 +28,7 @@
         "solution": "依課程需求配置選擇、填空、問答等題型，結合考試管理、AI 輔助批改與教師複核。"
       }
     },
-    "title": "從課堂小考到期末考，配合你的教學安排"
+    "title": "適用哪些教學情境？"
   },
   "contact": {
     "description": "We welcome feedback, bug reports, and collaboration proposals.",
@@ -61,7 +61,7 @@
     "title": "Comprehensive Assessment Experience"
   },
   "faq": {
-    "description": "用清楚的答案說明 QJudge 的考試能力、導入方式與實際使用情境。",
+    "description": "",
     "eyebrow": "FAQ",
     "items": [
       {
@@ -114,7 +114,7 @@
     "title": "Powerful Features Designed for Education"
   },
   "flow": {
-    "description": "QJudge 將原本分散在不同工具的出題、監考、批改、分析與題庫沉澱整合在同一條流程中，降低管理成本，也讓每一次考試都能回到教學改進。",
+    "description": "",
     "eyebrow": "完整考試流程",
     "items": [
       {
@@ -138,7 +138,7 @@
         "title": "考後數據分析與改進"
       }
     ],
-    "title": "從出題到分析，正式考試一次串接"
+    "title": "從出題到考後分析"
   },
   "footer": {
     "attribution": "Illustration by Storyset. 若正式上線採用，請再確認授權與標註規則。",
@@ -171,8 +171,8 @@
     },
     "primaryCta": "免費開始使用",
     "secondaryCta": "預約 Demo",
-    "subtitle": "立即體驗 QJudge 的線上考試流程，從建立試卷、執行考試到查看分析，快速評估是否符合你的教學需求。",
-    "title": "把時間還給教學，從這裡開始"
+    "subtitle": "免費體驗，或預約示範了解課程應用。",
+    "title": "開始建立你的考試"
   },
   "hero": {
     "eyebrow": "QJudge",
@@ -180,8 +180,8 @@
     "panelTitle": "教師後台總覽",
     "primaryCta": "免費開始使用",
     "secondaryCta": "預約 Demo",
-    "subtitle": "從命題、考試管理到 AI 輔助批改與考後分析，協助大專院校教師串接課程評量。依課程需求選擇題型，讓分數之外也有具體回饋。",
-    "title": "讓每一場考試，都成為看懂學生學習的起點。",
+    "subtitle": "整合命題、監考與 AI 輔助批改，從學生作答找出需要加強的觀念。",
+    "title": "AI 驅動的\n新型態考試測驗平台",
     "trust": {
       "capacity": "150+ 人同時在線驗證",
       "users": "已服務 200+ 位教師與學員",
@@ -189,24 +189,24 @@
     }
   },
   "mcp": {
-    "description": "在 Claude、ChatGPT、Cursor、Perplexity、Gemini、Notion 中出題、批改、反饋",
+    "description": "透過 MCP，在你熟悉的工具中操作 QJudge。",
     "examples": {
       "0": {
-        "description": "透過 AI 快速建立題庫與考卷，並自動檢查題目邏輯與難易度，大幅節省命題時間。",
+        "description": "AI 協助產生題目初稿，教師檢查內容與難度後再使用。",
         "eyebrow": "AI 出題與 Review",
         "image": "/example-1.png",
-        "title": "智慧生成，精準審題"
+        "title": "出題與審題"
       },
       "1": {
-        "description": "匯整整場考試的作答數據，生成全班成績分佈與錯題統計報表。協助教師從宏觀視角精準評估教學成效與學生學習盲點。",
+        "description": "檢視成績分布與常見錯誤，找出需要補充講解的內容。",
         "eyebrow": "全局考試分析",
         "image": "/example-2.png",
-        "title": "請 AI 做進階考試數據分析、整合"
+        "title": "考試數據分析"
       },
       "2": {
         "description": "依評分規準分析學生的開放式回答，提供建議分數與評語，由教師複核後確認結果。",
         "eyebrow": "AI 助教批改",
-        "title": "開放題批改，搭配具體回饋"
+        "title": "開放題輔助批改"
       }
     },
     "eyebrow": "無痛協作",
@@ -220,7 +220,7 @@
       "1": "取得批改結果、通過率統計和常見錯誤分析",
       "2": "AI 分析常見錯誤並給改進建議"
     },
-    "title": "與你的 AI 工具無痛協作",
+    "title": "連接常用的 AI 工具",
     "tools": {
       "chatgpt": "ChatGPT",
       "claude": "Claude",
@@ -256,30 +256,30 @@
     "features": "產品主軸"
   },
   "proposition": {
-    "description": "QJudge 從考場控管、題型配置到數據分析，讓每一場考試都有依據、有彈性、有後續價值。",
+    "description": "",
     "eyebrow": "產品主軸",
     "items": {
       "control": {
-        "description": "能記錄異常事件、保留完整考試脈絡，讓結果不只是可查看，也更有依據可以說明與佐證。",
-        "title": "正式考試更可控"
+        "description": "保留作答與異常事件紀錄，供教師查核。",
+        "title": "考試紀錄可追溯"
       },
       "flexibility": {
-        "description": "選擇題、填空題、問答題與程式題可依課程需求配置，支援課堂小考、期中期末考等多種評量情境。",
-        "title": "不同考試場景都能配置"
+        "description": "依課程需求搭配選擇、填空、問答與程式題。",
+        "title": "題型彈性配置"
       },
       "value": {
-        "description": "題目、結果與分析不只停在單次施測，而能成為後續教學調整與題庫迭代的基礎。",
-        "title": "每次考試都能留下價值"
+        "description": "參考考後分析修訂題目，留供下次評量使用。",
+        "title": "題庫持續累積"
       }
     },
-    "title": "為正式考試而設計，不只支援作答，更讓結果真正可用"
+    "title": "掌握考試與學習表現"
   },
   "seo": {
-    "title": "QJudge 線上考試平台｜多元評量・AI 輔助批改・教學分析",
-    "description": "QJudge 協助大專院校教師整合命題、考試管理、AI 輔助批改與考後分析。支援選擇題、問答題與程式題，讓課堂小考、期中期末考都能留下可用的學習回饋。",
+    "title": "QJudge｜線上考試與 AI 批改",
+    "description": "支援多元題型、即時監考與 AI 輔助批改，協助教師完成課程評量。",
     "keywords": "線上考試平台, 大學課程評量, AI 輔助批改, 開放題, 問答題, 課堂小考, 教學分析, QJudge",
-    "ogTitle": "QJudge 線上考試平台｜多元評量・AI 輔助批改・教學分析",
-    "ogDescription": "QJudge 協助大專院校教師整合命題、考試管理、AI 輔助批改與考後分析。支援選擇題、問答題與程式題，讓課堂小考、期中期末考都能留下可用的學習回饋。"
+    "ogTitle": "QJudge｜線上考試與 AI 批改",
+    "ogDescription": "支援多元題型、即時監考與 AI 輔助批改，協助教師完成課程評量。"
   },
   "socialProof": {
     "caseStudies": {
@@ -308,14 +308,14 @@
         "title": "大型課堂正式考試"
       }
     },
-    "description": "從大班課堂小考到研究所課程評量，了解教師如何將 QJudge 用於真實教學現場。",
+    "description": "",
     "eyebrow": "真實使用場景",
-    "title": "真實校園應用場景"
+    "title": "校園使用案例"
   },
   "video": {
     "eyebrow": "產品影片",
     "title": "用 90 秒認識 QJudge",
-    "description": "從課堂評量的出題與批改負擔出發，看看考前檢查、考試紀錄、AI 輔助批改與全班學習分析如何串接。",
+    "description": "觀看實際操作，了解教師與學生的使用流程。",
     "link": "影片介紹與文字摘要",
     "note": "繁體中文影片・1 分 27 秒・附文字摘要"
   },
@@ -346,13 +346,13 @@
     "flowDetail10": "追蹤繳交與剩餘時間",
     "flowDetail11": "標記需要處理的異常事件",
     "flowDetail12": "QJudge 九宮格監考合成示意：九名虛構學生的考試作答畫面",
-    "flowDetail13": "以實際考試預覽截圖等比例縮小合成九宮格，呈現完整桌面分享的監控比例；學生標籤為虛構。",
+    "flowDetail13": "實際作答畫面縮小合成九宮格；學生標籤為虛構。",
     "flowDetail14": "快速完成批改，並將成績與回饋發布",
     "flowDetail15": "自動整理成績與答題狀態",
     "flowDetail16": "檢查逐題批改結果",
     "flowDetail17": "發布可追蹤的成績與回饋",
     "flowDetail18": "QJudge AI 批改工作台：題目進度、分數、評語與 AI 來源，學生身分已遮蔽",
-    "flowDetail19": "在同一工作台檢視逐題進度、分數、評語與 AI 批改來源。截取自課程期中考，學生身分已遮蔽。",
+    "flowDetail19": "課程期中考的 AI 批改工作台，學生身分已遮蔽。",
     "flowDetail20": "QJudge 逐題作答結果",
     "flowDetail21": "展開單題作答，確認答案與得分依據",
     "flowDetail22": "QJudge 個人成績報告第一頁",
@@ -375,6 +375,8 @@
     "highlights": "{{title}} 操作亮點",
     "productScreens": "{{title}} 產品畫面",
     "examScreenshotAlt": "計概期中考的 QJudge 學生作答介面預覽",
-    "examScreenshotCaption": "實際課程考卷的學生預覽畫面：淺色介面整合題目導覽、程式碼排版與作答區。"
+    "examScreenshotCaption": "計概期中考的學生作答預覽。",
+    "pausePhotos": "暫停照片輪播",
+    "resumePhotos": "繼續照片輪播"
   }
 }

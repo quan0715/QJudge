@@ -6,7 +6,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { paperFixture, questionFixture } from "./workbenchEdit.fixture";
 import type { WorkbenchEditRailProps } from "./WorkbenchEditRail";
@@ -101,10 +101,16 @@ vi.mock("react-i18next", () => ({
         : key,
   }),
 }));
+function CurrentLocation() {
+  const { search } = useLocation();
+  return <output data-testid="current-location">{search}</output>;
+}
+
 async function setup(query = "") {
   const view = render(
     <MemoryRouter initialEntries={["/?" + query]}>
       <WorkbenchEditScreen header={<h2>工作台</h2>} />
+      <CurrentLocation />
     </MemoryRouter>,
   );
   await waitFor(() => expect(mocks.rail).not.toBeNull());
@@ -455,10 +461,14 @@ it("keeps the initial question selected after reordering the first block", async
   moved.blocks = [moved.blocks[1], moved.blocks[0], moved.blocks[2]];
   mocks.reorderExamPaperBlocks.mockResolvedValue(moved);
   await setup();
+  // Initial selection is persisted through a router transition before reordering.
+  await waitFor(() =>
+    expect(screen.getByTestId("current-location")).toHaveTextContent("edit_item=q1"),
+  );
   fireEvent.click(screen.getByRole("button", { name: "下移" }));
   await waitFor(() => expect(mocks.reorderExamPaperBlocks).toHaveBeenCalled());
-  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-    "Prompt q1",
+  await waitFor(() =>
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Prompt q1"),
   );
 });
 
@@ -517,6 +527,7 @@ it("keeps the mode header without a legacy link while loading and after a load e
   render(
     <MemoryRouter initialEntries={["/?panel=grading-workbench"]}>
       <WorkbenchEditScreen header={<h2>工作台</h2>} />
+      <CurrentLocation />
     </MemoryRouter>,
   );
   expect(screen.getByRole("heading", { name: "工作台" })).toBeTruthy();

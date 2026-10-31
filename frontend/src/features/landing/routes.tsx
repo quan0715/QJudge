@@ -2,7 +2,7 @@ import { lazy } from "react";
 import { Route } from "react-router-dom";
 import { RouteLoadingBoundary } from "@/shared/ui/RouteLoadingBoundary";
 
-const LandingScreen = lazy(() => import("./screens/LandingScreen"));
+const LandingScreen = lazy(() => import("./screens/LandingEntryScreen"));
 
 /**
  * Public landing route (no auth required)
