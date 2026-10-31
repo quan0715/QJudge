@@ -1,7 +1,6 @@
 import type { FC } from "react";
 import { Button } from "@carbon/react";
 import { ArrowDownRight, ArrowRight } from "@carbon/icons-react";
-import { STORYSET_ONLINE_TEST_RAFIKI_ILLUSTRATION } from "@/features/landing/assets/illustrations/storyset";
 import "./HeroSection.scss";
 
 interface HeroSectionProps {
@@ -20,6 +19,13 @@ interface HeroSectionProps {
 const HeroSection: FC<HeroSectionProps> = ({ content, onPrimary, onSecondary }) => {
   return (
     <section id="top" className="landing-hero-section" data-testid="landing-section-hero">
+      <img
+        className="landing-hero-section__background"
+        src="/illustrations/product-exam-q1-20261030.webp"
+        alt=""
+        fetchPriority="high"
+        aria-hidden="true"
+      />
       <div className="landing-hero-section__inner">
         <div className="landing-hero-section__copy">
           <div className="landing-hero-section__eyebrow">
@@ -45,15 +51,6 @@ const HeroSection: FC<HeroSectionProps> = ({ content, onPrimary, onSecondary }) 
           </div>
         </div>
 
-        <div className="landing-hero-section__visual">
-          <div className="landing-hero-section__visual-stage">
-            <img
-              className="landing-hero-section__illustration"
-              src={STORYSET_ONLINE_TEST_RAFIKI_ILLUSTRATION}
-              alt="QJudge online exam illustration"
-            />
-          </div>
-        </div>
       </div>
     </section>
   );
