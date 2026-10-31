@@ -457,8 +457,8 @@ it("keeps the initial question selected after reordering the first block", async
   await setup();
   fireEvent.click(screen.getByRole("button", { name: "下移" }));
   await waitFor(() => expect(mocks.reorderExamPaperBlocks).toHaveBeenCalled());
-  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-    "Prompt q1",
+  await waitFor(() =>
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Prompt q1"),
   );
 });
 
