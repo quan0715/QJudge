@@ -50,20 +50,26 @@ function landingReadableHtml(): Plugin {
   const escape = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
   return {
     name: "landing-readable-html",
-    transformIndexHtml(html, context) {
-      if (!context.filename.endsWith("landing.html")) return html;
-      const c = landingZhTW;
-      const sections = [c.proposition, c.flow, c.audience, c.socialProof];
-      const content = `<main class="landing-section">
-        <h1>${escape(c.hero.title)}</h1><p>${escape(c.hero.subtitle)}</p>
-        <p><a href="${mainAppUrl}/register">${escape(c.hero.primaryCta)}</a> · <a href="/demo/">${escape(c.video.link)}</a></p>
-        <section><h2>${escape(c.video.title)}</h2><p>${escape(c.video.description)}</p>
-          <video controls playsinline preload="none" width="1920" height="1080" style="width:100%;height:auto;max-width:80rem" poster="/media/QJudge-launch-v4.jpg" aria-label="${escape(c.video.title)}"><source src="/media/QJudge-launch-v4.mp4" type="video/mp4"></video>
-        </section>
-        ${sections.map(section => `<section><h2>${escape(section.title)}</h2><p>${escape(section.description)}</p></section>`).join("\n")}
-        <section><h2>${escape(c.faq.title)}</h2>${c.faq.items.map(item => `<h3>${escape(item.question)}</h3><p>${escape(item.answer)}</p>`).join("\n")}</section>
-      </main>`;
-      return html.replace('<div id="root"></div>', `<div id="root">${content}</div>`);
+    transformIndexHtml: {
+      order: "pre",
+      handler(html, context) {
+        if (!context.filename.endsWith("landing.html")) return html;
+        const c = landingZhTW;
+        html = html.replaceAll("%LANDING_TITLE%", escape(c.seo.title))
+          .replaceAll("%LANDING_DESCRIPTION%", escape(c.seo.description))
+          .replaceAll("%LANDING_KEYWORDS%", escape(c.seo.keywords));
+        const sections = [c.proposition, c.flow, c.audience, c.socialProof];
+        const content = `<main class="landing-section">
+          <h1>${escape(c.hero.title)}</h1><p>${escape(c.hero.subtitle)}</p>
+          <p><a href="${mainAppUrl}/register">${escape(c.hero.primaryCta)}</a> · <a href="/demo/">${escape(c.video.link)}</a></p>
+          <section>
+            <video controls playsinline preload="none" width="1920" height="1080" style="width:100%;height:auto;max-width:80rem" poster="/media/QJudge-launch-v4.jpg" aria-label="${escape(c.video.title)}"><source src="/media/QJudge-launch-v4.mp4" type="video/mp4"></video>
+          </section>
+          ${sections.map(section => `<section><h2>${escape(section.title)}</h2>${section.description ? `<p>${escape(section.description)}</p>` : ""}</section>`).join("\n")}
+          <section><h2>${escape(c.faq.title)}</h2>${c.faq.items.map(item => `<h3>${escape(item.question)}</h3><p>${escape(item.answer)}</p>`).join("\n")}</section>
+        </main>`;
+        return html.replace('<div id="root"></div>', `<div id="root">${content}</div>`);
+      },
     },
   };
 }

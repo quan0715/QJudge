@@ -53,7 +53,6 @@ const FooterCtaSection: FC<FooterCtaSectionProps> = ({ content, onPrimary, onSec
           <div className="landing-footer-section__brand">
             <span className="landing-footer-section__brand-name">QJUDGE</span>
             <p>{t("ui.tagline")}</p>
-            <p>{t("ui.taglineDetail")}</p>
           </div>
 
           <div className="landing-footer-section__col">

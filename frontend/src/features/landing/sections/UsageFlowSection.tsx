@@ -211,7 +211,6 @@ const UsageFlowSection: FC<UsageFlowSectionProps> = ({ eyebrow, title, descripti
                   <div className="landing-flow-section__chapter-copy">
                     <p className="landing-flow-section__chapter-kicker">Step {item.step}</p>
                     <h3>{item.title}</h3>
-                    <h4>{detail.valueTitle}</h4>
                     <p>{item.description}</p>
                     <ul aria-label={t("ui.highlights", { title: item.title })}>
                       {detail.highlights.map((highlight) => (
@@ -250,10 +249,6 @@ const UsageFlowSection: FC<UsageFlowSectionProps> = ({ eyebrow, title, descripti
           </div>
         </div>
 
-        <div className="landing-flow-section__summary" aria-label={t("ui.flowSummaryLabel")}>
-          <p>{t("ui.journey")}</p>
-          <strong>{t("ui.flowSummary")}</strong>
-        </div>
       </div>
     </section>
   );
