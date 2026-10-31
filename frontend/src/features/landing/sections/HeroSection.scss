@@ -83,12 +83,8 @@
   margin: 0;
   max-width: none;
   letter-spacing: -0.05em;
-  line-height: 0.98;
-  white-space: nowrap;
-
-  @media (max-width: 1055px) {
-    white-space: normal;
-  }
+  line-height: 1.15;
+  text-wrap: balance;
 }
 
 .landing-hero-section__copy p {
@@ -233,7 +229,9 @@
   }
 
   .landing-hero-section__copy h1 {
-    max-width: 9ch;
+    @include type.type-style("productive-heading-05");
+    max-width: none;
+    line-height: 1.2;
   }
 
   .landing-hero-section__actions {

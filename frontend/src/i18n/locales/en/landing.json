@@ -1,6 +1,6 @@
 {
   "audience": {
-    "description": "From university finals to APCS mock tests, QJudge provides complete exam workflows, question banks, and learning analytics.",
+    "description": "",
     "eyebrow": "Audience",
     "items": {
       "apcs": {
@@ -28,7 +28,7 @@
         "solution": "Design finals with multiple choice, fill-in-the-blank, and coding questions. Randomization, timers, and anti-cheat monitoring ensure fairness with instant grading."
       }
     },
-    "title": "Versatile Assessment for Universities, Schools, and Professional Training"
+    "title": "Built for your teaching context"
   },
   "contact": {
     "description": "We welcome feedback, bug reports, and collaboration proposals.",
@@ -61,7 +61,7 @@
     "title": "Comprehensive Assessment Experience"
   },
   "faq": {
-    "description": "Clear answers about QJudge's examination capabilities, adoption steps, and real-world usage.",
+    "description": "",
     "eyebrow": "FAQ",
     "items": [
       {
@@ -114,7 +114,7 @@
     "title": "Powerful Features Designed for Education"
   },
   "flow": {
-    "description": "QJudge unifies question creation, proctoring, grading, analytics, and question banks into one cohesive workflow, reducing overhead and feeding insights back into teaching.",
+    "description": "",
     "eyebrow": "End-to-End Exam Workflow",
     "items": [
       {
@@ -138,7 +138,7 @@
         "title": "Analytics & Iteration"
       }
     ],
-    "title": "From Authoring to Analytics: Seamless Exam Operations"
+    "title": "From questions to results"
   },
   "footer": {
     "attribution": "Illustration by Storyset. Check licensing and attribution guidelines prior to production use.",
@@ -171,8 +171,8 @@
     },
     "primaryCta": "Get Started Free",
     "secondaryCta": "Book a Demo",
-    "subtitle": "Experience QJudge's online assessment workflow today — from exam setup and delivery to in-depth analytics.",
-    "title": "Give Time Back to Teaching, Starting Here"
+    "subtitle": "Try it for free or book a demo for your course.",
+    "title": "Create your first exam"
   },
   "hero": {
     "eyebrow": "QJudge",
@@ -180,8 +180,8 @@
     "panelTitle": "Teacher Dashboard Overview",
     "primaryCta": "Get Started Free",
     "secondaryCta": "Book a Demo",
-    "subtitle": "Connect question authoring, exam management, AI-assisted grading and analysis for university courses. Choose question types to fit your course and give students feedback beyond a score.",
-    "title": "Make every exam an opportunity to understand learning.",
+    "subtitle": "Create exams, monitor progress, and review AI-assisted grades to see where students need help.",
+    "title": "Online exams. Clearer learning insights.",
     "trust": {
       "capacity": "150+ Concurrent Examinees Verified",
       "users": "Serving 200+ Teachers and Students",
@@ -189,24 +189,24 @@
     }
   },
   "mcp": {
-    "description": "Create, grade, and provide feedback directly in Claude, ChatGPT, Cursor, Perplexity, Gemini, and Notion",
+    "description": "Use MCP to work with QJudge from tools you already know.",
     "examples": {
       "0": {
-        "description": "Draft questions and test cases with AI, then review the content before adding it to an exam.",
+        "description": "AI drafts questions; teachers review their content and difficulty before use.",
         "eyebrow": "AI Question Creation & Review",
         "image": "/example-1.png",
-        "title": "Create and review questions with AI"
+        "title": "Draft and review questions"
       },
       "1": {
-        "description": "Bring together scores and answer patterns to review class performance and identify topics that need further teaching.",
+        "description": "Explore score distributions and common mistakes to plan follow-up teaching.",
         "eyebrow": "Holistic Exam Analytics",
         "image": "/example-2.png",
-        "title": "Explore class-wide exam results"
+        "title": "Analyze exam results"
       },
       "2": {
         "description": "Breaking beyond rigid scripts, AI deeply understands and evaluates student responses with instant grading, feedback, and suggestions.",
         "eyebrow": "AI Teaching Assistant Grading",
-        "title": "Open-ended Questions with Precise Semantic Grading"
+        "title": "Assist with written-answer grading"
       }
     },
     "eyebrow": "Seamless Collaboration",
@@ -220,7 +220,7 @@
       "1": "Get grading results, statistics, and common error analysis automatically",
       "2": "AI analyzes common errors and suggests improvements"
     },
-    "title": "Collaborate Seamlessly with Your Favorite AI Tools",
+    "title": "Connect your AI tools",
     "tools": {
       "chatgpt": "ChatGPT",
       "claude": "Claude",
@@ -256,30 +256,30 @@
     "features": "Features"
   },
   "proposition": {
-    "description": "From proctoring and exam configuration to data analytics, QJudge makes every exam reliable, flexible, and valuable.",
+    "description": "",
     "eyebrow": "Key Advantages",
     "items": {
       "control": {
-        "description": "Log anomalies and preserve complete exam context so results are fully verifiable and auditable.",
-        "title": "Controlled Formal Exams"
+        "description": "Review student responses and recorded incidents.",
+        "title": "Traceable exam records"
       },
       "flexibility": {
-        "description": "Configure multiple-choice, free-response, and coding tests in one unified platform without tool-switching.",
-        "title": "Configurable for Diverse Exam Scenarios"
+        "description": "Combine multiple-choice, fill-in, written, and coding questions.",
+        "title": "Flexible question types"
       },
       "value": {
-        "description": "Turn questions, results, and analytics into actionable foundations for curriculum improvement and question bank iteration.",
-        "title": "Lasting Value from Every Exam"
+        "description": "Use exam results to refine questions for future assessments.",
+        "title": "Reusable question banks"
       }
     },
-    "title": "Designed for Formal Exams: Not Just Answering, but Actionable Results"
+    "title": "Understand exam performance"
   },
   "seo": {
-    "title": "QJudge | Online Exams, AI-Assisted Grading & Learning Analytics",
-    "description": "QJudge helps university educators connect question authoring, exam management, AI-assisted grading and learning analytics. It supports multiple-choice, open-ended and programming questions for quizzes and course exams.",
+    "title": "QJudge | Online Exams & AI Grading",
+    "description": "Assess learning with flexible question types, live proctoring, and AI-assisted grading.",
     "keywords": "online exam platform, university assessment, AI-assisted grading, open-ended questions, classroom quiz, learning analytics, QJudge",
-    "ogTitle": "QJudge | Online Exams, AI-Assisted Grading & Learning Analytics",
-    "ogDescription": "QJudge helps university educators connect question authoring, exam management, AI-assisted grading and learning analytics. It supports multiple-choice, open-ended and programming questions for quizzes and course exams."
+    "ogTitle": "QJudge | Online Exams & AI Grading",
+    "ogDescription": "Assess learning with flexible question types, live proctoring, and AI-assisted grading."
   },
   "socialProof": {
     "caseStudies": {
@@ -308,14 +308,14 @@
         "title": "Large Classroom Midterm Exam"
       }
     },
-    "description": "From large-scale class exams to graduate lab tests, QJudge supports authentic assessment workflows in higher education.",
+    "description": "",
     "eyebrow": "Real-World Scenarios",
-    "title": "Campus Application Scenarios"
+    "title": "On campus"
   },
   "video": {
     "eyebrow": "Product video",
     "title": "Meet QJudge in 90 seconds",
-    "description": "See how exam preparation, activity records, AI-assisted grading and class-wide analysis connect in a course assessment workflow.",
+    "description": "See how teachers and students use QJudge.",
     "link": "Video overview and text summary (Traditional Chinese)",
     "note": "Traditional Chinese video · 1 min 27 sec · text summary available"
   },
@@ -346,13 +346,13 @@
     "flowDetail10": "Track submissions and remaining time",
     "flowDetail11": "Review unusual activity",
     "flowDetail12": "Synthetic QJudge nine-screen proctoring demo with fictional students answering exam questions",
-    "flowDetail13": "Nine-screen monitoring composite made from real exam-preview screenshots, scaled down as full desktop streams. Student labels are fictional.",
+    "flowDetail13": "Composite of scaled exam screenshots with fictional student labels.",
     "flowDetail14": "Complete grading and publish scores with feedback",
     "flowDetail15": "Review scores and answer status",
     "flowDetail16": "Check grading results question by question",
     "flowDetail17": "Publish traceable scores and feedback",
     "flowDetail18": "QJudge AI grading workbench showing question progress, scores, feedback, and AI provenance; student identities redacted",
-    "flowDetail19": "Review question progress, scores, feedback, and AI grading provenance in one workbench. Captured from the course midterm; student identities are redacted.",
+    "flowDetail19": "AI grading workbench from a course midterm; student identities are hidden.",
     "flowDetail20": "QJudge individual answer results",
     "flowDetail21": "Open an answer to review its score and rationale",
     "flowDetail22": "QJudge student report, first page",
@@ -375,6 +375,6 @@
     "highlights": "{{title}} highlights",
     "productScreens": "{{title}} screenshots",
     "examScreenshotAlt": "QJudge student answering interface in the course midterm preview",
-    "examScreenshotCaption": "Actual course exam preview: question navigation, code formatting, and answer entry in a light theme."
+    "examScreenshotCaption": "Student preview of the Introduction to Computers midterm."
   }
 }
