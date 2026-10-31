@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Button, Theme } from "@carbon/react";
+import { MemoryRouter } from "react-router-dom";
+import { ContestAdminProvider, AdminPanelRefreshProvider } from "@/features/contest/contexts";
+import { ToastProvider } from "@/shared/contexts/ToastContext";
+import AdminProctoringPanel from "@/features/contest/screens/admin/panels/AdminProctoringPanel";
 import "@/i18n";
 import "@/styles/globals.scss";
 import type { ContestParticipant } from "@/core/entities/contest.entity";
@@ -53,4 +57,12 @@ function Fixture() {
     </div>
   </Theme>;
 }
-createRoot(document.getElementById("root")!).render(<Fixture />);
+createRoot(document.getElementById("root")!).render(
+  new URLSearchParams(location.search).has("panel") ? <MemoryRouter>
+    <ToastProvider><ContestAdminProvider autoLoad={false}><AdminPanelRefreshProvider>
+      <div style={{ height: "100dvh" }}>
+        <AdminProctoringPanel contestId="" contest={null} />
+      </div>
+    </AdminPanelRefreshProvider></ContestAdminProvider></ToastProvider>
+  </MemoryRouter> : <Fixture />,
+);
