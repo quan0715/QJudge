@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, Modal, TableToolbarSearch, Tag, TextArea } from "@carbon/react";
+import { Button, Modal, Select, SelectItem, TableToolbarSearch, Tag, TextArea, Toggle } from "@carbon/react";
 import {
   ArrowLeft,
   CheckmarkFilled,
@@ -111,6 +111,7 @@ interface MinimalLiveStageProps {
   contestId: string;
   participant: ContestParticipant | null;
   discoveryRefreshKey: number;
+  reconnectKey?: number;
   lockActionBusy: boolean;
   monitoringAvailable: boolean;
   onToggleLock?: () => void;
@@ -125,6 +126,7 @@ export const MinimalLiveStage = ({
   contestId,
   participant,
   discoveryRefreshKey,
+  reconnectKey = 0,
   lockActionBusy,
   monitoringAvailable,
   onToggleLock,
@@ -143,6 +145,11 @@ export const MinimalLiveStage = ({
   const { transportRef, transport, state: transportState, reconnect } = useLiveMonitoringConnection({
     contestId, enabled: monitoringAvailable, role: "subscriber",
   });
+  const previousReconnectKey = useRef(reconnectKey);
+  useEffect(() => {
+    if (previousReconnectKey.current !== reconnectKey) reconnect();
+    previousReconnectKey.current = reconnectKey;
+  }, [reconnectKey, reconnect]);
   const [snapshot, setSnapshot] = useState<LiveTargetSnapshot>({
     observedAt: null,
     stale: true,
@@ -319,28 +326,6 @@ export const MinimalLiveStage = ({
 
   return (
     <div className={styles.monitorStage}>
-      {participants && <div className={styles.monitorViewToolbar}>
-        <div className={styles.monitorActions} role="group" aria-label={t("proctoringPanel.layout", "監看版面")}>
-          {([1, 4, 9] as const).map((size) => <Button key={size} size="sm"
-            kind={layout === size ? "primary" : "ghost"} aria-pressed={layout === size}
-            onClick={() => onLayoutChange?.(size)}>
-            {size === 1 ? t("proctoringPanel.focusView", "單人") : size === 4
-              ? t("proctoringPanel.fourView", "4 人") : t("proctoringPanel.nineView", "9 人")}
-          </Button>)}
-        </div>
-        {layout === 1 && <div className={styles.monitorActions}>
-          <Button kind="ghost" size="sm" renderIcon={ChevronLeft} hasIconOnly
-            iconDescription={t("proctoringPanel.previousStudent", "上一位")}
-            disabled={!participant || participants.findIndex((row) => row.userId === userId) <= 0}
-            onClick={() => { const index = participants.findIndex((row) => row.userId === userId); if (index > 0) onSelectParticipant?.(participants[index - 1].userId); }} />
-          <Button kind="ghost" size="sm" renderIcon={ChevronRight} hasIconOnly
-            iconDescription={t("proctoringPanel.nextStudent", "下一位")}
-            disabled={!participant || participants.findIndex((row) => row.userId === userId) >= participants.length - 1}
-            onClick={() => { const index = participants.findIndex((row) => row.userId === userId); if (index >= 0 && index + 1 < participants.length) onSelectParticipant?.(participants[index + 1].userId); }} />
-        </div>}
-        {layout !== 1 && <Button kind="ghost" size="sm" renderIcon={Renew} hasIconOnly
-          iconDescription={t("liveView.reconnect", "重新連線")} disabled={!monitoringAvailable} onClick={reconnect} />}
-      </div>}
       {layout === 1 && <div className={styles.monitorHeader}>
         <div className={styles.monitorHeaderLeft}>
           {onBackToRoster ? (
@@ -358,6 +343,16 @@ export const MinimalLiveStage = ({
           </div>
         </div>
         <div className={styles.monitorActions}>
+          {participants && <>
+            <Button kind="ghost" size="sm" renderIcon={ChevronLeft} hasIconOnly
+              iconDescription={t("proctoringPanel.previousStudent", "上一位")}
+              disabled={!participant || participants.findIndex((row) => row.userId === userId) <= 0}
+              onClick={() => { const index = participants.findIndex((row) => row.userId === userId); if (index > 0) onSelectParticipant?.(participants[index - 1].userId); }} />
+            <Button kind="ghost" size="sm" renderIcon={ChevronRight} hasIconOnly
+              iconDescription={t("proctoringPanel.nextStudent", "下一位")}
+              disabled={!participant || participants.findIndex((row) => row.userId === userId) >= participants.length - 1}
+              onClick={() => { const index = participants.findIndex((row) => row.userId === userId); if (index >= 0 && index + 1 < participants.length) onSelectParticipant?.(participants[index + 1].userId); }} />
+          </>}
           {onToggleLock ? (
             <Button
               kind={participantLocked ? "ghost" : "danger--ghost"}
@@ -371,9 +366,6 @@ export const MinimalLiveStage = ({
               onClick={onToggleLock}
             />
           ) : null}
-          <Button kind="ghost" size="sm" renderIcon={Renew} hasIconOnly
-            iconDescription={t("liveView.reconnect", "重新連線")} onClick={reconnect}
-            disabled={!monitoringAvailable} />
           <Tag type={playingSources.length > 0 ? "green" : "cool-gray"} size="sm">
             {playingSources.length}/{visibleSources.length}
           </Tag>
@@ -509,6 +501,8 @@ export default function AdminProctoringPanel({
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [rosterPaneOpen, setRosterPaneOpen] = useState(true);
   const [monitorLayout, setMonitorLayout] = useState<1 | 4 | 9>(() => searchParams.get("user") ? 1 : 4);
+  const [multipleSize, setMultipleSize] = useState<4 | 9>(4);
+  const [liveReconnectKey, setLiveReconnectKey] = useState(0);
   const [eventsPaneOpen, setEventsPaneOpen] = useState(true);
   const [eventDetailOpen, setEventDetailOpen] = useState(false);
   const [lastSeenEventAt, setLastSeenEventAt] = useState(0);
@@ -845,6 +839,7 @@ export default function AdminProctoringPanel({
   return (
     <div className={styles.page}>
       <PanelToolbar
+        className={styles.proctorToolbar}
         leftActions={!isMobile ? (
           <div className={styles.rosterToggle}>
             <Button
@@ -866,6 +861,24 @@ export default function AdminProctoringPanel({
           </div>
         ) : undefined}
         title={t("proctoringPanel.title", "監考面板")}
+        status={<div className={styles.viewControls}>
+          <span>{t("proctoringPanel.focusView", "單人")}</span>
+          <Toggle id="proctor-multiple-view" size="sm" hideLabel
+            aria-label={t("proctoringPanel.multipleView", "多人")}
+            toggled={monitorLayout !== 1}
+            onToggle={(multiple) => setMonitorLayout(multiple ? multipleSize : 1)} />
+          <span>{t("proctoringPanel.multipleView", "多人")}</span>
+          {monitorLayout !== 1 && <Select id="proctor-grid-size" size="sm" hideLabel
+            labelText={t("proctoringPanel.gridSize", "每頁監看人數")}
+            value={multipleSize} onChange={(event) => {
+              const size = event.target.value === "9" ? 9 : 4;
+              setMultipleSize(size);
+              setMonitorLayout(size);
+            }}>
+            <SelectItem value="4" text={t("proctoringPanel.fourView", "4 人")} />
+            <SelectItem value="9" text={t("proctoringPanel.nineView", "9 人")} />
+          </Select>}
+        </div>}
         actions={(
           <>
             <div className={styles.toolbarSearch}>
@@ -889,7 +902,10 @@ export default function AdminProctoringPanel({
               iconDescription={t("adminLayout.header.refresh", "重新整理")}
               hasIconOnly
               disabled={isRefreshing}
-              onClick={() => void refreshPanel()}
+              onClick={() => {
+                setLiveReconnectKey((key) => key + 1);
+                void refreshPanel();
+              }}
             />
             {newCollapsedEventCount > 0 ? (
               <Tag type="teal" size="sm">
@@ -977,6 +993,7 @@ export default function AdminProctoringPanel({
                 onLayoutChange={setMonitorLayout}
                 onSelectParticipant={(userId) => updateParams({ user: userId })}
                 discoveryRefreshKey={liveDiscoveryRefreshKey}
+                reconnectKey={liveReconnectKey}
                 lockActionBusy={lockActionBusy}
                 monitoringAvailable={inExamWindow}
                 onToggleLock={selectedParticipant ? handleToggleSelectedParticipantLock : undefined}

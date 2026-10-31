@@ -26,7 +26,7 @@
   grid-template-rows: repeat(3, minmax(14rem, 1fr));
 }
 
-.tile {
+.grid .tile {
   display: flex;
   flex-direction: column;
   align-items: stretch;

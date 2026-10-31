@@ -1804,6 +1804,8 @@
     "nextPage": "下一頁",
     "layout": "監看版面",
     "focusView": "單人",
+    "multipleView": "多人",
+    "gridSize": "每頁監看人數",
     "fourView": "4 人",
     "nineView": "9 人",
     "previousStudent": "上一位",
