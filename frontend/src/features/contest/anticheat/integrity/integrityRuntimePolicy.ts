@@ -1,21 +1,7 @@
 import type {
-  ContestIntegrityRun,
-} from "@/core/entities/contest.entity";
-import type {
   ExamIntegrityHealthSnapshot,
-  ExamIntegrityStateSnapshot,
   IntegrityHealthUpdate,
 } from "@/core/entities/examIntegrity.entity";
-import type { EvidenceCoordinator } from "./evidenceCoordinator";
-
-export interface UseIntegrityRuntimeOptions {
-  enabled: boolean;
-  contestId: string;
-  integrityRun?: ContestIntegrityRun;
-  snapshotProvider: () => Omit<ExamIntegrityStateSnapshot, "health">;
-  evidenceSources?: Partial<Record<"screen_share" | "webcam", MediaStream | null>>;
-  onEvidenceControllerChange?: (controller: EvidenceCoordinator | null) => void;
-}
 
 export const sourceTargets = (policy: Record<string, unknown> | undefined) => {
   const evidence = policy?.evidence as Record<string, unknown> | undefined;

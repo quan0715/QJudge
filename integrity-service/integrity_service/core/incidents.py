@@ -18,16 +18,6 @@ from integrity_service.core.commands import (
 from integrity_service.core.registry import ParsedDefinition, Registry
 
 
-_REGISTRY_ACTIONS: dict[str, CommandAction] = {
-    "audit": "audit",
-    "record": "record",
-    "record_event": "record",
-    "pause": "pause",
-    "lock": "lock",
-    "submit": "submit",
-}
-
-
 @dataclass(frozen=True, slots=True)
 class IncidentResult:
     commands: tuple[IntegrityCommand, ...]
@@ -137,7 +127,7 @@ class IncidentEngine:
 
         lifecycle_signal = bool(definition.escalated or definition.restored)
         incident_id = None
-        action = _REGISTRY_ACTIONS[definition.action]
+        action = definition.action
         if lifecycle_signal:
             incident_id = deterministic_uuid(
                 self._context.run_id,
@@ -215,7 +205,7 @@ class IncidentEngine:
             event_id=opened.trigger_event_id,
             phase="escalated",
             event_type=opened.definition.escalated,
-            action=_REGISTRY_ACTIONS[opened.definition.action],
+            action=opened.definition.action,
             client_occurred_at_ms=opened.trigger_client_occurred_at_ms,
             received_at_server_ms=opened.deadline_server_ms,
             evidence=self._evidence(opened.definition),

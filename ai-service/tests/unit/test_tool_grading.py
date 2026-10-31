@@ -99,7 +99,7 @@ async def test_server_export_reads_once_and_writes_two_artifacts():
     requests = []
     def handler(request):
         requests.append(request)
-        return httpx.Response(200, json={"units": [{"unit_id": "q", "questions": [{"question_id": "q", "label": "1"}],
+        return httpx.Response(200, json={"units": [{"unit_id": "q", "questions": [{"question_id": "q", "label": "1", "order": 0}],
             "rubric": {"criterion": "correct"}, "answers": [], "grades": []}], "official_grades": {}})
     service.http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     artifacts = AsyncMock()

@@ -27,18 +27,10 @@ from apps.contests.models import (
 from apps.contests.services.activity_log import log_contest_activity
 from apps.contests.services.anticheat_storage import get_s3_client
 from apps.contests.services.exam_submission import finalize_submission
-from apps.contests.services.integrity_event_projection import registry_action_is_penalty
+from apps.contests.integrity.registry import registry_action_is_penalty
 
 
 _ACTIONS = frozenset({"audit", "record", "pause", "lock", "submit"})
-_REGISTRY_ACTIONS = {
-    "audit": "audit",
-    "record": "record",
-    "record_event": "record",
-    "pause": "pause",
-    "lock": "lock",
-    "submit": "submit",
-}
 _CONNECTIVITY_TRANSITIONS = frozenset(
     {
         "connectivity_suspect",
@@ -76,7 +68,6 @@ class RecordIntegrityEvent:
     device_id: str
     evidence: dict[str, object]
     command_fingerprint: str
-    command_semantics: dict[str, object]
 
 
 def resident_service_digest() -> str:
@@ -454,29 +445,18 @@ def _definition_for_event(
     return match
 
 
-def _validate_event_action(
-    *,
-    definition: dict[str, object],
-    phase: str,
-    action: str,
-    delayed_delivery: bool,
-) -> None:
-    registry_action = _REGISTRY_ACTIONS.get(definition.get("action"))
+def _default_event_action(definition: dict, phase: str, delayed_delivery: bool) -> str:
+    action = definition.get("action")
+    if action == "record_event":
+        action = "record"
     signals = definition.get("signals")
-    if registry_action is None or type(signals) is not dict:
+    if action not in _ACTIONS or type(signals) is not dict:
         raise IntegrityCommandRejected("invalid_frozen_registry")
-    if delayed_delivery:
-        allowed = {"audit"}
-    elif phase == "restored":
-        allowed = {"audit"}
-    elif phase == "triggered" and (
-        signals.get("escalated") or signals.get("restored")
-    ):
-        allowed = {"record", "audit"}
-    else:
-        allowed = {registry_action, "audit"}
-    if action not in allowed:
-        raise IntegrityCommandRejected("command_action_registry_mismatch")
+    if delayed_delivery or phase == "restored":
+        return "audit"
+    if phase == "triggered" and (signals.get("escalated") or signals.get("restored")):
+        return "record"
+    return action
 
 
 def _existing_command_event(
@@ -486,7 +466,6 @@ def _existing_command_event(
     participant_id: int,
     event_type: str,
     command_fingerprint: str,
-    command_semantics: dict[str, object],
 ) -> ExamEvent | None:
     existing = ExamEvent.objects.filter(integrity_command_id=command_id).first()
     if existing is None:
@@ -600,6 +579,16 @@ def _apply_registry_action(
         participant.save(update_fields=list(dict.fromkeys(update_fields)))
 
 
+def _policy_suppression_reason(run: ExamIntegrityRun, definition_id: str) -> str | None:
+    # A teacher may disable webcam during a frozen run. Pending worker timers
+    # must retain their evidence without enforcing a requirement that no longer applies.
+    if definition_id == "webcam" and not (
+        run.policy_snapshot.get("webcam_required") is True and run.contest.webcam_required
+    ):
+        return "webcam_not_required"
+    return None
+
+
 @transaction.atomic
 def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
     contest_id = ExamIntegrityRun.objects.values_list("contest_id", flat=True).get(pk=command.run_id)
@@ -622,12 +611,9 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         run,
         command.event_type,
     )
-    _validate_event_action(
-        definition=definition,
-        phase=phase,
-        action=command.action,
-        delayed_delivery=command.delayed_delivery,
-    )
+    default_action = _default_event_action(definition, phase, command.delayed_delivery)
+    if command.action not in {default_action, "audit"}:
+        raise IntegrityCommandRejected("command_action_registry_mismatch")
     if participant.exam_status not in {
         ExamStatus.IN_PROGRESS,
         ExamStatus.PAUSED,
@@ -642,7 +628,6 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         participant_id=participant.id,
         event_type=command.event_type,
         command_fingerprint=command.command_fingerprint,
-        command_semantics=command.command_semantics,
     )
     if existing is not None:
         return existing
@@ -659,12 +644,14 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         run=run, participant=participant, device_id=command.device_id,
         attempt_id=participant.integrity_attempt_id, batch_id=receipt_id,
         late_unverified=False).exists()
+    policy_suppression = _policy_suppression_reason(run, definition_id)
     effective_action = (
         "audit"
         if (
             command.delayed_delivery
             or late_unverified
             or platform_gap
+            or policy_suppression is not None
             or participant.exam_status == ExamStatus.SUBMITTED
         )
         else command.action
@@ -679,8 +666,10 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         "requested_action": command.action,
         "command_fingerprint": command.command_fingerprint,
         "late_unverified": late_unverified,
+        **({"counted_as_violation": False} if command.event_type == "clipboard_action" else {}),
         **({"evidence_gap": command.metadata["evidence_gap"]} if command.metadata.get("evidence_gap") else {}),
         **({"suppressed_reason": "platform_gap"} if platform_gap else {}),
+        **({"suppressed_reason": policy_suppression} if policy_suppression else {}),
     }
     event = ExamEvent.objects.create(
         contest=run.contest,
@@ -739,18 +728,7 @@ def _record_event_command(
     action = command.get("action")
     if action is None:
         _definition_id, definition, phase = _definition_for_event(run, event_type)
-        signals = definition.get("signals")
-        registry_action = _REGISTRY_ACTIONS.get(definition.get("action"))
-        if registry_action is None or type(signals) is not dict:
-            raise IntegrityCommandRejected("invalid_frozen_registry")
-        if delayed_delivery or phase == "restored":
-            action = "audit"
-        elif phase == "triggered" and (
-            signals.get("escalated") or signals.get("restored")
-        ):
-            action = "record"
-        else:
-            action = registry_action
+        action = _default_event_action(definition, phase, delayed_delivery)
     if action not in _ACTIONS:
         raise IntegrityCommandRejected("invalid_command_action")
     client_ms = _nonnegative_int(
@@ -829,7 +807,6 @@ def _record_event_command(
             device_id=device_id,
             evidence=evidence,
             command_fingerprint=command_fingerprint,
-            command_semantics=command_semantics,
         )
     )
     return CommandOutcome(

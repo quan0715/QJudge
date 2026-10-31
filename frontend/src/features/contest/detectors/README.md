@@ -14,24 +14,18 @@ interface ExamDetector {
   readonly severity: ViolationSeverity; // 事件嚴重程度
   start(onViolation: (e: ViolationEvent) => void): void;
   stop(): void;
-  runCheck(): Promise<CheckResult>;
 }
 ```
 
-### Severity 路由
+### 事件路由
 
-`useExamMonitoring` 依 severity 分流：
-
-| Severity | 行為 |
-|---|---|
-| `"violation"` / `"warning"` | 只送 integrity emitter 記錄 |
-| `"info"` | 送 emitter 記錄 + `onBlockedAction()` toast |
+所有事件都交給 integrity emitter。只有 `forbidden_action` 觸發 `onBlockedAction()`；`clipboard_action` 保留紀錄，不顯示阻擋提示。Severity 是事件資訊，後端依 registry 決定是否計入違規。
 
 ## 偵測器一覽
 
 | ID | 類別 | Severity | 說明 |
 |---|---|---|---|
-| `clipboard` | ClipboardDetector | info | 攔截 copy/paste/cut/contextmenu |
+| `clipboard` | ClipboardDetector | info | 記錄 copy/paste/cut；攔截 contextmenu |
 | `keyboard-shortcut` | KeyboardShortcutDetector | info | 攔截危險快捷鍵（Cmd+T/N/W/P、Cmd+Space、F12 等）+ 列印保護 |
 | `popup-guard` | PopupGuardDetector | info | 攔截 `window.open`、PiP、Notification |
 | `multi-display` | MultiDisplayDetector | violation | 透過 Screen Enumeration API 偵測多螢幕（見上方例外說明） |
@@ -45,7 +39,7 @@ interface ExamDetector {
 1. **建立檔案** `frontend/src/features/contest/detectors/myDetector.ts`
 
 ```ts
-import type { ExamDetector, ViolationEvent, CheckResult } from "./types";
+import type { ExamDetector, ViolationEvent } from "./types";
 import type { TFunction } from "i18next";
 
 export class MyDetector implements ExamDetector {
@@ -69,9 +63,6 @@ export class MyDetector implements ExamDetector {
     this.onViolation = null;
   }
 
-  async runCheck(): Promise<CheckResult> {
-    return { passed: true };
-  }
 }
 ```
 
@@ -85,12 +76,8 @@ export class MyDetector implements ExamDetector {
 
 - **獨立性**：偵測器之間無共享狀態，各自管理自己的 listener 生命週期
 - **可逆性**：`stop()` 必須完整還原所有副作用（移除 listener、還原 monkey-patch）
-- **Severity 決定路由**：偵測器只負責偵測，不決定後續處理
+- **事件類型決定提示**：偵測器只負責偵測，不決定後續處理
 - **constructor 注入 `t`**：所有使用者可見文字透過 i18n
-
-## 已知待清理
-
-`runCheck()` 四個 detector 都實作了，但**沒有任何呼叫端** —— precheck 走的是 `precheckEnvironment.ts` + `DisplayCheckService`，不經過 detector。要嘛讓 precheck 真的改走 `runCheck()`，要嘛把它從介面拿掉；目前是第三種狀態（每個新 detector 都得抄一份空實作）。
 
 ## 測試策略
 

@@ -12,7 +12,7 @@ import {
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import chatbotRepository from "@/infrastructure/api/repositories/chatbot.repository";
-import { currentWrites, type BatchActiveRun, type WrittenRecord } from "./batchGradingModel";
+import { currentWrites, requestedQuestionIds, type BatchActiveRun, type WrittenRecord } from "./batchGradingModel";
 
 /** The AI's rubric and drafts for a question's unit; null before the agent opened it. */
 export type BatchQuestionFiles = GradingUnitDetail | null;
@@ -40,11 +40,20 @@ export async function cancelBatchRun(runId: string): Promise<void> {
   await chatbotRepository.cancelRun(runId);
 }
 
-export async function defaultBatchModelId(): Promise<string> {
+async function defaultBatchModelId(): Promise<string> {
   const models = await chatbotRepository.getModels();
   const model = models.find((item) => item.is_default) ?? models[0];
   if (!model) throw new Error("沒有可用的批改模型");
   return model.model_id;
+}
+
+/** The model of the session's latest grading request; the default model when there is none. */
+export async function batchModelId(sessionId: string): Promise<string> {
+  const { messages } = await chatbotRepository.getSession(sessionId);
+  const request = [...messages].reverse().find(
+    (message) => message.role === "user" && message.runId && requestedQuestionIds(message).length,
+  );
+  return request?.runId ? (await chatbotRepository.getChatRun(request.runId)).modelId : defaultBatchModelId();
 }
 
 export async function readWrites(contestId: string, sessionId: string): Promise<WrittenRecord[]> {

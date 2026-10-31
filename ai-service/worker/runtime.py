@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -703,12 +703,14 @@ class WorkerRuntime:
         checkpoints: CheckpointRepair,
         *,
         heartbeat_seconds: float = 15.0,
+        finalize_paused_cancel: Callable[[RunClaim], Awaitable[None]] | None = None,
     ) -> None:
         self._runs = runs
         self._credentials = credentials
         self._agent = agent
         self._checkpoints = checkpoints
         self._heartbeat_seconds = max(0.001, heartbeat_seconds)
+        self._finalize_paused_cancel = finalize_paused_cancel
 
     async def execute(
         self,
@@ -728,6 +730,13 @@ class WorkerRuntime:
                 )
             except Exception:
                 return
+            # A paused run has no agent stream to close. Export persisted work
+            # here, before the terminal event makes downloads visible to clients.
+            if self._finalize_paused_cancel is not None:
+                try:
+                    await self._finalize_paused_cancel(claim)
+                except Exception:
+                    logger.exception("Run %s paused-cancel artifact export failed", run_id)
             if await self._runs.complete_cancel_repair(
                 run_id, claim.execution_epoch
             ):

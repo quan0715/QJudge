@@ -24,6 +24,7 @@ import type {
   ExamQuestionScorePolicy,
   ExamQuestionType,
 } from "@/core/entities/contest.entity";
+import { hasStartedExam } from "@/core/entities/contest.entity";
 import ContestAdminContext from "@/features/contest/contexts/ContestAdminContext";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { isSubjectiveType } from "./gradingTypes";
@@ -290,14 +291,14 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
     };
   }, [answers, questionInfoMap, participants]);
 
-  // ── Unique student list (from all participants, not just answers) ──
+  // ── Students who started the exam (unstarted registrations such as TAs or absentees are left out) ──
   const students = useMemo(() => {
-    // Start from all participants
     const map = new Map<
       string,
       { studentId: string; username: string; displayName?: string }
     >();
     for (const p of participants) {
+      if (!hasStartedExam(p)) continue;
       const id = String(p.userId);
       map.set(id, {
         studentId: id,
@@ -305,7 +306,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         displayName: p.displayName ?? p.username,
       });
     }
-    // Also include any students from answers that might not be in participants
+    // Anyone with an answer took the exam, even if missing from the participant list
     for (const a of answers) {
       if (!map.has(a.studentId)) {
         map.set(a.studentId, {

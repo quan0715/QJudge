@@ -26,7 +26,7 @@
   grid-template-rows: repeat(3, minmax(14rem, 1fr));
 }
 
-.tile {
+.grid .tile {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -50,6 +50,17 @@
   height: 100%;
   object-fit: contain;
   display: block;
+  pointer-events: none;
+}
+
+.webcam {
+  position: absolute;
+  inset-inline-end: layout.$spacing-03;
+  bottom: layout.$spacing-08;
+  width: 28%;
+  aspect-ratio: 4 / 3;
+  background: #000;
+  border: 1px solid var(--cds-border-inverse);
   pointer-events: none;
 }
 

@@ -67,7 +67,8 @@ const unit = (overrides: Partial<GradingUnitProgress>): GradingUnitProgress => (
 });
 
 const derive = (input: Partial<Parameters<typeof deriveBatchState>[0]>) =>
-  deriveBatchState({ questions: [question()], messages: [], activeRuns: [], units: [], written: [], ...input });
+  deriveBatchState({ questions: [question()], messages: [], activeRuns: [], units: [], written: [],
+    notSubmittedError: "not submitted", ...input });
 
 describe("selectBatchQuestions", () => {
   it("selects ungraded short answer and essay rows", () => {
@@ -109,6 +110,18 @@ describe("deriveBatchState", () => {
   it("ignores a unit from an older run", () => {
     const state = derive({ messages: [request("r1", ["q1"]), request("r2", ["q1"]), ended("r2", "completed")], units: [unit({})] })[0];
     expect(state).toMatchObject({ status: "failed", runId: "r2" });
+  });
+
+  it("treats a unit without writable answers as completed", () => {
+    const state = derive({ messages: [request("r1", ["q1"]), ended("r1", "completed")],
+      units: [unit({ total_count: 0, draft_count: 0, written_count: 0, status: "pending" })] })[0];
+    expect(state).toMatchObject({ status: "completed", runId: "r1" });
+  });
+
+  it("explains a completed run that left its unit unsubmitted", () => {
+    const state = derive({ messages: [request("r1", ["q1"]), ended("r1", "completed")],
+      units: [unit({ status: "draft" })] })[0];
+    expect(state).toMatchObject({ status: "failed", error: "not submitted" });
   });
 
   it("reports how a run ended without submitting", () => {

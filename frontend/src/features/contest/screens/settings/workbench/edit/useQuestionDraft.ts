@@ -44,8 +44,14 @@ export function useQuestionDraft(
   });
   const inFlight = useRef<Promise<void> | null>(null);
   const flush = useCallback(async () => {
+    // A question switch installs the next snapshot while this waits; the
+    // captured one still holds the previous question's edits and save.
+    const captured = snapshot.current;
     if (inFlight.current) await inFlight.current;
-    const current = snapshot.current;
+    const current =
+      snapshot.current.state.id === captured.state.id
+        ? snapshot.current
+        : captured;
     if (
       !isFormDirty(
         current.state.form,

@@ -492,12 +492,15 @@
 
 }
 
-.monitorViewToolbar {
-  display: flex;
+.proctorToolbar {
+  height: auto;
   flex-wrap: wrap;
+}
+
+.viewControls {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
   gap: layout.$spacing-03;
-  padding: layout.$spacing-03 layout.$spacing-04;
-  border-bottom: 1px solid var(--cds-border-subtle);
+  padding: layout.$spacing-02 layout.$spacing-04;
+  white-space: nowrap;
 }

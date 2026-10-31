@@ -24,13 +24,5 @@
   gap: 0.375rem;
   margin: 0;
   color: var(--cds-text-primary);
-  font-weight: 600;
-}
-
-.valueDefault {
-  @include type.type-style("heading-compact-02");
-}
-
-.valueLg {
   @include type.type-style("heading-03");
 }

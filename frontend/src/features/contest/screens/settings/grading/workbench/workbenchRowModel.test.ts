@@ -92,6 +92,49 @@ describe("workbenchRowModel", () => {
     expect(rows[0].source).toBe("none");
   });
 
+  it("counts an unanswered group child as zero instead of leaving the row incomplete", () => {
+    const rows = buildStudentRows(unit(["a", "b"]), [answer({ id: "1", questionId: "a", score: 1 })], emptyCtx);
+    expect(rows[0].answers.map((row) => row.questionId)).toEqual(["a"]);
+    expect(rows[0].total).toBe(1);
+  });
+
+  it("adds a zero-point row for exam takers who answered nothing in the unit", () => {
+    const rows = buildStudentRows(
+      unit(["a", "b"]),
+      [answer({ id: "1", studentId: "s1", questionId: "a", score: 1 })],
+      emptyCtx,
+      [{ studentId: "s1", username: "s1" }, { studentId: "s2", username: "blank", displayName: "空白卷" }],
+    );
+    expect(rows.map((row) => [row.studentId, row.name, row.total, row.source])).toEqual([
+      ["s1", "模擬學生 01", 1, "manual"],
+      ["s2", "空白卷", 0, "unanswered"],
+    ]);
+  });
+
+  it("follows score policies like the published grade", () => {
+    const policyUnit: GradingWorkbenchUnit = {
+      ...unit([]),
+      questions: [
+        { id: "full", score: 5, scorePolicy: "full_marks" },
+        { id: "gift", score: 4, scorePolicy: "full_marks" },
+        { id: "dropped", score: 3, scorePolicy: "excluded" },
+        { id: "normal", score: 10 },
+      ] as ExamQuestion[],
+    };
+    const rows = buildStudentRows(
+      policyUnit,
+      [
+        answer({ id: "1", questionId: "gift", score: null }),
+        answer({ id: "2", questionId: "dropped", score: null }),
+        answer({ id: "3", questionId: "normal", score: 6 }),
+      ],
+      emptyCtx,
+      [{ studentId: "s1", username: "s1" }, { studentId: "s2", username: "blank" }],
+    );
+    // Full marks are awarded answered or not; the excluded question neither counts nor blocks completion.
+    expect(rows.map((row) => row.total)).toEqual([15, 9]);
+  });
+
   it("orders answers by unit question order and sums totals", () => {
     const rows = buildStudentRows(
       unit(["a", "b"]),
