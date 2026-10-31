@@ -21,7 +21,7 @@ const HeroSection: FC<HeroSectionProps> = ({ content, onPrimary, onSecondary }) 
     <section id="top" className="landing-hero-section" data-testid="landing-section-hero">
       <img
         className="landing-hero-section__background"
-        src="/illustrations/product-exam-q1-20261030.webp"
+        src="/illustrations/usecase-nycu-intro-computer-science.jpeg"
         alt=""
         fetchPriority="high"
         aria-hidden="true"

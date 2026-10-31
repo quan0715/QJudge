@@ -1,5 +1,6 @@
 @use "@carbon/layout";
 @use "@carbon/type";
+@use "../styles/typography";
 
 .landing-hero-section {
   position: relative;
@@ -29,12 +30,11 @@
 .landing-hero-section__background {
   position: absolute;
   inset: 0;
-  left: 20%;
   z-index: -2;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
+  object-position: center bottom;
 }
 
 .landing-hero-section__inner {
@@ -76,11 +76,9 @@
 }
 
 .landing-hero-section__copy h1 {
-  @include type.type-style("productive-heading-07");
+  @include typography.heading(2.25rem, 3.75rem);
   margin: 0;
   max-width: none;
-  letter-spacing: -0.05em;
-  line-height: 1.15;
   white-space: pre-line;
 }
 
@@ -144,16 +142,6 @@
         color-mix(in srgb, var(--cds-background) 90%, transparent) 62%,
         color-mix(in srgb, var(--cds-background) 60%, transparent) 100%);
     }
-  }
-
-  .landing-hero-section__background {
-    left: 0;
-  }
-
-  .landing-hero-section__copy h1 {
-    @include type.type-style("productive-heading-05");
-    max-width: none;
-    line-height: 1.2;
   }
 
   .landing-hero-section__actions {
