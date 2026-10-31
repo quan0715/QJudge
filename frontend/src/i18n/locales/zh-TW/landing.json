@@ -375,6 +375,8 @@
     "highlights": "{{title}} 操作亮點",
     "productScreens": "{{title}} 產品畫面",
     "examScreenshotAlt": "計概期中考的 QJudge 學生作答介面預覽",
-    "examScreenshotCaption": "計概期中考的學生作答預覽。"
+    "examScreenshotCaption": "計概期中考的學生作答預覽。",
+    "pausePhotos": "暫停照片輪播",
+    "resumePhotos": "繼續照片輪播"
   }
 }

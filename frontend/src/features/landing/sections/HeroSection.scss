@@ -154,3 +154,31 @@
     max-inline-size: 20rem;
   }
 }
+
+// Two photos, eight seconds per scene including a gentle crossfade.
+.landing-hero-section__background--next {
+  opacity: 0;
+  animation: landing-exam-photos 16s linear infinite;
+}
+
+@keyframes landing-exam-photos {
+  0%, 40%, 100% { opacity: 0; }
+  50%, 90% { opacity: 1; }
+}
+
+.landing-hero-section--paused .landing-hero-section__background--next {
+  animation-play-state: paused;
+}
+
+.landing-hero-section__slideshow-control {
+  position: absolute;
+  right: layout.$spacing-05;
+  bottom: layout.$spacing-05;
+  background: var(--cds-background);
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero-section__background--next { animation: none; }
+  .landing-hero-section__slideshow-control { display: none; }
+}

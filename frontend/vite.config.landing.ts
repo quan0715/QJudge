@@ -62,7 +62,7 @@ function landingReadableHtml(): Plugin {
         const content = `<main class="landing-section">
           <h1>${escape(c.hero.title)}</h1><p>${escape(c.hero.subtitle)}</p>
           <p><a href="${mainAppUrl}/register">${escape(c.hero.primaryCta)}</a> · <a href="/demo/">${escape(c.video.link)}</a></p>
-          <section><h2>${escape(c.video.title)}</h2><p>${escape(c.video.description)}</p>
+          <section>
             <video controls playsinline preload="none" width="1920" height="1080" style="width:100%;height:auto;max-width:80rem" poster="/media/QJudge-launch-v4.jpg" aria-label="${escape(c.video.title)}"><source src="/media/QJudge-launch-v4.mp4" type="video/mp4"></video>
           </section>
           ${sections.map(section => `<section><h2>${escape(section.title)}</h2>${section.description ? `<p>${escape(section.description)}</p>` : ""}</section>`).join("\n")}

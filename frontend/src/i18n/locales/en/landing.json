@@ -375,6 +375,8 @@
     "highlights": "{{title}} highlights",
     "productScreens": "{{title}} screenshots",
     "examScreenshotAlt": "QJudge student answering interface in the course midterm preview",
-    "examScreenshotCaption": "Student preview of the Introduction to Computers midterm."
+    "examScreenshotCaption": "Student preview of the Introduction to Computers midterm.",
+    "pausePhotos": "Pause photo slideshow",
+    "resumePhotos": "Resume photo slideshow"
   }
 }
