@@ -23,10 +23,13 @@ test("keeps one header row with no overflow in every language and theme", async 
       expect(geometry.pageWidth).toBeLessThanOrEqual(geometry.width);
     }
   }
-  await page.screenshot({ path: testInfo.outputPath("landing-header.png") });
+  await page.goto("/landing.html?lang=en");
+  await page.evaluate(() => document.fonts.ready);
+  await page.locator(".landing-hero-section__background").first().evaluate((image: HTMLImageElement) => image.decode());
+  await page.screenshot({ path: testInfo.outputPath("landing-header.png"), animations: "disabled" });
 });
 
-test("opens all dropdowns by keyboard, closes on Escape/outside click, and keeps links", async ({ page }) => {
+test("opens all dropdowns by keyboard, closes on Escape/outside click, and keeps links", async ({ page }, testInfo) => {
   await page.goto("/landing.html?lang=en");
   const header = page.locator(".landing-header");
   for (let index = 0; index < 3; index++) {
@@ -41,6 +44,9 @@ test("opens all dropdowns by keyboard, closes on Escape/outside click, and keeps
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
     const menu = page.getByRole("menu");
     await expect(menu).toBeVisible();
+    if (index === 1) {
+      await page.screenshot({ path: testInfo.outputPath("language-menu.png"), animations: "disabled" });
+    }
     const rect = await menu.boundingBox();
     expect(rect!.x).toBeGreaterThanOrEqual(0);
     expect(rect!.x + rect!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
