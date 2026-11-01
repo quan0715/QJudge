@@ -55,7 +55,10 @@ test("opens all dropdowns by keyboard, closes on Escape/outside click, and keeps
     await expect(menu).toHaveCount(0);
     await expect(trigger).toBeFocused();
     await trigger.click();
-    await page.getByRole("heading", { level: 1 }).click();
+    await expect(menu).toBeVisible();
+    // The open menu overlays the hero on narrow screens. The brand remains
+    // visibly outside the menu without scrolling the sticky header.
+    await header.getByRole("link", { name: "QJudge home" }).click();
     await expect(menu).toHaveCount(0);
   }
   await header.getByRole("button").first().click();
