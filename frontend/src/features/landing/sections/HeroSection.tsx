@@ -1,7 +1,6 @@
-import { useState, type FC } from "react";
-import { useTranslation } from "react-i18next";
+import type { FC } from "react";
 import { Button } from "@carbon/react";
-import { ArrowDownRight, ArrowRight, Pause, Play } from "@carbon/icons-react";
+import { ArrowDownRight, ArrowRight } from "@carbon/icons-react";
 import "./HeroSection.scss";
 
 interface HeroSectionProps {
@@ -18,11 +17,8 @@ interface HeroSectionProps {
 }
 
 const HeroSection: FC<HeroSectionProps> = ({ content, onPrimary, onSecondary }) => {
-  const { t } = useTranslation("landing");
-  const [paused, setPaused] = useState(false);
-
   return (
-    <section id="top" className={`landing-hero-section${paused ? " landing-hero-section--paused" : ""}`} data-testid="landing-section-hero">
+    <section id="top" className="landing-hero-section" data-testid="landing-section-hero">
       <img
         className="landing-hero-section__background"
         src="/illustrations/usecase-nycu-operating-systems.jpeg"
@@ -36,16 +32,6 @@ const HeroSection: FC<HeroSectionProps> = ({ content, onPrimary, onSecondary }) 
         alt=""
         fetchPriority="low"
         aria-hidden="true"
-      />
-      <Button
-        className="landing-hero-section__slideshow-control"
-        kind="ghost"
-        size="sm"
-        hasIconOnly
-        renderIcon={paused ? Play : Pause}
-        iconDescription={t(paused ? "ui.resumePhotos" : "ui.pausePhotos")}
-        aria-pressed={paused}
-        onClick={() => setPaused((value) => !value)}
       />
       <div className="landing-hero-section__inner">
         <div className="landing-hero-section__copy">

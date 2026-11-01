@@ -1,8 +1,9 @@
 import { useTranslation } from "react-i18next";
-import type { FC } from "react";
-import { Button } from "@carbon/react";
-import { TextModeSwitcher, type TextModeOption } from "@/shared/ui/navigation/TextModeSwitcher";
-import { IconModeSwitcher, type IconModeOption } from "@/shared/ui/navigation/IconModeSwitcher";
+import { useRef, type ComponentRef, type FC } from "react";
+import { OverflowMenu, OverflowMenuItem } from "@carbon/react";
+import { Asleep, Checkmark, Language, Light, Menu } from "@carbon/icons-react";
+import type { TextModeOption } from "@/shared/ui/navigation/TextModeSwitcher";
+import type { IconModeOption } from "@/shared/ui/navigation/IconModeSwitcher";
 import { BrandLockup } from "@/shared/brand/BrandLockup";
 import type { SupportedLanguage } from "@/i18n";
 import "./LandingHeader.scss";
@@ -29,6 +30,8 @@ const LandingHeader: FC<LandingHeaderProps> = ({
   onThemeChange,
 }) => {
   const { t } = useTranslation("landing");
+  const languageTrigger = useRef<ComponentRef<typeof OverflowMenu>>(null);
+  const themeTrigger = useRef<ComponentRef<typeof OverflowMenu>>(null);
   return (
     <header className="landing-header">
       <div className="landing-header__inner">
@@ -37,33 +40,74 @@ const LandingHeader: FC<LandingHeaderProps> = ({
         </a>
 
         <nav className="landing-header__nav" aria-label={t("ui.navigation")}>
-          {items.map((item) => (
-            <a key={item.id} href={item.href ?? `#${item.id}`}>
-              {item.label}
-            </a>
-          ))}
+          <OverflowMenu
+            aria-label={t("ui.actions")}
+            iconDescription={t("ui.actions")}
+            renderIcon={Menu}
+            size="lg"
+            align="bottom"
+            flipped
+          >
+            {items.map((item) => (
+              <OverflowMenuItem key={item.id} itemText={item.label} href={item.href ?? `#${item.id}`} />
+            ))}
+            <OverflowMenuItem itemText={t("ui.signIn")} hasDivider onClick={onLogin} />
+          </OverflowMenu>
+          <OverflowMenu
+            ref={languageTrigger}
+            aria-label={t("ui.language")}
+            iconDescription={t("ui.language")}
+            renderIcon={Language}
+            size="lg"
+            align="bottom"
+            flipped
+          >
+            {languageOptions.map((option) => (
+              <OverflowMenuItem
+                key={option.value}
+                role="menuitemradio"
+                aria-checked={option.value === languageValue}
+                itemText={
+                  <span className="landing-header__option">
+                    {option.label}
+                    {option.value === languageValue && <Checkmark aria-hidden="true" />}
+                  </span>
+                }
+                onClick={() => {
+                  onLanguageChange(option.value);
+                  languageTrigger.current?.focus();
+                }}
+              />
+            ))}
+          </OverflowMenu>
+          <OverflowMenu
+            ref={themeTrigger}
+            aria-label={t("ui.theme")}
+            iconDescription={t("ui.theme")}
+            renderIcon={themeValue === "dark" ? Asleep : Light}
+            size="lg"
+            align="bottom-end"
+            flipped
+          >
+            {themeOptions.map((option) => (
+              <OverflowMenuItem
+                key={option.value}
+                role="menuitemradio"
+                aria-checked={option.value === themeValue}
+                itemText={
+                  <span className="landing-header__option">
+                    {option.label}
+                    {option.value === themeValue && <Checkmark aria-hidden="true" />}
+                  </span>
+                }
+                onClick={() => {
+                  onThemeChange(option.value);
+                  themeTrigger.current?.focus();
+                }}
+              />
+            ))}
+          </OverflowMenu>
         </nav>
-
-        <div className="landing-header__actions">
-          <div className="landing-header__switchers">
-            <TextModeSwitcher
-              value={languageValue}
-              options={languageOptions}
-              onChange={onLanguageChange}
-              ariaLabel={t("ui.language")}
-            />
-            <IconModeSwitcher
-              value={themeValue}
-              options={themeOptions}
-              onChange={onThemeChange}
-              ariaLabel={t("ui.theme")}
-              tooltipPosition="bottom"
-            />
-          </div>
-          <Button kind="ghost" onClick={onLogin}>
-            {t("ui.signIn")}
-          </Button>
-        </div>
       </div>
     </header>
   );

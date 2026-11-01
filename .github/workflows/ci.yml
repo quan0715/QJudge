@@ -121,6 +121,10 @@ jobs:
         working-directory: frontend
         run: npm run test:workbench-browser
 
+      - name: Landing navigation and screenshot regression
+        working-directory: frontend
+        run: npx playwright test -c playwright.config.landing.ts
+
       - name: Upload browser regression artifacts
         uses: actions/upload-artifact@v7
         if: always()

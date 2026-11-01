@@ -1,4 +1,7 @@
 {
+  "ui": {
+    "actions": "작업"
+  },
   "audience": {
     "description": "從大學期末考到 APCS 模擬考，QJudge 提供對應的考試流程、題庫管理與學習分析能力。",
     "eyebrow": "適用對象",
