@@ -1,0 +1,178 @@
+@use "@carbon/layout";
+@use "@carbon/type" as type;
+@use "@/styles/admin-panel" as mixins;
+
+.operationsPane {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-05;
+}
+
+strong.operationsStatusSuccess {
+  color: var(--cds-support-success);
+}
+
+strong.operationsStatusMuted {
+  color: var(--cds-text-secondary);
+}
+
+strong.operationsStatusDanger {
+  color: var(--cds-support-error);
+}
+
+@keyframes participant-status-pulse {
+  0% {
+    box-shadow: 0 0 0 0
+      color-mix(in srgb, var(--cds-support-success) 40%, transparent);
+  }
+
+  70% {
+    box-shadow: 0 0 0 0.5rem
+      color-mix(in srgb, var(--cds-support-success) 0%, transparent);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0
+      color-mix(in srgb, var(--cds-support-success) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .operationsStatusDotLive {
+    animation: none;
+  }
+}
+
+.primaryText {
+  @include type.type-style("body-compact-01");
+  @include mixins.sidebar-label;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.secondaryText {
+  @include mixins.sidebar-meta;
+  @include type.type-style("label-01");
+  line-height: 1.2;
+}
+
+/* --- Tabs layout --- */
+
+.tabsWrapper {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Section title — matches PDF report .section-title aesthetic */
+.sectionTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.sectionStack {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-05;
+}
+
+.questionList,
+.problemList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.problemItem {
+  padding: layout.$spacing-04 layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  background: transparent;
+}
+
+.problemItem:last-child {
+  border-bottom: none;
+}
+
+.problemHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: layout.$spacing-04;
+  align-items: flex-start;
+}
+
+.problemBody {
+  margin-top: layout.$spacing-04;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+}
+
+.inlineMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03 layout.$spacing-04;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
+.chartGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: layout.$spacing-05;
+}
+
+.chartWrap {
+  min-height: 20rem;
+}
+
+.emptyState {
+  @include mixins.panel-empty-state;
+  min-height: 14rem;
+  padding: layout.$spacing-05;
+  height: auto;
+}
+
+/* --- Responsive: mobile / narrow --- */
+
+@media (max-width: 1056px) {
+
+  .pane {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 672px) {
+
+  .operationsAnswerStatusCard {
+    grid-template-columns: 1fr;
+  }
+
+  .operationsAnswerStatusSummary {
+    border-right: 0;
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+}
+
+@media (max-width: 960px) {
+  .profileHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .profileActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

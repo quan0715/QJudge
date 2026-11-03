@@ -18,7 +18,7 @@ import { questionTypeLabel } from "@/features/contest/screens/settings/grading/g
 import { formatScore } from "@/features/contest/utils/scoreFormat";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 
-import styles from "./ContestParticipantsDashboard.module.scss";
+import styles from "./ParticipantAnswerReport.module.scss";
 
 type PaperReportPayload = Extract<ParticipantDashboard["report"], { overviewRows: unknown[] }>;
 type CodingReportPayload = Extract<ParticipantDashboard["report"], { problemGrid: unknown[] }>;
