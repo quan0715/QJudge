@@ -202,6 +202,7 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
   const listControls = (
     <div className={styles.viewControls}>
       <ContentSwitcher
+        className={styles.switcher}
         size="sm"
         selectedIndex={cardsView ? 1 : 0}
         onChange={({ index }) => updateParams({ view: index === 1 ? "cards" : null })}
@@ -209,19 +210,16 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
         <Switch name="table" text={t("participantsPanel.viewTable", "表格")} disabled={monitorMode} />
         <Switch name="cards" text={t("participantsPanel.viewCards", "卡片")} disabled={monitorMode} />
       </ContentSwitcher>
-      <span className={styles.monitorToggle}>
-        <Toggle
-          id="participants-monitor-mode"
-          size="sm"
-          hideLabel
-          aria-label={t("participantsPanel.monitorMode", "監考模式")}
-          labelText={t("participantsPanel.monitorMode", "監考模式")}
-          toggled={monitorMode}
-          disabled={!inExamWindow}
-          onToggle={(on) => updateParams({ monitor: on ? "1" : null })}
-        />
-        <span>{t("participantsPanel.monitorMode", "監考模式")}</span>
-      </span>
+      <Toggle
+        id="participants-monitor-mode"
+        size="sm"
+        hideLabel
+        aria-label={t("participantsPanel.monitorMode", "監考模式")}
+        labelText={t("participantsPanel.monitorMode", "監考模式")}
+        toggled={monitorMode}
+        disabled={!inExamWindow}
+        onToggle={(on) => updateParams({ monitor: on ? "1" : null })}
+      />
       {monitorMode ? (
         <Select
           id="participants-grid-size"
@@ -238,25 +236,30 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
     </div>
   );
 
+  const listFilters = (
+    <>
+      <div className={styles.search}>{searchBox}</div>
+      <Select
+        id="participants-status-filter"
+        className={styles.statusFilter}
+        size="md"
+        hideLabel
+        labelText={t("adminOverview.command.participants.filterStatus", "篩選狀態")}
+        value={status}
+        onChange={(event) => updateParams({ status: event.target.value === "all" ? null : event.target.value })}
+      >
+        {PARTICIPANT_STATUS_FILTERS.map((option) => (
+          <SelectItem key={option.id} value={option.id} text={t(option.labelKey, option.defaultLabel)} />
+        ))}
+      </Select>
+    </>
+  );
+
   const toolbarActions = (
     <>
+      {!selectedUserId && !isMobile ? listFilters : null}
       {!selectedUserId ? (
-        <>
-          <div className={styles.search}>{searchBox}</div>
-          <Select
-            id="participants-status-filter"
-            size="md"
-            hideLabel
-            labelText={t("adminOverview.command.participants.filterStatus", "篩選狀態")}
-            value={status}
-            onChange={(event) => updateParams({ status: event.target.value === "all" ? null : event.target.value })}
-          >
-            {PARTICIPANT_STATUS_FILTERS.map((option) => (
-              <SelectItem key={option.id} value={option.id} text={t(option.labelKey, option.defaultLabel)} />
-            ))}
-          </Select>
-          <ParticipantQrScanButton contestId={contestId} participants={participants} onSelect={selectParticipant} />
-        </>
+        <ParticipantQrScanButton contestId={contestId} participants={participants} onSelect={selectParticipant} />
       ) : null}
       <Tag type="green" size="sm">
         {t("proctoringPanel.onlineCount", "{{count}} 人在線", { count: onlineCount })}
@@ -444,6 +447,7 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
         status={selectedUserId ? undefined : listControls}
         actions={toolbarActions}
       />
+      {!selectedUserId && isMobile ? <div className={styles.mobileFilters}>{listFilters}</div> : null}
       {body}
     </div>
   );

@@ -18,20 +18,28 @@
 .viewControls {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: layout.$spacing-04;
+  gap: layout.$spacing-05;
   padding: layout.$spacing-02 layout.$spacing-04;
   white-space: nowrap;
 }
 
-.monitorToggle {
-  display: inline-flex;
-  align-items: center;
-  gap: layout.$spacing-03;
+.switcher {
+  flex: none;
+  width: 11rem;
+}
+
+.statusFilter {
+  min-width: 9rem;
 }
 
 .search {
   width: 16rem;
+}
+
+.mobileFilters {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--cds-border-subtle);
 }
 
 .listBody {
@@ -130,7 +138,15 @@
     border-top: 1px solid var(--cds-border-subtle);
   }
 
-  .search {
-    width: 100%;
+  .mobileFilters .search {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  .mobileFilters .statusFilter {
+    flex: none;
+    width: 9rem;
+    min-width: 0;
   }
 }

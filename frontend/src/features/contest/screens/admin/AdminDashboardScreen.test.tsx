@@ -30,26 +30,36 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string, fallback?: string) => fallback ?? key }),
 }));
 
-vi.mock("@/features/contest/contexts", () => ({
-  ContestProvider: ({ children }: { children: ReactNode }) => children,
-  ContestAdminProvider: ({ children, loadEvents }: { children: ReactNode; loadEvents: boolean }) => {
-    mockEventDemand(loadEvents);
-    return children;
-  },
-  AdminPanelRefreshProvider: ({ children }: { children: ReactNode }) => children,
-  useContest: () => ({
-    ...mockContestState,
-    refreshContest: mockRefreshContest,
-  }),
-  useContestAdmin: () => ({
-    refreshAllAdminData: mockRefreshAllAdminData,
-    refreshAdminData: mockRefreshAdminData,
-    refreshParticipants: mockRefreshParticipants,
-  }),
-  useAdminPanelRefresh: () => ({
-    triggerPanelRefresh: vi.fn(),
-  }),
-}));
+vi.mock("@/features/contest/contexts", async () => {
+  const React = await import("react");
+  // Mirror the real provider: useContestAdmin throws outside ContestAdminProvider.
+  const AdminContext = React.createContext(false);
+  return {
+    ContestProvider: ({ children }: { children: ReactNode }) => children,
+    ContestAdminProvider: ({ children, loadEvents }: { children: ReactNode; loadEvents: boolean }) => {
+      mockEventDemand(loadEvents);
+      return React.createElement(AdminContext.Provider, { value: true }, children);
+    },
+    AdminPanelRefreshProvider: ({ children }: { children: ReactNode }) => children,
+    useContest: () => ({
+      ...mockContestState,
+      refreshContest: mockRefreshContest,
+    }),
+    useContestAdmin: () => {
+      if (!React.useContext(AdminContext)) {
+        throw new Error("useContestAdmin must be used within a ContestAdminProvider");
+      }
+      return {
+        refreshAllAdminData: mockRefreshAllAdminData,
+        refreshAdminData: mockRefreshAdminData,
+        refreshParticipants: mockRefreshParticipants,
+      };
+    },
+    useAdminPanelRefresh: () => ({
+      triggerPanelRefresh: vi.fn(),
+    }),
+  };
+});
 
 vi.mock("@/features/contest/modules/registry", () => ({
   getContestTypeModule: () => ({
