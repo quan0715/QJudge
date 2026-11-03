@@ -224,6 +224,7 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
       {monitorMode ? (
         <Select
           id="participants-grid-size"
+          className={styles.gridSize}
           size="sm"
           hideLabel
           labelText={t("proctoringPanel.gridSize", "每頁監看人數")}

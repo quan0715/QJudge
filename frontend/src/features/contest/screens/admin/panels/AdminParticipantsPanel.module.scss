@@ -32,6 +32,15 @@
   min-width: 9rem;
 }
 
+.viewControls .gridSize {
+  flex: none;
+  width: 7rem;
+
+  select {
+    width: 100%;
+  }
+}
+
 .search {
   width: 16rem;
 }
