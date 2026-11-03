@@ -1,0 +1,96 @@
+@use "@carbon/layout";
+@use "@carbon/type" as type;
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+}
+
+.identityRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: layout.$spacing-04;
+}
+
+.identity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+}
+
+.title {
+  @include type.type-style("heading-04");
+
+  margin: 0;
+  color: var(--cds-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.username {
+  @include type.type-style("body-compact-01");
+
+  margin: 0;
+  color: var(--cds-text-secondary);
+}
+
+.notice {
+  @include type.type-style("body-compact-01");
+
+  margin: 0;
+  padding: layout.$spacing-03;
+  border-left: 2px solid var(--cds-support-error);
+  background: var(--cds-layer-01);
+  color: var(--cds-text-secondary);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  margin: 0;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.kpi {
+  min-width: 0;
+  padding: layout.$spacing-03 layout.$spacing-04;
+  border-right: 1px solid var(--cds-border-subtle);
+
+  &:last-child {
+    border-right: 0;
+  }
+
+  dt {
+    @include type.type-style("label-01");
+
+    color: var(--cds-text-secondary);
+  }
+
+  dd {
+    @include type.type-style("heading-compact-02");
+
+    margin: layout.$spacing-02 0 0;
+    color: var(--cds-text-primary);
+  }
+}
+
+.kpiDanger dd {
+  color: var(--cds-text-error);
+}
