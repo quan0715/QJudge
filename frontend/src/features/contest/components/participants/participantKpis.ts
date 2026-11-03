@@ -62,3 +62,54 @@ export const getParticipantKpis = (
   }
   return kpis;
 };
+
+export interface ParticipantLiveSignal {
+  key: "connection" | "live" | "screen" | "webcam";
+  label: string;
+  value: string;
+  tone: "success" | "muted";
+}
+
+/** The drawer's 即時狀態 rows: exam connection, live monitoring, screen share and webcam. */
+export const getParticipantLiveSignals = (
+  participant: ParticipantDashboard["participant"],
+  t: Translate,
+): ParticipantLiveSignal[] => {
+  const sources = participant.liveMonitoringSources ?? [];
+  const signal = (on: boolean, onLabel: string, offLabel: string) => ({
+    value: on ? onLabel : offLabel,
+    tone: on ? ("success" as const) : ("muted" as const),
+  });
+  const connected = t("dashboard.signalConnected", "已連線");
+  const missing = t("dashboard.signalMissing", "未偵測");
+  return [
+    {
+      key: "connection",
+      label: t("dashboard.examConnection", "考試連線"),
+      ...signal(
+        Boolean(participant.lastCheckpointAt),
+        t("participants.connection.online", "在線"),
+        t("participants.connection.offline", "離線"),
+      ),
+    },
+    {
+      key: "live",
+      label: t("dashboard.liveMonitoringSignal", "即時監看"),
+      ...signal(
+        Boolean(participant.liveMonitoringOnline),
+        t("participants.connection.live", "Live"),
+        t("participants.connection.offline", "離線"),
+      ),
+    },
+    {
+      key: "screen",
+      label: t("dashboard.screenShareSignal", "螢幕分享"),
+      ...signal(sources.includes("screen_share"), connected, missing),
+    },
+    {
+      key: "webcam",
+      label: t("dashboard.webcamSignal", "Webcam"),
+      ...signal(sources.includes("webcam"), connected, missing),
+    },
+  ];
+};

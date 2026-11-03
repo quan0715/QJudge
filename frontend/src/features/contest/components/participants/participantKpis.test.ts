@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ParticipantDashboard } from "@/core/entities/contest.entity";
-import { getParticipantKpis } from "./participantKpis";
+import { getParticipantKpis, getParticipantLiveSignals } from "./participantKpis";
 
 const t = (_key: string, fallback: string) => fallback;
 
@@ -47,5 +47,30 @@ describe("getParticipantKpis", () => {
     const kpis = getParticipantKpis(dashboard("paper_exam", {}), { showViolations: false, t });
     expect(kpis.find((kpi) => kpi.key === "accuracy")?.value).toBe("-");
     expect(kpis.find((kpi) => kpi.key === "time")?.value).toBe("- → -");
+  });
+});
+
+describe("getParticipantLiveSignals", () => {
+  it("reports connection, live monitoring, screen share and webcam like the drawer", () => {
+    const signals = getParticipantLiveSignals(
+      {
+        lastCheckpointAt: "2026-11-03T09:00:00Z",
+        liveMonitoringOnline: true,
+        liveMonitoringSources: ["screen_share"],
+      } as ParticipantDashboard["participant"],
+      t,
+    );
+    expect(signals.map((signal) => [signal.key, signal.value, signal.tone])).toEqual([
+      ["connection", "在線", "success"],
+      ["live", "Live", "success"],
+      ["screen", "已連線", "success"],
+      ["webcam", "未偵測", "muted"],
+    ]);
+  });
+
+  it("marks everything offline without signals", () => {
+    const signals = getParticipantLiveSignals({} as ParticipantDashboard["participant"], t);
+    expect(signals.every((signal) => signal.tone === "muted")).toBe(true);
+    expect(signals[0].value).toBe("離線");
   });
 });

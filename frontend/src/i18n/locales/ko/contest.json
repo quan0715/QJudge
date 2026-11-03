@@ -884,7 +884,8 @@
     "trendCharts": "제출 추이",
     "tries": "제출 횟수",
     "violations": "위반",
-    "answerTime": "응시 시간"
+    "answerTime": "응시 시간",
+    "expandQuestionHint": "문항을 펼치면 답안과 채점 의견을 볼 수 있습니다."
   },
   "delete": {
     "confirm": "이 대회를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",

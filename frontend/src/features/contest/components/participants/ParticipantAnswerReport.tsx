@@ -11,9 +11,9 @@ import type {
   ParticipantDashboard,
   ParticipantDashboardStatus,
 } from "@/core/entities/contest.entity";
-import PaperQuestionOverviewTable from "@/features/contest/components/exam/PaperQuestionOverviewTable";
 import PaperQuestionReportCard from "@/features/contest/components/exam/PaperQuestionReportCard";
 import CodingAnswerRecords from "@/features/contest/components/studentDashboard/CodingAnswerRecords";
+import PaperAnswerRecordsTable from "@/features/contest/components/studentDashboard/PaperAnswerRecordsTable";
 import { questionTypeLabel } from "@/features/contest/screens/settings/grading/gradingTypes";
 import { formatScore } from "@/features/contest/utils/scoreFormat";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
@@ -75,70 +75,47 @@ export default function ParticipantAnswerReport({
   );
 
   if (paperReport) {
+    const typeLabel = (questionType: string) =>
+      t(`common:questionType.label.${questionType}`, questionTypeLabel[questionType as keyof typeof questionTypeLabel]);
     return (
-
-          <div className={styles.sectionStack}>
-            <h5 className={styles.sectionTitle}>
-              {t("dashboard.questionOverview", "題目總覽")}
-            </h5>
-            <PaperQuestionOverviewTable
-              rows={paperReport.overviewRows.map((row) => {
-                const questionDetail = paperReport.questionDetails.find(
-                  (detailRow) =>
-                    detailRow.questionId === row.questionId,
-                );
-                return {
-                  id: row.questionId,
-                  index: row.index,
-                  questionLabel: row.questionLabel,
-                  prompt: questionDetail?.prompt || `${row.questionLabel ?? row.index}.`,
-                  typeLabel: t(
-                    `common:questionType.label.${row.questionType}`,
-                    questionTypeLabel[row.questionType],
-                  ),
-	                          maxScore: row.maxScore,
-	                          scoreDisplay:
-	                            row.score != null ? formatScore(row.score) : "-",
-                  statusLabel: row.status.label,
-                  statusTone: toTagType(row.status),
-                  scorePolicy: row.scorePolicy,
-                };
-              })}
-              showScore
+      <PaperAnswerRecordsTable
+        showGrading
+        hint={t("dashboard.expandQuestionHint", "展開題目查看作答內容與批改評語。")}
+        rows={paperReport.questionDetails.map((row) => ({
+          id: row.questionId,
+          label: String(row.questionLabel ?? row.index),
+          typeLabel: typeLabel(row.questionType),
+          score:
+            row.scorePolicy === "redistribute"
+              ? "— / —"
+              : `${row.scorePolicy === "excluded" || row.score == null ? "—" : formatScore(row.score)} / ${formatScore(row.maxScore)}`,
+          status: row.status.label,
+          tone: toTagType(row.status),
+          detail: (
+            <PaperQuestionReportCard
+              hideHeader
+              questionId={row.questionId}
+              index={row.index}
+              questionLabel={row.questionLabel}
+              questionType={row.questionType}
+              typeLabel={typeLabel(row.questionType)}
+              prompt={row.prompt}
+              options={row.options}
+              answer={row.answer}
+              statusLabel={row.status.label}
+              statusTone={toTagType(row.status)}
+              showGrading
+              score={row.score}
+              maxScore={row.maxScore}
+              gradedByUsername={row.gradedByUsername}
+              feedback={row.feedback}
+              correctAnswer={row.correctAnswer}
+              explanation={row.explanation}
+              scorePolicy={row.scorePolicy}
             />
-
-            <h5 className={styles.sectionTitle}>
-              {t("dashboard.questionDetails", "逐題詳情")}
-            </h5>
-            <div className={styles.questionList}>
-              {paperReport.questionDetails.map((row) => (
-                <PaperQuestionReportCard
-                  key={row.questionId}
-                  questionId={row.questionId}
-                  index={row.index}
-                  questionLabel={row.questionLabel}
-                  questionType={row.questionType}
-                  typeLabel={t(
-                    `common:questionType.label.${row.questionType}`,
-                    questionTypeLabel[row.questionType],
-                  )}
-                  prompt={row.prompt}
-                  options={row.options}
-                  answer={row.answer}
-                  statusLabel={row.status.label}
-                  statusTone={toTagType(row.status)}
-                  showGrading
-                  score={row.score}
-                  maxScore={row.maxScore}
-                  gradedByUsername={row.gradedByUsername}
-                  feedback={row.feedback}
-                  correctAnswer={row.correctAnswer}
-                  explanation={row.explanation}
-                  scorePolicy={row.scorePolicy}
-                />
-              ))}
-            </div>
-          </div>
+          ),
+        }))}
+      />
     );
   }
   if (!codingReport) return null;

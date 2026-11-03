@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Button, MenuButton, MenuItem, MenuItemDivider, Modal, Tag, TextArea } from "@carbon/react";
-import { DocumentTasks, Locked, Unlocked } from "@carbon/icons-react";
+import { DocumentTasks, Locked, Login, Time, Unlocked, UserMultiple, View, WarningAlt } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
 import type { ExamStatusType, ParticipantDashboard } from "@/core/entities/contest.entity";
 import type { ParticipantActions } from "@/features/contest/hooks/useParticipantActions";
 import { ConfirmModal } from "@/shared/ui/modal";
 import ParticipantStatusEditModal from "./ParticipantStatusEditModal";
-import { getParticipantKpis } from "./participantKpis";
+import { getParticipantKpis, getParticipantLiveSignals, type ParticipantKpi, type ParticipantLiveSignal } from "./participantKpis";
 import styles from "./ParticipantSummaryHeader.module.scss";
 
 interface ParticipantSummaryHeaderProps {
@@ -26,6 +26,24 @@ const STATUS_TAG_TYPE: Partial<Record<ExamStatusType, "green" | "blue" | "purple
 };
 
 type HeaderAction = "unlock" | "reopen" | "lock";
+
+type IconComponent = typeof Locked;
+
+// Same icons as the former participant drawer.
+const LIVE_ICONS: Record<ParticipantLiveSignal["key"], IconComponent> = {
+  connection: Login,
+  live: View,
+  screen: View,
+  webcam: UserMultiple,
+};
+
+const KPI_ICONS: Record<ParticipantKpi["key"], IconComponent> = {
+  time: Time,
+  score: DocumentTasks,
+  accuracy: UserMultiple,
+  progress: DocumentTasks,
+  violations: WarningAlt,
+};
 
 export default function ParticipantSummaryHeader({
   dashboard,
@@ -54,6 +72,7 @@ export default function ParticipantSummaryHeader({
     lock: { label: t("participants.actions.lock", "鎖定"), icon: Locked, run: () => setLockModalOpen(true) },
   };
   const kpis = getParticipantKpis(dashboard, { showViolations, t });
+  const liveSignals = getParticipantLiveSignals(participant, t);
 
   const submitLock = async () => {
     if (!(await actions.lock(lockReason))) return;
@@ -138,14 +157,53 @@ export default function ParticipantSummaryHeader({
         </p>
       ) : null}
 
-      <dl className={styles.kpis}>
-        {kpis.map((kpi) => (
-          <div key={kpi.key} className={`${styles.kpi} ${kpi.tone === "danger" ? styles.kpiDanger : ""}`}>
-            <dt>{kpi.label}</dt>
-            <dd>{kpi.value}</dd>
-          </div>
-        ))}
-      </dl>
+      <section className={styles.statusSection}>
+        <h3 className={styles.statusTitle}>{t("dashboard.liveStatus", "即時狀態")}</h3>
+        <div className={styles.statusList}>
+          {liveSignals.map((signal) => {
+            const Icon = LIVE_ICONS[signal.key];
+            return (
+              <div key={signal.key} className={styles.statusRow}>
+                <div className={styles.statusIcon}>
+                  <Icon size={16} />
+                </div>
+                <div className={styles.statusText}>
+                  <span>{signal.label}</span>
+                  <span className={styles.statusValueRow}>
+                    <span
+                      aria-hidden="true"
+                      className={`${styles.statusDot} ${signal.tone === "success" ? styles.statusDotLive : ""}`}
+                    />
+                    <strong className={signal.tone === "success" ? styles.statusSuccess : styles.statusMuted}>
+                      {signal.value}
+                    </strong>
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className={styles.statusSection}>
+        <h3 className={styles.statusTitle}>{t("dashboard.examStatus", "考試狀態")}</h3>
+        <div className={styles.statusList}>
+          {kpis.map((kpi) => {
+            const Icon = KPI_ICONS[kpi.key];
+            return (
+              <div key={kpi.key} className={styles.statusRow}>
+                <div className={styles.statusIcon}>
+                  <Icon size={16} />
+                </div>
+                <div className={styles.statusText}>
+                  <span>{kpi.label}</span>
+                  <strong className={kpi.tone === "danger" ? styles.statusDanger : undefined}>{kpi.value}</strong>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       <Modal
         open={lockModalOpen}

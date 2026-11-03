@@ -105,8 +105,12 @@ describe("ParticipantSummaryHeader", () => {
     });
   });
 
-  it("renders the KPI strip", () => {
+  it("renders live and exam status cards like the drawer", () => {
     renderHeader(dashboard("in_progress"));
+    expect(screen.getByRole("heading", { name: "即時狀態" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "考試狀態" })).toBeInTheDocument();
+    expect(screen.getByText("考試連線")).toBeInTheDocument();
+    expect(screen.getByText("Webcam")).toBeInTheDocument();
     expect(screen.getByText("10.00 / 100.00 分")).toBeInTheDocument();
     expect(screen.getByText("違規次數")).toBeInTheDocument();
   });

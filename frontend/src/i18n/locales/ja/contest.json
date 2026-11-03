@@ -884,7 +884,8 @@
     "trendCharts": "提出推移",
     "tries": "提出回数",
     "violations": "違反",
-    "answerTime": "解答時間"
+    "answerTime": "解答時間",
+    "expandQuestionHint": "問題を展開すると解答と採点コメントを確認できます。"
   },
   "delete": {
     "confirm": "このコンテストを削除してもよろしいですか？この操作は取り消せません。",

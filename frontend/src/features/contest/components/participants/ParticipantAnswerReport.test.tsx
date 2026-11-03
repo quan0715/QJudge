@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ParticipantDashboard } from "@/core/entities/contest.entity";
 
@@ -9,9 +9,6 @@ vi.mock("react-i18next", () => ({
 }));
 vi.mock("@carbon/charts-react", () => ({ AreaChart: () => null, DonutChart: () => null }));
 vi.mock("@/shared/ui/theme/ThemeContext", () => ({ useTheme: () => ({ theme: "white" }) }));
-vi.mock("@/features/contest/components/exam/PaperQuestionOverviewTable", () => ({
-  default: ({ rows }: { rows: Array<{ id: string }> }) => <div data-testid="overview-table">{rows.length}</div>,
-}));
 vi.mock("@/features/contest/components/exam/PaperQuestionReportCard", () => ({
   default: ({ questionId }: { questionId: string }) => <div data-testid="question-card">{questionId}</div>,
 }));
@@ -48,10 +45,12 @@ const codingDashboard = {
 beforeEach(() => mocks.codingRecords.mockClear());
 
 describe("ParticipantAnswerReport", () => {
-  it("renders paper overview and question details", () => {
+  it("renders paper questions as one expandable table", () => {
     render(<ParticipantAnswerReport contestId="c1" dashboard={paperDashboard} />);
-    expect(screen.getByRole("heading", { name: "題目總覽" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "逐題詳情" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "題目總覽" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "逐題詳情" })).toBeNull();
+    expect(screen.queryByTestId("question-card")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /展開第 1 題/ }));
     expect(screen.getByTestId("question-card")).toHaveTextContent("q1");
     expect(screen.queryByTestId("coding-records")).toBeNull();
   });

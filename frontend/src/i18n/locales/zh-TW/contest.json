@@ -950,7 +950,8 @@
     "viewReport": "查看作答詳情",
     "viewSubmissions": "查看提交",
     "webcamSignal": "Webcam",
-    "answerTime": "作答時間"
+    "answerTime": "作答時間",
+    "expandQuestionHint": "展開題目查看作答內容與批改評語。"
   },
   "delete": {
     "confirm": "確定要刪除此競賽嗎？此動作無法復原。",
