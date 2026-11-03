@@ -64,6 +64,7 @@ export default function ParticipantDrawer({
   const actions = useParticipantActions({
     contestId: contestId || "",
     userId: selectedUserId,
+    classroomId: contest?.boundClassroomId,
     onChanged: refreshAfterAction,
   });
 
@@ -110,7 +111,7 @@ export default function ParticipantDrawer({
       onResetExamRecord={() => void actions.resetExamRecord()}
       onOpenDetail={setActiveParticipantDetail}
       onOpenGrading={() => onOpenPanel(contest?.contestType === "coding" ? "standings" : "grading-workbench")}
-      onOpenProctoring={() => onOpenPanel("proctoring")}
+      onOpenProctoring={() => onOpenPanel("participants")}
       showViolationKpi={antiCheatEnabled}
     />
   );

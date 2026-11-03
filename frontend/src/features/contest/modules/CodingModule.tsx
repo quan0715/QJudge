@@ -23,7 +23,7 @@ const getFirstProblemId = (
 
 const CODING_ADMIN_PANELS: AdminPanelId[] = [
   "overview",
-  "proctoring",
+  "participants",
   "problem_editor",
 ];
 const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor"];

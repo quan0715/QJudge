@@ -1,0 +1,192 @@
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter, useLocation } from "react-router-dom";
+import { createMockContest } from "@/shared/mocks/contest.mock";
+import type { ContestParticipant, ParticipantDashboard } from "@/core/entities/contest.entity";
+
+const mocks = vi.hoisted(() => ({
+  participants: [] as ContestParticipant[],
+  refreshAdminData: vi.fn(),
+  registerPanelRefresh: vi.fn(() => () => {}),
+  getDashboard: vi.fn(),
+  answerReport: vi.fn(),
+  location: { search: "" },
+}));
+const translate = vi.hoisted(
+  () => (key: string, fallback?: string | { defaultValue?: string }, values?: Record<string, unknown>) =>
+    (typeof fallback === "string" ? fallback : fallback?.defaultValue ?? key).replace(
+      /{{(\w+)}}/g,
+      (_, name) => String(values?.[name] ?? ""),
+    ),
+);
+
+vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: translate }) }));
+vi.mock("@/features/contest/contexts", () => ({
+  useContestAdmin: () => ({
+    participants: mocks.participants,
+    initialLoading: false,
+    isRefreshing: false,
+    refreshAdminData: mocks.refreshAdminData,
+  }),
+  useAdminPanelRefresh: () => ({ registerPanelRefresh: mocks.registerPanelRefresh }),
+}));
+vi.mock("@/infrastructure/api/repositories", () => ({
+  getParticipantDashboard: mocks.getDashboard,
+  unlockParticipant: vi.fn(),
+  reopenExam: vi.fn(),
+  resetParticipantExamRecord: vi.fn(),
+  updateParticipant: vi.fn(),
+  downloadParticipantReport: vi.fn(),
+}));
+vi.mock("@/infrastructure/api/repositories/liveMonitoring.repository", () => ({
+  getLiveMonitoringConfig: vi.fn().mockResolvedValue({ enabled: false, configured: false, provider: "livekit" }),
+  getLiveMonitoringTargets: vi.fn().mockResolvedValue({ stale: false, observedAt: null, targets: [] }),
+  requestLiveMonitoringToken: vi.fn(),
+}));
+vi.mock("@/infrastructure/realtime/livekitTransport", () => ({ createLiveKitTransport: vi.fn() }));
+vi.mock("@/shared/contexts/ToastContext", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
+vi.mock("@/features/contest/components/participants/ParticipantAnswerReport", () => ({
+  default: (props: { expandedProblemId?: string }) => {
+    mocks.answerReport(props);
+    return <div data-testid="answer-report" />;
+  },
+}));
+
+import AdminParticipantsPanel from "./AdminParticipantsPanel";
+
+const participant = (userId: string, overrides: Partial<ContestParticipant> = {}): ContestParticipant => ({
+  userId,
+  username: `student-${userId}`,
+  displayName: `Student ${userId}`,
+  score: 0,
+  joinedAt: "2026-11-03T09:00:00Z",
+  examStatus: "in_progress",
+  violationCount: 0,
+  connectionStatus: "online",
+  liveMonitoringOnline: false,
+  ...overrides,
+});
+
+const dashboardFor = (userId: string, examStatus = "in_progress"): ParticipantDashboard =>
+  ({
+    contestType: "coding",
+    participant: { ...participant(userId), examStatus, startedAt: "2026-11-03T09:01:00Z" },
+    overview: { totalScore: 0, maxScore: 100 },
+    report: { problemGrid: [], problemDetails: [], trend: { submissionTimeline: [], cumulativeProgress: [], statusCounts: {} } },
+    timeline: [],
+    eventFeed: [],
+    actions: {
+      canDownloadReport: true,
+      canEditStatus: true,
+      canUnlock: examStatus === "locked",
+      canReopenExam: false,
+      canViewEvidence: true,
+      canOpenGrading: false,
+    },
+  }) as unknown as ParticipantDashboard;
+
+const LocationProbe = () => {
+  mocks.location.search = useLocation().search;
+  return null;
+};
+
+const runningContest = () =>
+  createMockContest({
+    startTime: new Date(Date.now() - 60_000).toISOString(),
+    endTime: new Date(Date.now() + 3_600_000).toISOString(),
+  });
+const finishedContest = () =>
+  createMockContest({
+    startTime: new Date(Date.now() - 7_200_000).toISOString(),
+    endTime: new Date(Date.now() - 3_600_000).toISOString(),
+  });
+
+const renderPanel = (search: string, contest = runningContest()) =>
+  render(
+    <MemoryRouter initialEntries={[`/admin${search}`]}>
+      <AdminParticipantsPanel contestId="c1" contest={contest} />
+      <LocationProbe />
+    </MemoryRouter>,
+  );
+
+beforeEach(() => {
+  mocks.participants = [participant("7"), participant("8")];
+  mocks.getDashboard.mockReset().mockImplementation(async (_c: string, userId: string) => dashboardFor(userId));
+  mocks.answerReport.mockClear();
+  mocks.refreshAdminData.mockReset().mockResolvedValue(undefined);
+});
+
+afterEach(() => vi.useRealTimers());
+
+describe("AdminParticipantsPanel", () => {
+  it("opens in table view and selecting a row shows the student dashboard", async () => {
+    renderPanel("?panel=participants");
+    expect(screen.getByRole("heading", { name: "參賽者" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("row", { name: /Student 7/ }));
+    await waitFor(() => expect(mocks.location.search).toContain("user=7"));
+    expect(await screen.findByRole("heading", { name: "Student 7" })).toBeInTheDocument();
+    expect(screen.getByTestId("answer-report")).toBeInTheDocument();
+  });
+
+  it("switches to the card view", () => {
+    renderPanel("?panel=participants");
+    fireEvent.click(screen.getByRole("tab", { name: "卡片" }));
+    expect(mocks.location.search).toContain("view=cards");
+    expect(screen.getByRole("button", { name: /Student 8/ })).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("back to list returns to the monitor grid it came from", async () => {
+    renderPanel("?panel=participants&monitor=1&user=7");
+    await screen.findByRole("heading", { name: "Student 7" });
+    fireEvent.click(screen.getByRole("button", { name: "返回列表" }));
+    expect(mocks.location.search).toContain("monitor=1");
+    expect(mocks.location.search).not.toContain("user=");
+    expect(screen.getByRole("switch", { name: "監考模式" })).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("hides the live stage and disables monitor mode outside the exam window", async () => {
+    renderPanel("?panel=participants&user=7", finishedContest());
+    await screen.findByRole("heading", { name: "Student 7" });
+    expect(screen.queryByText("即時畫面")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "返回列表" }));
+    expect(screen.getByRole("switch", { name: "監考模式" })).toBeDisabled();
+  });
+
+  it("shows the live stage during the exam", async () => {
+    renderPanel("?panel=participants&user=7");
+    await screen.findByRole("heading", { name: "Student 7" });
+    expect(screen.getByText("即時畫面")).toBeInTheDocument();
+  });
+
+  it("turns monitor mode off when the exam ends", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+    const contest = createMockContest({
+      startTime: new Date(Date.now() - 60_000).toISOString(),
+      endTime: new Date(Date.now() + 5_000).toISOString(),
+    });
+    renderPanel("?panel=participants&monitor=1", contest);
+    expect(mocks.location.search).toContain("monitor=1");
+    await act(async () => { vi.advanceTimersByTime(30_000); });
+    expect(mocks.location.search).not.toContain("monitor=1");
+  });
+
+  it("overlays live roster fields onto the selected dashboard", async () => {
+    mocks.participants = [participant("7", { examStatus: "locked" }), participant("8")];
+    renderPanel("?panel=participants&user=7");
+    const header = (await screen.findByRole("heading", { name: "Student 7" })).closest("section")!;
+    expect(within(header).getByText("locked")).toBeInTheDocument();
+  });
+
+  it("passes ?problem to the answer report", async () => {
+    renderPanel("?panel=participants&user=7&problem=p2");
+    await screen.findByTestId("answer-report");
+    expect(mocks.answerReport).toHaveBeenLastCalledWith(expect.objectContaining({ expandedProblemId: "p2" }));
+  });
+
+  it("filters the table with the search box", () => {
+    renderPanel("?panel=participants&q=student-8");
+    expect(screen.queryByRole("row", { name: /Student 7/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("row", { name: /Student 8/ })).toBeInTheDocument();
+  });
+});

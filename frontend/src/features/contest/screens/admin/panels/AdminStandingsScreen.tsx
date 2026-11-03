@@ -33,7 +33,7 @@ export default function AdminStandingsScreen({
           onOpenPanel={(panel) => setSearchParams((previous) => {
             const next = new URLSearchParams(previous);
             next.set("panel", panel);
-            if (panel === "proctoring") next.set("user", selection.userId);
+            if (panel === "participants") next.set("user", selection.userId);
             return next;
           })}
         />

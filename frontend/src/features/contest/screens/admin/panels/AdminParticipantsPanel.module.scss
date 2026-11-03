@@ -1,0 +1,136 @@
+@use "@carbon/layout";
+@use "@carbon/type" as type;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--cds-background);
+}
+
+.toolbar {
+  height: auto;
+  flex-wrap: wrap;
+}
+
+.viewControls {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-02 layout.$spacing-04;
+  white-space: nowrap;
+}
+
+.monitorToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+}
+
+.search {
+  width: 16rem;
+}
+
+.listBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: layout.$spacing-05;
+}
+
+.monitorBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.selected {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr) minmax(20rem, 23rem);
+  overflow: hidden;
+}
+
+.selectedEventsCollapsed {
+  grid-template-columns: 16rem minmax(0, 1fr);
+}
+
+.rail {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
+.railSearch {
+  flex: 0 0 auto;
+  padding: layout.$spacing-03;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.dashboard {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-06;
+  overflow-y: auto;
+  padding: layout.$spacing-05;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.sectionTitle {
+  @include type.type-style("heading-compact-01");
+
+  margin: 0;
+  color: var(--cds-text-primary);
+}
+
+.liveStage {
+  min-height: 18rem;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.timeline {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--cds-border-subtle);
+}
+
+@media (max-width: 66rem) {
+  .selected,
+  .selectedEventsCollapsed {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .dashboard {
+    overflow: visible;
+  }
+
+  .timeline {
+    min-height: 24rem;
+    border-left: 0;
+    border-top: 1px solid var(--cds-border-subtle);
+  }
+
+  .search {
+    width: 100%;
+  }
+}

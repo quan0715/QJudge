@@ -21,7 +21,7 @@
       "grading": "채점",
       "overview": "개요",
       "problemManagement": "문제 관리",
-      "proctoring": "감독",
+      "participants": "참가자",
       "settings": "설정",
       "standings": "순위표",
       "statistics": "통계",
@@ -883,7 +883,8 @@
     "transcodeIssue": "변환 메시지",
     "trendCharts": "제출 추이",
     "tries": "제출 횟수",
-    "violations": "위반"
+    "violations": "위반",
+    "answerTime": "응시 시간"
   },
   "delete": {
     "confirm": "이 대회를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
@@ -1647,7 +1648,9 @@
       "role": "역할",
       "score": "점수",
       "status": "상태",
-      "username": "사용자"
+      "username": "사용자",
+      "name": "이름",
+      "violations": "위반"
     },
     "listFooterCount": "{{shown}} / {{total}}명 표시",
     "listHeaderTitle": "학생 목록",
@@ -1781,19 +1784,11 @@
   "problems": "문제 수",
   "proctoringPanel": {
     "backToRoster": "목록으로 돌아가기",
-    "emptyDescription": "왼쪽 목록에서 다른 참가자의 감독 화면으로 빠르게 전환할 수 있습니다.",
     "emptyTitle": "감독을 시작할 참가자를 선택하세요",
-    "highRiskCount": "{{count}}개 고위험",
     "noSignal": "신호 없음",
     "onlineCount": "{{count}}명 온라인",
-    "outOfWindowBody": "감독 기능을 사용할 수 없습니다.",
-    "outOfWindowTitle": "현재 시험 시간이 아닙니다",
-    "reviewCount": "{{count}}개 확인 필요",
-    "roster": "감독 대상",
-    "searchPlaceholder": "감독 대상 검색...",
     "sourceScreen": "화면",
     "sourceWebcam": "Webcam",
-    "title": "감독",
     "focusStudent": "{{name}} 확대",
     "waitingScreen": "화면 대기 중",
     "noScreen": "공유된 화면 없음",
@@ -1802,8 +1797,6 @@
     "pageCount": "{{page}}／{{pages}} 페이지 · {{count}}명",
     "previousPage": "이전 페이지",
     "nextPage": "다음 페이지",
-    "layout": "모니터링 레이아웃",
-    "focusView": "개별",
     "fourView": "4명",
     "nineView": "9명",
     "previousStudent": "이전 응시자",
@@ -2358,5 +2351,15 @@
       "stayHere": "이 문제에 머물기",
       "reviewChecks": "확인"
     }
+  },
+  "participantsPanel": {
+    "title": "참가자",
+    "searchPlaceholder": "이름 또는 사용자명 검색...",
+    "viewTable": "표",
+    "viewCards": "카드",
+    "monitorMode": "감독 모드",
+    "backToList": "목록으로",
+    "liveView": "실시간 화면",
+    "answerDetails": "답안 상세"
   }
 }

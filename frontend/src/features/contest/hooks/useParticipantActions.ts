@@ -2,7 +2,6 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ExamStatusType } from "@/core/entities/contest.entity";
-import { useContest } from "@/features/contest/contexts";
 import {
   downloadParticipantReport,
   reopenExam,
@@ -16,6 +15,7 @@ import { useConfirmModal } from "@/shared/ui/modal";
 interface ParticipantActionsArgs {
   contestId: string;
   userId: string | null;
+  classroomId?: string | null;
   onChanged: () => Promise<void>;
 }
 
@@ -26,11 +26,10 @@ interface ActionCopy {
   refresh?: boolean;
 }
 
-export const useParticipantActions = ({ contestId, userId, onChanged }: ParticipantActionsArgs) => {
+export const useParticipantActions = ({ contestId, userId, classroomId, onChanged }: ParticipantActionsArgs) => {
   const { t } = useTranslation("contest");
   const { showToast } = useToast();
   const { confirm, modalProps: confirmModalProps } = useConfirmModal();
-  const { contest } = useContest();
   const [busy, setBusy] = useState(false);
 
   const run = useCallback(
@@ -154,7 +153,6 @@ export const useParticipantActions = ({ contestId, userId, onChanged }: Particip
 
   const startAssistedAttendance = useCallback(
     (purpose: "check_in" | "check_out") => {
-      const classroomId = contest?.boundClassroomId;
       if (!contestId || !userId || !classroomId) return;
       const params = new URLSearchParams({
         mode: "teacher_assisted",
@@ -165,7 +163,7 @@ export const useParticipantActions = ({ contestId, userId, onChanged }: Particip
       });
       window.location.assign(`/classrooms/${classroomId}/contest/${contestId}/attendance/scan?${params.toString()}`);
     },
-    [contest?.boundClassroomId, contestId, userId],
+    [classroomId, contestId, userId],
   );
 
   return {

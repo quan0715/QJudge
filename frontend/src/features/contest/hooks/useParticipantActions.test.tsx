@@ -18,9 +18,6 @@ vi.mock("@/shared/ui/modal", () => ({
   useConfirmModal: () => ({ confirm: mocks.confirm, modalProps: { open: false } }),
 }));
 vi.mock("@/shared/contexts/ToastContext", () => ({ useToast: () => ({ showToast: mocks.showToast }) }));
-vi.mock("@/features/contest/contexts", () => ({
-  useContest: () => ({ contest: { boundClassroomId: "r1" } }),
-}));
 vi.mock("@/infrastructure/api/repositories", () => ({
   unlockParticipant: mocks.unlockParticipant,
   reopenExam: mocks.reopenExam,
@@ -32,7 +29,7 @@ vi.mock("@/infrastructure/api/repositories", () => ({
 import { useParticipantActions } from "./useParticipantActions";
 
 const onChanged = vi.fn().mockResolvedValue(undefined);
-const setup = () => renderHook(() => useParticipantActions({ contestId: "c1", userId: "7", onChanged })).result;
+const setup = () => renderHook(() => useParticipantActions({ contestId: "c1", userId: "7", classroomId: "r1", onChanged })).result;
 
 beforeEach(() => {
   Object.values(mocks).forEach((mock) => mock.mockReset());

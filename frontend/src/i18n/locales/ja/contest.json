@@ -21,7 +21,7 @@
       "grading": "採点",
       "overview": "概要",
       "problemManagement": "問題管理",
-      "proctoring": "監視",
+      "participants": "参加者",
       "settings": "設定",
       "standings": "ランキング",
       "statistics": "統計",
@@ -883,7 +883,8 @@
     "transcodeIssue": "変換メッセージ",
     "trendCharts": "提出推移",
     "tries": "提出回数",
-    "violations": "違反"
+    "violations": "違反",
+    "answerTime": "解答時間"
   },
   "delete": {
     "confirm": "このコンテストを削除してもよろしいですか？この操作は取り消せません。",
@@ -1647,7 +1648,9 @@
       "role": "ロール",
       "score": "スコア",
       "status": "ステータス",
-      "username": "ユーザー"
+      "username": "ユーザー",
+      "name": "氏名",
+      "violations": "違反"
     },
     "listFooterCount": "{{shown}} / {{total}} 人を表示",
     "listHeaderTitle": "学生リスト",
@@ -1781,19 +1784,11 @@
   "problems": "問題数",
   "proctoringPanel": {
     "backToRoster": "一覧に戻る",
-    "emptyDescription": "左側の一覧から別の参加者の監視画面へすばやく切り替えられます。",
     "emptyTitle": "監視を開始する参加者を選択",
-    "highRiskCount": "高リスク {{count}} 件",
     "noSignal": "信号なし",
     "onlineCount": "{{count}} 人オンライン",
-    "outOfWindowBody": "監視機能を使用できません。",
-    "outOfWindowTitle": "現在は試験時間外です",
-    "reviewCount": "確認必要 {{count}} 件",
-    "roster": "監視対象",
-    "searchPlaceholder": "監視対象を検索...",
     "sourceScreen": "画面",
     "sourceWebcam": "Webcam",
-    "title": "監視",
     "focusStudent": "{{name}} を拡大",
     "waitingScreen": "画面を待機中",
     "noScreen": "画面共有なし",
@@ -1802,8 +1797,6 @@
     "pageCount": "{{page}}／{{pages}} ページ・{{count}} 人",
     "previousPage": "前のページ",
     "nextPage": "次のページ",
-    "layout": "監視レイアウト",
-    "focusView": "個別",
     "fourView": "4 人",
     "nineView": "9 人",
     "previousStudent": "前の受験者",
@@ -2358,5 +2351,15 @@
       "stayHere": "この問題に留まる",
       "reviewChecks": "確認"
     }
+  },
+  "participantsPanel": {
+    "title": "参加者",
+    "searchPlaceholder": "氏名またはユーザー名で検索...",
+    "viewTable": "表",
+    "viewCards": "カード",
+    "monitorMode": "監視モード",
+    "backToList": "一覧に戻る",
+    "liveView": "ライブ映像",
+    "answerDetails": "解答の詳細"
   }
 }

@@ -56,7 +56,7 @@ export interface TeacherAttentionRow {
   statusLabel: string;
   eventLabel: string;
   timeLabel: string;
-  panelTarget: "participants" | "logs" | "proctoring";
+  panelTarget: "participants" | "logs";
 }
 
 export interface DistributionItem {
