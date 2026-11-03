@@ -25,7 +25,6 @@ import {
   isValidElement,
   useMemo,
   useCallback,
-  useEffect,
   useState,
   type ChangeEvent,
   type ElementType,
@@ -81,7 +80,6 @@ interface AdminOverviewCommandCenterProps {
   gradingLoading?: boolean;
   contestId?: string;
   antiCheatEnabled?: boolean;
-  contestInProgress?: boolean;
   onOpenPanel: (panel: AdminPanelId) => void;
   participants: ContestParticipant[];
   primary: ReactNode;
@@ -386,7 +384,6 @@ export default function AdminOverviewCommandCenter({
   adminLoading = false,
   gradingLoading = false,
   contestId,
-  contestInProgress = false,
   onOpenPanel,
   participants,
   primary,
@@ -419,8 +416,7 @@ export default function AdminOverviewCommandCenter({
   );
   const { showToast } = useToast();
   const { contest } = useContest();
-  const { refreshParticipants, examEventsLoading } =
-    useContestAdmin();
+  const { examEventsLoading } = useContestAdmin();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [participantMetric, setParticipantMetric] =
     useState<ParticipantMetricKey>("score");
@@ -471,29 +467,6 @@ export default function AdminOverviewCommandCenter({
     },
     [isCodingContest, onOpenPanel, setActivePanelTab],
   );
-  useEffect(() => {
-    if (!contestId || !contestInProgress) return;
-    // Background poll: only while the contest is actually running. Stays at a
-    // light 30s cadence and skips when the tab is hidden; refreshParticipants
-    // is dedupe'd inside the context so identical payloads won't trigger
-    // re-renders.
-    let inFlight = false;
-    const tick = async () => {
-      if (document.visibilityState !== "visible" || inFlight) return;
-      inFlight = true;
-      try {
-        await refreshParticipants();
-      } finally {
-        inFlight = false;
-      }
-    };
-    const intervalId = window.setInterval(() => {
-      void tick();
-    }, 30000);
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [contestId, contestInProgress, refreshParticipants]);
 
   const {
     videoRef: studentQrVideoRef,

@@ -95,13 +95,6 @@ export default function AdminOverviewScreen({
     return () => window.clearInterval(intervalId);
   }, []);
 
-  const contestInProgress = useMemo(() => {
-    if (!contest || contest.status !== "published") return false;
-    const startMs = new Date(contest.startTime).getTime();
-    const endMs = new Date(contest.endTime).getTime();
-    if (Number.isNaN(startMs) || Number.isNaN(endMs)) return false;
-    return currentTimeMs >= startMs && currentTimeMs < endMs;
-  }, [contest, currentTimeMs]);
   const isPreparationPhase = useMemo(() => {
     if (!contest) return false;
     if (contest.status === "draft") return true;
@@ -510,7 +503,6 @@ export default function AdminOverviewScreen({
               gradingLoading={gradingLoading}
               contestId={contest.id}
               antiCheatEnabled={contest.cheatDetectionEnabled}
-              contestInProgress={contestInProgress}
               onOpenPanel={openPanel}
               participants={participants}
               studentQrScannerOpen={studentQrScannerOpen}

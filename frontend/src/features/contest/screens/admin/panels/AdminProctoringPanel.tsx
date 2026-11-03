@@ -23,7 +23,6 @@ import ParticipantEventTimeline from "./ParticipantEventTimeline";
 
 const EMPTY_EVENT_FEED: EventFeedItem[] = [];
 const AUTO_REFRESH_MS = 30000;
-const LIVE_STATUS_REFRESH_MS = 10000;
 const PANEL_TRANSITION = {
   duration: 0.22,
   ease: [0.2, 0, 0.38, 0.9] as const,
@@ -91,7 +90,6 @@ export default function AdminProctoringPanel({
     participants,
     isRefreshing,
     refreshAdminData,
-    refreshParticipants,
   } = useContestAdmin();
   const { registerPanelRefresh } = useAdminPanelRefresh();
   const { confirm, modalProps } = useConfirmModal();
@@ -322,31 +320,6 @@ export default function AdminProctoringPanel({
     return () => window.clearInterval(intervalId);
   }, [refreshPanel]);
 
-  useEffect(() => {
-    if (!contestId) return;
-
-    const refreshLiveStatuses = async () => {
-      if (document.visibilityState !== "visible") return;
-      await refreshParticipants();
-    };
-
-    const intervalId = window.setInterval(() => {
-      void refreshLiveStatuses();
-    }, LIVE_STATUS_REFRESH_MS);
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        void refreshLiveStatuses();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      window.clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [contestId, refreshParticipants]);
 
   useEffect(() => {
     setLastSeenEventAt(Date.now());

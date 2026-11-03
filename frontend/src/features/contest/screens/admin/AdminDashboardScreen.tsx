@@ -21,6 +21,7 @@ import type {
 } from "@/features/contest/modules/types";
 import { isContestManagerScopeRole } from "@/core/entities/contest.entity";
 import { useTabWithUrlParam } from "@/shared/hooks";
+import { useAdminParticipantsPolling } from "@/features/contest/hooks/useAdminParticipantsPolling";
 import styles from "./AdminDashboardScreen.module.scss";
 
 const ContestExportDialog = lazy(
@@ -112,6 +113,7 @@ const AdminDashboardPanels = () => {
     () => getContestTypeModule(contest?.contestType),
     [contest?.contestType],
   );
+  useAdminParticipantsPolling(contest);
 
   const [exportOpen, setExportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
