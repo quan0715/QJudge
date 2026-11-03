@@ -15,6 +15,8 @@ export const useParticipantDashboard = (
   const inFlightRef = useRef(false);
   const trailingRef = useRef(false);
   const requestKeyRef = useRef("");
+  // The selection this hook currently serves; refreshes captured for an older one are ignored.
+  const selectionKeyRef = useRef("");
 
   const refresh = useCallback(async (): Promise<void> => {
     if (!contestId || !userId) {
@@ -23,6 +25,8 @@ export const useParticipantDashboard = (
       setLoading(false);
       return;
     }
+    const requestKey = `${contestId}:${userId}`;
+    if (requestKey !== selectionKeyRef.current) return;
     if (inFlightRef.current) {
       // A refresh asked for mid-flight (e.g. after an action) must still run once.
       trailingRef.current = true;
@@ -33,7 +37,6 @@ export const useParticipantDashboard = (
     setError("");
     // Clear stale data when switching to a different user.
     setData((prev) => (prev && String(prev.participant.userId) !== String(userId) ? null : prev));
-    const requestKey = `${contestId}:${userId}`;
     requestKeyRef.current = requestKey;
     try {
       const next = await getParticipantDashboard(contestId, userId);
@@ -56,10 +59,11 @@ export const useParticipantDashboard = (
 
   useEffect(() => {
     // A new user must load even if the previous user's request is still pending.
+    selectionKeyRef.current = contestId && userId ? `${contestId}:${userId}` : "";
     inFlightRef.current = false;
     trailingRef.current = false;
     void refresh();
-  }, [refresh]);
+  }, [contestId, refresh, userId]);
 
   useEffect(() => {
     if (!refreshIntervalMs || !contestId || !userId) return;

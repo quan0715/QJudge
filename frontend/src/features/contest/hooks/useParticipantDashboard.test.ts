@@ -66,6 +66,20 @@ describe("useParticipantDashboard", () => {
     expect(result.current.data).toEqual(dashboardFor("8"));
   });
 
+  it("ignores a refresh captured for a previously selected user", async () => {
+    const { result, rerender } = renderHook(({ userId }) => useParticipantDashboard("c1", userId), {
+      initialProps: { userId: "7" },
+    });
+    await waitFor(() => expect(result.current.data).toEqual(dashboardFor("7")));
+    const staleRefresh = result.current.refresh;
+    rerender({ userId: "8" });
+    await waitFor(() => expect(result.current.data).toEqual(dashboardFor("8")));
+    mocks.getParticipantDashboard.mockClear();
+    await act(() => staleRefresh());
+    expect(mocks.getParticipantDashboard).not.toHaveBeenCalledWith("c1", "7");
+    expect(result.current.data).toEqual(dashboardFor("8"));
+  });
+
   it("keeps the previous data for the same user when a refresh fails", async () => {
     const { result } = renderHook(() => useParticipantDashboard("c1", "7"));
     await waitFor(() => expect(result.current.data).toEqual(dashboardFor("7")));
