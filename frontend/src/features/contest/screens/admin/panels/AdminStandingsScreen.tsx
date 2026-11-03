@@ -1,43 +1,31 @@
-import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { AdminPanelProps } from "@/features/contest/modules/types";
 import ContestStandingsScreen from "@/features/contest/screens/ContestStandingsScreen";
-import ParticipantDrawer from "@/features/contest/components/participants/ParticipantDrawer";
 import styles from "./AdminStandingsPanel.module.scss";
 
 export default function AdminStandingsScreen({
-  contestId,
   embedded = false,
 }: AdminPanelProps & { embedded?: boolean }) {
   const [, setSearchParams] = useSearchParams();
-  const [selection, setSelection] = useState<{ userId: string; problemId?: string } | null>(null);
+  const openParticipant = (userId: string, problemId?: string) =>
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous);
+      next.set("panel", "participants");
+      next.set("user", userId);
+      next.delete("tab");
+      if (problemId) next.set("problem", problemId);
+      else next.delete("problem");
+      return next;
+    });
   return (
-    <>
-      <div className={embedded ? undefined : styles.root}>
-        <div className={embedded ? undefined : styles.inner}>
-          <ContestStandingsScreen
-            titleSize={embedded ? "section" : "page"}
-            fill={!embedded}
-            onSelectParticipant={(userId, problemId) => setSelection({ userId, problemId })}
-          />
-        </div>
-      </div>
-      {selection ? (
-        <ParticipantDrawer
-          key={`${selection.userId}:${selection.problemId || "all"}`}
-          contestId={contestId}
-          selectedUserId={selection.userId}
-          initialDetail={selection.problemId ? "submissions" : "overview"}
-          initialExpandedProblemId={selection.problemId}
-          onClose={() => setSelection(null)}
-          onOpenPanel={(panel) => setSearchParams((previous) => {
-            const next = new URLSearchParams(previous);
-            next.set("panel", panel);
-            if (panel === "participants") next.set("user", selection.userId);
-            return next;
-          })}
+    <div className={embedded ? undefined : styles.root}>
+      <div className={embedded ? undefined : styles.inner}>
+        <ContestStandingsScreen
+          titleSize={embedded ? "section" : "page"}
+          fill={!embedded}
+          onSelectParticipant={openParticipant}
         />
-      ) : null}
-    </>
+      </div>
+    </div>
   );
 }

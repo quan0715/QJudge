@@ -1,73 +1,22 @@
 import { useTabWithUrlParam } from "@/shared/hooks/useTabWithUrlParam";
-import {
-  Button,
-  Dropdown,
-  Modal,
-  OverflowMenu,
-  OverflowMenuItem,
-  SelectableTag,
-  SkeletonText,
-} from "@carbon/react";
-import {
-  Add,
-  ArrowRight,
-  CheckmarkFilled,
-  CircleDash,
-  Filter,
-  InProgress,
-  Locked,
-  PauseFilled,
-  Time,
-  WarningFilled,
-} from "@carbon/icons-react";
-import {
-  cloneElement,
-  isValidElement,
-  useMemo,
-  useCallback,
-  useState,
-  type ChangeEvent,
-  type ElementType,
-  type ReactElement,
-  type ReactNode,
-} from "react";
+import { Button, Dropdown, OverflowMenu, OverflowMenuItem } from "@carbon/react";
+import { Add, ArrowRight, Filter } from "@carbon/icons-react";
+import { cloneElement, isValidElement, useState, type ReactElement, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import type {
-  ContestParticipant,
-} from "@/core/entities/contest.entity";
+import type { ContestParticipant } from "@/core/entities/contest.entity";
 import { hasStartedExam } from "@/core/entities/contest.entity";
-import { formatScore } from "@/shared/utils/scoreFormat";
-import AdminInsightRail, {
-  PriorityEventsInsightCard,
-  type InsightCardAction,
-} from "@/features/contest/components/admin/AdminInsightRail";
+
+import AdminInsightRail, { PriorityEventsInsightCard, type InsightCardAction } from "@/features/contest/components/admin/AdminInsightRail";
 import AdminSegmentedDashboard from "@/features/contest/components/admin/AdminSegmentedDashboard";
-import ParticipantDrawer from "@/features/contest/components/participants/ParticipantDrawer";
-import {
-  EXAM_STATUS_LABELS,
-  getExamStatusLabel,
-} from "@/features/contest/constants/examLabels";
+
 import { useContest, useContestAdmin } from "@/features/contest/contexts";
-import { parseStudentLocatorQrValue } from "@/features/contest/attendance/attendanceQr";
+
 import { CountdownProgress } from "@/features/contest/components/CountdownProgress";
-import { useCameraStream } from "@/features/contest/screens/attendance/hooks/useCameraStream";
-import { useQrScanner } from "@/features/contest/screens/attendance/hooks/useQrScanner";
-import type { AdminPanelId } from "@/features/contest/modules/types";
+
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
-import type {
-  AdminOverviewDashboardData,
-} from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
-import { useToast } from "@/shared/contexts/ToastContext";
-import {
-  BlockHeader,
-  DashboardBlock,
-  DashboardContainer,
-  DashboardTabBar,
-  DashboardTabPanel,
-  DashboardTabs,
-  DashboardToolbar,
-  MetricBlock,
-} from "@/shared/components/dashboard";
+import type { AdminOverviewDashboardData } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
+
+import { BlockHeader, DashboardBlock, DashboardContainer, DashboardTabBar, DashboardTabPanel, DashboardTabs, DashboardToolbar, MetricBlock } from "@/shared/components/dashboard";
 import styles from "./AdminOverviewCommandCenter.module.scss";
 
 interface AdminOverviewCommandCenterProps {
@@ -78,9 +27,7 @@ interface AdminOverviewCommandCenterProps {
   };
   adminLoading?: boolean;
   gradingLoading?: boolean;
-  contestId?: string;
   antiCheatEnabled?: boolean;
-  onOpenPanel: (panel: AdminPanelId) => void;
   participants: ContestParticipant[];
   primary: ReactNode;
   questionStatsGallery?: ReactNode;
@@ -89,114 +36,19 @@ interface AdminOverviewCommandCenterProps {
   clarificationsContent?: ReactNode;
   resultOverview?: ReactNode;
   gradingAction?: InsightCardAction;
-  studentQrScannerOpen?: boolean;
-  onStudentQrScannerOpenChange?: (open: boolean) => void;
   onOpenAnnouncement?: () => void;
 }
 
 type DrilldownTabId =
-  | "participants"
   | "questionStats"
   | "submissions"
   | "standings"
   | "clarifications";
 
-const getProfileDisplayName = (participant: ContestParticipant) =>
-  participant.displayName ||
-  participant.username ||
-  participant.userId;
-
 const isParticipantLive = (participant: ContestParticipant) =>
   participant.liveMonitoringOnline ||
   participant.connectionStatus === "live" ||
   participant.connectionStatus === "online";
-
-const getParticipantSortScore = (participant: ContestParticipant) => {
-  let score = 0;
-  if (participant.examStatus === "locked") score += 1000;
-  if (participant.examStatus === "paused") score += 800;
-  score += (participant.violationCount ?? 0) * 80;
-  if (
-    participant.examStatus === "in_progress" &&
-    !isParticipantLive(participant)
-  )
-    score += 100;
-  if (participant.connectionStatus === "offline") score += 60;
-  return score;
-};
-
-const NEEDS_ATTENTION_STATUSES = new Set(["locked", "paused"]);
-const STATUS_GROUP_ORDER = ["in_progress", "submitted"];
-
-const needsAttention = (participant: ContestParticipant) =>
-  (participant.violationCount ?? 0) > 0 ||
-  NEEDS_ATTENTION_STATUSES.has(participant.examStatus ?? "");
-
-const getParticipantStatusIcon = (participant: ContestParticipant) => {
-  if (participant.examStatus === "locked") return Locked;
-  if (participant.examStatus === "paused") return PauseFilled;
-  if (participant.examStatus === "submitted") return CheckmarkFilled;
-  if (participant.examStatus === "in_progress") return InProgress;
-  return CircleDash;
-};
-
-const getGroupIcon = (groupId: string) => {
-  switch (groupId) {
-    case "needs_attention":
-      return WarningFilled;
-    case "in_progress":
-      return InProgress;
-    case "submitted":
-      return CheckmarkFilled;
-    case "paused":
-    case "locked":
-      return PauseFilled;
-    default:
-      return Time;
-  }
-};
-
-const getParticipantStatusLabel = (participant: ContestParticipant) =>
-  getExamStatusLabel(participant.examStatus) ||
-  EXAM_STATUS_LABELS[participant.examStatus] ||
-  participant.examStatus;
-
-type ParticipantMetricKey =
-  | "score"
-  | "violations"
-  | "answerProgress"
-  | "gradingProgress";
-
-interface ParticipantMetricDisplay {
-  label: string;
-  value: string;
-  detail: string;
-  tone: "neutral" | "danger";
-  icon?: ElementType;
-}
-
-const PARTICIPANT_METRIC_OPTIONS: Array<{
-  key: ParticipantMetricKey;
-  labelKey: string;
-  defaultLabel: string;
-}> = [
-  { key: "score", labelKey: "adminOverview.command.metric.score", defaultLabel: "分數" },
-  {
-    key: "violations",
-    labelKey: "adminOverview.command.metric.violations",
-    defaultLabel: "異常事件",
-  },
-  {
-    key: "answerProgress",
-    labelKey: "adminOverview.command.metric.answerProgress",
-    defaultLabel: "作答進度",
-  },
-  {
-    key: "gradingProgress",
-    labelKey: "adminOverview.command.metric.gradingProgress",
-    defaultLabel: "批改進度",
-  },
-];
 
 const DATE_TIME_LABEL_REGEX = /^(\d{4}\/\d{2}\/\d{2})\s+(\d{2}:\d{2})$/;
 
@@ -233,29 +85,11 @@ const renderScheduleValue = ({ date, time }: ScheduleEndpoint) => (
   </span>
 );
 
-type ParticipantStatusFilter =
-  | "all"
-  | "needs_attention"
-  | NonNullable<ContestParticipant["examStatus"]>;
-
 type FilterOption<TId extends string = string> = {
   id: TId;
   labelKey: string;
   defaultLabel: string;
 };
-
-const PARTICIPANT_STATUS_FILTERS: FilterOption<ParticipantStatusFilter>[] = [
-  { id: "all", labelKey: "adminOverview.command.filters.allStatuses", defaultLabel: "全部狀態" },
-  {
-    id: "needs_attention",
-    labelKey: "adminOverview.command.filters.needsAttention",
-    defaultLabel: "需要處理",
-  },
-  { id: "in_progress", labelKey: "examStatus.in_progress", defaultLabel: "作答中" },
-  { id: "submitted", labelKey: "examStatus.submitted", defaultLabel: "已交卷" },
-  { id: "locked", labelKey: "examStatus.locked", defaultLabel: "鎖定" },
-  { id: "paused", labelKey: "examStatus.paused", defaultLabel: "暫停" },
-];
 
 const QUESTION_KIND_FILTERS: FilterOption[] = [
   { id: "all", labelKey: "adminOverview.command.filters.allQuestionTypes", defaultLabel: "全部題型" },
@@ -285,106 +119,12 @@ interface SubmissionListToolbarProps {
   onProblemFilterChange?: (value: string) => void;
   hideEmbeddedToolbar?: boolean;
 }
-
-type DashboardTranslate = (
-  key: string,
-  defaultValue: string,
-  values?: Record<string, string | number>,
-) => string;
-
-const getAnswerProgressMetric = (
-  participant: ContestParticipant,
-  tr: DashboardTranslate,
-) => {
-  switch (participant.examStatus) {
-    case "submitted":
-      return { value: "100%", detail: tr("examStatus.submitted", "已交卷") };
-    case "in_progress":
-      return {
-        value: tr("adminOverview.command.metric.inProgress", "進行中"),
-        detail: tr("examStatus.in_progress", "作答中"),
-      };
-    case "locked":
-      return {
-        value: tr("adminOverview.command.metric.interrupted", "中斷"),
-        detail: tr("examStatus.locked", "已鎖定"),
-      };
-    case "paused":
-      return {
-        value: tr("examStatus.paused", "暫停"),
-        detail: tr("adminOverview.command.metric.pausedDetail", "已暫停"),
-      };
-    default:
-      return { value: "0%", detail: tr("examStatus.not_started", "未開始") };
-  }
-};
-
-const getGradingProgressMetric = (
-  participant: ContestParticipant,
-  tr: DashboardTranslate,
-) => {
-  if (participant.examStatus === "submitted") {
-    return {
-      value: tr("adminOverview.command.metric.scored", "已計分"),
-      detail: tr("adminOverview.command.metric.scoreUnit", "{{score}} 分", {
-        score: formatScore(participant.score ?? 0),
-      }),
-    };
-  }
-  return {
-    value: tr("adminOverview.command.metric.notSubmitted", "未交卷"),
-    detail: getParticipantStatusLabel(participant),
-  };
-};
-
-const getParticipantMetric = (
-  participant: ContestParticipant,
-  metric: ParticipantMetricKey,
-  tr: DashboardTranslate,
-): ParticipantMetricDisplay => {
-  if (metric === "violations") {
-    return {
-      label: tr("adminOverview.command.metric.violations", "異常事件"),
-      value: String(participant.violationCount ?? 0),
-      detail: tr("adminOverview.command.metric.eventUnit", "次"),
-      tone: (participant.violationCount ?? 0) > 0 ? "danger" : "neutral",
-    };
-  }
-  if (metric === "answerProgress") {
-    return {
-      label: tr("adminOverview.command.metric.answerProgress", "作答進度"),
-      ...getAnswerProgressMetric(participant, tr),
-      tone:
-        participant.examStatus === "locked" ||
-        participant.examStatus === "paused"
-          ? "danger"
-          : "neutral",
-      icon: getParticipantStatusIcon(participant),
-    };
-  }
-  if (metric === "gradingProgress") {
-    return {
-      label: tr("adminOverview.command.metric.gradingProgress", "批改進度"),
-      ...getGradingProgressMetric(participant, tr),
-      tone: "neutral",
-    };
-  }
-  return {
-    label: tr("adminOverview.command.metric.score", "分數"),
-    value: formatScore(participant.score ?? 0),
-    detail: tr("adminOverview.command.metric.pointUnit", "分"),
-    tone: "neutral",
-  };
-};
-
 export default function AdminOverviewCommandCenter({
   header,
   data,
   overviewInfo,
   adminLoading = false,
   gradingLoading = false,
-  contestId,
-  onOpenPanel,
   participants,
   primary,
   questionStatsGallery,
@@ -393,58 +133,19 @@ export default function AdminOverviewCommandCenter({
   clarificationsContent,
   resultOverview,
   gradingAction,
-  studentQrScannerOpen,
-  onStudentQrScannerOpenChange,
   onOpenAnnouncement,
 }: AdminOverviewCommandCenterProps) {
   const { t } = useTranslation("contest");
-  const tr = useCallback(
-    (
-      key: string,
-      defaultValue: string,
-      values?: Record<string, string | number>,
-    ) => {
-      const translated = values
-        ? t(key, { defaultValue, ...values })
-        : t(key, defaultValue);
-      if (typeof translated === "string") return translated;
-      return defaultValue.replace(/{{(\w+)}}/g, (_, name) =>
-        String(values?.[name] ?? ""),
-      );
-    },
-    [t],
-  );
-  const { showToast } = useToast();
   const { contest } = useContest();
   const { examEventsLoading } = useContestAdmin();
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [participantMetric, setParticipantMetric] =
-    useState<ParticipantMetricKey>("score");
-  const [participantSearch, setParticipantSearch] = useState("");
-  const [participantStatusFilter, setParticipantStatusFilter] =
-    useState<ParticipantStatusFilter>("all");
   const isCodingContest = contest?.contestType === "coding";
   const { activeKey: activePanelTab, setActiveKey: setActivePanelTab } = useTabWithUrlParam<DrilldownTabId>({
     param: "tab",
     keys: isCodingContest
-      ? ["participants", "submissions", "standings", "clarifications"]
-      : ["participants", "standings", "questionStats", "clarifications"],
-    defaultKey: "participants",
+      ? ["submissions", "standings", "clarifications"]
+      : ["standings", "questionStats", "clarifications"],
+    defaultKey: isCodingContest ? "submissions" : "standings",
   });
-  const [internalStudentQrScannerOpen, setInternalStudentQrScannerOpen] =
-    useState(false);
-  const studentQrScannerIsOpen =
-    studentQrScannerOpen ?? internalStudentQrScannerOpen;
-  const setStudentQrScannerOpen = useCallback(
-    (open: boolean) => {
-      if (onStudentQrScannerOpenChange) {
-        onStudentQrScannerOpenChange(open);
-      } else {
-        setInternalStudentQrScannerOpen(open);
-      }
-    },
-    [onStudentQrScannerOpenChange],
-  );
   const [questionStatsSearch, setQuestionStatsSearch] = useState("");
   const [questionStatsKindFilter, setQuestionStatsKindFilter] =
     useState<string>("all");
@@ -453,200 +154,8 @@ export default function AdminOverviewCommandCenter({
   const [submissionProblemFilter, setSubmissionProblemFilter] =
     useState("all");
 
-  const handleOpenPanel = useCallback(
-    (panel: AdminPanelId) => {
-      if (panel === "clarifications") {
-        setActivePanelTab("clarifications");
-        return;
-      }
-      if (isCodingContest && panel === "standings") {
-        setActivePanelTab("standings");
-        return;
-      }
-      onOpenPanel(panel);
-    },
-    [isCodingContest, onOpenPanel, setActivePanelTab],
-  );
-
-  const {
-    videoRef: studentQrVideoRef,
-    setVideoElement: setStudentQrVideoElement,
-    cameraState: studentQrCameraState,
-    cameraError: studentQrCameraError,
-  } = useCameraStream({
-    active: studentQrScannerIsOpen,
-    facingMode: "environment",
-    messages: {
-      unavailable: t(
-        "adminOverview.command.participants.studentQr.cameraUnavailable",
-        "無法使用相機，請改用搜尋欄選取學生。",
-      ),
-    },
-  });
-  const handleStudentQrDetected = useCallback(
-    (raw: string) => {
-      const parsed = parseStudentLocatorQrValue(raw);
-      if (!parsed) {
-        setStudentQrScannerOpen(false);
-        showToast({
-          kind: "error",
-          title: t("common.error", "錯誤"),
-          subtitle: t(
-            "adminOverview.command.participants.studentQr.invalid",
-            "這不是 QJudge 考生 QR。",
-          ),
-        });
-        return;
-      }
-      if (parsed.contestId !== contestId) {
-        setStudentQrScannerOpen(false);
-        showToast({
-          kind: "error",
-          title: t("common.error", "錯誤"),
-          subtitle: t(
-            "adminOverview.command.participants.studentQr.wrongContest",
-            "這不是本場考試的考生 QR。",
-          ),
-        });
-        return;
-      }
-      const participant = participants.find(
-        (item) => String(item.userId) === parsed.userId,
-      );
-      if (!participant) {
-        setStudentQrScannerOpen(false);
-        showToast({
-          kind: "error",
-          title: t("common.error", "錯誤"),
-          subtitle: t(
-            "adminOverview.command.participants.studentQr.notFound",
-            "找不到對應的考生。",
-          ),
-        });
-        return;
-      }
-      setSelectedUserId(participant.userId);
-      setParticipantSearch("");
-      setActivePanelTab("participants");
-      setStudentQrScannerOpen(false);
-      showToast({
-        kind: "success",
-        title: t("common.success", "成功"),
-        subtitle: t(
-          "adminOverview.command.participants.studentQr.selected",
-          "已選取考生。",
-        ),
-      });
-    },
-    [contestId, participants, setActivePanelTab, setStudentQrScannerOpen, showToast, t],
-  );
-  const studentQrScannerMode = useQrScanner({
-    videoRef: studentQrVideoRef,
-    active: studentQrScannerIsOpen && studentQrCameraState === "ready",
-    onDetected: handleStudentQrDetected,
-  });
-
-  const studentParticipants = participants
-    .filter(hasStartedExam)
-    .sort(
-      (left, right) =>
-        getParticipantSortScore(right) - getParticipantSortScore(left) ||
-        getProfileDisplayName(left).localeCompare(
-          getProfileDisplayName(right),
-          "zh-TW",
-        ),
-    );
-  const filteredStudentParticipants = useMemo(() => {
-    const normalizedQuery = participantSearch.trim().toLowerCase();
-    return studentParticipants.filter((participant) => {
-      if (participantStatusFilter === "needs_attention") {
-        if (!needsAttention(participant)) return false;
-      } else if (
-        participantStatusFilter !== "all" &&
-        participant.examStatus !== participantStatusFilter
-      ) {
-        return false;
-      }
-      if (!normalizedQuery) return true;
-      return [
-        getProfileDisplayName(participant),
-        participant.username,
-        participant.email,
-        participant.lockReason,
-        participant.submitReason,
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalizedQuery));
-    });
-  }, [participantSearch, participantStatusFilter, studentParticipants]);
-  const participantsNeedingAttention =
-    filteredStudentParticipants.filter(needsAttention);
-  const normalParticipantsByStatus = filteredStudentParticipants
-    .filter((participant) => !needsAttention(participant))
-    .reduce<Record<string, ContestParticipant[]>>((groups, participant) => {
-      const status = participant.examStatus ?? "unknown";
-      groups[status] = groups[status] ?? [];
-      groups[status].push(participant);
-      return groups;
-    }, {});
-  const statusGroupKeys = [
-    ...STATUS_GROUP_ORDER.filter(
-      (status) => normalParticipantsByStatus[status]?.length,
-    ),
-    ...Object.keys(normalParticipantsByStatus)
-      .filter((status) => !STATUS_GROUP_ORDER.includes(status))
-      .sort(),
-  ];
-  const participantGroups = [
-    ...(participantsNeedingAttention.length > 0
-      ? [
-          {
-            id: "needs_attention",
-            title: tr(
-              "adminOverview.command.filters.needsAttention",
-              "需要處理",
-            ),
-            participants: participantsNeedingAttention,
-          },
-        ]
-      : []),
-    ...statusGroupKeys.map((status) => ({
-      id: status,
-      title: tr(
-        `examStatus.${status}`,
-        getExamStatusLabel(status as ContestParticipant["examStatus"]) ||
-          EXAM_STATUS_LABELS[status as ContestParticipant["examStatus"]] ||
-          status,
-      ),
-      participants: normalParticipantsByStatus[status],
-    })),
-  ];
+  const studentParticipants = participants.filter(hasStartedExam);
   const liveStudentCount = studentParticipants.filter(isParticipantLive).length;
-  const handleParticipantSearchChange = (
-    event: ChangeEvent<HTMLInputElement>,
-  ) => {
-    setParticipantSearch(event.target.value);
-  };
-  const participantMetricTags = (
-    <div
-      className={styles.metricTagGroup}
-      aria-label={t(
-        "adminOverview.command.metricSwitcher",
-        "考生卡片資料切換",
-      )}
-    >
-      {PARTICIPANT_METRIC_OPTIONS.map((option) => (
-        <SelectableTag
-          key={option.key}
-          id={`participant-metric-${option.key}`}
-          text={t(option.labelKey, option.defaultLabel)}
-          selected={participantMetric === option.key}
-          onChange={() => setParticipantMetric(option.key)}
-          size="sm"
-        />
-      ))}
-    </div>
-  );
   const insightCards = data.insightCards.filter(
     (card) => card.key !== "exam_progress",
   );
@@ -743,154 +252,6 @@ export default function AdminOverviewCommandCenter({
         ) : null}
       </DashboardBlock>
     </DashboardContainer>
-  );
-  const participantContent = adminLoading ? (
-    <div
-      className={styles.participantGridSections}
-      aria-label={t("adminOverview.command.participants.loading", "考生列表載入中")}
-    >
-      {Array.from({ length: 8 }).map((_, index) => (
-        <div className={styles.participantCard} key={index}>
-          <SkeletonText heading width="60%" />
-          <SkeletonText width="42%" />
-          <SkeletonText width="5rem" />
-        </div>
-      ))}
-    </div>
-  ) : filteredStudentParticipants.length === 0 ? (
-    <div className={styles.emptyState}>
-      {t("adminOverview.command.participants.empty", "目前沒有考生")}
-    </div>
-  ) : (
-    <div className={styles.participantGridSections}>
-      {participantGroups.map((group) => {
-        const GroupIcon = getGroupIcon(group.id);
-        return (
-          <section key={group.id} className={styles.participantGroup}>
-            <div
-              className={`${styles.participantGroupHeader} ${
-                group.id === "needs_attention"
-                  ? styles.participantGroupHeaderAttention
-                  : ""
-              }`}
-            >
-              <GroupIcon size={16} />
-              <span>{group.title}</span>
-              <strong>{group.participants.length}</strong>
-            </div>
-            <div className={styles.participantGrid}>
-              {group.participants.map((participant) => {
-                const live = isParticipantLive(participant);
-                const metric = getParticipantMetric(
-                  participant,
-                  participantMetric,
-                  tr,
-                );
-                const MetricIcon = metric.icon;
-                return (
-                  <button
-                    key={participant.userId}
-                    type="button"
-                    className={styles.participantCard}
-                    onClick={() => setSelectedUserId(participant.userId)}
-                  >
-                    <div className={styles.participantCardHeader}>
-                      <div className={styles.participantIdentity}>
-                        <strong>{getProfileDisplayName(participant)}</strong>
-                        <span>@{participant.username}</span>
-                        <span className={styles.participantConnection}>
-                          <span
-                            className={
-                              live ? styles.liveDot : styles.offlineDot
-                            }
-                            aria-label={
-                              live
-                                ? t("adminOverview.command.connection.online", "在線")
-                                : t("adminOverview.command.connection.offline", "離線")
-                            }
-                          />
-                          {live
-                            ? t("adminOverview.command.connection.online", "在線")
-                            : t("adminOverview.command.connection.offline", "離線")}
-                        </span>
-                      </div>
-                      <div
-                        className={`${styles.participantSingleMetric} ${
-                          metric.tone === "danger" ? styles.metricDanger : ""
-                        }`}
-                      >
-                        <span>{metric.label}</span>
-                        <strong>
-                          {MetricIcon ? <MetricIcon size={16} /> : null}
-                          {metric.value}
-                        </strong>
-                        {metric.detail ? <small>{metric.detail}</small> : null}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
-    </div>
-  );
-  const participantPanel = (
-    <div className={styles.drilldownPanel}>
-      <BlockHeader
-        title={t("adminOverview.command.participants.title", "考生列表")}
-      />
-      {participantMetricTags}
-      {participantContent}
-    </div>
-  );
-  const participantTabToolbar = (
-    <DashboardToolbar>
-      <DashboardToolbar.Search
-        id="overview-participants-search"
-        ariaLabel={t("adminOverview.command.participants.search", "搜尋考生")}
-        placeholder={t(
-          "adminOverview.command.participants.searchPlaceholder",
-          "搜尋顯示名稱或使用者名稱...",
-        )}
-        value={participantSearch}
-        collapsible
-        onChange={(value) =>
-          handleParticipantSearchChange({
-            target: { value },
-          } as ChangeEvent<HTMLInputElement>)
-        }
-        onClear={() => setParticipantSearch("")}
-      />
-      <DashboardToolbar.Filter>
-        <OverflowMenu
-          renderIcon={Filter}
-          iconDescription={t(
-            "adminOverview.command.participants.filterStatus",
-            "篩選狀態",
-          )}
-          size="md"
-          flipped
-          aria-label={t(
-            "adminOverview.command.participants.filterStatusAria",
-            "篩選考生狀態",
-          )}
-        >
-          {PARTICIPANT_STATUS_FILTERS.map((option) => (
-            <OverflowMenuItem
-              key={option.id}
-              itemText={
-                participantStatusFilter === option.id
-                  ? `✓  ${t(option.labelKey, option.defaultLabel)}`
-                  : t(option.labelKey, option.defaultLabel)
-              }
-              onClick={() => setParticipantStatusFilter(option.id)}
-            />
-          ))}
-        </OverflowMenu>
-      </DashboardToolbar.Filter>
-    </DashboardToolbar>
   );
   const questionStatsPanel = (
     <div className={styles.drilldownPanel}>
@@ -1070,10 +431,6 @@ export default function AdminOverviewCommandCenter({
   const drilldownTabs = isCodingContest
     ? [
         {
-          id: "participants",
-          label: t("adminOverview.command.drilldown.participants", "參與者"),
-        },
-        {
           id: "submissions",
           label: t("adminOverview.command.drilldown.submissions", "提交列表"),
         },
@@ -1084,10 +441,6 @@ export default function AdminOverviewCommandCenter({
       ]
     : [
         { id: "standings", label: t("adminOverview.command.drilldown.scoreMatrix", "成績總覽") },
-        {
-          id: "participants",
-          label: t("adminOverview.command.drilldown.participants", "參與者"),
-        },
         {
           id: "questionStats",
           label: t("adminOverview.command.drilldown.questionStats", "作答分佈"),
@@ -1106,9 +459,7 @@ export default function AdminOverviewCommandCenter({
           ariaLabel={t("adminOverview.command.drilldown.ariaLabel", "總覽資料切換")}
           tabs={[...drilldownTabs, { id: "clarifications", label: t("studentDashboard.tabs.clarifications", "公告與提問") }]}
           toolbar={
-            activePanelTab === "participants"
-              ? participantTabToolbar
-              : activePanelTab === "questionStats"
+            activePanelTab === "questionStats"
                 ? questionStatsTabToolbar
                 : activePanelTab === "submissions"
                   ? submissionTabToolbar
@@ -1122,9 +473,6 @@ export default function AdminOverviewCommandCenter({
             <div className={styles.drilldownPanel}>{clarificationsContent}</div>
           </DashboardTabPanel>
         ) : null}
-        <DashboardTabPanel tabId="participants">
-          {participantPanel}
-        </DashboardTabPanel>
         {isCodingContest ? (
           <>
             <DashboardTabPanel tabId="submissions">
@@ -1208,55 +556,6 @@ export default function AdminOverviewCommandCenter({
           </DashboardContainer>
         }
       />
-      {selectedUserId ? (
-        <ParticipantDrawer
-          key={selectedUserId}
-          contestId={contestId}
-          selectedUserId={selectedUserId}
-          onClose={() => setSelectedUserId(null)}
-          onOpenPanel={handleOpenPanel}
-        />
-      ) : null}
-      <Modal
-        open={studentQrScannerIsOpen}
-        modalHeading={t(
-          "adminOverview.command.participants.studentQr.heading",
-          "掃描學生 QR",
-        )}
-        passiveModal
-        onRequestClose={() => setStudentQrScannerOpen(false)}
-        size="sm"
-      >
-        <div className={styles.studentQrScanner}>
-          <div className={styles.studentQrScannerViewport}>
-            {studentQrCameraState === "unavailable" ? (
-              <p>{studentQrCameraError}</p>
-            ) : (
-              <video
-                ref={setStudentQrVideoElement}
-                className={styles.studentQrScannerVideo}
-                muted
-                playsInline
-                autoPlay
-              />
-            )}
-          </div>
-          <p className={styles.studentQrScannerHint}>
-            {studentQrCameraState === "ready"
-              ? t(
-                  "adminOverview.command.participants.studentQr.ready",
-                  "請掃描學生競賽主頁上的考生 QR。",
-                )
-              : t(
-                  "adminOverview.command.participants.studentQr.requesting",
-                  "正在啟用相機...",
-                )}
-            {studentQrScannerMode !== "waiting" ? (
-              <span> {studentQrScannerMode.toUpperCase()}</span>
-            ) : null}
-          </p>
-        </div>
-      </Modal>
     </>
   );
 }
