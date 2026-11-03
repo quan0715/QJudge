@@ -3,13 +3,12 @@ import { Button } from "@carbon/react";
 import { Close } from "@carbon/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
-import type { ContestParticipant, ExamStatusType, ParticipantDashboardDetail } from "@/core/entities/contest.entity";
+import type { ExamStatusType, ParticipantDashboardDetail } from "@/core/entities/contest.entity";
 import type { AdminPanelId } from "@/features/contest/modules/types";
 import { useContest, useContestAdmin } from "@/features/contest/contexts";
 import useParticipantDashboard from "@/features/contest/hooks/useParticipantDashboard";
-import { downloadParticipantReport, resetParticipantExamRecord, reopenExam, unlockParticipant, updateParticipant } from "@/infrastructure/api/repositories";
-import { useToast } from "@/shared/contexts/ToastContext";
-import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
+import { useParticipantActions } from "@/features/contest/hooks/useParticipantActions";
+import { ConfirmModal } from "@/shared/ui/modal";
 import ParticipantDashboardPane from "./ParticipantDashboardPane";
 import ParticipantOperationsPane from "./ParticipantOperationsPane";
 import ParticipantStatusEditModal from "./ParticipantStatusEditModal";
@@ -29,20 +28,15 @@ export default function ParticipantDrawer({
   initialDetail = "overview", initialExpandedProblemId,
 }: ParticipantDrawerProps) {
   const { t } = useTranslation("contest");
-  const { showToast } = useToast();
-  const { confirm, modalProps: confirmModalProps } = useConfirmModal();
   const { contest } = useContest();
   const { participants, refreshAllAdminData } = useContestAdmin();
   const antiCheatEnabled = !!contest?.cheatDetectionEnabled;
   const [activeParticipantDetail, setActiveParticipantDetail] =
     useState<ParticipantDashboardDetail>(initialDetail);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editingParticipant, setEditingParticipant] =
-    useState<ContestParticipant | null>(null);
   const [editExamStatus, setEditExamStatus] =
     useState<ExamStatusType>("not_started");
   const [editLockReason, setEditLockReason] = useState("");
-  const [savingStatus, setSavingStatus] = useState(false);
   const participantDashboard = useParticipantDashboard(
     contestId,
     selectedUserId,
@@ -67,32 +61,14 @@ export default function ParticipantDrawer({
   const refreshAfterAction = useCallback(async () => {
     await Promise.all([refreshAllAdminData(), participantDashboard.refresh()]);
   }, [refreshAllAdminData, participantDashboard]);
-
-  const handleDownloadParticipantReport = useCallback(async () => {
-    if (!contestId || !selectedUserId) return;
-    try {
-      await downloadParticipantReport(contestId, selectedUserId);
-      showToast({
-        kind: "success",
-        title: t("common.success", "成功"),
-        subtitle: t("participants.reportDownloaded", "報告已下載"),
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t("participants.downloadFailed", "下載報告失敗");
-      showToast({
-        kind: "error",
-        title: t("common.error", "錯誤"),
-        subtitle: message,
-      });
-    }
-  }, [contestId, selectedUserId, showToast, t]);
+  const actions = useParticipantActions({
+    contestId: contestId || "",
+    userId: selectedUserId,
+    onChanged: refreshAfterAction,
+  });
 
   const openEditModal = useCallback(() => {
     if (!participantDashboard.data) return;
-    setEditingParticipant(participantDashboard.data.participant);
     setEditExamStatus(
       participantDashboard.data.participant.examStatus || "not_started",
     );
@@ -101,158 +77,9 @@ export default function ParticipantDrawer({
   }, [participantDashboard.data]);
 
   const handleUpdateParticipant = useCallback(async () => {
-    if (!contestId || !editingParticipant) return;
-    setSavingStatus(true);
-    try {
-      await updateParticipant(contestId, Number(editingParticipant.userId), {
-        exam_status: editExamStatus,
-        lock_reason: editExamStatus === "locked" ? editLockReason : "",
-      });
-      setEditModalOpen(false);
-      await refreshAfterAction();
-      showToast({
-        kind: "success",
-        title: t("common.success", "成功"),
-        subtitle: t("participants.statusUpdated", "參賽者狀態已更新"),
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t("participants.updateFailed", "更新失敗");
-      showToast({
-        kind: "error",
-        title: t("common.error", "錯誤"),
-        subtitle: message,
-      });
-    } finally {
-      setSavingStatus(false);
-    }
-  }, [
-    contestId,
-    editingParticipant,
-    editExamStatus,
-    editLockReason,
-    refreshAfterAction,
-    showToast,
-    t,
-  ]);
-
-  const handleUnlock = useCallback(async () => {
-    if (!contestId || !selectedUserId) return;
-    const confirmed = await confirm({
-      title: t("participants.confirmUnlock", "確定要解除此學生的鎖定嗎？"),
-      confirmLabel: t("participants.unlock", "解除"),
-      cancelLabel: t("button.cancel", "取消"),
-      danger: true,
-    });
-    if (!confirmed) return;
-    try {
-      await unlockParticipant(contestId, Number(selectedUserId));
-      await refreshAfterAction();
-      showToast({
-        kind: "success",
-        title: t("common.success", "成功"),
-        subtitle: t("participants.unlocked", "已解除鎖定"),
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t("participants.unlockFailed", "解除鎖定失敗");
-      showToast({
-        kind: "error",
-        title: t("common.error", "錯誤"),
-        subtitle: message,
-      });
-    }
-  }, [confirm, contestId, refreshAfterAction, selectedUserId, showToast, t]);
-
-  const handleReopenExam = useCallback(async () => {
-    if (!contestId || !selectedUserId) return;
-    const confirmed = await confirm({
-      title: t("participants.confirmReopen", "確定要重新開放此學生考試嗎？"),
-      confirmLabel: t("participants.reopen", "重新開放"),
-      cancelLabel: t("button.cancel", "取消"),
-      danger: true,
-    });
-    if (!confirmed) return;
-    try {
-      await reopenExam(contestId, Number(selectedUserId));
-      await refreshAfterAction();
-      showToast({
-        kind: "success",
-        title: t("common.success", "成功"),
-        subtitle: t("participants.reopened", "已重新開放考試"),
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t("participants.reopenFailed", "重新開放失敗");
-      showToast({
-        kind: "error",
-        title: t("common.error", "錯誤"),
-        subtitle: message,
-      });
-    }
-  }, [confirm, contestId, refreshAfterAction, selectedUserId, showToast, t]);
-
-  const handleResetExamRecord = useCallback(async () => {
-    if (!contestId || !selectedUserId || !participantDashboard.data) return;
-    const confirmed = await confirm({
-      title: t(
-        "participants.confirmResetExamRecord",
-        "確定要重置此學生的考試紀錄嗎？這會清除作答、成績、簽到簽退與監考事件，但不會移除參賽者。",
-      ),
-      confirmLabel: t("participants.actions.resetExamRecord", "重置考試紀錄"),
-      cancelLabel: t("button.cancel", "取消"),
-      danger: true,
-    });
-    if (!confirmed) return;
-    try {
-      await resetParticipantExamRecord(contestId, selectedUserId);
-      await refreshAfterAction();
-      showToast({
-        kind: "success",
-        title: t("common.success", "成功"),
-        subtitle: t("participants.examRecordReset", "已重置考試紀錄"),
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t("participants.examRecordResetFailed", "重置考試紀錄失敗");
-      showToast({
-        kind: "error",
-        title: t("common.error", "錯誤"),
-        subtitle: message,
-      });
-    }
-  }, [
-    confirm,
-    contestId,
-    participantDashboard.data,
-    refreshAfterAction,
-    selectedUserId,
-    showToast,
-    t,
-  ]);
-
-  const handleAssistedAttendance = useCallback((purpose: "check_in" | "check_out") => {
-    if (!contestId || !selectedUserId || !contest?.boundClassroomId) return;
-    const returnTo = `/classrooms/${contest.boundClassroomId}/contest/${contestId}/admin`;
-    const params = new URLSearchParams({
-      mode: "teacher_assisted",
-      purpose,
-      userId: selectedUserId,
-      reason: "TA assisted identity verification",
-      returnTo,
-    });
-    window.location.assign(
-      `/classrooms/${contest.boundClassroomId}/contest/${contestId}/attendance/scan?${params.toString()}`,
-    );
-  }, [contest?.boundClassroomId, contestId, selectedUserId]);
+    await actions.updateStatus(editExamStatus, editLockReason);
+    setEditModalOpen(false);
+  }, [actions, editExamStatus, editLockReason]);
 
   const selectedParticipant = selectedUserId
     ? participants.find((participant) => participant.userId === selectedUserId)
@@ -275,12 +102,12 @@ export default function ParticipantDrawer({
       dashboard={liveParticipantDashboard}
       loading={participantDashboard.loading}
       error={participantDashboard.error}
-      onDownloadReport={() => void handleDownloadParticipantReport()}
+      onDownloadReport={() => void actions.downloadReport()}
       onEditStatus={openEditModal}
-      onUnlock={() => void handleUnlock()}
-      onReopenExam={() => void handleReopenExam()}
-      onAssistedAttendance={contest?.attendanceCheckEnabled ? handleAssistedAttendance : undefined}
-      onResetExamRecord={() => void handleResetExamRecord()}
+      onUnlock={() => void actions.unlock()}
+      onReopenExam={() => void actions.reopen()}
+      onAssistedAttendance={contest?.attendanceCheckEnabled ? actions.startAssistedAttendance : undefined}
+      onResetExamRecord={() => void actions.resetExamRecord()}
       onOpenDetail={setActiveParticipantDetail}
       onOpenGrading={() => onOpenPanel(contest?.contestType === "coding" ? "standings" : "grading-workbench")}
       onOpenProctoring={() => onOpenPanel("proctoring")}
@@ -349,10 +176,10 @@ export default function ParticipantDrawer({
                   activeDetail={activeParticipantDetail}
                   overviewContent={participantOverviewContent}
                   onDetailChange={setActiveParticipantDetail}
-                  onDownloadReport={() => void handleDownloadParticipantReport()}
+                  onDownloadReport={() => void actions.downloadReport()}
                   onEditStatus={openEditModal}
-                  onUnlock={() => void handleUnlock()}
-                  onReopenExam={() => void handleReopenExam()}
+                  onUnlock={() => void actions.unlock()}
+                  onReopenExam={() => void actions.reopen()}
                   onOpenGrading={() => onOpenPanel(contest?.contestType === "coding" ? "standings" : "grading-workbench")}
                   onRefreshEvents={participantDashboard.refresh}
                 />
@@ -363,8 +190,8 @@ export default function ParticipantDrawer({
       </AnimatePresence>
       <ParticipantStatusEditModal
         open={editModalOpen}
-        saving={savingStatus}
-        participantUsername={editingParticipant?.username}
+        saving={actions.busy}
+        participantUsername={participantDashboard.data?.participant.username}
         examStatus={editExamStatus}
         lockReason={editLockReason}
         onClose={() => setEditModalOpen(false)}
@@ -373,7 +200,7 @@ export default function ParticipantDrawer({
         onLockReasonChange={setEditLockReason}
       />
 
-      <ConfirmModal {...confirmModalProps} />
+      <ConfirmModal {...actions.confirmModalProps} />
     </>
   );
 }
