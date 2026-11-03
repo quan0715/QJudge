@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   getDashboard: vi.fn(),
   answerReport: vi.fn(),
   location: { search: "" },
+  stageMounts: 0,
+  stageProps: [] as Array<{ layout?: number; gridPage?: number; participant: ContestParticipant | null }>,
 }));
 const translate = vi.hoisted(
   () => (key: string, fallback?: string | { defaultValue?: string }, values?: Record<string, unknown>) =>
@@ -51,6 +53,30 @@ vi.mock("@/features/contest/components/participants/ParticipantAnswerReport", ()
     return <div data-testid="answer-report" />;
   },
 }));
+
+vi.mock("./ProctorLiveStage", async () => {
+  const React = await import("react");
+  return {
+    MinimalLiveStage: (props: {
+      layout?: number;
+      gridPage?: number;
+      participant: ContestParticipant | null;
+      onGridPageChange?: (page: number) => void;
+      onSelectParticipant?: (userId: string) => void;
+    }) => {
+      mocks.stageProps.push(props);
+      React.useEffect(() => {
+        mocks.stageMounts += 1;
+      }, []);
+      return React.createElement(
+        "div",
+        { "data-testid": `stage-${props.layout ?? 1}` },
+        React.createElement("button", { type: "button", onClick: () => props.onGridPageChange?.(3) }, "page 4"),
+        React.createElement("button", { type: "button", onClick: () => props.onSelectParticipant?.("8") }, "tile 8"),
+      );
+    },
+  };
+});
 
 import AdminParticipantsPanel from "./AdminParticipantsPanel";
 
@@ -113,6 +139,8 @@ beforeEach(() => {
   mocks.participants = [participant("7"), participant("8")];
   mocks.getDashboard.mockReset().mockImplementation(async (_c: string, userId: string) => dashboardFor(userId));
   mocks.answerReport.mockClear();
+  mocks.stageMounts = 0;
+  mocks.stageProps = [];
   mocks.refreshAdminData.mockReset().mockResolvedValue(undefined);
 });
 
@@ -188,5 +216,33 @@ describe("AdminParticipantsPanel", () => {
     renderPanel("?panel=participants&q=student-8");
     expect(screen.queryByRole("row", { name: /Student 7/ })).not.toBeInTheDocument();
     expect(screen.getByRole("row", { name: /Student 8/ })).toBeInTheDocument();
+  });
+  it("keeps one live stage mounted while switching students", async () => {
+    renderPanel("?panel=participants&user=7");
+    await screen.findByRole("heading", { name: "Student 7" });
+    const mountsBefore = mocks.stageMounts;
+    fireEvent.click(screen.getByRole("button", { name: /Student 8/ }));
+    await screen.findByRole("heading", { name: "Student 8" });
+    expect(mocks.stageMounts).toBe(mountsBefore);
+    expect(mocks.stageProps.at(-1)?.participant?.userId).toBe("8");
+  });
+
+  it("keeps the student header when a dashboard refresh fails", async () => {
+    renderPanel("?panel=participants&user=7");
+    await screen.findByRole("heading", { name: "Student 7" });
+    mocks.getDashboard.mockRejectedValueOnce(new Error("boom"));
+    fireEvent.click(screen.getByRole("button", { name: "重新整理" }));
+    await waitFor(() => expect(screen.getByText("部分資料可能不是最新")).toBeInTheDocument());
+    expect(screen.getByRole("heading", { name: "Student 7" })).toBeInTheDocument();
+  });
+
+  it("returns to the same monitor grid page after viewing a student", async () => {
+    renderPanel("?panel=participants&monitor=1");
+    fireEvent.click(screen.getByRole("button", { name: "page 4" }));
+    fireEvent.click(screen.getByRole("button", { name: "tile 8" }));
+    await screen.findByRole("heading", { name: "Student 8" });
+    fireEvent.click(screen.getByRole("button", { name: "返回列表" }));
+    expect(screen.getByTestId("stage-4")).toBeInTheDocument();
+    expect(mocks.stageProps.at(-1)?.gridPage).toBe(3);
   });
 });

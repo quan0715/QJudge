@@ -87,6 +87,16 @@ describe("useParticipantActions", () => {
     vi.unstubAllGlobals();
   });
 
+  it("reports whether an action succeeded", async () => {
+    const result = setup();
+    let ok: boolean | undefined;
+    await act(async () => { ok = await result.current.lock("x"); });
+    expect(ok).toBe(true);
+    mocks.updateParticipant.mockRejectedValue(new Error("nope"));
+    await act(async () => { ok = await result.current.lock("x"); });
+    expect(ok).toBe(false);
+  });
+
   it("shows an error toast with the API message when an action fails", async () => {
     mocks.reopenExam.mockRejectedValue(new Error("boom"));
     const result = setup();

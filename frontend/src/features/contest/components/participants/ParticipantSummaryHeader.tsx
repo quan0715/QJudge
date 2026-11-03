@@ -56,7 +56,7 @@ export default function ParticipantSummaryHeader({
   const kpis = getParticipantKpis(dashboard, { showViolations, t });
 
   const submitLock = async () => {
-    await actions.lock(lockReason);
+    if (!(await actions.lock(lockReason))) return;
     setLockModalOpen(false);
     setLockReason("");
   };
@@ -66,8 +66,7 @@ export default function ParticipantSummaryHeader({
     setEditModalOpen(true);
   };
   const submitEdit = async () => {
-    await actions.updateStatus(editStatus, editLockReason);
-    setEditModalOpen(false);
+    if (await actions.updateStatus(editStatus, editLockReason)) setEditModalOpen(false);
   };
 
   return (

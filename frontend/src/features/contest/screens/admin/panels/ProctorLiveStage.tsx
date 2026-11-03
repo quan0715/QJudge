@@ -34,6 +34,9 @@ interface MinimalLiveStageProps {
   onLayoutChange?: (layout: 1 | 4 | 9) => void;
   onSelectParticipant?: (userId: string) => void;
   showIdentity?: boolean;
+  /** Controlled grid page; falls back to local state when omitted. */
+  gridPage?: number;
+  onGridPageChange?: (page: number) => void;
 }
 
 export const MinimalLiveStage = ({
@@ -47,6 +50,8 @@ export const MinimalLiveStage = ({
   onBackToRoster,
   participants, layout = 1, onLayoutChange, onSelectParticipant,
   showIdentity = true,
+  gridPage: controlledGridPage,
+  onGridPageChange,
 }: MinimalLiveStageProps) => {
   const { t } = useTranslation("contest");
   const videoRefs = useRef<Record<LiveSource, HTMLVideoElement | null>>({
@@ -54,7 +59,9 @@ export const MinimalLiveStage = ({
     webcam: null,
   });
   const discoveryControllerRef = useRef<AbortController | null>(null);
-  const [gridPage, setGridPage] = useState(0);
+  const [localGridPage, setLocalGridPage] = useState(0);
+  const gridPage = controlledGridPage ?? localGridPage;
+  const setGridPage = onGridPageChange ?? setLocalGridPage;
   const selectedIdentityRef = useRef<string | null>(null);
   const discoveredSourcesRef = useRef<LiveSource[]>([]);
   const { transportRef, transport, state: transportState, reconnect } = useLiveMonitoringConnection({

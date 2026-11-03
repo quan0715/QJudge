@@ -33,8 +33,8 @@ export const useParticipantActions = ({ contestId, userId, classroomId, onChange
   const [busy, setBusy] = useState(false);
 
   const run = useCallback(
-    async (copy: ActionCopy, action: (id: string) => Promise<unknown>) => {
-      if (!contestId || !userId) return;
+    async (copy: ActionCopy, action: (id: string) => Promise<unknown>): Promise<boolean> => {
+      if (!contestId || !userId) return false;
       if (copy.confirm) {
         const confirmed = await confirm({
           title: t(...copy.confirm.title),
@@ -42,19 +42,21 @@ export const useParticipantActions = ({ contestId, userId, classroomId, onChange
           cancelLabel: t("button.cancel", "取消"),
           danger: true,
         });
-        if (!confirmed) return;
+        if (!confirmed) return false;
       }
       setBusy(true);
       try {
         await action(userId);
         if (copy.refresh !== false) await onChanged();
         showToast({ kind: "success", title: t("common.success", "成功"), subtitle: t(...copy.success) });
+        return true;
       } catch (error) {
         showToast({
           kind: "error",
           title: t("common.error", "錯誤"),
           subtitle: error instanceof Error ? error.message : t(...copy.failure),
         });
+        return false;
       } finally {
         setBusy(false);
       }

@@ -67,6 +67,7 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
 
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [gridSize, setGridSize] = useState<4 | 9>(4);
+  const [gridPage, setGridPage] = useState(0);
   const [discoveryKey, setDiscoveryKey] = useState(0);
   const [reconnectKey, setReconnectKey] = useState(0);
   const [eventsOpen, setEventsOpen] = useState(true);
@@ -227,7 +228,10 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
           hideLabel
           labelText={t("proctoringPanel.gridSize", "每頁監看人數")}
           value={gridSize}
-          onChange={(event) => setGridSize(event.target.value === "9" ? 9 : 4)}
+          onChange={(event) => {
+            setGridSize(event.target.value === "9" ? 9 : 4);
+            setGridPage(0);
+          }}
         >
           <SelectItem value="4" text={t("proctoringPanel.fourView", "4 人")} />
           <SelectItem value="9" text={t("proctoringPanel.nineView", "9 人")} />
@@ -320,53 +324,57 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
     </div>
   );
 
+  // The live stage keeps one tree position so switching students only retargets it.
   const studentDashboard = (
     <div className={styles.dashboard}>
-      {dashboardState.error && !dashboard ? (
-        <InlineNotification
-          kind="error"
-          lowContrast
-          hideCloseButton
-          title={t("dashboard.loadFailed", "載入參賽者 dashboard 失敗")}
-          subtitle={dashboardState.error}
+      {dashboard ? (
+        <ParticipantSummaryHeader
+          dashboard={dashboard}
+          actions={actions}
+          showViolations={!!contest?.cheatDetectionEnabled}
+          attendanceEnabled={!!contest?.attendanceCheckEnabled}
+          onOpenGrading={openGrading}
         />
-      ) : null}
-      {!dashboard && !dashboardState.error ? (
+      ) : (
         <div>
           <SkeletonText heading width="40%" />
           <SkeletonText width="65%" />
         </div>
+      )}
+      {dashboardState.error ? (
+        <InlineNotification
+          kind={dashboard ? "warning" : "error"}
+          lowContrast
+          hideCloseButton
+          title={
+            dashboard
+              ? t("dashboard.partialLoadWarning", "部分資料可能不是最新")
+              : t("dashboard.loadFailed", "載入參賽者 dashboard 失敗")
+          }
+          subtitle={dashboardState.error}
+        />
+      ) : null}
+      {inExamWindow ? (
+        <section className={styles.section}>
+          <h3 className={styles.sectionTitle}>{t("participantsPanel.liveView", "即時畫面")}</h3>
+          <div className={styles.liveStage}>
+            <MinimalLiveStage
+              contestId={contestId}
+              participant={selectedParticipant}
+              discoveryRefreshKey={discoveryKey}
+              reconnectKey={reconnectKey}
+              lockActionBusy={actions.busy}
+              monitoringAvailable={inExamWindow}
+              showIdentity={false}
+            />
+          </div>
+        </section>
       ) : null}
       {dashboard ? (
-        <>
-          <ParticipantSummaryHeader
-            dashboard={dashboard}
-            actions={actions}
-            showViolations={!!contest?.cheatDetectionEnabled}
-            attendanceEnabled={!!contest?.attendanceCheckEnabled}
-            onOpenGrading={openGrading}
-          />
-          {inExamWindow ? (
-            <section className={styles.section}>
-              <h3 className={styles.sectionTitle}>{t("participantsPanel.liveView", "即時畫面")}</h3>
-              <div className={styles.liveStage}>
-                <MinimalLiveStage
-                  contestId={contestId}
-                  participant={selectedParticipant}
-                  discoveryRefreshKey={discoveryKey}
-                  reconnectKey={reconnectKey}
-                  lockActionBusy={actions.busy}
-                  monitoringAvailable={inExamWindow}
-                  showIdentity={false}
-                />
-              </div>
-            </section>
-          ) : null}
-          <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>{t("participantsPanel.answerDetails", "作答詳情")}</h3>
-            <ParticipantAnswerReport contestId={contestId} dashboard={dashboard} expandedProblemId={problemId} />
-          </section>
-        </>
+        <section className={styles.section}>
+          <h3 className={styles.sectionTitle}>{t("participantsPanel.answerDetails", "作答詳情")}</h3>
+          <ParticipantAnswerReport contestId={contestId} dashboard={dashboard} expandedProblemId={problemId} />
+        </section>
       ) : null}
       {isMobile ? timeline : null}
     </div>
@@ -402,6 +410,8 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
           lockActionBusy={false}
           monitoringAvailable={inExamWindow}
           layout={gridSize}
+          gridPage={gridPage}
+          onGridPageChange={setGridPage}
           onLayoutChange={() => undefined}
           onSelectParticipant={selectParticipant}
         />

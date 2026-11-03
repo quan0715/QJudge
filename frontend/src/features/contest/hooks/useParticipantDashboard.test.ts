@@ -66,6 +66,30 @@ describe("useParticipantDashboard", () => {
     expect(result.current.data).toEqual(dashboardFor("8"));
   });
 
+  it("keeps the previous data for the same user when a refresh fails", async () => {
+    const { result } = renderHook(() => useParticipantDashboard("c1", "7"));
+    await waitFor(() => expect(result.current.data).toEqual(dashboardFor("7")));
+    mocks.getParticipantDashboard.mockRejectedValueOnce(new Error("boom"));
+    await act(() => result.current.refresh());
+    expect(result.current.data).toEqual(dashboardFor("7"));
+    expect(result.current.error).toBe("boom");
+  });
+
+  it("runs one trailing refresh when asked while a request is in flight", async () => {
+    let resolveFirst: (value: unknown) => void = () => {};
+    const { result } = renderHook(() => useParticipantDashboard("c1", "7"));
+    await waitFor(() => expect(result.current.data).toEqual(dashboardFor("7")));
+    mocks.getParticipantDashboard
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
+      .mockImplementationOnce(async () => ({ participant: { userId: "7" }, fresh: true }));
+    let first: Promise<void> = Promise.resolve();
+    act(() => { first = result.current.refresh(); });
+    await act(() => result.current.refresh());
+    await act(async () => { resolveFirst(dashboardFor("7")); await first; });
+    await waitFor(() => expect(result.current.data).toEqual({ participant: { userId: "7" }, fresh: true }));
+    expect(mocks.getParticipantDashboard).toHaveBeenCalledTimes(3);
+  });
+
   it("refetches on the interval only while the page is visible", async () => {
     vi.useFakeTimers();
     renderHook(() => useParticipantDashboard("c1", "7", { refreshIntervalMs: 30000 }));

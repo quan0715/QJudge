@@ -13,16 +13,21 @@ export const useParticipantDashboard = (
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const inFlightRef = useRef(false);
+  const trailingRef = useRef(false);
   const requestKeyRef = useRef("");
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<void> => {
     if (!contestId || !userId) {
       setData(null);
       setError("");
       setLoading(false);
       return;
     }
-    if (inFlightRef.current) return;
+    if (inFlightRef.current) {
+      // A refresh asked for mid-flight (e.g. after an action) must still run once.
+      trailingRef.current = true;
+      return;
+    }
     inFlightRef.current = true;
     setLoading(true);
     setError("");
@@ -35,7 +40,7 @@ export const useParticipantDashboard = (
       if (requestKeyRef.current === requestKey) setData(next);
     } catch (err) {
       if (requestKeyRef.current !== requestKey) return;
-      setData(null);
+      // Keep the last good data for this user; only report the error.
       setError(err instanceof Error ? err.message : "Failed to fetch participant dashboard");
     } finally {
       if (requestKeyRef.current === requestKey) {
@@ -43,11 +48,16 @@ export const useParticipantDashboard = (
         setLoading(false);
       }
     }
+    if (trailingRef.current && requestKeyRef.current === requestKey) {
+      trailingRef.current = false;
+      await refresh();
+    }
   }, [contestId, userId]);
 
   useEffect(() => {
     // A new user must load even if the previous user's request is still pending.
     inFlightRef.current = false;
+    trailingRef.current = false;
     void refresh();
   }, [refresh]);
 

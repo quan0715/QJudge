@@ -1,7 +1,5 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
-import { createMockContest } from "@/shared/mocks/contest.mock";
 
 const mocks = vi.hoisted(() => ({
   getConfig: vi.fn(),

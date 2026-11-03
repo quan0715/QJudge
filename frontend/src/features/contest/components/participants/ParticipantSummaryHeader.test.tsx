@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ParticipantDashboard } from "@/core/entities/contest.entity";
 import type { ParticipantActions } from "@/features/contest/hooks/useParticipantActions";
@@ -20,8 +20,8 @@ const actions = (): ParticipantActions => ({
   unlock: vi.fn().mockResolvedValue(undefined),
   reopen: vi.fn().mockResolvedValue(undefined),
   resetExamRecord: vi.fn().mockResolvedValue(undefined),
-  lock: vi.fn().mockResolvedValue(undefined),
-  updateStatus: vi.fn().mockResolvedValue(undefined),
+  lock: vi.fn().mockResolvedValue(true),
+  updateStatus: vi.fn().mockResolvedValue(true),
   downloadReport: vi.fn().mockResolvedValue(undefined),
   startAssistedAttendance: vi.fn(),
   confirmModalProps: { open: false } as ParticipantActions["confirmModalProps"],
@@ -89,6 +89,20 @@ describe("ParticipantSummaryHeader", () => {
     fireEvent.change(within(dialog).getByLabelText("鎖定原因"), { target: { value: "作弊" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "鎖定" }));
     expect(a.lock).toHaveBeenCalledWith("作弊");
+  });
+
+  it("keeps the lock dialog and reason open when locking fails", () => {
+    const a = actions();
+    vi.mocked(a.lock).mockResolvedValue(false);
+    renderHeader(dashboard("in_progress"), a);
+    fireEvent.click(screen.getByRole("button", { name: "鎖定" }));
+    const dialog = screen.getByRole("dialog", { name: "鎖定參賽者" });
+    fireEvent.change(within(dialog).getByLabelText("鎖定原因"), { target: { value: "作弊" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "鎖定" }));
+    return waitFor(() => expect(a.lock).toHaveBeenCalled()).then(() => {
+      expect(screen.getByRole("dialog", { name: "鎖定參賽者" })).toBeVisible();
+      expect(within(screen.getByRole("dialog", { name: "鎖定參賽者" })).getByLabelText("鎖定原因")).toHaveValue("作弊");
+    });
   });
 
   it("renders the KPI strip", () => {
