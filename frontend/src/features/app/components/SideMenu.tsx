@@ -528,13 +528,13 @@ export const SideMenu: React.FC<SideMenuProps> = ({
             <div className="side-menu__bottom">
               <button
                 type="button"
-                title="返回教室"
-                aria-label="返回教室"
+                title={t("nav.backToClassroom", "返回教室")}
+                aria-label={t("nav.backToClassroom", "返回教室")}
                 className="side-menu__link"
                 onClick={() => go(`/classrooms/${contestAdminContext.classroomId}`)}
               >
                 <ArrowLeft size={16} />
-                <span>返回教室</span>
+                <span>{t("nav.backToClassroom", "返回教室")}</span>
               </button>
               <button
                 type="button"

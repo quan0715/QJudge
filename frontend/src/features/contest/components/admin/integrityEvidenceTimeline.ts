@@ -49,15 +49,27 @@ export const buildEvidenceTimeSlices = (
     .sort((left, right) => left.startAtMs - right.startAtMs);
 };
 
-const relativePoint = (valueMs: number): string => {
+export type EvidenceTranslate = (
+  key: string,
+  defaultValue: string,
+  values?: { seconds: number },
+) => string;
+
+const defaultTranslate: EvidenceTranslate = (_key, defaultValue, values) =>
+  defaultValue.replace("{{seconds}}", String(values?.seconds ?? ""));
+
+const relativePoint = (valueMs: number, translate: EvidenceTranslate): string => {
   const seconds = Math.round(Math.abs(valueMs) / 1000);
-  if (seconds === 0) return "事件當下";
-  return valueMs < 0 ? `事件前 ${seconds} 秒` : `事件後 ${seconds} 秒`;
+  if (seconds === 0) return translate("logs.detail.relative.atEvent", "事件當下");
+  return valueMs < 0
+    ? translate("logs.detail.relative.before", "事件前 {{seconds}} 秒", { seconds })
+    : translate("logs.detail.relative.after", "事件後 {{seconds}} 秒", { seconds });
 };
 
 export const formatEvidenceRelativeRange = (
   startAtMs: number,
   endAtMs: number,
   occurredAtMs: number,
+  translate: EvidenceTranslate = defaultTranslate,
 ): string =>
-  `${relativePoint(startAtMs - occurredAtMs)} – ${relativePoint(endAtMs - occurredAtMs)}`;
+  `${relativePoint(startAtMs - occurredAtMs, translate)} – ${relativePoint(endAtMs - occurredAtMs, translate)}`;

@@ -323,7 +323,9 @@
     "problemList": "題目列表",
     "problems": "題目",
     "questionBanks": "題庫",
-    "submissions": "提交紀錄"
+    "submissions": "提交紀錄",
+    "home": "Home",
+    "backToClassroom": "返回教室"
   },
   "oauth": {
     "authorize": {
@@ -451,7 +453,8 @@
     "timeLimit": "時間限制(ms)",
     "type": "類型",
     "untitled": "未命名",
-    "usedInContests": "{{count}} 場考試"
+    "usedInContests": "{{count}} 場考試",
+    "noBank": "尚無題庫"
   },
   "questionType": {
     "description": {
@@ -573,5 +576,14 @@
     "previewMode": "預覽模式",
     "problemInfo": "題目資訊",
     "submissions": "繳交記錄"
+  },
+  "answering": {
+    "runtimeNav": {
+      "startsIn": "{{time}} 後開始"
+    }
+  },
+  "ui": {
+    "collapseSidebar": "收合側欄",
+    "expandSidebar": "展開側欄"
   }
 }

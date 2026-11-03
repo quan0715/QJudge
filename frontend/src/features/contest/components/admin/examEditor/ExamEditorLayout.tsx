@@ -176,7 +176,7 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
   const reorderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const frozen = !!contest.questionEditLocked;
-  const lockedReason = "已有考生開始作答，競賽內容已鎖定";
+  const lockedReason = t("examEditor.lockedReason", "已有考生開始作答，競賽內容已鎖定");
   const isCompactScreen = useCompactScreen();
 
   const questions = useMemo(() => flattenQuestions(blocks), [blocks]);

@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { ProgressBar } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 import { TimeDisplay } from "@/shared/components/dashboard";
 import { useInterval } from "@/shared/hooks/useInterval";
 import { formatContestCompactDuration } from "@/features/contest/utils/contestTimeFormat";
@@ -22,6 +23,7 @@ export function CountdownProgress({
   afterPhase,
   hideProgress = false,
 }: CountdownProgressProps) {
+  const { t } = useTranslation("contest");
   const [nowMs, setNowMs] = useState(() => Date.now());
   const startMs = Date.parse(startTime);
   const endMs = Date.parse(endTime);
@@ -41,11 +43,11 @@ export function CountdownProgress({
 
   const display = (() => {
     if (phase === "unset") {
-      return { label: "倒數計時", value: "未設定", percent: 0 };
+      return { label: t("countdown.label", "倒數計時"), value: t("countdown.unset", "未設定"), percent: 0 };
     }
     if (phase === "before") {
       return {
-        label: "距離開始",
+        label: t("countdown.untilStart", "距離開始"),
         value: formatContestCompactDuration(startMs - nowMs),
         percent: 0,
       };
@@ -54,14 +56,14 @@ export function CountdownProgress({
       const total = Math.max(1, endMs - startMs);
       const elapsed = nowMs - startMs;
       return {
-        label: "剩餘時間",
+        label: t("countdown.remaining", "剩餘時間"),
         value: formatContestCompactDuration(endMs - nowMs),
         percent: Math.round(Math.max(0, Math.min(100, (elapsed / total) * 100))),
       };
     }
     return {
-      label: afterPhase?.label ?? "考試狀態",
-      value: afterPhase?.value ?? "考試已結束",
+      label: afterPhase?.label ?? t("countdown.examStatus", "考試狀態"),
+      value: afterPhase?.value ?? t("countdown.ended", "考試已結束"),
       percent: 100,
     };
   })();
@@ -75,7 +77,7 @@ export function CountdownProgress({
       />
       {!hideProgress ? (
         <ProgressBar
-          label="時間進度"
+          label={t("countdown.progress", "時間進度")}
           hideLabel
           size="small"
           value={display.percent}

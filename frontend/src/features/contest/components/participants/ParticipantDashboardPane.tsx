@@ -1,3 +1,4 @@
+import i18n from "i18next";
 import { useMemo, type ComponentType, type ReactNode } from "react";
 import { AreaChart, DonutChart } from "@carbon/charts-react";
 import { ScaleTypes } from "@carbon/charts";
@@ -532,21 +533,21 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                               "加入時間",
                             ),
                             value: participant.joinedAt
-                              ? new Date(participant.joinedAt).toLocaleString()
+                              ? new Date(participant.joinedAt).toLocaleString(i18n.language || undefined)
                               : "-",
                           },
                           {
                             icon: Login,
                             label: t("dashboard.startedAt", "開始作答"),
                             value: participant.startedAt
-                              ? new Date(participant.startedAt).toLocaleString()
+                              ? new Date(participant.startedAt).toLocaleString(i18n.language || undefined)
                               : "-",
                           },
                           {
                             icon: Logout,
                             label: t("dashboard.leftAt", "最後離開"),
                             value: participant.leftAt
-                              ? new Date(participant.leftAt).toLocaleString()
+                              ? new Date(participant.leftAt).toLocaleString(i18n.language || undefined)
                               : "-",
                           },
                           {
@@ -691,7 +692,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                                   <span>
                                     {new Date(
                                       row.bestSubmission.createdAt,
-                                    ).toLocaleString()}
+                                    ).toLocaleString(i18n.language || undefined)}
                                   </span>
                                 </div>
                               </div>

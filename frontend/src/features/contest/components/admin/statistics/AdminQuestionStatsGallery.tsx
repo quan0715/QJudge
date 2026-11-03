@@ -11,6 +11,7 @@ import {
 } from "@carbon/react";
 import { Close, Filter } from "@carbon/icons-react";
 import { AnimatePresence, motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { getQuestionTypeLabel } from "@/features/contest/constants/examLabels";
 import { formatPaperQuestionLabel } from "@/features/contest/domain/paperQuestionLabels";
@@ -85,6 +86,7 @@ export default function AdminQuestionStatsGallery({
   showFilterToolbar = true,
   embedded = false,
 }: AdminQuestionStatsGalleryProps) {
+  const { t } = useTranslation("contest");
   const [focusMetric, setFocusMetric] = useState<FocusMetricKey>("score_rate");
   const [uncontrolledSearchQuery, setUncontrolledSearchQuery] = useState("");
   const [uncontrolledQuestionKindFilter, setUncontrolledQuestionKindFilter] =
@@ -128,7 +130,7 @@ export default function AdminQuestionStatsGallery({
 
   if (loading) {
     return (
-      <section className={`${styles.root} ${embedded ? styles.embedded : ""}`} aria-label="各題作答數據">
+      <section className={`${styles.root} ${embedded ? styles.embedded : ""}`} aria-label={t("questionStats.title", "各題作答數據")}>
         <GalleryHeader
           focusMetric={focusMetric}
           onFocusMetricChange={setFocusMetric}
@@ -149,18 +151,18 @@ export default function AdminQuestionStatsGallery({
 
   if (error || !dashboard) {
     return (
-      <section className={`${styles.root} ${embedded ? styles.embedded : ""}`} aria-label="各題作答數據">
+      <section className={`${styles.root} ${embedded ? styles.embedded : ""}`} aria-label={t("questionStats.title", "各題作答數據")}>
         <GalleryHeader
           focusMetric={focusMetric}
           onFocusMetricChange={setFocusMetric}
         />
-        <div className={styles.emptyState}>{error ?? "無法載入題目資料"}</div>
+        <div className={styles.emptyState}>{error ?? t("questionStats.loadFailed", "無法載入題目資料")}</div>
       </section>
     );
   }
 
   const questionKindOptions: FilterOption[] = [
-    { id: "all", label: "全部題型" },
+    { id: "all", label: t("questionStats.allTypes", "全部題型") },
     ...Array.from(new Set(dashboard.questions.map((question) => question.kind)))
       .sort()
       .map((kind) => ({
@@ -213,7 +215,7 @@ export default function AdminQuestionStatsGallery({
     : null;
 
   return (
-    <section className={`${styles.root} ${embedded ? styles.embedded : ""}`} aria-label="各題作答數據">
+    <section className={`${styles.root} ${embedded ? styles.embedded : ""}`} aria-label={t("questionStats.title", "各題作答數據")}>
       <GalleryHeader
         count={sortedQuestions.length}
         focusMetric={focusMetric}
@@ -227,7 +229,7 @@ export default function AdminQuestionStatsGallery({
         showFilterToolbar={showFilterToolbar}
       />
       {sortedQuestions.length === 0 ? (
-        <div className={styles.emptyState}>目前沒有題目資料</div>
+        <div className={styles.emptyState}>{t("questionStats.empty", "目前沒有題目資料")}</div>
       ) : (
         <div className={styles.grid}>
           {sortedQuestions.map((question) => (
@@ -279,6 +281,7 @@ function GalleryHeader({
   onQuestionKindChange?: (kind: string) => void;
   showFilterToolbar?: boolean;
 }) {
+  const { t } = useTranslation("contest");
   const selectedMetric = focusMetrics.find((item) => item.key === focusMetric);
   const showToolbar =
     showFilterToolbar && Boolean(onSearchChange && onQuestionKindChange);
@@ -287,15 +290,15 @@ function GalleryHeader({
   return (
     <div className={styles.header}>
       <BlockHeader
-        title="各題作答數據"
-        description={selectedMetric?.description}
-        actions={typeof count === "number" ? <Tag type="cool-gray" size="sm">{count} 題</Tag> : undefined}
+        title={t("questionStats.title", "各題作答數據")}
+        description={selectedMetric ? t(`questionStats.focus.${selectedMetric.key}.description`, selectedMetric.description) : undefined}
+        actions={typeof count === "number" ? <Tag type="cool-gray" size="sm">{count} {t("questionStats.questionsUnit", "題")}</Tag> : undefined}
       />
-      <div className={styles.focusGroup} role="group" aria-label="關注數據">
+      <div className={styles.focusGroup} role="group" aria-label={t("questionStats.focusGroup", "關注數據")}>
         {focusMetrics.map((item) => (
           <SelectableTag
             key={item.key}
-            text={item.label}
+            text={t(`questionStats.focus.${item.key}.label`, item.label)}
             size="sm"
             selected={item.key === focusMetric}
             onClick={() => onFocusMetricChange(item.key)}
@@ -310,8 +313,8 @@ function GalleryHeader({
         >
           <Search
             id="overview-question-stats-search"
-            labelText="搜尋題目"
-            placeholder="搜尋題號或題目"
+            labelText={t("questionStats.search", "搜尋題目")}
+            placeholder={t("questionStats.searchPlaceholder", "搜尋題號或題目")}
             value={searchQuery}
             onChange={onSearchChange}
             onClear={onSearchClear}
@@ -320,11 +323,11 @@ function GalleryHeader({
           />
           <OverflowMenu
             renderIcon={Filter}
-            iconDescription="篩選題型"
+            iconDescription={t("questionStats.filterTypes", "篩選題型")}
             size="md"
             flipped
             className={styles.filterToolbarMenu}
-            aria-label="篩選題型"
+            aria-label={t("questionStats.filterTypes", "篩選題型")}
           >
             {questionKindOptions.map((option) => (
               <OverflowMenuItem
@@ -355,6 +358,7 @@ function QuestionStatsCard({
   focusMetric: FocusMetricKey;
   onOpen: () => void;
 }) {
+  const { t } = useTranslation("contest");
   const questionVisual = getQuestionVisual(question.kind);
   const missingPercent =
     participantCount > 0
@@ -374,15 +378,15 @@ function QuestionStatsCard({
       <h4 className={styles.cardTitle}>{question.title}</h4>
       <div className={styles.statRow}>
         <span>
-          平均 {formatScore(question.averageScore)} / {formatScore(question.maxScore)}
+          {t("questionStats.average", "平均")} {formatScore(question.averageScore)} / {formatScore(question.maxScore)}
         </span>
-        <span>{question.answerCount} 人作答</span>
+        <span>{question.answerCount} {t("questionStats.answered", "人作答")}</span>
         <span>
-          未作答 {question.missingCount} 人
+          {t("questionStats.unansweredCount", "未作答 {{count}} 人", { count: question.missingCount })}
           {missingPercent > 0 ? ` · ${missingPercent}%` : ""}
         </span>
       </div>
-      <RateBar label={focus.label} value={focus.value} tone={focus.tone} />
+      <RateBar label={t(`questionStats.focus.${focusMetric}.label`, focus.label)} value={focus.value} tone={focus.tone} />
     </button>
   );
 }
@@ -400,6 +404,7 @@ function QuestionStatsDrawer({
   error: string | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("contest");
   const questionVisual = getQuestionVisual(question.kind);
   const maxBandValue = detail
     ? Math.max(...detail.scoreBands.map((band) => band.count), 0)
@@ -416,7 +421,7 @@ function QuestionStatsDrawer({
       <motion.button
         type="button"
         className={styles.drawerBackdrop}
-        aria-label="關閉題目作答數據背景"
+        aria-label={t("questionStats.closeBackdrop", "關閉題目作答數據背景")}
         onClick={onClose}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -428,7 +433,7 @@ function QuestionStatsDrawer({
         className={styles.drawer}
         role="dialog"
         aria-modal="true"
-        aria-label={`${getQuestionLabel(question)} 作答數據`}
+        aria-label={`${getQuestionLabel(question)} ${t("questionStats.drawerLabel", "作答數據")}`}
         initial={{ x: 24, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: 24, opacity: 0 }}
@@ -446,23 +451,23 @@ function QuestionStatsDrawer({
             kind="ghost"
             hasIconOnly
             renderIcon={Close}
-            iconDescription="關閉題目作答數據"
+            iconDescription={t("questionStats.closeDrawer", "關閉題目作答數據")}
             onClick={onClose}
           />
         </div>
         <div className={styles.drawerMetrics}>
           <div>
-            <span>平均</span>
+            <span>{t("questionStats.average", "平均")}</span>
             <strong>
               {formatScore(question.averageScore)} / {formatScore(question.maxScore)}
             </strong>
           </div>
           <div>
-            <span>作答</span>
+            <span>{t("questionStats.answeredLabel", "作答")}</span>
             <strong>{question.answerCount}</strong>
           </div>
           <div>
-            <span>未作答</span>
+            <span>{t("questionStats.unanswered", "未作答")}</span>
             <strong>{question.missingCount}</strong>
           </div>
         </div>
@@ -484,14 +489,14 @@ function QuestionStatsDrawer({
             {isSubjectiveDetail(detail) ? (
               <section className={styles.drawerSection}>
                 <div className={styles.drawerSectionHeader}>
-                  <h4>批改進度</h4>
+                  <h4>{t("questionStats.gradingProgress", "批改進度")}</h4>
                   <span>
                     {detail.gradingProgress.graded} /{" "}
                     {detail.gradingProgress.total}
                   </span>
                 </div>
                 <RateBar
-                  label="批改率"
+                  label={t("questionStats.gradedRate", "批改率")}
                   value={
                     detail.gradingProgress.total > 0
                       ? (detail.gradingProgress.graded /
@@ -509,7 +514,7 @@ function QuestionStatsDrawer({
             ) : null}
             {isObjectiveDetail(detail) ? (
               <section className={styles.drawerSection}>
-                <h4>選項分布</h4>
+                <h4>{t("questionStats.optionDistribution", "選項分布")}</h4>
                 <MetricRows
                   rows={detail.optionDistribution.map((option) => ({
                     key: option.label,
@@ -522,12 +527,12 @@ function QuestionStatsDrawer({
                     meta: `${option.count} · ${option.percent}%`,
                     tone: option.isCorrect ? "success" : "default",
                   }))}
-                  emptyText="目前沒有選項資料"
+                  emptyText={t("questionStats.noOptions", "目前沒有選項資料")}
                 />
               </section>
             ) : null}
             <section className={styles.drawerSection}>
-              <h4>分數分布</h4>
+              <h4>{t("questionStats.scoreDistribution", "分數分布")}</h4>
               <MetricRows
                 rows={detail.scoreBands.map((band) => ({
                   key: band.label,
@@ -537,7 +542,7 @@ function QuestionStatsDrawer({
                   meta: `${band.count}`,
                   tone: "default",
                 }))}
-                emptyText="目前沒有已批改分數"
+                emptyText={t("questionStats.noGradedScores", "目前沒有已批改分數")}
               />
             </section>
           </div>

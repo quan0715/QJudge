@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { ArrowLeft, Home } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   classroomId: string;
@@ -15,6 +16,7 @@ export const SideMenuContestIdleSection = ({
   hideClassroomBack = false,
 }: Props) => {
   const { pathname } = useLocation();
+  const { t } = useTranslation("common");
   const dashboardPath = `/classrooms/${classroomId}/contest/${contestId}`;
   const isDashboard = pathname === dashboardPath;
   const classroomPath = `/classrooms/${classroomId}`;
@@ -24,7 +26,7 @@ export const SideMenuContestIdleSection = ({
       {!hideClassroomBack && (
         <Link to={classroomPath} className="side-menu__link">
           <ArrowLeft size={20} />
-          <span>返回教室</span>
+          <span>{t("nav.backToClassroom", "返回教室")}</span>
         </Link>
       )}
       <Link
@@ -33,7 +35,7 @@ export const SideMenuContestIdleSection = ({
         aria-current={isDashboard ? "page" : undefined}
       >
         <Home size={20} />
-        <span>競賽主頁</span>
+        <span>{t("workspaceTopNav.contestHome", "競賽主頁")}</span>
       </Link>
     </div>
   );

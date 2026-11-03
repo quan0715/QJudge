@@ -1,3 +1,4 @@
+import i18n from "i18next";
 import {
   Button,
   InlineNotification,
@@ -59,7 +60,7 @@ const formatClockTime = (value?: string | null) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? "-"
-    : date.toLocaleTimeString([], {
+    : date.toLocaleTimeString(i18n.language || undefined, {
         hour: "2-digit",
         minute: "2-digit",
       });

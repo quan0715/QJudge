@@ -93,6 +93,7 @@ const PriorityLineChart = ({
   series: DashboardChartSeries[];
   theme: "white" | "g10" | "g90" | "g100";
 }) => {
+  const { t } = useTranslation("contest");
   const data = useMemo(() => toLineChartData(series), [series]);
   const options = useMemo(
     () => ({
@@ -140,7 +141,7 @@ const PriorityLineChart = ({
   );
 
   return (
-    <div className={styles.chartFrame} aria-label="違規事件時間變化">
+    <div className={styles.chartFrame} aria-label={t("adminOverview.insight.violationTrend", "違規事件時間變化")}>
       <CarbonLineChart data={data} options={options} />
     </div>
   );
@@ -215,10 +216,10 @@ const DistributionOverview = ({
               meter: {
                 height: 8,
                 proportional: {
-                  unit: "人",
+                  unit: t("adminOverview.insight.peopleUnit", "人"),
                   breakdownFormatter: () =>
-                    `已交卷 ${submittedCount} / ${total} 人`,
-                  totalFormatter: (value) => `考生總數 ${value} 人`,
+                    t("adminOverview.insight.submittedOf", "已交卷 {{submitted}} / {{total}} 人", { submitted: submittedCount, total }),
+                  totalFormatter: (value) => t("adminOverview.insight.totalStudents", "考生總數 {{count}} 人", { count: value }),
                 },
               },
               color: {
@@ -232,7 +233,7 @@ const DistributionOverview = ({
           />
         </div>
       ) : (
-        <div className={styles.emptyState}>尚無考生分佈資料</div>
+        <div className={styles.emptyState}>{t("adminOverview.insight.noDistribution", "尚無考生分佈資料")}</div>
       )}
     </KPIBlock>
   );
@@ -294,6 +295,7 @@ export function PriorityEventsInsightCard({
   card?: DashboardInsightCard;
   loading?: boolean;
 }) {
+  const { t } = useTranslation("contest");
   const { theme } = useTheme();
   const chartTheme = resolveCarbonChartTheme(theme);
   if (!card && !loading) return null;
@@ -302,7 +304,7 @@ export function PriorityEventsInsightCard({
       card={
         card ?? {
           key: "priority_events",
-          title: "違規事件",
+          title: t("adminOverview.insight.violations", "違規事件"),
           value: "0",
           kind: "line",
           series: [],
@@ -325,6 +327,7 @@ function InsightCard({
   loading: boolean;
   action?: InsightCardAction;
 }) {
+  const { t } = useTranslation("contest");
   const isGradingCard = card.key === "grading_progress";
   const hasPriorityEventData =
     card.kind !== "line" ||
@@ -343,7 +346,7 @@ function InsightCard({
         card.kind === "line" ? (
           <SkeletonPlaceholder className={styles.chartSkeleton} />
         ) : isGradingCard ? (
-          <div className={styles.gradingSkeleton} aria-label="批改資料載入中">
+          <div className={styles.gradingSkeleton} aria-label={t("adminOverview.insight.gradingLoading", "批改資料載入中")}>
             <SkeletonText width="100%" />
             <SkeletonText width="60%" />
             <SkeletonText width="72%" />
@@ -355,7 +358,7 @@ function InsightCard({
         hasPriorityEventData ? (
           <PriorityLineChart series={card.series ?? []} theme={chartTheme} />
         ) : (
-          <div className={styles.emptyState}>尚無違規事件資料</div>
+          <div className={styles.emptyState}>{t("adminOverview.insight.noViolations", "尚無違規事件資料")}</div>
         )
       ) : (
         <ProgressChart card={card} />

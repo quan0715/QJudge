@@ -1,3 +1,4 @@
+import i18n from "i18next";
 import React, { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -513,7 +514,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
             )}
             <Tag type="teal">
               {contest?.endTime
-                ? t("answering.submit.deadline", { time: new Date(contest.endTime).toLocaleString() })
+                ? t("answering.submit.deadline", { time: new Date(contest.endTime).toLocaleString(i18n.language || undefined) })
                 : t("answering.submit.noDeadline")}
             </Tag>
           </div>

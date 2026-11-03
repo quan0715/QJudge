@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Modal, Button } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 import { LollipopChart } from "@carbon/charts-react";
 import { ScaleTypes } from "@carbon/charts";
 import "@carbon/charts-react/styles.css";
@@ -36,6 +37,7 @@ export default function ScorePolicyImpactDialog({
   impactResult,
   submitting,
 }: ScorePolicyImpactDialogProps) {
+  const { t } = useTranslation("contest");
   const { theme } = useTheme();
   const chartTheme = useMemo(() => {
     if (theme === "g10" || theme === "g90" || theme === "g100") return theme;
@@ -71,9 +73,9 @@ export default function ScorePolicyImpactDialog({
   return (
     <Modal
       open={open}
-      modalHeading={`調整配分政策：${POLICY_LABEL[newPolicy]}`}
-      primaryButtonText="確認套用"
-      secondaryButtonText="取消"
+      modalHeading={`${t("grading.scorePolicy.impact.heading", "調整配分政策")}：${t(`grading.scorePolicy.impact.policy.${newPolicy}`, POLICY_LABEL[newPolicy])}`}
+      primaryButtonText={t("grading.scorePolicy.impact.apply", "確認套用")}
+      secondaryButtonText={t("grading.scorePolicy.impact.cancel", "取消")}
       onRequestSubmit={onConfirm}
       onRequestClose={onClose}
       onSecondarySubmit={onClose}
@@ -82,19 +84,19 @@ export default function ScorePolicyImpactDialog({
       size="md"
     >
       <p style={{ marginBottom: "0.5rem", color: "var(--cds-text-secondary)", fontSize: "0.875rem" }}>
-        以下顯示套用後全班成績分佈的預估變化，確認後才會正式儲存。
+        {t("grading.scorePolicy.impact.description", "以下顯示套用後全班成績分佈的預估變化，確認後才會正式儲存。")}
       </p>
 
       {!hasData ? (
-        <div className={styles.noData}>尚無學生作答資料，仍可繼續調整</div>
+        <div className={styles.noData}>{t("grading.scorePolicy.impact.noData", "尚無學生作答資料，仍可繼續調整")}</div>
       ) : (
         <div className={styles.grid}>
           {/* Before column */}
           <div className={styles.column}>
-            <span className={styles.columnLabel}>調整前</span>
+            <span className={styles.columnLabel}>{t("grading.scorePolicy.impact.before", "調整前")}</span>
             <span className={styles.avgLine}>
-              平均&nbsp;{fmt(impactResult!.beforeAvg)}&nbsp;
-              <span className={styles.maxPart}>/ {fmt(impactResult!.beforeMax)} 分</span>
+              {t("grading.scorePolicy.impact.average", "平均")}&nbsp;{fmt(impactResult!.beforeAvg)}&nbsp;
+              <span className={styles.maxPart}>/ {fmt(impactResult!.beforeMax)} {t("grading.scorePolicy.impact.points", "分")}</span>
             </span>
             <div className={styles.chartFrame}>
               <LollipopChart
@@ -106,10 +108,10 @@ export default function ScorePolicyImpactDialog({
 
           {/* After column */}
           <div className={styles.column}>
-            <span className={styles.columnLabel}>調整後</span>
+            <span className={styles.columnLabel}>{t("grading.scorePolicy.impact.after", "調整後")}</span>
             <span className={styles.avgLine}>
-              平均&nbsp;{fmt(impactResult!.afterAvg)}&nbsp;
-              <span className={styles.maxPart}>/ {fmt(impactResult!.afterMax)} 分</span>
+              {t("grading.scorePolicy.impact.average", "平均")}&nbsp;{fmt(impactResult!.afterAvg)}&nbsp;
+              <span className={styles.maxPart}>/ {fmt(impactResult!.afterMax)} {t("grading.scorePolicy.impact.points", "分")}</span>
             </span>
             <div className={styles.chartFrame}>
               <LollipopChart
@@ -126,7 +128,7 @@ export default function ScorePolicyImpactDialog({
           <hr className={styles.divider} />
           <div className={styles.backLink}>
             <Button kind="ghost" size="sm" onClick={onBackToTargetSelection}>
-              ↩ 重選目標題目
+              ↩ {t("grading.scorePolicy.impact.reselectTargets", "重選目標題目")}
             </Button>
           </div>
         </>

@@ -1,6 +1,7 @@
 import type { LanguageKey } from "@/core/config/language.config";
 import { formatDistanceToNow } from "date-fns";
 import { zhTW } from "date-fns/locale";
+import i18n from "i18next";
 
 // ============================================================================
 // Date Formatting
@@ -14,7 +15,7 @@ export interface FormatDateOptions {
 }
 
 /**
- * Format a date string into a localized string (zh-TW)
+ * Format a date string in the active UI language (zh-TW before i18n starts)
  * @param dateString The ISO date string to format
  * @param options Formatting options
  * @returns Formatted date string
@@ -41,7 +42,7 @@ const formatDate = (
     formatOptions.second = "2-digit";
   }
 
-  return date.toLocaleString("zh-TW", formatOptions);
+  return date.toLocaleString(i18n.language || "zh-TW", formatOptions);
 };
 
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;

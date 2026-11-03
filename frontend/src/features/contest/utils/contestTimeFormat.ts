@@ -1,4 +1,9 @@
+import i18n from "i18next";
+
 export type ContestDateInput = Date | number | string | null | undefined;
+
+/** An explicit locale wins; otherwise dates follow the active UI language. */
+const resolveLocale = (locale?: string): string | undefined => locale ?? (i18n.language || undefined);
 
 export const parseContestDate = (value: ContestDateInput): Date | null => {
   if (value == null || value === "") return null;
@@ -25,7 +30,7 @@ export const formatContestClockTime = (
     ...(options.hour12 !== undefined ? { hour12: options.hour12 } : {}),
     ...(options.timeZone ? { timeZone: options.timeZone } : {}),
   };
-  return new Intl.DateTimeFormat(locale, formatOptions).format(date);
+  return new Intl.DateTimeFormat(resolveLocale(locale), formatOptions).format(date);
 };
 
 export const formatContestMonthDay = (
@@ -35,7 +40,7 @@ export const formatContestMonthDay = (
 ): string => {
   const date = parseContestDate(value);
   if (!date) return fallback;
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(resolveLocale(locale), {
     month: "2-digit",
     day: "2-digit",
   }).format(date);
@@ -48,7 +53,7 @@ export const formatContestDateTime = (
 ): string => {
   const date = parseContestDate(value);
   if (!date) return fallback;
-  return date.toLocaleString(locale);
+  return date.toLocaleString(resolveLocale(locale));
 };
 
 export const formatContestCountdownDuration = (milliseconds: number): string => {
