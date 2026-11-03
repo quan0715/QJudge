@@ -117,7 +117,8 @@
         "endTime": "End time",
         "examParticipants": "Exam participants",
         "onlineParticipants": "Online participants",
-        "startTime": "Start time"
+        "startTime": "Start time",
+        "contestType": "Exam type"
       },
       "participants": {
         "empty": "No students yet",
@@ -126,7 +127,17 @@
         "loading": "Loading student list",
         "search": "Search students",
         "searchPlaceholder": "Search display name or username...",
-        "title": "Student list"
+        "title": "Student list",
+        "studentQr": {
+          "cameraUnavailable": "Camera unavailable. Use the search box to select a student.",
+          "heading": "Scan student QR",
+          "invalid": "This is not a QJudge student QR.",
+          "notFound": "No matching student found.",
+          "ready": "Scan the student QR on the student's contest home page.",
+          "requesting": "Starting camera...",
+          "selected": "Student selected.",
+          "wrongContest": "This student QR belongs to a different exam."
+        }
       },
       "questionStats": {
         "empty": "No answer distribution data yet",
@@ -147,7 +158,8 @@
         "statusFilter": "Filter submission status",
         "statusFilterAria": "Filter submission status"
       },
-      "tabsAriaLabel": "Teacher admin overview tabs"
+      "tabsAriaLabel": "Teacher admin overview tabs",
+      "contestInfo": "Contest info"
     },
     "events": {
       "critical": "High-risk events",
@@ -363,7 +375,8 @@
         "reviewDescription": "Review the settings before publishing to students",
         "title": "Contest setup steps"
       },
-      "studentView": "What students see"
+      "studentView": "What students see",
+      "infoLabel": "Contest info"
     },
     "screen": {
       "actions": {
@@ -435,7 +448,19 @@
       "timelineProgress": "Time progress",
       "title": "Command Center",
       "violationCount": "Anomaly events",
-      "violationCountAria": "Anomaly events, go to event panel"
+      "violationCountAria": "Anomaly events, go to event panel",
+      "studentDistribution": "Submission progress"
+    },
+    "resultsPublication": "Results publication",
+    "insight": {
+      "violationTrend": "Violations over time",
+      "peopleUnit": "students",
+      "submittedOf": "Submitted {{submitted}} / {{total}}",
+      "totalStudents": "{{count}} students",
+      "noDistribution": "No submission data yet",
+      "violations": "Violations",
+      "gradingLoading": "Loading grading data",
+      "noViolations": "No violations yet"
     }
   },
   "adminPreparationDashboard": {
@@ -482,7 +507,8 @@
       "loadAnswersFailed": "Failed to load your responses",
       "loadAnswersSubtitle": "To avoid overwriting existing data, please refresh the page.",
       "loadQuestionsFailed": "Failed to load exam questions",
-      "loadQuestionsSubtitle": "Please check your network connection and try again."
+      "loadQuestionsSubtitle": "Please check your network connection and try again.",
+      "submitFailed": "Submission failed"
     },
     "finish": {
       "backToDashboard": "Back to Dashboard",
@@ -754,7 +780,10 @@
   },
   "button": {
     "backToLobby": "Back to Contest Lobby",
-    "close": "Close"
+    "close": "Close",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "save": "Save"
   },
   "clarifications": {
     "notFound": "Contest not found",
@@ -767,7 +796,13 @@
     "nextPage": "Next page",
     "prevPage": "Previous page",
     "saving": "Saving...",
-    "success": "Success"
+    "success": "Success",
+    "cancel": "Cancel",
+    "close": "Close",
+    "confirm": "Confirm",
+    "done": "Done",
+    "reset": "Reset",
+    "yes": "Yes"
   },
   "createModal": {
     "chooseTypeTitle": "Create Contest",
@@ -883,7 +918,38 @@
     "transcodeIssue": "Transcode Message",
     "trendCharts": "Submission Trends",
     "tries": "Tries",
-    "violations": "Violations"
+    "violations": "Violations",
+    "accountRole": "Role",
+    "answerStatus": "Answer status",
+    "countUnit": "times",
+    "currentAnswerStatus": "Current status",
+    "displayName": "Display name",
+    "endedAt": "Finished at",
+    "examConnection": "Exam connection",
+    "examStatus": "Exam status",
+    "gradingProgress": "Grading progress",
+    "inProgress": "In progress",
+    "liveMonitoringSignal": "Live monitoring",
+    "liveStatus": "Live status",
+    "moreActions": "More actions",
+    "pointsUnit": "pts",
+    "questionUnit": "questions",
+    "quickNavigation": "Quick links",
+    "registrationIdentity": "Sign-up method",
+    "registrationIdentityOther": "Other",
+    "registrationIdentitySso": "SSO",
+    "screenShareSignal": "Screen share",
+    "selectParticipantDescription": "Select a participant on the left to see their exam status and available actions.",
+    "selectParticipantTitle": "Select a participant",
+    "signalConnected": "Connected",
+    "signalMissing": "Not detected",
+    "submissionsLoadFailed": "Could not load submissions",
+    "username": "Username",
+    "viewEvents": "View event log",
+    "viewProctoring": "View monitoring",
+    "viewReport": "View answer details",
+    "viewSubmissions": "View submissions",
+    "webcamSignal": "Webcam"
   },
   "delete": {
     "confirm": "Are you sure you want to delete this contest? This action cannot be undone.",
@@ -1007,7 +1073,18 @@
     "windowBlur": "You left the window",
     "windowBlurRecoveryDesc": "Return to the exam window within {{seconds}} seconds, or this will count as one violation.",
     "windowBlurRecoveryTitle": "Window focus lost",
-    "zeroChanceWarning": "If remaining chances reach zero, you will be auto-locked!"
+    "zeroChanceWarning": "If remaining chances reach zero, you will be auto-locked!",
+    "clipboardAction": "Clipboard action recorded",
+    "fullscreenSensorWarning": "Return to full screen to continue.",
+    "mouseLeaveSensorWarning": "The pointer left the exam window. Return to the exam page.",
+    "multiDisplaySensorWarning": "Multiple displays detected. Switch back to a single display.",
+    "reauthorizeWebcam": "Re-authorize webcam",
+    "requestingWebcam": "Requesting webcam…",
+    "screenShareSensorWarning": "Share your screen again to restore proctoring.",
+    "webcamLostDesc": "The webcam connection dropped. Make sure no other app is using the camera.",
+    "webcamLostHeading": "Webcam stopped",
+    "webcamLostTitle": "Webcam disconnected",
+    "webcamSensorWarning": "Re-authorize the webcam to restore proctoring."
   },
   "examEditor": {
     "actions": {
@@ -1137,7 +1214,26 @@
       "invalidScore": "Score must be greater than 0",
       "minOptions": "At least 2 options are required"
     },
-    "validationFailed": "Validation failed"
+    "validationFailed": "Validation failed",
+    "addChildQuestion": "Add sub-question",
+    "blockCount": "{{count}} blocks",
+    "codingTemplate": "Coding question",
+    "codingTemplateDesc": "Drag or click to add a coding question",
+    "confirmDeleteGroup": "Delete this group and all its sub-questions?",
+    "defaultGroupTitle": "New group",
+    "groupBlock": "Question group",
+    "groupBlockDesc": "Shared stem with sub-questions",
+    "groupBlockNumber": "Group {{index}}",
+    "groupBlockWithCount": "Group · {{count}} questions",
+    "groupStem": "Shared stem",
+    "groupStemPlaceholder": "Click to add a shared stem",
+    "groupTitle": "Group title",
+    "questionManagement": "Questions",
+    "scoreShort": "{{score}} pts",
+    "sourceTabAdd": "Add question",
+    "typeSwitchRestricted": "Type change restricted",
+    "typeSwitchRule": "You can only switch between single choice and multiple choice, or between short answer and essay.",
+    "lockedReason": "Students have started, so the exam content is locked"
   },
   "examStatus": {
     "in_progress": "In Progress",
@@ -1310,7 +1406,48 @@
       "normal": "Normal",
       "setExcluded": "Exclude from scoring",
       "setFullMarks": "Give full marks",
-      "setNormal": "Restore normal scoring"
+      "setNormal": "Restore normal scoring",
+      "redistribute": "Redistribute points",
+      "redistributeDesc": "This question's points are spread proportionally across the target questions. Students who scored higher there gain more.",
+      "redistributeNote": "This question no longer counts. Its points are redistributed in proportion to the target questions' original points, scaling up students' scores on those questions. Choose \"Restore normal scoring\" at any time to undo.",
+      "redistributeNoteTitle": "How redistribution works",
+      "redistributeStackWarning": "If several questions redistribute to the same target, the points add up.",
+      "redistributeStackWarningTitle": "Duplicate targets",
+      "redistributeTitle": "{{index}}. — Redistribute points",
+      "redistributeToAll": "All normally scored questions (proportional)",
+      "selectTargets": "Choose the questions that receive the points:",
+      "setRedistribute": "Set to redistribute points",
+      "allTypes": "All",
+      "typeShort": {
+        "single_choice": "Single choice",
+        "multiple_choice": "Multiple choice",
+        "true_false": "True/false",
+        "short_answer": "Short answer",
+        "essay": "Essay"
+      },
+      "selectAllOfType": "Select all {{type}}",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
+      "selectedCount": "{{count}} selected",
+      "pointsShort": "{{score}} pts",
+      "impact": {
+        "heading": "Change scoring policy",
+        "policy": {
+          "normal": "Normal scoring",
+          "full_marks": "Full marks for all",
+          "excluded": "Not scored",
+          "redistribute": "Redistribute"
+        },
+        "apply": "Apply",
+        "cancel": "Cancel",
+        "description": "Below is the estimated change to the class score distribution. Nothing is saved until you confirm.",
+        "noData": "No student answers yet. You can still make the change.",
+        "before": "Before",
+        "average": "Avg",
+        "points": "pts",
+        "after": "After",
+        "reselectTargets": "Choose target questions again"
+      }
     },
     "searchStudent": "Search student",
     "selectAnswerToGrade": "Select a student's answer to start grading",
@@ -1335,7 +1472,81 @@
     "unpublishSuccess": "Results unpublished",
     "unpublished": "Unpublished",
     "updated": "updated",
-    "viewModeResults": "Answer result view mode"
+    "viewModeResults": "Answer result view mode",
+    "aiReason": "AI suggested feedback",
+    "aiScore": "AI suggested score",
+    "autoScoreLabel": "Auto-graded score",
+    "boundSessionFallback": "Session linked",
+    "bulkDeselectAll": "Deselect all (current filter)",
+    "bulkPublish": "Submit selected",
+    "bulkRetryAiGrading": "Re-grade selected",
+    "bulkRevertConfirm": "Withdraw",
+    "bulkRevertHeading": "Withdraw submitted grades",
+    "bulkRevertPublish": "Withdraw submitted grades",
+    "bulkRevertSummary": "{{count}} submitted grades will be withdrawn. Students will see them as ungraded again; AI suggestions stay so you can edit or submit them later.",
+    "bulkSelectAll": "Select all (current filter)",
+    "bulkSubmitConfirm": "Submit",
+    "bulkSubmitHeading": "Submit AI suggestions",
+    "bulkSubmitSummary": "{{count}} AI suggestions will be submitted as final grades and become visible to students.",
+    "cardClickDeselect": "Click to deselect",
+    "cardClickSelect": "Click to select this answer",
+    "cardStateAiRunning": "AI grading",
+    "cardStateMissing": "No suggestion",
+    "cardStatePending": "Pending",
+    "completedCount": "{{graded}}/{{total}} done",
+    "currentQuestionHeader": "Question being graded",
+    "evidenceRegion": "Grading content",
+    "filterAll": "All",
+    "filterGraded": "Graded",
+    "filterUngraded": "Ungraded",
+    "gradedAnswerCount": "{{graded}} of {{total}} graded",
+    "gradingList": "Grading list",
+    "inspectorRegion": "Grading controls",
+    "keyboardShortcuts": "Keyboard shortcuts",
+    "loadQuestionFailed": "Could not load answers",
+    "loadingQuestion": "Loading answers for this question...",
+    "noSelection": "None selected",
+    "originalFeedback": "Original feedback",
+    "originalScore": "Original score",
+    "preparingSession": "Creating AI session...",
+    "primaryRetry": "Re-grade",
+    "primaryRunning": "Grading",
+    "primaryStart": "Start grading",
+    "primaryStarting": "Preparing",
+    "progressCount": "{{graded}} of {{total}} questions done",
+    "questionScoreLabel": "Scored {{score}} of {{maxScore}}",
+    "questionsCount": "{{count}} questions",
+    "regradeChoiceDescription": "Re-grade in the current AI session, or start a new one? Reusing the session keeps the rubric and conversation and re-grades the same grade.csv; a new session starts from an empty grade.csv.",
+    "regradeChoiceHeading": "Re-grade",
+    "regradeNewSession": "New session",
+    "regradeReuseSession": "Reuse current session",
+    "resolvingTaskSession": "Finding the AI session...",
+    "retryAiGrading": "Re-grade",
+    "retryModalSummary": "{{count}} answers will be re-graded.",
+    "retryNoteLabel": "Re-grading notes",
+    "retryNotePlaceholder": "For example: check more strictly for the key concept, or re-evaluate point 2.",
+    "reviewable": "Ready to review",
+    "saveAndNextQuestion": "Save and next question",
+    "saveFailed": "Could not save the grade. Try again.",
+    "scoreFilterAll": "All suggested scores",
+    "scoreFilterDiffers": "Differs from current score",
+    "scoreFilterLabel": "Filter by suggested score",
+    "scoreFilterMissing": "No suggestion",
+    "scoreFilterUnsynced": "Not submitted",
+    "scoreFilterValue": "Suggested score {{score}}",
+    "scoreLabel": "Score",
+    "selectStudent": "Select student",
+    "selectedCount": "{{count}} selected",
+    "startRetryAiGrading": "Start re-grading",
+    "submitted": "Submitted",
+    "syncProgressLabel": "Submission progress",
+    "taskTypeLabel": "AI grading",
+    "toggleFlag": "Flag",
+    "totalScore": "Total {{score}}",
+    "ungrade": "Withdraw grade",
+    "ungradeFailed": "Could not withdraw the grade. Try again.",
+    "untitledSession": "(untitled session)",
+    "viewMode": "Grading mode"
   },
   "header": {
     "contestPlatform": "Contest Platform"
@@ -1405,7 +1616,9 @@
     "unavailable": "Unavailable",
     "unknownError": "Live monitoring connection failed",
     "userId": "User ID",
-    "reconnect": "Reconnect"
+    "reconnect": "Reconnect",
+    "discoveryError": "Could not load the sources available to monitor",
+    "staleSources": "Source status can't be confirmed right now; keeping the current view."
   },
   "logs": {
     "capture": {
@@ -1428,7 +1641,23 @@
       "time": "Time",
       "timeRange": "Time Range",
       "type": "Event Type",
-      "user": "User"
+      "user": "User",
+      "clipboardLineCount": "{{count}} lines",
+      "clipboardTextLength": "{{count}} characters",
+      "contentTruncated": "Some content was truncated",
+      "eventContent": "Event content",
+      "evidenceLoadFailed": "Could not load evidence status",
+      "evidenceTimeline": "Evidence timeline",
+      "incidentAt": "Occurred",
+      "incidentStatus": "Status",
+      "loadingEvidence": "Loading evidence status…",
+      "noClipboardContent": "No content was saved for this action",
+      "noIntegrityEvidence": "No playable evidence for this event yet",
+      "relative": {
+        "atEvent": "at the event",
+        "before": "{{seconds}} s before",
+        "after": "{{seconds}} s after"
+      }
     },
     "end": "End",
     "eventCount": "Event Count",
@@ -1534,7 +1763,8 @@
       "abnormal": "Abnormal Events",
       "system": "System/Management Events"
     },
-    "totalCount": "{{total}} events total"
+    "totalCount": "{{total}} events total",
+    "eventDetail": "Event details"
   },
   "management": {
     "contestCount": "{{count}} contests in total",
@@ -1608,7 +1838,8 @@
       "edit": "Edit Status",
       "reopen": "Reopen Exam",
       "resetExamRecord": "Reset exam record",
-      "unlock": "Unlock"
+      "unlock": "Unlock",
+      "lock": "Lock"
     },
     "attendanceReset": "Attendance records reset",
     "attendanceResetFailed": "Failed to reset attendance records",
@@ -1678,7 +1909,9 @@
     "unlocked": "Unlocked",
     "updateFailed": "Update failed",
     "viewModeLabel": "Participant view mode",
-    "viewTitle": "View Participants"
+    "viewTitle": "View Participants",
+    "lockFailed": "Lock failed",
+    "locked": "Locked"
   },
   "placeholder": {
     "contestName": "Enter contest name"
@@ -1699,10 +1932,13 @@
         "noSubmission": "No previous submission found.",
         "passed": "Eligibility confirmed.",
         "submittedAllowed": "Submission record found; re-entry is allowed.",
-        "submittedDenied": "Already submitted; re-entry is not allowed."
+        "submittedDenied": "Already submitted; re-entry is not allowed.",
+        "attendancePassed": "Exam check-in complete.",
+        "attendanceRequired": "Check in on the contest home page first."
       },
       "submission": "Submission Record",
-      "title": "Eligibility Confirmation"
+      "title": "Eligibility Confirmation",
+      "attendance": "Exam check-in"
     },
     "entryDevice": {
       "monitoring": "Monitoring",
@@ -1725,7 +1961,9 @@
         "webcam": "Webcam Access"
       },
       "deviceUnsupported": {
-        "screenShareRequired": "Strict exam mode needs a computer browser that can share its screen. Switch to a computer and try again."
+        "screenShareRequired": "Strict exam mode needs a computer browser that can share its screen. Switch to a computer and try again.",
+        "missingCapabilities": "This exam needs {{sources}}, but this device or browser doesn't support it. Switch to a supported device or browser and try again.",
+        "title": "Device not supported"
       },
       "errors": {
         "browserNotSupported": "Your browser does not support display management. Please use Chrome or Edge.",
@@ -1809,7 +2047,17 @@
     "fourView": "4 students",
     "nineView": "9 students",
     "previousStudent": "Previous student",
-    "nextStudent": "Next student"
+    "nextStudent": "Next student",
+    "eventLoadError": "Could not load events",
+    "events": "Events",
+    "manualLockModalTitle": "Lock participant",
+    "manualLockReasonLabel": "Lock reason",
+    "newEventCount": "{{count}} new events",
+    "noEvents": "No events yet",
+    "hideRoster": "Hide watchlist",
+    "showRoster": "Show watchlist",
+    "hideEvents": "Hide events",
+    "showEvents": "Show events"
   },
   "progress": "Progress",
   "public": "Public",
@@ -1938,7 +2186,8 @@
     "refresh": "Refresh",
     "refreshing": "Refreshing...",
     "solved": "Solved",
-    "title": "Live Standings"
+    "title": "Live Standings",
+    "loadFailed": "Could not load standings"
   },
   "startTime": "Start Time",
   "statistics": {
@@ -1984,7 +2233,9 @@
     "studentAnswers": "Student Answers",
     "title": "Question Statistics",
     "ungraded": "Ungraded",
-    "viewSubmissionSamples": "View submission samples"
+    "viewSubmissionSamples": "View submission samples",
+    "noScoreDistributionData": "No score data yet",
+    "resultOverview": "Exam results overview"
   },
   "studentDashboard": {
     "actions": {
@@ -2206,7 +2457,8 @@
       "suggestion": "Suggested",
       "none": "Ungraded",
       "ai": "AI",
-      "manual": "Human-confirmed"
+      "manual": "Human-confirmed",
+      "aiDraft": "AI draft"
     },
     "studentPick": "Student's pick",
     "correct": "Correct",
@@ -2362,6 +2614,145 @@
       "discardBody": "Your changes to this question have not been saved and will be lost if you leave.",
       "stayHere": "Stay here",
       "reviewChecks": "Review"
-    }
+    },
+    "aiGrading": "AI grading",
+    "moreActions": "More actions",
+    "persisted": "Saved",
+    "persistedUnits": "Grades written",
+    "session": "Session",
+    "sessionNew": "Start a new session",
+    "sessionReuse": "Reuse the current grading session"
+  },
+  "action": {
+    "loading": "Connecting...",
+    "refresh": "Refresh"
+  },
+  "contestShell": {
+    "backToContestHome": "Back to contest home"
+  },
+  "integrity": {
+    "initializationFailed": "Exam event logging could not start",
+    "initializationFailedHelp": "Tell the proctor. You can keep answering; don't clear your browser data."
+  },
+  "gradeAppeal": {
+    "loadFailed": "Could not load the appeal. Refresh and try again.",
+    "alreadyExists": "This question already has an appeal",
+    "draftKept": "Your draft is kept. Review the thread, then send your message.",
+    "reopened": "Appeal reopened",
+    "reopenFailed": "Could not reopen the appeal",
+    "sendFailed": "Message not sent",
+    "tryLater": "Please try again later.",
+    "closedToast": "Appeal closed",
+    "closeFailed": "Could not close the appeal",
+    "title": "Grade appeal",
+    "statusClosed": "Closed",
+    "statusOpen": "Open",
+    "currentScore": "Current score",
+    "refreshMessages": "Refresh messages",
+    "openGrading": "Open in grading",
+    "reviewRuleStaff": "Review the answer as submitted, using the same rubric. Don't ask for added work or give credit for new content.",
+    "reviewRuleStudent": "Explain your answer as submitted, or point out anything that may have been missed or misjudged. Don't add new work.",
+    "contextRegion": "Appealed question and answer",
+    "question": "Question",
+    "promptFallback": "Explain which part of this question should be reviewed.",
+    "feedback": "Grading feedback",
+    "thread": "Appeal thread",
+    "roleStudent": "Student",
+    "roleStaff": "Teacher",
+    "you": "(you)",
+    "closedNoteStaff": "This appeal is closed. The thread stays available to read.",
+    "closedNoteStudent": "This appeal is closed. If you still have questions, give a reason to reopen it; the thread is kept.",
+    "reopenReason": "Reason to reopen",
+    "staffReply": "Review reply",
+    "studentExplain": "Explain your original answer (no new work)",
+    "reopenHelp": "Up to 5000 characters. Say what is still unclear. Teachers and TAs are notified when it reopens; don't add new work.",
+    "staffHelp": "Up to 5000 characters. State what in the original answer you reviewed and the outcome.",
+    "studentHelp": "Up to 5000 characters. You may explain your original answer, but not add code, derivations or solutions.",
+    "tooLong": "Shorten the message to 5000 characters or fewer.",
+    "close": "Close appeal",
+    "processing": "Working…",
+    "reopen": "Reopen appeal",
+    "sendReply": "Send reply",
+    "sendExplanation": "Send explanation",
+    "submit": "Submit appeal",
+    "manageRegion": "Grade appeal management",
+    "refreshList": "Refresh appeals",
+    "empty": "No grade appeals yet.",
+    "lastMessage": "Last message",
+    "view": "View appeal"
+  },
+  "countdown": {
+    "label": "Countdown",
+    "unset": "Not set",
+    "untilStart": "Starts in",
+    "remaining": "Time left",
+    "examStatus": "Exam status",
+    "ended": "Exam ended",
+    "progress": "Time progress"
+  },
+  "questionStats": {
+    "title": "Question statistics",
+    "loadFailed": "Could not load question data",
+    "allTypes": "All question types",
+    "empty": "No question data yet",
+    "focus": {
+      "score_rate": {
+        "description": "Lowest score rate first",
+        "label": "Score rate"
+      },
+      "missing_rate": {
+        "description": "Highest unanswered rate first",
+        "label": "Unanswered rate"
+      },
+      "zero_rate": {
+        "description": "Highest zero-score rate first",
+        "label": "Zero-score rate"
+      }
+    },
+    "questionsUnit": "questions",
+    "focusGroup": "Focus metric",
+    "search": "Search questions",
+    "searchPlaceholder": "Search by number or question text",
+    "filterTypes": "Filter question types",
+    "average": "Avg",
+    "answered": "answered",
+    "unansweredCount": "{{count}} unanswered",
+    "closeBackdrop": "Close question data",
+    "drawerLabel": "answer data",
+    "closeDrawer": "Close question data",
+    "answeredLabel": "Answered",
+    "unanswered": "Unanswered",
+    "gradingProgress": "Grading progress",
+    "gradedRate": "Graded",
+    "optionDistribution": "Option distribution",
+    "noOptions": "No option data yet",
+    "scoreDistribution": "Score distribution",
+    "noGradedScores": "No graded scores yet"
+  },
+  "announcements": {
+    "postFailed": "Could not post the announcement",
+    "deleteConfirm": "Delete this announcement?",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "deleteFailed": "Could not delete the announcement",
+    "title": "Announcements",
+    "descriptionStaff": "Post and manage exam announcements.",
+    "descriptionStudent": "Exam updates from your teachers.",
+    "loadFailed": "Could not load announcements",
+    "refreshRetry": "Refresh and try again.",
+    "endedNotice": "The exam has ended. Announcements remain available to read.",
+    "unpublishedNotice": "The exam isn't published yet, so announcements can't be added.",
+    "countUnit": "total",
+    "deleteLabel": "Delete announcement",
+    "teacher": "Teacher",
+    "empty": "No announcements yet. The latest exam updates will appear here.",
+    "rules": "Rules",
+    "post": "Post announcement",
+    "publish": "Post",
+    "titleLabel": "Title",
+    "titlePlaceholder": "Enter a title...",
+    "contentLabel": "Content",
+    "contentPlaceholder": "Enter the content...",
+    "error": "Error"
   }
 }

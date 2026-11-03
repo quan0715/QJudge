@@ -323,7 +323,9 @@
     "problemList": "Problem List",
     "problems": "Problems",
     "questionBanks": "Question Banks",
-    "submissions": "Submissions"
+    "submissions": "Submissions",
+    "home": "Home",
+    "backToClassroom": "Back to classroom"
   },
   "oauth": {
     "authorize": {
@@ -451,7 +453,8 @@
     "timeLimit": "Time Limit (ms)",
     "type": "Type",
     "untitled": "Untitled",
-    "usedInContests": "{{count}} contest(s)"
+    "usedInContests": "{{count}} contest(s)",
+    "noBank": "No question banks yet"
   },
   "questionType": {
     "description": {
@@ -573,5 +576,14 @@
     "previewMode": "Preview mode",
     "problemInfo": "Problem details",
     "submissions": "Submissions"
+  },
+  "answering": {
+    "runtimeNav": {
+      "startsIn": "Starts in {{time}}"
+    }
+  },
+  "ui": {
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar"
   }
 }

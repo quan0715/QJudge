@@ -108,7 +108,7 @@ export default function AdminExamResultOverview({
 
   if (loading) {
     return (
-      <section className={styles.root} aria-label="考試結果總覽">
+      <section className={styles.root} aria-label={t("statistics.resultOverview", "考試結果總覽")}>
         <div className={styles.contentGrid}>
           <div className={styles.chartColumn}>
             <SkeletonText heading width="7rem" />
@@ -121,7 +121,7 @@ export default function AdminExamResultOverview({
 
   if (error || !dashboard) {
     return (
-      <section className={styles.root} aria-label="考試結果總覽">
+      <section className={styles.root} aria-label={t("statistics.resultOverview", "考試結果總覽")}>
         <div className={styles.emptyState}>
           {error ?? t("statistics.noData", "無法載入資料")}
         </div>
@@ -130,7 +130,7 @@ export default function AdminExamResultOverview({
   }
 
   return (
-    <section className={styles.root} aria-label="考試結果總覽">
+    <section className={styles.root} aria-label={t("statistics.resultOverview", "考試結果總覽")}>
       <div className={styles.contentGrid}>
         <div className={styles.chartColumn}>
           <MetricBlock

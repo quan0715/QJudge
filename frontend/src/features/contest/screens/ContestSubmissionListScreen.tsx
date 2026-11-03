@@ -49,7 +49,7 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
   onProblemFilterChange,
   hideEmbeddedToolbar = false,
 }) => {
-  const { t } = useTranslation("contest");
+  const { t, i18n } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
   const { contestId } = useParams<{ contestId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -129,7 +129,7 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString("zh-TW", {
+    return date.toLocaleString(i18n.language || "zh-TW", {
       month: "2-digit",
       day: "2-digit",
       hour: "2-digit",

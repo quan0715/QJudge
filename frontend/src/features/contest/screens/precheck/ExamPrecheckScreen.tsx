@@ -1,3 +1,4 @@
+import i18n from "i18next";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -720,7 +721,7 @@ const ExamPrecheckScreen: React.FC = () => {
                     dangerouslySetInnerHTML={{
                       __html: contest?.endTime
                         ? t("precheck.instruction.autoSubmitAt", {
-                            time: new Date(contest.endTime).toLocaleString(),
+                            time: new Date(contest.endTime).toLocaleString(i18n.language || undefined),
                           })
                         : t("precheck.instruction.autoSubmit"),
                     }}

@@ -1,4 +1,5 @@
 import { createElement } from "react";
+import i18n from "i18next";
 import { useTranslation } from "react-i18next";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
 import {
@@ -22,7 +23,7 @@ export default function EventIncidentCard({
   const { t } = useTranslation("contest");
   const eventIcon = createElement(getEventTypeIcon(incident.eventType, incident.priority), { size: 18 });
   const eventLabel = getEventTypeLabel(t, incident.eventType);
-  const timeLabel = formatContestClockTime(incident.lastAt || incident.firstAt, "zh-Hant-TW", {
+  const timeLabel = formatContestClockTime(incident.lastAt || incident.firstAt, i18n.language || "zh-Hant-TW", {
     hour12: false,
     timeZone: "Asia/Taipei",
   });

@@ -97,12 +97,12 @@ const QuestionSourcePanel = ({
       setError(
         fetchError instanceof Error
           ? fetchError.message
-          : "載入題庫來源失敗"
+          : t("examEditor.sourceLoadFailed", "載入題庫來源失敗")
       );
     } finally {
       setLoadingBanks(false);
     }
-  }, [bankCategory]);
+  }, [bankCategory, t]);
 
   const loadBankQuestions = useCallback(
     async (bankId: string) => {

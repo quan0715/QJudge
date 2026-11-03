@@ -77,7 +77,7 @@ export default function IntegrityEvidenceReview({
                   {formatContestClockTime(slice.endAtMs, undefined, { includeSeconds: true })}
                 </strong>
                 {Number.isFinite(occurredAtMs) ? (
-                  <span>{formatEvidenceRelativeRange(slice.startAtMs, slice.endAtMs, occurredAtMs)}</span>
+                  <span>{formatEvidenceRelativeRange(slice.startAtMs, slice.endAtMs, occurredAtMs, (key, defaultValue, values) => t(key, { defaultValue, ...values }))}</span>
                 ) : null}
               </div>
               <div className={styles.players}>

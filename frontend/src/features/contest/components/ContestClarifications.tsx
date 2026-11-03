@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Modal,
   TextArea,
@@ -79,6 +80,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = (props) => {
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const { confirm, modalProps } = useConfirmModal();
+  const { t } = useTranslation("contest");
 
   const showError = (msg: string) => {
     setErrorMessage(msg);
@@ -100,7 +102,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = (props) => {
       refreshData();
     } catch (error) {
       console.error("Failed to create announcement", error);
-      showError("發布公告失敗");
+      showError(t("announcements.postFailed", "發布公告失敗"));
     } finally {
       setSaving(false);
     }
@@ -108,9 +110,9 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = (props) => {
 
   const handleDeleteAnnouncement = async (annId: string) => {
     const confirmed = await confirm({
-      title: "確定要刪除此公告？",
-      confirmLabel: "刪除",
-      cancelLabel: "取消",
+      title: t("announcements.deleteConfirm", "確定要刪除此公告？"),
+      confirmLabel: t("announcements.delete", "刪除"),
+      cancelLabel: t("announcements.cancel", "取消"),
       danger: true,
     });
     if (!confirmed) return;
@@ -119,7 +121,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = (props) => {
       refreshData();
     } catch (error) {
       console.error("Failed to delete announcement", error);
-      showError("刪除公告失敗");
+      showError(t("announcements.deleteFailed", "刪除公告失敗"));
     }
   };
 
@@ -128,29 +130,29 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = (props) => {
   return (
     <div className={`${styles.root} ${embedded ? styles.embedded : ""}`}>
       {!embedded ? <BlockHeader
-        title="公告"
-        description={isManaging ? "發布與管理考試公告。" : "查看教師發布的考試消息。"}
+        title={t("announcements.title", "公告")}
+        description={isManaging ? t("announcements.descriptionStaff", "發布與管理考試公告。") : t("announcements.descriptionStudent", "查看教師發布的考試消息。")}
       /> : null}
-      {error ? <InlineNotification kind="error" lowContrast hideCloseButton title="公告載入失敗" subtitle="請重新整理後再試。" /> : null}
-      {isReadOnly && rules === undefined ? <p className={styles.notice}>{isEnded ? "考試已結束，公告可供查閱，可繼續查看。" : "考試尚未發布，目前不開放新增公告。"}</p> : null}
-      <section className={styles.section} aria-label="公告">
-        <BlockHeader title="公告" titleAs="h3" actions={
+      {error ? <InlineNotification kind="error" lowContrast hideCloseButton title={t("announcements.loadFailed", "公告載入失敗")} subtitle={t("announcements.refreshRetry", "請重新整理後再試。")} /> : null}
+      {isReadOnly && rules === undefined ? <p className={styles.notice}>{isEnded ? t("announcements.endedNotice", "考試已結束，公告可供查閱，可繼續查看。") : t("announcements.unpublishedNotice", "考試尚未發布，目前不開放新增公告。")}</p> : null}
+      <section className={styles.section} aria-label={t("announcements.title", "公告")}>
+        <BlockHeader title={t("announcements.title", "公告")} titleAs="h3" actions={
           <div className={styles.actions}>
-            <Tag size="sm" type="cool-gray">{announcements.length} 則</Tag>
+            <Tag size="sm" type="cool-gray">{announcements.length} {t("announcements.countUnit", "則")}</Tag>
           </div>
         } />
         {announcements.length ? <div className={styles.list}>
           {announcements.map((ann) => <article className={styles.announcement} key={ann.id}>
             <BlockHeader title={ann.title} titleAs="h4" actions={isManaging ?
-              <Button kind="ghost" size="sm" hasIconOnly renderIcon={TrashCan} iconDescription={`刪除公告：${ann.title}`} onClick={() => void handleDeleteAnnouncement(ann.id)} /> : undefined} />
-            <p className={styles.meta}>{ann.createdBy || "教師"} · {formatDate(ann.createdAt, { includeSeconds: false })}</p>
+              <Button kind="ghost" size="sm" hasIconOnly renderIcon={TrashCan} iconDescription={`${t("announcements.deleteLabel", "刪除公告")}：${ann.title}`} onClick={() => void handleDeleteAnnouncement(ann.id)} /> : undefined} />
+            <p className={styles.meta}>{ann.createdBy || t("announcements.teacher", "教師")} · {formatDate(ann.createdAt, { includeSeconds: false })}</p>
             <MarkdownRenderer>{ann.content}</MarkdownRenderer>
           </article>)}
-        </div> : <p className={styles.empty}>目前沒有公告，最新考試消息會顯示在這裡。</p>}
+        </div> : <p className={styles.empty}>{t("announcements.empty", "目前沒有公告，最新考試消息會顯示在這裡。")}</p>}
       </section>
       {rules !== undefined ? (
-        <section className={styles.section} aria-label="規則說明">
-          <BlockHeader title="規則說明" titleAs="h3" />
+        <section className={styles.section} aria-label={t("announcements.rules", "規則說明")}>
+          <BlockHeader title={t("announcements.rules", "規則說明")} titleAs="h3" />
           {rules.trim() ? <MarkdownRenderer>{rules}</MarkdownRenderer> : null}
         </section>
       ) : null}
@@ -158,9 +160,9 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = (props) => {
       {/* Create Announcement Modal */}
       <Modal
         open={announcementModalOpen}
-        modalHeading="發布公告"
-        primaryButtonText="發布"
-        secondaryButtonText="取消"
+        modalHeading={t("announcements.post", "發布公告")}
+        primaryButtonText={t("announcements.publish", "發布")}
+        secondaryButtonText={t("announcements.cancel", "取消")}
         onRequestClose={() => setAnnouncementModalOpen(false)}
         primaryButtonDisabled={saving || !announcementTitle.trim() || !announcementContent.trim()}
         onRequestSubmit={handleCreateAnnouncement}
@@ -168,19 +170,19 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = (props) => {
         <div style={{ marginBottom: "1rem" }}>
           <TextInput
             id="ann-title"
-            labelText="公告標題"
+            labelText={t("announcements.titleLabel", "公告標題")}
             value={announcementTitle}
             onChange={(e) => setAnnouncementTitle(e.target.value)}
-            placeholder="輸入標題..."
+            placeholder={t("announcements.titlePlaceholder", "輸入標題...")}
           />
         </div>
         <div style={{ marginBottom: "1rem" }}>
           <TextArea
             id="ann-content"
-            labelText="公告內容"
+            labelText={t("announcements.contentLabel", "公告內容")}
             value={announcementContent}
             onChange={(e) => setAnnouncementContent(e.target.value)}
-            placeholder="輸入內容..."
+            placeholder={t("announcements.contentPlaceholder", "輸入內容...")}
             rows={5}
           />
         </div>
@@ -189,7 +191,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = (props) => {
       {/* Error Modal */}
       <Modal
         open={errorModalOpen}
-        modalHeading="錯誤"
+        modalHeading={t("announcements.error", "錯誤")}
         passiveModal
         onRequestClose={() => setErrorModalOpen(false)}
       >
