@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import type { ContestParticipant, ExamStatusType, ParticipantDashboardDetail } from "@/core/entities/contest.entity";
 import type { AdminPanelId } from "@/features/contest/modules/types";
 import { useContest, useContestAdmin } from "@/features/contest/contexts";
-import useParticipantDashboard from "@/features/contest/screens/settings/participants/useParticipantDashboard";
+import useParticipantDashboard from "@/features/contest/hooks/useParticipantDashboard";
 import { downloadParticipantReport, resetParticipantExamRecord, reopenExam, unlockParticipant, updateParticipant } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
