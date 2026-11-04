@@ -2753,6 +2753,13 @@
     "dashboardTabs": "Student details",
     "tabOverview": "Overview",
     "tabAnswers": "Answers",
-    "tabEvents": "Events"
+    "tabEvents": "Events",
+    "scoreFilter": {
+      "label": "Filter by score",
+      "all": "All scores",
+      "top": "Top 25%",
+      "bottom": "Bottom 25%",
+      "zero": "Zero score"
+    }
   }
 }

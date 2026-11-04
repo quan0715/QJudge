@@ -23,12 +23,7 @@
   white-space: nowrap;
 }
 
-.switcher {
-  flex: none;
-  width: 11rem;
-}
-
-.statusFilter {
+.scoreFilter {
   min-width: 9rem;
 }
 
@@ -84,12 +79,6 @@
   flex-direction: column;
   overflow: hidden;
   border-right: 1px solid var(--cds-border-subtle);
-}
-
-.railSearch {
-  flex: 0 0 auto;
-  padding: layout.$spacing-03;
-  border-bottom: 1px solid var(--cds-border-subtle);
 }
 
 .dashboard {
@@ -165,7 +154,7 @@
     min-width: 0;
   }
 
-  .mobileFilters .statusFilter {
+  .mobileFilters .scoreFilter {
     flex: none;
     width: 9rem;
     min-width: 0;

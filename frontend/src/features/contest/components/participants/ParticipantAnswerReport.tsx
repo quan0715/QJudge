@@ -110,7 +110,6 @@ export default function ParticipantAnswerReport({
               gradedByUsername={row.gradedByUsername}
               feedback={row.feedback}
               correctAnswer={row.correctAnswer}
-              explanation={row.explanation}
               scorePolicy={row.scorePolicy}
             />
           ),
