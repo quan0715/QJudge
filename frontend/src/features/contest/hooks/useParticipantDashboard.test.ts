@@ -1,0 +1,128 @@
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({ getParticipantDashboard: vi.fn() }));
+vi.mock("@/infrastructure/api/repositories", () => ({
+  getParticipantDashboard: mocks.getParticipantDashboard,
+}));
+
+import useParticipantDashboard from "./useParticipantDashboard";
+
+const dashboardFor = (userId: string) => ({ participant: { userId } });
+
+const setVisibility = (state: DocumentVisibilityState) => {
+  Object.defineProperty(document, "visibilityState", { configurable: true, get: () => state });
+};
+
+beforeEach(() => {
+  mocks.getParticipantDashboard.mockReset().mockImplementation(async (_contestId: string, userId: string) =>
+    dashboardFor(userId),
+  );
+  setVisibility("visible");
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe("useParticipantDashboard", () => {
+  it("does not request without a user", () => {
+    renderHook(() => useParticipantDashboard("c1", null));
+    expect(mocks.getParticipantDashboard).not.toHaveBeenCalled();
+  });
+
+  it("loads the selected user's dashboard", async () => {
+    const { result } = renderHook(() => useParticipantDashboard("c1", "7"));
+    await waitFor(() => expect(result.current.data).toEqual(dashboardFor("7")));
+    expect(mocks.getParticipantDashboard).toHaveBeenCalledWith("c1", "7");
+  });
+
+  it("clears data from the previous user when the user changes", async () => {
+    let resolveSecond: (value: unknown) => void = () => {};
+    const { result, rerender } = renderHook(({ userId }) => useParticipantDashboard("c1", userId), {
+      initialProps: { userId: "7" },
+    });
+    await waitFor(() => expect(result.current.data).toEqual(dashboardFor("7")));
+    mocks.getParticipantDashboard.mockImplementationOnce(
+      () => new Promise((resolve) => { resolveSecond = resolve; }),
+    );
+    rerender({ userId: "8" });
+    await waitFor(() => expect(result.current.data).toBeNull());
+    await act(async () => resolveSecond(dashboardFor("8")));
+    expect(result.current.data).toEqual(dashboardFor("8"));
+  });
+
+  it("ignores a late response for the previously selected user", async () => {
+    let resolveFirst: (value: unknown) => void = () => {};
+    mocks.getParticipantDashboard.mockImplementationOnce(
+      () => new Promise((resolve) => { resolveFirst = resolve; }),
+    );
+    const { result, rerender } = renderHook(({ userId }) => useParticipantDashboard("c1", userId), {
+      initialProps: { userId: "7" },
+    });
+    rerender({ userId: "8" });
+    await waitFor(() => expect(result.current.data).toEqual(dashboardFor("8")));
+    await act(async () => resolveFirst(dashboardFor("7")));
+    expect(result.current.data).toEqual(dashboardFor("8"));
+  });
+
+  it("ignores a refresh captured for a previously selected user", async () => {
+    const { result, rerender } = renderHook(({ userId }) => useParticipantDashboard("c1", userId), {
+      initialProps: { userId: "7" },
+    });
+    await waitFor(() => expect(result.current.data).toEqual(dashboardFor("7")));
+    const staleRefresh = result.current.refresh;
+    rerender({ userId: "8" });
+    await waitFor(() => expect(result.current.data).toEqual(dashboardFor("8")));
+    mocks.getParticipantDashboard.mockClear();
+    await act(() => staleRefresh());
+    expect(mocks.getParticipantDashboard).not.toHaveBeenCalledWith("c1", "7");
+    expect(result.current.data).toEqual(dashboardFor("8"));
+  });
+
+  it("keeps the previous data for the same user when a refresh fails", async () => {
+    const { result } = renderHook(() => useParticipantDashboard("c1", "7"));
+    await waitFor(() => expect(result.current.data).toEqual(dashboardFor("7")));
+    mocks.getParticipantDashboard.mockRejectedValueOnce(new Error("boom"));
+    await act(() => result.current.refresh());
+    expect(result.current.data).toEqual(dashboardFor("7"));
+    expect(result.current.error).toBe("boom");
+  });
+
+  it("runs one trailing refresh when asked while a request is in flight", async () => {
+    let resolveFirst: (value: unknown) => void = () => {};
+    const { result } = renderHook(() => useParticipantDashboard("c1", "7"));
+    await waitFor(() => expect(result.current.data).toEqual(dashboardFor("7")));
+    mocks.getParticipantDashboard
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
+      .mockImplementationOnce(async () => ({ participant: { userId: "7" }, fresh: true }));
+    let first: Promise<void> = Promise.resolve();
+    act(() => { first = result.current.refresh(); });
+    await act(() => result.current.refresh());
+    await act(async () => { resolveFirst(dashboardFor("7")); await first; });
+    await waitFor(() => expect(result.current.data).toEqual({ participant: { userId: "7" }, fresh: true }));
+    expect(mocks.getParticipantDashboard).toHaveBeenCalledTimes(3);
+  });
+
+  it("refetches on the interval only while the page is visible", async () => {
+    vi.useFakeTimers();
+    renderHook(() => useParticipantDashboard("c1", "7", { refreshIntervalMs: 30000 }));
+    await act(async () => { await Promise.resolve(); });
+    expect(mocks.getParticipantDashboard).toHaveBeenCalledTimes(1);
+
+    setVisibility("hidden");
+    await act(async () => { await vi.advanceTimersByTimeAsync(30000); });
+    expect(mocks.getParticipantDashboard).toHaveBeenCalledTimes(1);
+
+    setVisibility("visible");
+    await act(async () => { await vi.advanceTimersByTimeAsync(30000); });
+    expect(mocks.getParticipantDashboard).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not poll without an interval", async () => {
+    vi.useFakeTimers();
+    renderHook(() => useParticipantDashboard("c1", "7"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(120000); });
+    expect(mocks.getParticipantDashboard).toHaveBeenCalledTimes(1);
+  });
+});

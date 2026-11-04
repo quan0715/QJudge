@@ -1,0 +1,173 @@
+@use "@carbon/layout";
+@use "@carbon/type" as type;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--cds-background);
+}
+
+.toolbar {
+  height: auto;
+  flex-wrap: wrap;
+}
+
+.viewControls {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-02 layout.$spacing-04;
+  white-space: nowrap;
+}
+
+.switcher {
+  flex: none;
+  width: 11rem;
+}
+
+.statusFilter {
+  min-width: 9rem;
+}
+
+.viewControls .gridSize {
+  flex: none;
+  width: 7rem;
+
+  select {
+    width: 100%;
+  }
+}
+
+.search {
+  width: 16rem;
+}
+
+.mobileFilters {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.listBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: layout.$spacing-05;
+}
+
+.monitorBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.selected {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr) minmax(22rem, 28rem);
+  overflow: hidden;
+}
+
+.selectedWithoutLive {
+  grid-template-columns: 16rem minmax(0, 1fr);
+}
+
+.rail {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
+.railSearch {
+  flex: 0 0 auto;
+  padding: layout.$spacing-03;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.dashboard {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+  overflow-y: auto;
+  padding: layout.$spacing-05;
+}
+
+.tabPanel {
+  padding: layout.$spacing-05 0 0;
+}
+
+.sectionTitle {
+  @include type.type-style("heading-compact-01");
+
+  margin: 0;
+  color: var(--cds-text-primary);
+}
+
+.liveColumn {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  overflow-y: auto;
+  padding: layout.$spacing-05;
+  border-left: 1px solid var(--cds-border-subtle);
+}
+
+.liveStage {
+  min-height: 18rem;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.timeline {
+  height: min(40rem, 70vh);
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+@media (max-width: 66rem) {
+  .selected {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .dashboard {
+    flex: none;
+    overflow: visible;
+  }
+
+  // On phones the live view sits above the dashboard.
+  .liveColumn {
+    flex: none;
+    order: -1;
+    overflow: visible;
+    border-left: 0;
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+
+  .mobileFilters .search {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  .mobileFilters .statusFilter {
+    flex: none;
+    width: 9rem;
+    min-width: 0;
+  }
+}

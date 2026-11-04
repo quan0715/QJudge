@@ -21,7 +21,7 @@
       "grading": "作答結果",
       "overview": "總覽",
       "problemManagement": "題目管理",
-      "proctoring": "監考",
+      "participants": "參賽者",
       "settings": "設定",
       "standings": "排行榜",
       "statistics": "統計",
@@ -949,7 +949,9 @@
     "viewProctoring": "查看監控",
     "viewReport": "查看作答詳情",
     "viewSubmissions": "查看提交",
-    "webcamSignal": "Webcam"
+    "webcamSignal": "Webcam",
+    "answerTime": "作答時間",
+    "expandQuestionHint": "展開題目查看作答內容與批改評語。"
   },
   "delete": {
     "confirm": "確定要刪除此競賽嗎？此動作無法復原。",
@@ -1878,7 +1880,9 @@
       "role": "身份",
       "score": "分數",
       "status": "狀態",
-      "username": "使用者"
+      "username": "使用者",
+      "name": "姓名",
+      "violations": "違規"
     },
     "listFooterCount": "顯示 {{shown}} / {{total}} 位",
     "listHeaderTitle": "學生",
@@ -2019,19 +2023,11 @@
   "problems": "題目數",
   "proctoringPanel": {
     "backToRoster": "返回列表",
-    "emptyDescription": "左側清單可快速切換不同參賽者的監考畫面。",
     "emptyTitle": "選擇參賽者開始監考",
-    "highRiskCount": "{{count}} 高風險",
     "noSignal": "無訊號",
     "onlineCount": "{{count}} 人在線",
-    "outOfWindowBody": "監控功能無法使用。",
-    "outOfWindowTitle": "目前非考試時段",
-    "reviewCount": "{{count}} 需留意",
-    "roster": "監考對象",
-    "searchPlaceholder": "搜尋監考對象...",
     "sourceScreen": "螢幕",
     "sourceWebcam": "Webcam",
-    "title": "監考",
     "focusStudent": "放大 {{name}}",
     "waitingScreen": "等待螢幕畫面",
     "noScreen": "尚無螢幕分享",
@@ -2040,24 +2036,15 @@
     "pageCount": "第 {{page}}／{{pages}} 頁・{{count}} 人",
     "previousPage": "上一頁",
     "nextPage": "下一頁",
-    "layout": "監看版面",
-    "focusView": "單人",
-    "multipleView": "多人",
     "gridSize": "每頁監看人數",
     "fourView": "4 人",
     "nineView": "9 人",
     "previousStudent": "上一位",
     "nextStudent": "下一位",
-    "eventLoadError": "無法載入事件",
     "events": "事件",
     "manualLockModalTitle": "鎖定參賽者",
     "manualLockReasonLabel": "鎖定原因",
-    "newEventCount": "新事件 {{count}}",
-    "noEvents": "目前沒有事件",
-    "hideRoster": "隱藏監考對象",
-    "showRoster": "顯示監考對象",
-    "hideEvents": "隱藏事件列表",
-    "showEvents": "顯示事件列表"
+    "noEvents": "目前沒有事件"
   },
   "progress": "考試進度",
   "public": "公開",
@@ -2754,5 +2741,18 @@
     "contentLabel": "公告內容",
     "contentPlaceholder": "輸入內容...",
     "error": "錯誤"
+  },
+  "participantsPanel": {
+    "title": "參賽者",
+    "searchPlaceholder": "搜尋姓名或帳號...",
+    "viewTable": "表格",
+    "viewCards": "卡片",
+    "monitorMode": "監考模式",
+    "backToList": "返回列表",
+    "liveView": "即時畫面",
+    "dashboardTabs": "學生資料分頁",
+    "tabOverview": "總覽",
+    "tabAnswers": "作答",
+    "tabEvents": "事件"
   }
 }

@@ -1,0 +1,29 @@
+@use "@carbon/layout";
+
+.studentQrScanner {
+  display: grid;
+  gap: layout.$spacing-05;
+}
+
+.studentQrScannerViewport {
+  display: grid;
+  overflow: hidden;
+  min-height: 18rem;
+  place-items: center;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer);
+  color: var(--cds-text-secondary);
+}
+
+.studentQrScannerVideo {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.studentQrScannerHint {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}

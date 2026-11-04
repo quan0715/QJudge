@@ -21,7 +21,7 @@
       "grading": "Answer Results",
       "overview": "Overview",
       "problemManagement": "Problem Management",
-      "proctoring": "Proctoring",
+      "participants": "Participants",
       "settings": "Settings",
       "standings": "Leaderboard",
       "statistics": "Statistics",
@@ -949,7 +949,9 @@
     "viewProctoring": "View monitoring",
     "viewReport": "View answer details",
     "viewSubmissions": "View submissions",
-    "webcamSignal": "Webcam"
+    "webcamSignal": "Webcam",
+    "answerTime": "Answer time",
+    "expandQuestionHint": "Expand a question to see the answer and grading feedback."
   },
   "delete": {
     "confirm": "Are you sure you want to delete this contest? This action cannot be undone.",
@@ -1878,7 +1880,9 @@
       "role": "Role",
       "score": "Score",
       "status": "Status",
-      "username": "User"
+      "username": "User",
+      "name": "Name",
+      "violations": "Violations"
     },
     "listFooterCount": "Showing {{shown}} / {{total}} members",
     "listHeaderTitle": "Students",
@@ -2019,19 +2023,11 @@
   "problems": "Problems",
   "proctoringPanel": {
     "backToRoster": "Back to list",
-    "emptyDescription": "Use the list on the left to quickly switch between participant monitoring views.",
     "emptyTitle": "Select a participant to start monitoring",
-    "highRiskCount": "{{count}} high risk",
     "noSignal": "No signal",
     "onlineCount": "{{count}} online",
-    "outOfWindowBody": "Monitoring is unavailable.",
-    "outOfWindowTitle": "Outside exam window",
-    "reviewCount": "{{count}} need review",
-    "roster": "Watchlist",
-    "searchPlaceholder": "Search monitored participants...",
     "sourceScreen": "Screen",
     "sourceWebcam": "Webcam",
-    "title": "Proctoring",
     "focusStudent": "Focus on {{name}}",
     "waitingScreen": "Waiting for screen",
     "noScreen": "No screen shared",
@@ -2040,24 +2036,15 @@
     "pageCount": "Page {{page}} of {{pages}} · {{count}} participants",
     "previousPage": "Previous page",
     "nextPage": "Next page",
-    "layout": "Monitoring layout",
-    "focusView": "Single",
-    "multipleView": "Multiple",
     "gridSize": "Students per page",
     "fourView": "4 students",
     "nineView": "9 students",
     "previousStudent": "Previous student",
     "nextStudent": "Next student",
-    "eventLoadError": "Could not load events",
     "events": "Events",
     "manualLockModalTitle": "Lock participant",
     "manualLockReasonLabel": "Lock reason",
-    "newEventCount": "{{count}} new events",
-    "noEvents": "No events yet",
-    "hideRoster": "Hide watchlist",
-    "showRoster": "Show watchlist",
-    "hideEvents": "Hide events",
-    "showEvents": "Show events"
+    "noEvents": "No events yet"
   },
   "progress": "Progress",
   "public": "Public",
@@ -2754,5 +2741,18 @@
     "contentLabel": "Content",
     "contentPlaceholder": "Enter the content...",
     "error": "Error"
+  },
+  "participantsPanel": {
+    "title": "Participants",
+    "searchPlaceholder": "Search name or username...",
+    "viewTable": "Table",
+    "viewCards": "Cards",
+    "monitorMode": "Monitor mode",
+    "backToList": "Back to list",
+    "liveView": "Live view",
+    "dashboardTabs": "Student details",
+    "tabOverview": "Overview",
+    "tabAnswers": "Answers",
+    "tabEvents": "Events"
   }
 }

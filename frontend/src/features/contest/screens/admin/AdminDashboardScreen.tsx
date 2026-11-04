@@ -21,6 +21,8 @@ import type {
 } from "@/features/contest/modules/types";
 import { isContestManagerScopeRole } from "@/core/entities/contest.entity";
 import { useTabWithUrlParam } from "@/shared/hooks";
+import { useAdminParticipantsPolling } from "@/features/contest/hooks/useAdminParticipantsPolling";
+import type { ContestDetail } from "@/core/entities/contest.entity";
 import styles from "./AdminDashboardScreen.module.scss";
 
 const ContestExportDialog = lazy(
@@ -61,6 +63,12 @@ const AdminPanelSlot = ({
     </Suspense>
   );
   /* eslint-enable react-hooks/static-components */
+};
+
+/** Owns roster polling; rendered inside ContestAdminProvider so it can reach the roster. */
+const ParticipantsPolling = ({ contest }: { contest: ContestDetail | null }) => {
+  useAdminParticipantsPolling(contest);
+  return null;
 };
 
 const AdminDashboardInner = () => {
@@ -174,6 +182,7 @@ const AdminDashboardPanels = () => {
 
   return (
     <ContestAdminProvider contestId={contestId} loadEvents={activePanel === "overview"}>
+      <ParticipantsPolling contest={contest} />
       <div className={styles.page}>
         <div className={styles.panelBody}>
           <AdminPanelSlot

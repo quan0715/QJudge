@@ -77,14 +77,12 @@ const LogsSkeleton = ({ showKpis = true }: { showKpis?: boolean }) => (
 );
 
 interface ContestLogsScreenProps extends Partial<AdminPanelProps> {
-  userIdFilter?: string;
   embedded?: boolean;
   eventFeed?: EventFeedItem[];
   onRefresh?: () => Promise<void> | void;
 }
 
 const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
-  userIdFilter,
   embedded = false,
   eventFeed: externalEventFeed,
   onRefresh,
@@ -100,10 +98,8 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
 
   const eventFeed = useMemo(() => {
     const source = externalEventFeed ?? contestEventFeed;
-    return source
-      .filter((item) => !userIdFilter || String(item.userId) === userIdFilter)
-      .sort((left, right) => Date.parse(right.firstAt) - Date.parse(left.firstAt));
-  }, [contestEventFeed, externalEventFeed, userIdFilter]);
+    return [...source].sort((left, right) => Date.parse(right.firstAt) - Date.parse(left.firstAt));
+  }, [contestEventFeed, externalEventFeed]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>(

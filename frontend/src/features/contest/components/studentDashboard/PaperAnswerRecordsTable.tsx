@@ -18,9 +18,14 @@ export interface PaperAnswerRecordRow {
 interface PaperAnswerRecordsTableProps {
   rows: PaperAnswerRecordRow[];
   showGrading: boolean;
+  hint?: string;
 }
 
-export default function PaperAnswerRecordsTable({ rows, showGrading }: PaperAnswerRecordsTableProps) {
+export default function PaperAnswerRecordsTable({
+  rows,
+  showGrading,
+  hint = "展開題目查看原作答、評語與申訴紀錄。",
+}: PaperAnswerRecordsTableProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const tableId = useId();
 
@@ -33,7 +38,7 @@ export default function PaperAnswerRecordsTable({ rows, showGrading }: PaperAnsw
 
   return (
     <div className={styles.root}>
-      <p className={styles.hint}>展開題目查看原作答、評語與申訴紀錄。</p>
+      <p className={styles.hint}>{hint}</p>
       <Table aria-label="各題作答紀錄" size="lg" className={styles.table}>
         <TableHead>
           <TableRow>

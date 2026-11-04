@@ -1,7 +1,5 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
-import { createMockContest } from "@/shared/mocks/contest.mock";
 
 const mocks = vi.hoisted(() => ({
   getConfig: vi.fn(),
@@ -41,7 +39,7 @@ vi.mock("@/infrastructure/api/repositories", () => ({
 vi.mock("@/shared/contexts/ToastContext", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 
 import type { ContestParticipant } from "@/core/entities/contest.entity";
-import AdminProctoringPanel, { MinimalLiveStage } from "./AdminProctoringPanel";
+import { MinimalLiveStage } from "./ProctorLiveStage";
 
 const participant = (userId: string): ContestParticipant => ({
   userId,
@@ -102,28 +100,15 @@ beforeEach(() => {
 });
 
 describe("MinimalLiveStage", () => {
-  it("keeps mode controls in the action bar, remembers grid size, and has one manual refresh", async () => {
-    const contest = createMockContest({
-      startTime: new Date(Date.now() - 60_000).toISOString(),
-      endTime: new Date(Date.now() + 3_600_000).toISOString(),
-    });
-    const view = render(<MemoryRouter><AdminProctoringPanel contestId="contest-1" contest={contest} /></MemoryRouter>);
-    const toggle = view.getByRole("switch", { name: "多人" });
-    const toolbarLeft = view.getByRole("heading", { name: "監考面板" }).parentElement!;
-    expect(toolbarLeft).toContainElement(toggle);
-    expect(toggle).toHaveAttribute("aria-checked", "true");
-    fireEvent.change(view.getByRole("combobox", { name: "每頁監看人數" }), { target: { value: "9" } });
-    fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute("aria-checked", "false");
-    expect(view.queryByRole("combobox", { name: "每頁監看人數" })).not.toBeInTheDocument();
-    fireEvent.click(toggle);
-    expect(view.getByRole("combobox", { name: "每頁監看人數" })).toHaveValue("9");
-    expect(view.queryAllByRole("button", { name: "重新連線" })).toHaveLength(0);
-    expect(view.getAllByRole("button", { name: "重新整理" })).toHaveLength(1);
+  it("hides identity and prev/next when showIdentity is false", async () => {
+    const rows = [participant("7"), participant("8")];
+    const view = render(<MinimalLiveStage contestId="contest-1" participant={rows[0]} participants={rows}
+      discoveryRefreshKey={0} lockActionBusy={false} monitoringAvailable showIdentity={false} />);
     await waitFor(() => expect(mocks.createTransport).toHaveBeenCalledOnce());
-    fireEvent.click(view.getByRole("button", { name: "重新整理" }));
-    await waitFor(() => expect(mocks.createTransport).toHaveBeenCalledTimes(2));
-    expect(mocks.refreshAdminData).toHaveBeenCalledOnce();
+    expect(view.queryByText("Student 7")).not.toBeInTheDocument();
+    expect(view.queryByRole("button", { name: "上一位" })).not.toBeInTheDocument();
+    expect(view.queryByRole("button", { name: "下一位" })).not.toBeInTheDocument();
+    view.unmount();
   });
 
   it.each([4, 9] as const)("filters non-sharing students and displays webcam in the same tile in %i-person mode", async (layout) => {

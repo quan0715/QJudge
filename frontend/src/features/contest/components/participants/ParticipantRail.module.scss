@@ -1,0 +1,134 @@
+@use "@carbon/layout";
+
+.rosterList {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--cds-background);
+}
+
+.rosterItem {
+  width: 100%;
+  min-height: 3.5rem;
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem layout.$spacing-04;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  background: transparent;
+  color: var(--cds-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.rosterItem:hover {
+  background: var(--cds-layer-hover-01);
+}
+
+.rosterItemSelected {
+  border-left-color: var(--cds-border-interactive);
+  background: var(--cds-layer-selected-01);
+}
+
+.rosterItemSelected:hover {
+  background: var(--cds-layer-selected-hover-01);
+}
+
+.rosterItemLow {
+  border-left-color: var(--cds-support-warning);
+}
+
+.rosterItemMedium {
+  border-left-color: var(--cds-support-warning);
+  background: color-mix(in srgb, var(--cds-support-warning) 8%, transparent);
+}
+
+.rosterItemHigh {
+  border-left-color: var(--cds-support-error);
+}
+
+.rosterStatusIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cds-icon-secondary);
+}
+
+.rosterItemLow .rosterStatusIcon,
+.rosterItemMedium .rosterStatusIcon {
+  color: var(--cds-support-warning);
+}
+
+.rosterItemHigh .rosterStatusIcon {
+  color: var(--cds-support-error);
+}
+
+.rosterIdentity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-01;
+}
+
+.rosterName {
+  overflow: hidden;
+  color: var(--cds-text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.rosterSignals {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: layout.$spacing-03;
+}
+
+.violationPill {
+  min-width: 1.375rem;
+  height: 1.375rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.violationPillLow {
+  color: var(--cds-support-warning);
+}
+
+.violationPillMedium {
+  color: var(--cds-support-warning);
+}
+
+.violationPillHigh {
+  color: var(--cds-support-error);
+}
+
+.liveDot,
+.offlineDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+}
+
+.liveDot {
+  background: var(--cds-support-success);
+}
+
+.offlineDot {
+  background: var(--cds-icon-disabled);
+}

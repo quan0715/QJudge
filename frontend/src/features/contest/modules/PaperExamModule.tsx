@@ -12,7 +12,7 @@ const ExamEditorLayout = lazy(
 
 const PAPER_EXAM_ADMIN_PANELS: AdminPanelId[] = [
   "overview",
-  "proctoring",
+  "participants",
   "problem_editor",
   "grading-workbench",
 ];
