@@ -92,6 +92,7 @@ describe("ParticipantRail", () => {
     const onSelect = vi.fn();
     render(
       <ParticipantRail
+        mode="proctor"
         selectedUserId="7"
         onSelect={onSelect}
         participants={[p({ userId: "7", displayName: "Amy" }), p({ userId: "8", displayName: "Ben", violationCount: 2 })]}
@@ -101,5 +102,20 @@ describe("ParticipantRail", () => {
     expect(screen.getByRole("button", { name: /Ben/ })).not.toHaveAttribute("aria-current");
     fireEvent.click(screen.getByRole("button", { name: /Ben/ }));
     expect(onSelect).toHaveBeenCalledWith("8");
+  });
+
+  it("shows account and score instead of proctoring signals in score mode", () => {
+    render(
+      <ParticipantRail
+        mode="score"
+        selectedUserId=""
+        onSelect={vi.fn()}
+        participants={[p({ userId: "8", displayName: "Ben", username: "s108", score: 72.5, violationCount: 2 })]}
+      />,
+    );
+    const entry = screen.getByRole("button", { name: /Ben/ });
+    expect(within(entry).getByText("s108")).toBeInTheDocument();
+    expect(within(entry).getByText("72.50")).toBeInTheDocument();
+    expect(within(entry).queryByText("2")).toBeNull();
   });
 });

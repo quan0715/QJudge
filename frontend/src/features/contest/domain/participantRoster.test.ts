@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { ContestParticipant } from "@/core/entities/contest.entity";
 import {
-  PARTICIPANT_STATUS_FILTERS,
   filterParticipants,
   getAttentionScore,
   isParticipantLive,
   needsAttention,
   sortParticipantsByAttention,
+  sortParticipantsByScore,
 } from "./participantRoster";
 
 const p = (overrides: Partial<ContestParticipant>): ContestParticipant => ({
@@ -51,27 +51,31 @@ describe("participantRoster", () => {
     expect(rows.map((row) => row.userId)).toEqual(["1", "2", "3", "4"]);
   });
 
-  it("filters needs_attention and query together", () => {
+  it("sorts by score high to low, then by name", () => {
     const rows = [
-      p({ userId: "1", violationCount: 1, username: "amy" }),
-      p({ userId: "2", username: "amber" }),
-      p({ userId: "3", violationCount: 1, username: "bob" }),
+      p({ userId: "1", displayName: "Ben", score: 40 }),
+      p({ userId: "2", displayName: "Cat", score: 90 }),
+      p({ userId: "3", displayName: "Amy", score: 40 }),
     ];
-    expect(
-      filterParticipants(rows, { query: "AM", status: "needs_attention" }).map((row) => row.userId),
-    ).toEqual(["1"]);
+    expect(sortParticipantsByScore(rows).map((row) => row.userId)).toEqual(["2", "3", "1"]);
   });
 
-  it("filters by exam status and matches lock reasons", () => {
-    const rows = [
-      p({ userId: "1", examStatus: "locked", lockReason: "離開座位" }),
-      p({ userId: "2", examStatus: "not_started" }),
-    ];
-    expect(filterParticipants(rows, { query: "座位", status: "all" }).map((row) => row.userId)).toEqual(["1"]);
-    expect(filterParticipants(rows, { query: "", status: "not_started" }).map((row) => row.userId)).toEqual(["2"]);
+  it("filters the top and bottom quarter by score, keeping ties", () => {
+    const rows = [10, 20, 30, 40, 50, 60, 70, 80].map((score) => p({ userId: String(score), score }));
+    const ids = (score: "top" | "bottom" | "zero") =>
+      filterParticipants(rows, { query: "", score }).map((row) => row.userId);
+    expect(ids("top")).toEqual(["70", "80"]);
+    expect(ids("bottom")).toEqual(["10", "20"]);
+    rows.push(p({ userId: "tie", score: 70 }));
+    expect(ids("top")).toEqual(["70", "80", "tie"]);
   });
 
-  it("offers a not_started status filter", () => {
-    expect(PARTICIPANT_STATUS_FILTERS.map((option) => option.id)).toContain("not_started");
+  it("filters zero scores and matches lock reasons in the query", () => {
+    const rows = [
+      p({ userId: "1", score: 0, lockReason: "離開座位" }),
+      p({ userId: "2", score: 5 }),
+    ];
+    expect(filterParticipants(rows, { query: "座位", score: "all" }).map((row) => row.userId)).toEqual(["1"]);
+    expect(filterParticipants(rows, { query: "", score: "zero" }).map((row) => row.userId)).toEqual(["1"]);
   });
 });

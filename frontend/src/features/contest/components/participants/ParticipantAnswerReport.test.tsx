@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ParticipantDashboard } from "@/core/entities/contest.entity";
 
-const mocks = vi.hoisted(() => ({ codingRecords: vi.fn() }));
+const mocks = vi.hoisted(() => ({ codingRecords: vi.fn(), questionCard: vi.fn() }));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (_key: string, fallback?: string) => fallback ?? _key }),
@@ -10,7 +10,10 @@ vi.mock("react-i18next", () => ({
 vi.mock("@carbon/charts-react", () => ({ AreaChart: () => null, DonutChart: () => null }));
 vi.mock("@/shared/ui/theme/ThemeContext", () => ({ useTheme: () => ({ theme: "white" }) }));
 vi.mock("@/features/contest/components/exam/PaperQuestionReportCard", () => ({
-  default: ({ questionId }: { questionId: string }) => <div data-testid="question-card">{questionId}</div>,
+  default: (props: { questionId: string }) => {
+    mocks.questionCard(props);
+    return <div data-testid="question-card">{props.questionId}</div>;
+  },
 }));
 vi.mock("@/features/contest/components/studentDashboard/CodingAnswerRecords", () => ({
   default: (props: { initialExpandedProblemId?: string }) => {
@@ -28,7 +31,7 @@ const paperDashboard = {
   participant: { userId: "7", username: "s7" },
   report: {
     overviewRows: [{ questionId: "q1", index: 1, questionType: "single_choice", maxScore: 5, score: 5, status }],
-    questionDetails: [{ questionId: "q1", index: 1, questionType: "single_choice", prompt: "1+1", maxScore: 5, score: 5, status }],
+    questionDetails: [{ questionId: "q1", index: 1, questionType: "single_choice", prompt: "1+1", maxScore: 5, score: 5, status, explanation: "因為 1+1=2" }],
   },
 } as unknown as ParticipantDashboard;
 
@@ -42,7 +45,10 @@ const codingDashboard = {
   },
 } as unknown as ParticipantDashboard;
 
-beforeEach(() => mocks.codingRecords.mockClear());
+beforeEach(() => {
+  mocks.codingRecords.mockClear();
+  mocks.questionCard.mockClear();
+});
 
 describe("ParticipantAnswerReport", () => {
   it("renders paper questions as one expandable table", () => {
@@ -53,6 +59,7 @@ describe("ParticipantAnswerReport", () => {
     fireEvent.click(screen.getByRole("button", { name: /展開第 1 題/ }));
     expect(screen.getByTestId("question-card")).toHaveTextContent("q1");
     expect(screen.queryByTestId("coding-records")).toBeNull();
+    expect(mocks.questionCard.mock.calls[0][0]).not.toHaveProperty("explanation");
   });
 
   it("renders coding details and records expanded to the requested problem", () => {

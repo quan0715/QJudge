@@ -3,11 +3,11 @@ import { useSearchParams } from "react-router-dom";
 import {
   Button,
   ContentSwitcher,
+  IconSwitch,
   InlineNotification,
   Select,
   SelectItem,
   SkeletonText,
-  Switch,
   Tab,
   TabList,
   TabPanel,
@@ -17,7 +17,7 @@ import {
   Tag,
   Toggle,
 } from "@carbon/react";
-import { ArrowLeft, Renew } from "@carbon/icons-react";
+import { ArrowLeft, Grid, Renew, Table } from "@carbon/icons-react";
 import { useReducedMotion } from "motion/react";
 import { useTranslation } from "react-i18next";
 
@@ -32,11 +32,12 @@ import ParticipantTable from "@/features/contest/components/participants/Partici
 import { useAdminPanelRefresh, useContestAdmin } from "@/features/contest/contexts";
 import { isContestInExamWindow } from "@/features/contest/domain/examWindow";
 import {
-  PARTICIPANT_STATUS_FILTERS,
+  PARTICIPANT_SCORE_FILTERS,
   filterParticipants,
   isParticipantLive,
   sortParticipantsByAttention,
-  type ParticipantStatusFilter,
+  sortParticipantsByScore,
+  type ParticipantScoreFilter,
 } from "@/features/contest/domain/participantRoster";
 import { useParticipantActions } from "@/features/contest/hooks/useParticipantActions";
 import { useParticipantDashboard } from "@/features/contest/hooks/useParticipantDashboard";
@@ -53,8 +54,8 @@ const NOW_TICK_MS = 30000;
 const DASHBOARD_REFRESH_MS = 30000;
 const ANSWERS_TAB = 1;
 
-const isStatusFilter = (value: string | null): value is ParticipantStatusFilter =>
-  PARTICIPANT_STATUS_FILTERS.some((option) => option.id === value);
+const isScoreFilter = (value: string | null): value is ParticipantScoreFilter =>
+  PARTICIPANT_SCORE_FILTERS.some((option) => option.id === value);
 
 export default function AdminParticipantsPanel({ contestId, contest }: AdminPanelProps) {
   const { t } = useTranslation("contest");
@@ -67,8 +68,8 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
   const selectedUserId = searchParams.get("user");
   const problemId = searchParams.get("problem") ?? undefined;
   const query = searchParams.get("q") ?? "";
-  const statusParam = searchParams.get("status");
-  const status: ParticipantStatusFilter = isStatusFilter(statusParam) ? statusParam : "all";
+  const scoreParam = searchParams.get("score");
+  const score: ParticipantScoreFilter = isScoreFilter(scoreParam) ? scoreParam : "all";
   const cardsView = searchParams.get("view") === "cards";
   const monitorRequested = searchParams.get("monitor") === "1";
 
@@ -115,10 +116,11 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
     if (problemId) setDashboardTab(ANSWERS_TAB);
   }, [problemId]);
 
-  const visibleParticipants = useMemo(
-    () => sortParticipantsByAttention(filterParticipants(participants, { query, status })),
-    [participants, query, status],
-  );
+  // Proctoring ranks by who needs attention; otherwise the roster reads by score.
+  const visibleParticipants = useMemo(() => {
+    const filtered = filterParticipants(participants, { query, score: monitorMode ? "all" : score });
+    return monitorMode ? sortParticipantsByAttention(filtered) : sortParticipantsByScore(filtered);
+  }, [monitorMode, participants, query, score]);
   const selectedParticipant = useMemo(
     () => participants.find((participant) => participant.userId === selectedUserId) ?? null,
     [participants, selectedUserId],
@@ -199,13 +201,16 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
   const listControls = (
     <div className={styles.viewControls}>
       <ContentSwitcher
-        className={styles.switcher}
         size="sm"
         selectedIndex={cardsView ? 1 : 0}
         onChange={({ index }) => updateParams({ view: index === 1 ? "cards" : null })}
       >
-        <Switch name="table" text={t("participantsPanel.viewTable", "表格")} disabled={monitorMode} />
-        <Switch name="cards" text={t("participantsPanel.viewCards", "卡片")} disabled={monitorMode} />
+        <IconSwitch name="table" text={t("participantsPanel.viewTable", "表格")} disabled={monitorMode}>
+          <Table size={16} />
+        </IconSwitch>
+        <IconSwitch name="cards" text={t("participantsPanel.viewCards", "卡片")} disabled={monitorMode}>
+          <Grid size={16} />
+        </IconSwitch>
       </ContentSwitcher>
       <Toggle
         id="participants-monitor-mode"
@@ -240,25 +245,27 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
   const listFilters = (
     <>
       <div className={styles.search}>{searchBox}</div>
-      <Select
-        id="participants-status-filter"
-        className={styles.statusFilter}
-        size="md"
-        hideLabel
-        labelText={t("adminOverview.command.participants.filterStatus", "篩選狀態")}
-        value={status}
-        onChange={(event) => updateParams({ status: event.target.value === "all" ? null : event.target.value })}
-      >
-        {PARTICIPANT_STATUS_FILTERS.map((option) => (
-          <SelectItem key={option.id} value={option.id} text={t(option.labelKey, option.defaultLabel)} />
-        ))}
-      </Select>
+      {monitorMode ? null : (
+        <Select
+          id="participants-score-filter"
+          className={styles.scoreFilter}
+          size="md"
+          hideLabel
+          labelText={t("participantsPanel.scoreFilter.label", "分數篩選")}
+          value={score}
+          onChange={(event) => updateParams({ score: event.target.value === "all" ? null : event.target.value })}
+        >
+          {PARTICIPANT_SCORE_FILTERS.map((option) => (
+            <SelectItem key={option.id} value={option.id} text={t(option.labelKey, option.defaultLabel)} />
+          ))}
+        </Select>
+      )}
     </>
   );
 
   const toolbarActions = (
     <>
-      {!selectedUserId && !isMobile ? listFilters : null}
+      {!isMobile ? listFilters : null}
       {!selectedUserId ? (
         <ParticipantQrScanButton contestId={contestId} participants={participants} onSelect={selectParticipant} />
       ) : null}
@@ -381,8 +388,8 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
       <div className={`${styles.selected} ${liveColumn ? "" : styles.selectedWithoutLive}`}>
         {!isMobile ? (
           <aside className={styles.rail}>
-            <div className={styles.railSearch}>{searchBox}</div>
             <ParticipantRail
+              mode={monitorMode ? "proctor" : "score"}
               participants={visibleParticipants}
               selectedUserId={selectedUserId}
               onSelect={selectParticipant}

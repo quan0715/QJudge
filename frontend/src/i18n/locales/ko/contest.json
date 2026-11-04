@@ -2364,6 +2364,13 @@
     "dashboardTabs": "응시자 상세",
     "tabOverview": "개요",
     "tabAnswers": "답안",
-    "tabEvents": "이벤트"
+    "tabEvents": "이벤트",
+    "scoreFilter": {
+      "label": "점수 필터",
+      "all": "모든 점수",
+      "top": "상위 25%",
+      "bottom": "하위 25%",
+      "zero": "0점"
+    }
   }
 }

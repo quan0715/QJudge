@@ -229,6 +229,33 @@ describe("AdminParticipantsPanel", () => {
     expect(mocks.answerReport).toHaveBeenLastCalledWith(expect.objectContaining({ expandedProblemId: "p2" }));
   });
 
+  it("filters by score band instead of exam status", () => {
+    mocks.participants = [
+      participant("7", { score: 90 }),
+      participant("8", { score: 10 }),
+      participant("9", { score: 50 }),
+      participant("10", { score: 40 }),
+    ];
+    renderPanel("?panel=participants");
+    expect(screen.queryByRole("combobox", { name: "篩選狀態" })).toBeNull();
+    fireEvent.change(screen.getByRole("combobox", { name: "分數篩選" }), { target: { value: "bottom" } });
+    expect(mocks.location.search).toContain("score=bottom");
+    expect(screen.getByRole("row", { name: /Student 8/ })).toBeInTheDocument();
+    expect(screen.queryByRole("row", { name: /Student 7/ })).not.toBeInTheDocument();
+  });
+
+  it("keeps the toolbar search for the side list while a student is open", async () => {
+    mocks.participants = [participant("7", { score: 10 }), participant("8", { score: 80 })];
+    renderPanel("?panel=participants&user=7", finishedContest());
+    await screen.findByRole("heading", { name: "Student 7" });
+    expect(screen.getAllByRole("searchbox")).toHaveLength(1);
+    const list = screen.getAllByRole("button", { name: /Student \d/ }).map((button) => button.textContent);
+    expect(list[0]).toContain("80.00");
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "student-8" } });
+    expect(screen.queryByRole("button", { name: /Student 7/ })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Student 7" })).toBeInTheDocument();
+  });
+
   it("filters the table with the search box", () => {
     renderPanel("?panel=participants&q=student-8");
     expect(screen.queryByRole("row", { name: /Student 7/ })).not.toBeInTheDocument();

@@ -2753,6 +2753,13 @@
     "dashboardTabs": "學生資料分頁",
     "tabOverview": "總覽",
     "tabAnswers": "作答",
-    "tabEvents": "事件"
+    "tabEvents": "事件",
+    "scoreFilter": {
+      "label": "分數篩選",
+      "all": "全部分數",
+      "top": "前 25%",
+      "bottom": "後 25%",
+      "zero": "0 分"
+    }
   }
 }

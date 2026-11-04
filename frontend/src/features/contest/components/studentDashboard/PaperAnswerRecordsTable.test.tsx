@@ -22,3 +22,13 @@ it("does not expose unpublished scores", () => {
   expect(screen.getByText("未公布")).toBeVisible();
   expect(screen.queryByText("6 / 10")).not.toBeInTheDocument();
 });
+
+it("expands a question when any part of its row is clicked", () => {
+  render(<PaperAnswerRecordsTable showGrading rows={[{id:"q1",label:"2",typeLabel:"問答題",score:"6 / 10",status:"已批改",tone:"cool-gray",detail:<p>原作答</p>}]} />);
+  fireEvent.click(screen.getByText("6 / 10"));
+  expect(screen.getByRole("region",{name:"第 2 題作答詳情"})).toBeVisible();
+  fireEvent.click(screen.getByText("第 2 題"));
+  expect(screen.queryByText("原作答")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", {name:"展開第 2 題"}));
+  expect(screen.getByText("原作答")).toBeVisible();
+});

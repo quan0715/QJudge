@@ -2,6 +2,7 @@ import { CheckmarkFilled, InProgress, PauseFilled, WarningFilled } from "@carbon
 
 import type { ContestParticipant } from "@/core/entities/contest.entity";
 import { getParticipantDisplayName, isParticipantLive } from "@/features/contest/domain/participantRoster";
+import { formatScore } from "@/shared/utils/scoreFormat";
 import styles from "./ParticipantRail.module.scss";
 
 type AttentionLevel = "none" | "low" | "medium" | "high";
@@ -19,16 +20,35 @@ const getAttentionLevel = (participant: ContestParticipant): AttentionLevel => {
 };
 
 interface ParticipantRailProps {
+  // proctor: status and live signals for the exam; score: account and score for grading.
+  mode: "proctor" | "score";
   participants: ContestParticipant[];
   selectedUserId: string;
   onSelect: (userId: string) => void;
 }
 
-export default function ParticipantRail({ participants, selectedUserId, onSelect }: ParticipantRailProps) {
+export default function ParticipantRail({ mode, participants, selectedUserId, onSelect }: ParticipantRailProps) {
   return (
     <div className={styles.rosterList}>
       {participants.map((participant) => {
         const selected = participant.userId === selectedUserId;
+        if (mode === "score") {
+          return (
+            <button
+              key={participant.userId}
+              type="button"
+              aria-current={selected ? "true" : undefined}
+              className={`${styles.rosterItem} ${styles.scoreItem} ${selected ? styles.rosterItemSelected : ""}`}
+              onClick={() => onSelect(participant.userId)}
+            >
+              <span className={styles.rosterIdentity}>
+                <span className={styles.rosterName}>{getParticipantDisplayName(participant)}</span>
+                <span className={styles.rosterAccount}>{participant.username}</span>
+              </span>
+              <span className={styles.rosterScore}>{formatScore(participant.score ?? 0)}</span>
+            </button>
+          );
+        }
         const level = getAttentionLevel(participant);
         const StatusIcon =
           level !== "none"

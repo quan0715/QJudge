@@ -1,26 +1,16 @@
 import type { ContestParticipant } from "@/core/entities/contest.entity";
 
-export type ParticipantStatusFilter =
-  | "all"
-  | "needs_attention"
-  | "in_progress"
-  | "submitted"
-  | "locked"
-  | "paused"
-  | "not_started";
+export type ParticipantScoreFilter = "all" | "top" | "bottom" | "zero";
 
-export const PARTICIPANT_STATUS_FILTERS: Array<{
-  id: ParticipantStatusFilter;
+export const PARTICIPANT_SCORE_FILTERS: Array<{
+  id: ParticipantScoreFilter;
   labelKey: string;
   defaultLabel: string;
 }> = [
-  { id: "all", labelKey: "adminOverview.command.filters.allStatuses", defaultLabel: "全部狀態" },
-  { id: "needs_attention", labelKey: "adminOverview.command.filters.needsAttention", defaultLabel: "需要處理" },
-  { id: "in_progress", labelKey: "examStatus.in_progress", defaultLabel: "作答中" },
-  { id: "submitted", labelKey: "examStatus.submitted", defaultLabel: "已交卷" },
-  { id: "locked", labelKey: "examStatus.locked", defaultLabel: "鎖定" },
-  { id: "paused", labelKey: "examStatus.paused", defaultLabel: "暫停" },
-  { id: "not_started", labelKey: "examStatus.not_started", defaultLabel: "未開始" },
+  { id: "all", labelKey: "participantsPanel.scoreFilter.all", defaultLabel: "全部分數" },
+  { id: "top", labelKey: "participantsPanel.scoreFilter.top", defaultLabel: "前 25%" },
+  { id: "bottom", labelKey: "participantsPanel.scoreFilter.bottom", defaultLabel: "後 25%" },
+  { id: "zero", labelKey: "participantsPanel.scoreFilter.zero", defaultLabel: "0 分" },
 ];
 
 const NEEDS_ATTENTION_STATUSES = new Set(["locked", "paused"]);
@@ -52,17 +42,31 @@ export const sortParticipantsByAttention = (participants: ContestParticipant[]) 
       getParticipantDisplayName(left).localeCompare(getParticipantDisplayName(right), "zh-TW"),
   );
 
+export const sortParticipantsByScore = (participants: ContestParticipant[]) =>
+  [...participants].sort(
+    (left, right) =>
+      (right.score ?? 0) - (left.score ?? 0) ||
+      getParticipantDisplayName(left).localeCompare(getParticipantDisplayName(right), "zh-TW"),
+  );
+
+// A quarter of the class, counted from either end; ties at the cut stay in.
+const quarterCutoff = (participants: ContestParticipant[], end: "top" | "bottom") => {
+  const scores = participants.map((participant) => participant.score ?? 0).sort((a, b) => a - b);
+  const size = Math.max(1, Math.ceil(scores.length / 4));
+  return end === "top" ? scores[scores.length - size] : scores[size - 1];
+};
+
 export const filterParticipants = (
   participants: ContestParticipant[],
-  { query, status }: { query: string; status: ParticipantStatusFilter },
+  { query, score }: { query: string; score: ParticipantScoreFilter },
 ) => {
   const normalizedQuery = query.trim().toLowerCase();
+  const cutoff = score === "top" || score === "bottom" ? quarterCutoff(participants, score) : 0;
   return participants.filter((participant) => {
-    if (status === "needs_attention") {
-      if (!needsAttention(participant)) return false;
-    } else if (status !== "all" && participant.examStatus !== status) {
-      return false;
-    }
+    const value = participant.score ?? 0;
+    if (score === "top" && value < cutoff) return false;
+    if (score === "bottom" && value > cutoff) return false;
+    if (score === "zero" && value !== 0) return false;
     if (!normalizedQuery) return true;
     return [
       getParticipantDisplayName(participant),
@@ -72,6 +76,6 @@ export const filterParticipants = (
       participant.submitReason,
     ]
       .filter(Boolean)
-      .some((value) => String(value).toLowerCase().includes(normalizedQuery));
+      .some((field) => String(field).toLowerCase().includes(normalizedQuery));
   });
 };

@@ -84,6 +84,24 @@
   white-space: nowrap;
 }
 
+.rosterAccount {
+  overflow: hidden;
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scoreItem {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.rosterScore {
+  color: var(--cds-text-primary);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
 
 .rosterSignals {
   display: inline-flex;

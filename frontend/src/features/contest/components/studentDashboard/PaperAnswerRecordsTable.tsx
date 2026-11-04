@@ -59,14 +59,16 @@ export default function PaperAnswerRecordsTable({
                   aria-controls={detailId}
                   expandHeader={`${tableId}-expand`}
                   isExpanded={open}
+                  className={styles.row}
                   onExpand={() => toggleRow(row.id)}
                 >
-                  <TableCell>
+                  {/* Every cell toggles too, so the whole row expands on click. */}
+                  <TableCell onClick={() => toggleRow(row.id)}>
                     <span className={styles.question}>第 {row.label} 題</span>
                     <span className={styles.type}>{row.typeLabel}</span>
                   </TableCell>
-                  <TableCell className={styles.score}>{showGrading ? row.score : "未公布"}</TableCell>
-                  <TableCell><Tag type={row.tone} className={styles.status}>{row.status}</Tag></TableCell>
+                  <TableCell className={styles.score} onClick={() => toggleRow(row.id)}>{showGrading ? row.score : "未公布"}</TableCell>
+                  <TableCell onClick={() => toggleRow(row.id)}><Tag type={row.tone} className={styles.status}>{row.status}</Tag></TableCell>
                 </TableExpandRow>
                 {open && (
                   <TableRow id={detailId}>
