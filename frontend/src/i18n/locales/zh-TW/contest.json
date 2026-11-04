@@ -2044,10 +2044,7 @@
     "events": "事件",
     "manualLockModalTitle": "鎖定參賽者",
     "manualLockReasonLabel": "鎖定原因",
-    "newEventCount": "新事件 {{count}}",
-    "noEvents": "目前沒有事件",
-    "hideEvents": "隱藏事件列表",
-    "showEvents": "顯示事件列表"
+    "noEvents": "目前沒有事件"
   },
   "progress": "考試進度",
   "public": "公開",
@@ -2753,6 +2750,9 @@
     "monitorMode": "監考模式",
     "backToList": "返回列表",
     "liveView": "即時畫面",
-    "answerDetails": "作答詳情"
+    "dashboardTabs": "學生資料分頁",
+    "tabOverview": "總覽",
+    "tabAnswers": "作答",
+    "tabEvents": "事件"
   }
 }

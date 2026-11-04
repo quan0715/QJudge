@@ -153,7 +153,20 @@ describe("AdminParticipantsPanel", () => {
     fireEvent.click(screen.getByRole("row", { name: /Student 7/ }));
     await waitFor(() => expect(mocks.location.search).toContain("user=7"));
     expect(await screen.findByRole("heading", { name: "Student 7" })).toBeInTheDocument();
-    expect(screen.getByTestId("answer-report")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "總覽" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("heading", { name: "考試狀態" })).toBeVisible();
+    expect(screen.getByTestId("answer-report")).not.toBeVisible();
+  });
+
+  it("switches the student dashboard between overview, answers and events tabs", async () => {
+    renderPanel("?panel=participants&user=7");
+    await screen.findByRole("heading", { name: "Student 7" });
+    fireEvent.click(screen.getByRole("tab", { name: "作答" }));
+    expect(screen.getByTestId("answer-report")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "考試狀態", hidden: true })).not.toBeVisible();
+    fireEvent.click(screen.getByRole("tab", { name: "事件" }));
+    expect(screen.getByText("目前沒有事件")).toBeVisible();
+    expect(screen.getByTestId("answer-report")).not.toBeVisible();
   });
 
   it("switches to the card view", () => {
@@ -181,10 +194,12 @@ describe("AdminParticipantsPanel", () => {
     expect(screen.getByRole("switch", { name: "監考模式" })).toBeDisabled();
   });
 
-  it("shows the live stage during the exam", async () => {
+  it("shows the live stage in its own column during the exam", async () => {
     renderPanel("?panel=participants&user=7");
     await screen.findByRole("heading", { name: "Student 7" });
-    expect(screen.getByText("即時畫面")).toBeInTheDocument();
+    const live = screen.getByRole("complementary", { name: "即時畫面" });
+    expect(within(live).getByTestId("stage-1")).toBeVisible();
+    expect(screen.queryByRole("button", { name: /事件列表/ })).toBeNull();
   });
 
   it("turns monitor mode off when the exam ends", async () => {
@@ -206,9 +221,11 @@ describe("AdminParticipantsPanel", () => {
     expect(within(header).getByText("locked")).toBeInTheDocument();
   });
 
-  it("passes ?problem to the answer report", async () => {
+  it("opens the answers tab for ?problem and passes it to the answer report", async () => {
     renderPanel("?panel=participants&user=7&problem=p2");
     await screen.findByTestId("answer-report");
+    expect(screen.getByRole("tab", { name: "作答" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId("answer-report")).toBeVisible();
     expect(mocks.answerReport).toHaveBeenLastCalledWith(expect.objectContaining({ expandedProblemId: "p2" }));
   });
 

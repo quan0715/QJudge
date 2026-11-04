@@ -21,6 +21,8 @@ export interface ParticipantEventTimelineProps {
   contestId: string;
   detailOpen: boolean;
   reducedMotion: boolean;
+  /** Hide the 事件 title when a surrounding tab already names it. */
+  hideHeader?: boolean;
   onSelect: (event: EventFeedItem) => void;
   onCloseDetail: () => void;
 }
@@ -34,6 +36,7 @@ const ParticipantEventTimeline = ({
   contestId,
   detailOpen,
   reducedMotion,
+  hideHeader = false,
   onSelect,
   onCloseDetail,
 }: ParticipantEventTimelineProps) => {
@@ -41,10 +44,12 @@ const ParticipantEventTimeline = ({
 
   return (
     <aside className={styles.eventsPane}>
-      <div className={styles.eventsHeader}>
-        <span>{t("proctoringPanel.events", "事件")}</span>
-        {loading ? <span className={styles.eventsLoading}>{t("action.loading", "連線中...")}</span> : null}
-      </div>
+      {hideHeader ? null : (
+        <div className={styles.eventsHeader}>
+          <span>{t("proctoringPanel.events", "事件")}</span>
+          {loading ? <span className={styles.eventsLoading}>{t("action.loading", "連線中...")}</span> : null}
+        </div>
+      )}
       {error ? <div className={styles.eventsError}>{error}</div> : null}
       <div className={styles.eventsList}>
         {events.length === 0 && !loading ? (

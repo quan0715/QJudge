@@ -1,0 +1,100 @@
+@use "@carbon/layout";
+@use "@carbon/type" as type;
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-06;
+}
+
+.statusSection {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+}
+
+.statusTitle {
+  @include type.type-style("heading-compact-01");
+
+  margin: 0;
+  color: var(--cds-text-primary);
+}
+
+.statusList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  border-top: 1px solid var(--cds-border-subtle);
+  border-left: 1px solid var(--cds-border-subtle);
+}
+
+.statusRow {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  align-items: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-04;
+  border-right: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.statusIcon {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cds-icon-secondary);
+}
+
+.statusText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-01;
+
+  > span:first-child {
+    @include type.type-style("label-01");
+
+    color: var(--cds-text-secondary);
+  }
+
+  strong {
+    @include type.type-style("body-compact-02");
+
+    color: var(--cds-text-primary);
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+}
+
+.statusValueRow {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  min-width: 0;
+}
+
+.statusDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--cds-text-disabled);
+}
+
+.statusDotLive {
+  background: var(--cds-support-success);
+}
+
+.statusText strong.statusSuccess {
+  color: var(--cds-support-success);
+}
+
+.statusText strong.statusMuted {
+  color: var(--cds-text-secondary);
+}
+
+.statusText strong.statusDanger {
+  color: var(--cds-support-error);
+}

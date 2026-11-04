@@ -2361,6 +2361,9 @@
     "monitorMode": "監視モード",
     "backToList": "一覧に戻る",
     "liveView": "ライブ映像",
-    "answerDetails": "解答の詳細"
+    "dashboardTabs": "受験者の詳細",
+    "tabOverview": "概要",
+    "tabAnswers": "解答",
+    "tabEvents": "イベント"
   }
 }

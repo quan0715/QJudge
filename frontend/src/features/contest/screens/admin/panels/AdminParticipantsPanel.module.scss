@@ -70,11 +70,11 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 16rem minmax(0, 1fr) minmax(20rem, 23rem);
+  grid-template-columns: 16rem minmax(0, 1fr) minmax(22rem, 28rem);
   overflow: hidden;
 }
 
-.selectedEventsCollapsed {
+.selectedWithoutLive {
   grid-template-columns: 16rem minmax(0, 1fr);
 }
 
@@ -97,15 +97,13 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: layout.$spacing-06;
+  gap: layout.$spacing-05;
   overflow-y: auto;
   padding: layout.$spacing-05;
 }
 
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-03;
+.tabPanel {
+  padding: layout.$spacing-05 0 0;
 }
 
 .sectionTitle {
@@ -113,6 +111,17 @@
 
   margin: 0;
   color: var(--cds-text-primary);
+}
+
+.liveColumn {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  overflow-y: auto;
+  padding: layout.$spacing-05;
+  border-left: 1px solid var(--cds-border-subtle);
 }
 
 .liveStage {
@@ -123,28 +132,31 @@
 }
 
 .timeline {
-  min-height: 0;
+  height: min(40rem, 70vh);
   min-width: 0;
   overflow: hidden;
-  border-left: 1px solid var(--cds-border-subtle);
+  border: 1px solid var(--cds-border-subtle);
 }
 
 @media (max-width: 66rem) {
-  .selected,
-  .selectedEventsCollapsed {
+  .selected {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
   }
 
   .dashboard {
+    flex: none;
     overflow: visible;
   }
 
-  .timeline {
-    min-height: 24rem;
+  // On phones the live view sits above the dashboard.
+  .liveColumn {
+    flex: none;
+    order: -1;
+    overflow: visible;
     border-left: 0;
-    border-top: 1px solid var(--cds-border-subtle);
+    border-bottom: 1px solid var(--cds-border-subtle);
   }
 
   .mobileFilters .search {

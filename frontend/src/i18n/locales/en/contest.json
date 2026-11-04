@@ -2044,10 +2044,7 @@
     "events": "Events",
     "manualLockModalTitle": "Lock participant",
     "manualLockReasonLabel": "Lock reason",
-    "newEventCount": "{{count}} new events",
-    "noEvents": "No events yet",
-    "hideEvents": "Hide events",
-    "showEvents": "Show events"
+    "noEvents": "No events yet"
   },
   "progress": "Progress",
   "public": "Public",
@@ -2753,6 +2750,9 @@
     "monitorMode": "Monitor mode",
     "backToList": "Back to list",
     "liveView": "Live view",
-    "answerDetails": "Answer details"
+    "dashboardTabs": "Student details",
+    "tabOverview": "Overview",
+    "tabAnswers": "Answers",
+    "tabEvents": "Events"
   }
 }

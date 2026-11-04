@@ -8,11 +8,16 @@ import {
   SelectItem,
   SkeletonText,
   Switch,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
   TableToolbarSearch,
   Tag,
   Toggle,
 } from "@carbon/react";
-import { ArrowLeft, Renew, RightPanelClose, RightPanelOpen } from "@carbon/icons-react";
+import { ArrowLeft, Renew } from "@carbon/icons-react";
 import { useReducedMotion } from "motion/react";
 import { useTranslation } from "react-i18next";
 
@@ -21,6 +26,7 @@ import ParticipantAnswerReport from "@/features/contest/components/participants/
 import ParticipantCardGallery from "@/features/contest/components/participants/ParticipantCardGallery";
 import ParticipantQrScanButton from "@/features/contest/components/participants/ParticipantQrScanButton";
 import ParticipantRail from "@/features/contest/components/participants/ParticipantRail";
+import ParticipantStatusCards from "@/features/contest/components/participants/ParticipantStatusCards";
 import ParticipantSummaryHeader from "@/features/contest/components/participants/ParticipantSummaryHeader";
 import ParticipantTable from "@/features/contest/components/participants/ParticipantTable";
 import { useAdminPanelRefresh, useContestAdmin } from "@/features/contest/contexts";
@@ -45,6 +51,7 @@ import styles from "./AdminParticipantsPanel.module.scss";
 const EMPTY_EVENT_FEED: EventFeedItem[] = [];
 const NOW_TICK_MS = 30000;
 const DASHBOARD_REFRESH_MS = 30000;
+const ANSWERS_TAB = 1;
 
 const isStatusFilter = (value: string | null): value is ParticipantStatusFilter =>
   PARTICIPANT_STATUS_FILTERS.some((option) => option.id === value);
@@ -70,8 +77,7 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
   const [gridPage, setGridPage] = useState(0);
   const [discoveryKey, setDiscoveryKey] = useState(0);
   const [reconnectKey, setReconnectKey] = useState(0);
-  const [eventsOpen, setEventsOpen] = useState(true);
-  const [lastSeenEventAt, setLastSeenEventAt] = useState(0);
+  const [dashboardTab, setDashboardTab] = useState(problemId ? ANSWERS_TAB : 0);
   const [selectedIncidentKey, setSelectedIncidentKey] = useState("");
   const [eventDetailOpen, setEventDetailOpen] = useState(false);
 
@@ -103,6 +109,11 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
   useEffect(() => {
     if (monitorRequested && !inExamWindow) updateParams({ monitor: null });
   }, [inExamWindow, monitorRequested, updateParams]);
+
+  // A link to one problem (e.g. from the standings grid) lands on the answers tab.
+  useEffect(() => {
+    if (problemId) setDashboardTab(ANSWERS_TAB);
+  }, [problemId]);
 
   const visibleParticipants = useMemo(
     () => sortParticipantsByAttention(filterParticipants(participants, { query, status })),
@@ -148,20 +159,6 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
   });
 
   const eventFeed = dashboard?.eventFeed ?? EMPTY_EVENT_FEED;
-  const latestEventAt = useMemo(
-    () =>
-      eventFeed.reduce((latest, event) => {
-        const timestamp = Date.parse(event.lastAt);
-        return Number.isFinite(timestamp) ? Math.max(latest, timestamp) : latest;
-      }, 0),
-    [eventFeed],
-  );
-  const newEventCount = eventsOpen
-    ? 0
-    : eventFeed.filter((event) => {
-        const timestamp = Date.parse(event.lastAt);
-        return Number.isFinite(timestamp) && timestamp > lastSeenEventAt;
-      }).length;
   const selectedIncident =
     eventFeed.find((event) => event.incidentKey === selectedIncidentKey) ||
     eventFeed.find((event) => event.hasEvidence) ||
@@ -172,7 +169,6 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
     (userId: string) => {
       setSelectedIncidentKey("");
       setEventDetailOpen(false);
-      setLastSeenEventAt(Date.now());
       updateParams({ user: userId, problem: null });
     },
     [updateParams],
@@ -281,27 +277,6 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
           void refreshPanel();
         }}
       />
-      {selectedUserId && newEventCount > 0 ? (
-        <Tag type="teal" size="sm">
-          {t("proctoringPanel.newEventCount", "新事件 {{count}}", { count: newEventCount })}
-        </Tag>
-      ) : null}
-      {selectedUserId && !isMobile ? (
-        <Button
-          kind={eventsOpen ? "primary" : "ghost"}
-          size="md"
-          hasIconOnly
-          renderIcon={eventsOpen ? RightPanelClose : RightPanelOpen}
-          iconDescription={t(
-            eventsOpen ? "proctoringPanel.hideEvents" : "proctoringPanel.showEvents",
-            eventsOpen ? "隱藏事件列表" : "顯示事件列表",
-          )}
-          onClick={() => {
-            if (!eventsOpen && latestEventAt > 0) setLastSeenEventAt(latestEventAt);
-            setEventsOpen((open) => !open);
-          }}
-        />
-      ) : null}
     </>
   );
 
@@ -316,6 +291,7 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
         contestId={contestId}
         detailOpen={eventDetailOpen}
         reducedMotion={reducedMotion}
+        hideHeader
         onCloseDetail={() => setEventDetailOpen(false)}
         onSelect={(event) => {
           setSelectedIncidentKey(event.incidentKey);
@@ -325,14 +301,12 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
     </div>
   );
 
-  // The live stage keeps one tree position so switching students only retargets it.
   const studentDashboard = (
     <div className={styles.dashboard}>
       {dashboard ? (
         <ParticipantSummaryHeader
           dashboard={dashboard}
           actions={actions}
-          showViolations={!!contest?.cheatDetectionEnabled}
           attendanceEnabled={!!contest?.attendanceCheckEnabled}
           onOpenGrading={openGrading}
         />
@@ -355,36 +329,56 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
           subtitle={dashboardState.error}
         />
       ) : null}
-      {inExamWindow ? (
-        <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>{t("participantsPanel.liveView", "即時畫面")}</h3>
-          <div className={styles.liveStage}>
-            <MinimalLiveStage
-              contestId={contestId}
-              participant={selectedParticipant}
-              discoveryRefreshKey={discoveryKey}
-              reconnectKey={reconnectKey}
-              lockActionBusy={actions.busy}
-              monitoringAvailable={inExamWindow}
-              showIdentity={false}
-            />
-          </div>
-        </section>
-      ) : null}
-      {dashboard ? (
-        <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>{t("participantsPanel.answerDetails", "作答詳情")}</h3>
-          <ParticipantAnswerReport contestId={contestId} dashboard={dashboard} expandedProblemId={problemId} />
-        </section>
-      ) : null}
-      {isMobile ? timeline : null}
+      <Tabs selectedIndex={dashboardTab} onChange={({ selectedIndex }) => setDashboardTab(selectedIndex)}>
+        <TabList aria-label={t("participantsPanel.dashboardTabs", "學生資料分頁")}>
+          <Tab>{t("participantsPanel.tabOverview", "總覽")}</Tab>
+          <Tab>{t("participantsPanel.tabAnswers", "作答")}</Tab>
+          <Tab>{t("participantsPanel.tabEvents", "事件")}</Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel className={styles.tabPanel}>
+            {dashboard ? (
+              <ParticipantStatusCards dashboard={dashboard} showViolations={!!contest?.cheatDetectionEnabled} />
+            ) : (
+              <SkeletonText paragraph lineCount={4} />
+            )}
+          </TabPanel>
+          <TabPanel className={styles.tabPanel}>
+            {dashboard ? (
+              <ParticipantAnswerReport contestId={contestId} dashboard={dashboard} expandedProblemId={problemId} />
+            ) : (
+              <SkeletonText paragraph lineCount={4} />
+            )}
+          </TabPanel>
+          <TabPanel className={styles.tabPanel}>{timeline}</TabPanel>
+        </TabPanels>
+      </Tabs>
     </div>
   );
+
+  // During the exam the right column holds the live view; it keeps one tree
+  // position so switching students only retargets the stream.
+  const liveColumn = inExamWindow ? (
+    <aside className={styles.liveColumn} aria-label={t("participantsPanel.liveView", "即時畫面")}>
+      <h3 className={styles.sectionTitle}>{t("participantsPanel.liveView", "即時畫面")}</h3>
+      <div className={styles.liveStage}>
+        <MinimalLiveStage
+          contestId={contestId}
+          participant={selectedParticipant}
+          discoveryRefreshKey={discoveryKey}
+          reconnectKey={reconnectKey}
+          lockActionBusy={actions.busy}
+          monitoringAvailable={inExamWindow}
+          showIdentity={false}
+        />
+      </div>
+    </aside>
+  ) : null;
 
   let body;
   if (selectedUserId) {
     body = (
-      <div className={`${styles.selected} ${!eventsOpen || isMobile ? styles.selectedEventsCollapsed : ""}`}>
+      <div className={`${styles.selected} ${liveColumn ? "" : styles.selectedWithoutLive}`}>
         {!isMobile ? (
           <aside className={styles.rail}>
             <div className={styles.railSearch}>{searchBox}</div>
@@ -396,7 +390,7 @@ export default function AdminParticipantsPanel({ contestId, contest }: AdminPane
           </aside>
         ) : null}
         {studentDashboard}
-        {!isMobile && eventsOpen ? timeline : null}
+        {liveColumn}
       </div>
     );
   } else if (monitorMode) {

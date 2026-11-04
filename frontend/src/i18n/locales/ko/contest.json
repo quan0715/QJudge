@@ -2361,6 +2361,9 @@
     "monitorMode": "감독 모드",
     "backToList": "목록으로",
     "liveView": "실시간 화면",
-    "answerDetails": "답안 상세"
+    "dashboardTabs": "응시자 상세",
+    "tabOverview": "개요",
+    "tabAnswers": "답안",
+    "tabEvents": "이벤트"
   }
 }
