@@ -13,7 +13,7 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (_k: string, fallback: string) => fallback }),
 }));
 vi.mock("./workbench/edit/WorkbenchEditScreen", () => ({
-  default: ({ header, registerBeforeLeave }: { header: ReactNode; registerBeforeLeave?: (flush: (() => Promise<void>) | null) => void }) => {
+  default: function WorkbenchEditMock({ header, registerBeforeLeave }: { header: ReactNode; registerBeforeLeave?: (flush: (() => Promise<void>) | null) => void }) {
     useEffect(() => {
       registerBeforeLeave?.(mocks.leave);
       return () => registerBeforeLeave?.(null);
