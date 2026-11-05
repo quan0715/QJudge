@@ -18,6 +18,11 @@ on:
           - exam
           - contest
           - coding
+      record_video:
+        description: "Keep successful E2E videos for PR review"
+        required: false
+        default: false
+        type: boolean
       grep:
         description: "Optional grep pattern"
         required: false
@@ -50,6 +55,7 @@ jobs:
       - name: Run Auth E2E
         working-directory: frontend
         env:
+          E2E_RECORD_VIDEO: ${{ inputs.record_video && '1' || '0' }}
           E2E_GREP: ${{ inputs.grep }}
         run: |
           set -euo pipefail
@@ -91,6 +97,7 @@ jobs:
       - name: Run Exam E2E
         working-directory: frontend
         env:
+          E2E_RECORD_VIDEO: ${{ inputs.record_video && '1' || '0' }}
           E2E_GREP: ${{ inputs.grep }}
         run: |
           set -euo pipefail
@@ -101,7 +108,7 @@ jobs:
         if: always() && env.QJ_DC != ''
         run: $QJ_DC logs --no-color > e2e-exam.log
       - name: Upload artifacts
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: e2e-exam-artifacts
@@ -132,6 +139,7 @@ jobs:
       - name: Run Contest E2E
         working-directory: frontend
         env:
+          E2E_RECORD_VIDEO: ${{ inputs.record_video && '1' || '0' }}
           E2E_GREP: ${{ inputs.grep }}
         run: |
           set -euo pipefail
@@ -142,7 +150,7 @@ jobs:
         if: always() && env.QJ_DC != ''
         run: $QJ_DC logs --no-color > e2e-contest.log
       - name: Upload artifacts
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: e2e-contest-artifacts
@@ -158,3 +166,4 @@ jobs:
     uses: ./.github/workflows/e2e-coding.yml
     with:
       grep: ${{ inputs.grep }}
+      record_video: ${{ inputs.record_video || false }}

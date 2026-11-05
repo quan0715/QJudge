@@ -3,12 +3,12 @@ import { codingContestModule } from "./CodingModule";
 import { paperExamContestModule } from "./PaperExamModule";
 
 describe("admin panel visibility in draft", () => {
-  it("limits coding contest panels to overview/problem_editor in draft", () => {
+  it("opens coding editing through the workbench in draft", () => {
     const panels = codingContestModule.admin.getAvailablePanels({
       status: "draft",
     } as any);
 
-    expect(panels).toEqual(["overview", "problem_editor"]);
+    expect(panels).toEqual(["overview", "grading-workbench"]);
   });
 
   it("offers the workbench for paper exam drafts", () => {
@@ -16,7 +16,7 @@ describe("admin panel visibility in draft", () => {
       status: "draft",
     } as any);
 
-    expect(panels).toEqual(["overview", "problem_editor", "grading-workbench"]);
+    expect(panels).toEqual(["overview", "grading-workbench"]);
   });
 
   it("keeps grading-related panels after publish", () => {
@@ -44,11 +44,9 @@ describe("admin panel visibility in draft", () => {
   });
 });
 
-describe("legacy grading panels", () => {
-  it("hidden panels stay routable for paper exams", () => {
-    expect(paperExamContestModule.admin.getHiddenPanels?.({ status: "published" } as any)).toEqual([
-      "grading",
-      "ai-grading",
-    ]);
+describe("retired paper pages", () => {
+  it("exposes one workbench and no duplicate editor or hidden grading pages", () => {
+    expect(paperExamContestModule.admin.getAvailablePanels({ status: "published" } as any)).not.toContain("problem_editor");
+    expect(paperExamContestModule.admin.getHiddenPanels?.({ status: "published" } as any) ?? []).toEqual([]);
   });
 });

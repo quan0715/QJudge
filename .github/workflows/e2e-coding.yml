@@ -3,10 +3,18 @@ name: Coding exam E2E
 on:
   workflow_call:
     inputs:
+      record_video:
+        type: boolean
+        default: false
       grep:
         type: string
         default: ""
   workflow_dispatch:
+    inputs:
+      record_video:
+        description: "Keep successful E2E videos for PR review"
+        type: boolean
+        default: false
 
 jobs:
   coding-submissions:
@@ -32,6 +40,7 @@ jobs:
       - name: Run coding submissions through the browser and judge
         working-directory: frontend
         env:
+          E2E_RECORD_VIDEO: ${{ inputs.record_video && '1' || '0' }}
           E2E_GREP: ${{ inputs.grep }}
         run: |
           cmd=(npm run test:e2e -- tests/e2e/coding-submissions.e2e.spec.ts --no-deps)

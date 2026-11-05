@@ -1,5 +1,12 @@
 @use "@carbon/layout";
 @use "@carbon/type";
+
+.policyActions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: layout.$spacing-02;
+}
 .root {
   display: grid;
   grid-template-columns: 18rem minmax(0, 1fr);
