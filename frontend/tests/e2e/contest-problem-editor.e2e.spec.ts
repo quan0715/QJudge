@@ -36,7 +36,10 @@ test.describe("Contest problem editor E2E", () => {
       await page.getByRole("menuitem", { name: "從題庫匯入…" }).click();
       const dialog = page.getByRole("dialog", { name: "Import from Question Bank" });
       await expect(dialog).toBeVisible();
-      await dialog.getByRole("checkbox").first().check();
+      const selectAll = dialog.getByRole("checkbox", { name: /^Select all visible/ });
+      await expect(selectAll).toBeEnabled();
+      await dialog.getByText(/^Select all visible/).click();
+      await expect(selectAll).toBeChecked();
       await dialog.getByRole("button", { name: "Import Selected", exact: true }).click();
 
       await expect(async () => {
