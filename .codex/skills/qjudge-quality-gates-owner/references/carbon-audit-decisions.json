@@ -62,7 +62,6 @@
         "features/contest/components/admin/EventIncidentCard.tsx",
         "features/contest/components/admin/examEditor/CodingProblemPreviewCard.tsx",
         "features/contest/components/admin/examEditor/CodingProblemTabbedEditor.tsx",
-        "features/contest/components/admin/examEditor/ExamEditorLayout.tsx",
         "features/contest/components/admin/examEditor/ExamGroupEditCard.tsx",
         "features/contest/components/admin/examEditor/ExamQuestionEditCard.tsx",
         "features/contest/components/admin/statistics/AdminQuestionStatsGallery.tsx",

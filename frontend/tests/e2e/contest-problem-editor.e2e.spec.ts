@@ -9,7 +9,6 @@ import { TEST_CONTESTS } from "../helpers/data.helper";
 import {
   clickCodingTemplateTile,
   clickFirstVisibleBankPreview,
-  clickPaperExamTypeTile,
   clickQuestionSourceTab,
   gotoContestProblemEditor,
   gotoPaperContestProblemEditor,
@@ -31,68 +30,68 @@ test.describe("Contest problem editor E2E", () => {
 
     test("add from bank via click", async ({ page }) => {
       await gotoPaperContestProblemEditor(page, TEST_CONTESTS.examMode.name);
-      const before = await page.locator("[data-question-id]").count();
+      const before = await page.locator("[data-row-key]").count();
 
-      await openQuestionSourcePanel(page);
-      await clickQuestionSourceTab(page, "question-source-tab-paper-bank");
-      await clickFirstVisibleBankPreview(page);
+      await page.getByRole("button", { name: "新增題目", exact: true }).click();
+      await page.getByRole("menuitem", { name: "從題庫匯入…" }).click();
+      const dialog = page.getByRole("dialog", { name: "Import from Question Bank" });
+      await expect(dialog).toBeVisible();
+      const selectAll = dialog.getByRole("checkbox", { name: /^Select all visible/ });
+      await expect(selectAll).toBeEnabled();
+      await dialog.getByText(/^Select all visible/).click();
+      await expect(selectAll).toBeChecked();
+      await dialog.getByRole("button", { name: "Import Selected", exact: true }).click();
 
       await expect(async () => {
-        expect(await page.locator("[data-question-id]").count()).toBeGreaterThan(before);
+        expect(await page.locator("[data-row-key]").count()).toBeGreaterThan(before);
       }).toPass({ timeout: 25000 });
     });
 
     test("add question type via click (single choice tile)", async ({ page }) => {
       await gotoPaperContestProblemEditor(page, TEST_CONTESTS.examMode.name);
-      const before = await page.locator("[data-question-id]").count();
+      const before = await page.locator("[data-row-key]").count();
 
-      await openQuestionSourcePanel(page);
-      await clickQuestionSourceTab(page, "question-source-tab-paper-types");
-      await clickPaperExamTypeTile(page, "single_choice");
+      await page.getByRole("button", { name: "新增題目", exact: true }).click();
+      await page.getByRole("menuitem", { name: "單選題", exact: true }).click();
 
       await expect(async () => {
-        expect(await page.locator("[data-question-id]").count()).toBe(before + 1);
+        expect(await page.locator("[data-row-key]").count()).toBe(before + 1);
       }).toPass({ timeout: 20000 });
     });
 
     test("duplicate and delete an exam card", async ({ page }) => {
       await gotoPaperContestProblemEditor(page, TEST_CONTESTS.examMode.name);
-      const before = await page.locator("[data-question-id]").count();
-      const idsBefore = await page.locator("[data-question-id]").evaluateAll((els) =>
-        els.map((el) => el.getAttribute("data-question-id")!).filter(Boolean),
+      const before = await page.locator("[data-row-key]").count();
+      const idsBefore = await page.locator("[data-row-key]").evaluateAll((els) =>
+        els.map((el) => el.getAttribute("data-row-key")!).filter(Boolean),
       );
       const firstId = idsBefore[0];
       expect(firstId).toBeTruthy();
 
-      await page.locator("[data-question-id]").first().click();
-      const dupExam = page.getByTestId(`exam-card-duplicate-${firstId}`);
-      await dupExam.scrollIntoViewIfNeeded();
-      await dupExam.evaluate((el) => (el as HTMLElement).click());
+      await page.getByRole("button", { name: "複製這題", exact: true }).click();
 
       await expect(async () => {
-        expect(await page.locator("[data-question-id]").count()).toBe(before + 1);
+        expect(await page.locator("[data-row-key]").count()).toBe(before + 1);
       }).toPass({ timeout: 20000 });
 
-      const idsAfter = await page.locator("[data-question-id]").evaluateAll((els) =>
-        els.map((el) => el.getAttribute("data-question-id")!).filter(Boolean),
+      const idsAfter = await page.locator("[data-row-key]").evaluateAll((els) =>
+        els.map((el) => el.getAttribute("data-row-key")!).filter(Boolean),
       );
       const dupId = idsAfter.find((id) => !idsBefore.includes(id));
       expect(dupId).toBeTruthy();
-      await page.locator(`[data-question-id="${dupId}"]`).first().click();
-      await page.getByTestId(`exam-card-delete-${dupId}`).click();
+      await page.getByRole("button", { name: "刪除這題", exact: true }).click();
       await submitConfirmModal(page);
 
       await expect(async () => {
-        expect(await page.locator("[data-question-id]").count()).toBe(before);
+        expect(await page.locator("[data-row-key]").count()).toBe(before);
       }).toPass({ timeout: 20000 });
     });
 
     test("open save-to-bank modal from card", async ({ page }) => {
       await gotoPaperContestProblemEditor(page, TEST_CONTESTS.examMode.name);
-      const firstId = await page.locator("[data-question-id]").first().getAttribute("data-question-id");
+      const firstId = await page.locator("[data-row-key]").first().getAttribute("data-row-key");
       expect(firstId).toBeTruthy();
-      await page.locator("[data-question-id]").first().click();
-      await page.getByTestId(`exam-card-save-to-bank-${firstId}`).click();
+      await page.getByRole("button", { name: "收錄到題庫", exact: true }).click();
       await expectSaveToBankModalVisible(page);
       await page.keyboard.press("Escape");
     });

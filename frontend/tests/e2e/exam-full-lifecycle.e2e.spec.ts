@@ -19,20 +19,23 @@ import {
   prepareStudentPaperExamInProgress,
   submitPaperExamFromAnswering,
 } from "../helpers/exam-lifecycle.helper";
-import {
-  clickPaperExamTypeTile,
-  clickQuestionSourceTab,
-  openQuestionSourcePanel,
-} from "../helpers/contest-editor.helper";
 
 test.describe("Exam full lifecycle E2E", () => {
   test.describe.configure({ mode: "serial", timeout: 180_000 });
 
   test("paper exam: classroom → create contest → question → student submits → teacher grades", async ({
     browser,
-  }) => {
-    const teacherPage = await browser.newPage();
-    const studentPage = await browser.newPage();
+  }, testInfo) => {
+    const recording = process.env.E2E_RECORD_VIDEO === "1";
+    const context = (role: string) => browser.newContext({
+      baseURL: testInfo.project.use.baseURL,
+      ...(recording ? { recordVideo: { dir: testInfo.outputPath(`${role}-recording`), size: { width: 1366, height: 768 } } } : {}),
+    });
+    const teacherContext = await context("teacher");
+    const studentContext = await context("student");
+    const teacherPage = await teacherContext.newPage();
+    const studentPage = await studentContext.newPage();
+    try {
 
     await teacherPage.goto("/", { waitUntil: "domcontentloaded" });
     await loginViaAPI(teacherPage, "teacher");
@@ -89,12 +92,11 @@ test.describe("Exam full lifecycle E2E", () => {
       `/classrooms/${classroomId}/contest/${contestId}/admin?panel=problem_editor`,
       { waitUntil: "domcontentloaded" },
     );
-    await expect(teacherPage).toHaveURL(/panel=problem_editor/, { timeout: 60000 });
-    await openQuestionSourcePanel(teacherPage);
-    await clickQuestionSourceTab(teacherPage, "question-source-tab-paper-types");
-    await clickPaperExamTypeTile(teacherPage, "short_answer");
+    await expect(teacherPage).toHaveURL(/panel=grading-workbench/, { timeout: 60000 });
+    await teacherPage.getByRole("button", { name: "新增題目", exact: true }).click();
+    await teacherPage.getByRole("menuitem", { name: "簡答題", exact: true }).click();
     await expect(async () => {
-      expect(await teacherPage.locator("[data-question-id]").count()).toBeGreaterThanOrEqual(1);
+      expect(await teacherPage.locator("[data-row-key]").count()).toBeGreaterThanOrEqual(1);
     }).toPass({ timeout: 90000 });
 
     await ensureContestPublishedWithWindow(teacherPage, contestId!);
@@ -135,16 +137,15 @@ test.describe("Exam full lifecycle E2E", () => {
       .toBe("submitted");
 
     await teacherPage.goto(
-      `/classrooms/${classroomId}/contest/${contestId}/admin?panel=grading&grading_view=byStudent&grading_student=${studentUserId}`,
+      `/classrooms/${classroomId}/contest/${contestId}/admin?panel=grading-workbench&workbench_mode=grade&grading_student=${studentUserId}`,
       { waitUntil: "domcontentloaded" },
     );
-    await expect(teacherPage.getByTestId("grading-score-slider-wrap")).toBeVisible({
+    await expect(teacherPage.getByRole("textbox", { name: "評語（選填）" })).toBeVisible({
       timeout: 60000,
     });
 
     // 簡答題預設配分常為 5；數字鍵超過 maxScore 不會改分，勿用 "8"。
-    await teacherPage.getByTestId("grading-score-slider-wrap").click();
-    await teacherPage.keyboard.press("5");
+    await teacherPage.locator('input[id^="score-"]').fill("5");
     const gradeResp = teacherPage.waitForResponse(
       (res) =>
         res.request().method() === "POST" &&
@@ -152,7 +153,7 @@ test.describe("Exam full lifecycle E2E", () => {
         res.url().includes("/grade/"),
       { timeout: 20000 },
     );
-    await teacherPage.getByTestId("grading-save-score-btn").click();
+    await teacherPage.getByRole("button", { name: "儲存並下一位", exact: true }).click();
     await gradeResp;
 
     const headers = await authHeaders(teacherPage);
@@ -168,7 +169,14 @@ test.describe("Exam full lifecycle E2E", () => {
       }, { timeout: 20000 })
       .toBeGreaterThanOrEqual(1);
 
-    await teacherPage.close();
-    await studentPage.close();
+    } finally {
+      await Promise.all([teacherContext.close(), studentContext.close()]);
+      if (recording) {
+        for (const [role, page] of [["teacher", teacherPage], ["student", studentPage]] as const) {
+          const video = page.video();
+          if (video) await testInfo.attach(`${role}-full-lifecycle`, { path: await video.path(), contentType: "video/webm" });
+        }
+      }
+    }
   });
 });

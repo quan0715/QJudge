@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Loading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 
@@ -22,6 +22,7 @@ import type {
 import { isContestManagerScopeRole } from "@/core/entities/contest.entity";
 import { useTabWithUrlParam } from "@/shared/hooks";
 import { useAdminParticipantsPolling } from "@/features/contest/hooks/useAdminParticipantsPolling";
+import { resolveRetiredAdminQuery } from "@/features/contest/domain/retiredAdminQuery";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import styles from "./AdminDashboardScreen.module.scss";
 
@@ -74,6 +75,7 @@ const ParticipantsPolling = ({ contest }: { contest: ContestDetail | null }) => 
 const AdminDashboardInner = () => {
   const { contestId, classroomId } = useParams<{ contestId: string; classroomId?: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { contest, loading } = useContest();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const hasManagementRole = isContestManagerScopeRole(contest?.currentUserRole);
@@ -105,8 +107,13 @@ const AdminDashboardInner = () => {
     );
   }
 
-  // Panels mount only once the contest is known: the valid `panel` values depend on
-  // its type, and resolving them earlier would drop a deep link such as ?panel=grading.
+  // Resolve retired bookmarks before the panel hook normalizes unknown panel IDs.
+  if (contest && canAccessAdminPanel) {
+    const canonical = resolveRetiredAdminQuery(searchParams, contest.contestType);
+    if (canonical) return <Navigate to={{ search: `?${canonical.toString()}` }} replace />;
+  }
+
+  // Panels mount only once the contest is known: panel validity depends on its type.
   return <AdminDashboardPanels />;
 };
 

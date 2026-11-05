@@ -1,4 +1,3 @@
-import { lazy } from "react";
 import type {
   AdminPanelId,
   ContestTypeModule,
@@ -6,19 +5,12 @@ import type {
 import PaperExamAnsweringScreen from "@/features/contest/screens/paperExam/PaperExamAnsweringScreen";
 import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
 
-const ExamEditorLayout = lazy(
-  () => import("@/features/contest/components/admin/examEditor/ExamEditorLayout"),
-);
-
 const PAPER_EXAM_ADMIN_PANELS: AdminPanelId[] = [
   "overview",
   "participants",
-  "problem_editor",
   "grading-workbench",
 ];
-/** The workbench replaces these; they stay reachable by URL until removed. */
-const LEGACY_GRADING_PANELS: AdminPanelId[] = ["grading", "ai-grading"];
-const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor", "grading-workbench"];
+const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "grading-workbench"];
 
 export const paperExamContestModule: ContestTypeModule = {
   type: "paper_exam",
@@ -38,20 +30,6 @@ export const paperExamContestModule: ContestTypeModule = {
       contest?.status === "draft"
         ? DRAFT_ADMIN_PANELS
         : PAPER_EXAM_ADMIN_PANELS,
-    getHiddenPanels: () => LEGACY_GRADING_PANELS,
-    getPanelRenderers: () => ({
-      problem_editor: (props) => {
-        if (!props.contest) return null;
-        return (
-          <ExamEditorLayout
-            contestId={props.contestId}
-            contest={props.contest}
-            onExport={props.onExport}
-            onPreview={props.onPreview}
-          />
-        );
-      },
-    }),
     getExportTargets: () => ["exam-question", "exam-answer"],
   },
 };

@@ -48,8 +48,8 @@ export default defineConfig({
     /* Screenshot on failure */
     screenshot: "only-on-failure",
 
-    /* Video on failure */
-    video: "retain-on-failure",
+    /* Keep successful runs when a PR requests review recordings. */
+    video: process.env.E2E_RECORD_VIDEO === "1" ? "on" : "retain-on-failure",
 
     /* Maximum time each action can take */
     actionTimeout: 10 * 1000,

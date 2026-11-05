@@ -5,8 +5,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { ContestTypeModule } from "./types";
 import { getAdminPanelRenderer } from "./AdminPanelRendererRegistry";
 
-vi.mock("../screens/settings/ContestExamGradingScreen", () => ({
-  default: () => <div>批改畫面已接管載入狀態</div>,
+vi.mock("../screens/settings/ContestWorkbenchScreen", () => ({
+  default: () => <div>工作台</div>,
 }));
 
 const contestModule = {
@@ -16,8 +16,8 @@ const contestModule = {
 } as unknown as ContestTypeModule;
 
 describe("AdminPanelRendererRegistry", () => {
-  it("renders the grading panel synchronously so it owns the only loading state", () => {
-    const GradingPanel = getAdminPanelRenderer("grading", contestModule);
+  it.each(["grading", "ai-grading", "grading-workbench"] as const)("renders %s with the current workbench", async (panel) => {
+    const GradingPanel = getAdminPanelRenderer(panel, contestModule);
 
     render(
       <Suspense fallback={<div>外層 panel loading</div>}>
@@ -25,7 +25,7 @@ describe("AdminPanelRendererRegistry", () => {
       </Suspense>,
     );
 
-    expect(screen.getByText("批改畫面已接管載入狀態")).toBeInTheDocument();
+    expect(await screen.findByText("工作台")).toBeInTheDocument();
     expect(screen.queryByText("外層 panel loading")).not.toBeInTheDocument();
   });
 });

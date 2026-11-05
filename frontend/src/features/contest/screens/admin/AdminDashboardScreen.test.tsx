@@ -134,6 +134,20 @@ describe("AdminDashboardScreen", () => {
     expect(screen.getByTestId("location-search")).toHaveTextContent("panel=ai-grading");
   });
 
+  it.each([
+    ["problem_editor&grading_question=q", "edit"],
+    ["grading&grading_question=q&grading_student=s", "grade"],
+    ["ai-grading&ai_grading_question=q", "grade"],
+  ])("opens the retired paper page %s in the workbench", async (query, mode) => {
+    mockContestState = { contest: { ...mockContest, contestType: "paper_exam" }, loading: false };
+    render(<MemoryRouter initialEntries={[`/classrooms/classroom-1/contest/contest-1/admin?panel=${query}`]}>
+      <Routes><Route path="/classrooms/:classroomId/contest/:contestId/admin" element={<><AdminDashboardScreen /><LocationProbe /></>} /></Routes>
+    </MemoryRouter>);
+    await waitFor(() => expect(screen.getByTestId("location-search")).toHaveTextContent("panel=grading-workbench"));
+    expect(screen.getByTestId("location-search")).toHaveTextContent(`workbench_mode=${mode}`);
+    expect(mockPanelMount).toHaveBeenCalledTimes(1);
+  });
+
   it("does not remount the active panel when the dashboard rerenders", () => {
     const renderRoute = () => (
       <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/admin?panel=problem_editor"]}>

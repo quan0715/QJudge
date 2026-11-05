@@ -1,5 +1,18 @@
 @use "@carbon/layout";
 
+.workbenchToolbar {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-04;
+  padding-inline: layout.$spacing-05;
+  min-width: 0;
+
+  > :last-child {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 // ─── Right pane overrides (passed via contentClassName) ───
 .editorPane {
   flex: 1 1 auto;

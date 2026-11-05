@@ -12,6 +12,7 @@ import { paperFixture, questionFixture } from "./workbenchEdit.fixture";
 import type { WorkbenchEditRailProps } from "./WorkbenchEditRail";
 import type { ConfirmModalProps } from "@/shared/ui/modal";
 import WorkbenchEditScreen from "./WorkbenchEditScreen";
+import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
 const mocks = vi.hoisted(() => ({
   getExamPaper: vi.fn(),
   createExamPaperBlock: vi.fn(),
@@ -109,7 +110,7 @@ function CurrentLocation() {
 async function setup(query = "") {
   const view = render(
     <MemoryRouter initialEntries={["/?" + query]}>
-      <WorkbenchEditScreen header={<h2>工作台</h2>} />
+      <ThemeProvider><WorkbenchEditScreen header={<h2>工作台</h2>} /></ThemeProvider>
       <CurrentLocation />
     </MemoryRouter>,
   );
@@ -148,6 +149,24 @@ beforeEach(() => {
   mocks.updateExamPaperBlock.mockResolvedValue(paperFixture().blocks[1]);
 });
 describe("edit container", () => {
+  it.each(["q1", "c1"])("keeps unsaved locked edits when cancelling grading navigation from %s", async (id) => {
+    mocks.contest.questionEditLocked = true;
+    await setup(`edit_item=${id}`);
+    fireEvent.change(screen.getByRole("spinbutton", { name: "配分" }), { target: { value: "6" } });
+    fireEvent.click(screen.getByRole("button", { name: "到批改模式看這題" }));
+    const dialog = await screen.findByRole("dialog", { name: "要捨棄未儲存的變更嗎？" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "留在這題" }));
+    await waitFor(() => expect(mocks.confirmOpen).toBe(false));
+    expect(screen.getByTestId("current-location")).not.toHaveTextContent("workbench_mode=grade");
+    expect(screen.getByRole("spinbutton", { name: "配分" })).toHaveValue(6);
+  });
+  it("preserves score policy actions for the selected question", async () => {
+    await setup("edit_item=q1");
+    fireEvent.click(screen.getByRole("button", { name: "分數政策" }));
+    expect(screen.getByRole("menuitem", { name: "設為不計分" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "設為送分" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "設為配分重分配" })).toBeVisible();
+  });
   it("navigates in paper order when block questions are separate API objects", async () => {
     const paper = paperFixture();
     paper.questions = paper.questions.map((question) => ({ ...question }));
@@ -164,7 +183,7 @@ describe("edit container", () => {
     paper.questions = paper.questions.map((question) => ({ ...question }));
     mocks.getExamPaper.mockResolvedValue(paper);
     await setup();
-    fireEvent.click(screen.getByRole("button", { name: "下一題 2(a)." }));
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "下一題 2(a)." })); });
     await waitFor(() => expect(screen.getByRole("textbox", { name: "題目敘述" })).toHaveValue("Prompt c1"));
   });
   it("opens a linked child inside its group and only lists the group in the rail", async () => {
@@ -264,7 +283,7 @@ describe("edit container", () => {
     fireEvent.click(
       within(screen.getByRole("main")).getByRole("button", { name: /刪除這題$/ }),
     );
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await screen.findByRole("dialog", { name: "刪除這題" });
     fireEvent.click(within(dialog).getByRole("button", { name: /刪除$/ }));
     await waitFor(() =>
       expect(mocks.deleteExamPaperBlock).toHaveBeenCalledWith("c1", "c1"),
@@ -371,7 +390,7 @@ describe("edit container", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /刪除這題$/ }));
     expect(mocks.deleteExamPaperBlock).not.toHaveBeenCalled();
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await screen.findByRole("dialog", { name: "刪除這題" });
     fireEvent.click(within(dialog).getByRole("button", { name: /刪除$/ }));
     await waitFor(() =>
       expect(mocks.deleteExamPaperBlock).toHaveBeenCalledWith("c1", "q1"),
