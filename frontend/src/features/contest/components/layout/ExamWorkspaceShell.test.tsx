@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import { ExamWorkspaceShell } from "./ExamWorkspaceShell";
@@ -45,6 +45,18 @@ describe("ExamWorkspaceShell", () => {
     expect(list).toBeVisible();
     fireEvent.click(questions);
     expect(list).toBeVisible();
+  });
+  it("sends the answering overview to the formal overview, which owns ending the exam", () => {
+    render(
+      <MemoryRouter initialEntries={["/classrooms/c1/contest/x1/solve"]}>
+        <Routes>
+          <Route path="/classrooms/:classroomId/contest/:contestId/solve" element={<ExamWorkspaceShell><input aria-label="答案" /></ExamWorkspaceShell>} />
+          <Route path="/classrooms/:classroomId/contest/:contestId" element={<p>正式概覽</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "考試概覽", exact: true }));
+    expect(screen.getByText("正式概覽")).toBeInTheDocument();
   });
   it("only exposes standings when the coding exam permits them", () => {
     state.contest.contestType = "coding";

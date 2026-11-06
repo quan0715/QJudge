@@ -142,6 +142,8 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         ans = ExamAnswer.objects.get(participant=self.participant, question=self.q_essay)
         self.assertEqual(ans.answer['document'], document)
+        # Text consumers (PDF report, participant dashboard, grading tools) read this projection.
+        self.assertEqual(ans.answer['text'], '理由 $x+1$')
 
     def test_document_validation_applies_to_legacy_subjective_questions(self):
         self.client.force_authenticate(user=self.student)

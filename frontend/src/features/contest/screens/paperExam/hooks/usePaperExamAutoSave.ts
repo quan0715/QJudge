@@ -27,8 +27,8 @@ const OBJECTIVE_TYPES: ExamQuestionType[] = [
 
 function unwrapDraftValue(answer: Record<string, unknown>): unknown {
   if ("selected" in answer) return answer.selected;
-  if ("text" in answer) return answer.text;
   if ("document" in answer && isOpenAnswerDocument(answer.document)) return answer.document;
+  if ("text" in answer) return answer.text;
   return answer;
 }
 

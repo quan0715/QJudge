@@ -23,6 +23,9 @@ interface ExamWorkspaceShellProps {
   dashboard?: boolean;
 }
 
+// Matches the phone breakpoint in ExamShell.module.scss, where the list floats over the workspace.
+const isNarrowViewport = () => typeof window !== "undefined" && !!window.matchMedia?.("(max-width: 41.98rem)").matches;
+
 interface RailEntry {
   id: ExamWorkspacePage;
   label: string;
@@ -37,7 +40,7 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
   const { classroomId, contestId } = useParams();
   const headerActions = usePageHeaderActionsSlot();
   const [page, setPage] = useState<ExamWorkspacePage>(dashboard ? "overview" : "questions");
-  const [listCollapsed, setListCollapsed] = useState(false);
+  const [listCollapsed, setListCollapsed] = useState(isNarrowViewport);
 
   const [recordsTarget, setRecordsTarget] = useState<HTMLElement | null>(null);
   const [hasRecords, setHasRecords] = useState(false);
@@ -63,6 +66,11 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
     // The formal overview lives on the contest root route; answering lives under /solve.
     if (dashboard && next === "questions") {
       navigate(`/classrooms/${classroomId}/contest/${contestId}/solve`);
+      return;
+    }
+    // The formal overview holds the end-exam action; only the teacher preview keeps a local one.
+    if (!dashboard && !preview && next === "overview") {
+      navigate(`/classrooms/${classroomId}/contest/${contestId}`);
       return;
     }
     // The questions entry always brings the list back.
@@ -122,7 +130,10 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
       activeIndex={navigator.activeIndex}
       answeredIds={navigator.answeredIds}
       markedIds={navigator.markedIds}
-      onSelect={navigator.onSelect}
+      onSelect={(index) => {
+        navigator.onSelect(index);
+        if (isNarrowViewport()) setListCollapsed(true);
+      }}
       collapsed={listCollapsed}
     />
   );
