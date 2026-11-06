@@ -25,13 +25,12 @@ export default function GradeAppealsPanel({ contestId, refreshKey = 0 }: { conte
         {appeals.map(appeal => {
           const gradingParams = new URLSearchParams({ panel: "grading-workbench", grading_student: String(appeal.student_id), grading_question: appeal.question_id });
           return <AccordionItem key={`${contestId}-${appeal.id}`} title={<span className={styles.ticket}>
-            <Avatar name={appeal.student_username} url={appeal.student_avatar_url ?? undefined} size="sm" />
+            <Avatar identity={appeal.student_id} name={appeal.student_username} url={appeal.student_avatar_url ?? undefined} size="sm" />
             <span className={styles.ticketMain}>
               <span className={styles.byline}>
                 <span className={styles.author}>{appeal.student_username}</span>
                 <Tag size="sm" type="cool-gray">{appeal.question_label ?? appeal.question_order + 1}.</Tag>
                 <GradeAppealStatusTag appeal={appeal} />
-                <span className={styles.meta}>#{appeal.id}</span>
               </span>
               <time className={styles.time} dateTime={appeal.last_message_at}>{t("gradeAppeal.lastMessage", "最後留言")} {formatDate(appeal.last_message_at, { includeSeconds: false })}</time>
             </span>

@@ -149,7 +149,6 @@ export default function GradeAppealDialog({ contestId, appealId, answerId, quest
           {ticket && <GradeAppealStatusTag appeal={ticket} />}
           {ticket && <span className={styles.meta}>{ticket.student_username} · {t("gradeAppeal.currentScore", "目前成績")} {formatScore(ticket.current_score)} / {formatScore(ticket.current_max_score)}</span>}
           <span className={styles.toolbarActions}>
-            {currentId && <Button kind="ghost" size="sm" disabled={loading || saving} onClick={() => void refreshTicket(currentId)}>{t("gradeAppeal.refreshMessages", "重新整理留言")}</Button>}
             {managing && gradingHref && <Button kind="tertiary" size="sm" href={gradingHref}>{t("gradeAppeal.openGrading", "前往批改")}</Button>}
           </span>
         </div>
@@ -176,7 +175,7 @@ export default function GradeAppealDialog({ contestId, appealId, answerId, quest
               {ticket?.messages.map(message => {
                 const fromStudent = message.author_id === ticket.student_id;
                 return <li className={styles.post} key={message.id}>
-                  <div className={styles.rail}><Avatar name={message.author_username} url={message.author_avatar_url ?? undefined} size="sm" /></div>
+                  <div className={styles.rail}><Avatar identity={message.author_id ?? undefined} name={message.author_username} url={message.author_avatar_url ?? undefined} size="sm" /></div>
                   <div className={styles.body}>
                     <div className={styles.byline}>
                       <span className={styles.author}>{message.author_username}</span>
@@ -193,7 +192,7 @@ export default function GradeAppealDialog({ contestId, appealId, answerId, quest
                 <p className={`${styles.body} ${styles.meta}`} role="status">{managing ? t("gradeAppeal.closedNoteStaff", "此申訴已結案，可查閱對話。") : t("gradeAppeal.closedNoteStudent", "此申訴已結案。如仍有疑問，請填寫理由重新開啟，原對話將保留。")}</p>
               </li>}
               {(!closed || reopening) && <li className={styles.post}>
-                <div className={styles.rail}><Avatar name={user?.username} url={user?.profile?.avatar_url ?? undefined} size="sm" /></div>
+                <div className={styles.rail}><Avatar identity={user?.id} name={user?.username} url={user?.profile?.avatar_url ?? undefined} size="sm" /></div>
                 <div className={styles.composer}>
                   <TextArea id={messageInputId} labelText={reopening ? t("gradeAppeal.reopenReason", "重開理由") : managing ? t("gradeAppeal.staffReply", "複核回覆") : t("gradeAppeal.studentExplain", "說明原答案（不得補作答）")} helperText={reopening ? t("gradeAppeal.reopenHelp", "限 5000 字；請說明仍有疑問的地方。重開後將通知教師／助教，請勿補作答。") : managing ? t("gradeAppeal.staffHelp", "限 5000 字；請指出原答案的複核依據及處理結果。") : t("gradeAppeal.studentHelp", "限 5000 字；可解釋原答案，不得新增程式、推導或解法來補足作答。")} value={draft} onChange={e => setDraft(e.target.value)} invalid={tooLong} invalidText={t("gradeAppeal.tooLong", "請將訊息縮短至 5000 字內。")} rows={3} disabled={saving} />
                   <div className={styles.composerActions}>

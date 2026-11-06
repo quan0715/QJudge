@@ -61,7 +61,7 @@ async function setup(page: Page) {
     holdWrites: () => { writeGate = gate(); return writeGate.release; },
   };
 }
-const row = (page: Page, id = 1) => page.getByRole("button", {name: new RegExp(`Student ${id}.*#${id}`)});
+const row = (page: Page, id = 1) => page.getByRole("button", {name: new RegExp(`^Student ${id}[^0-9]`)});
 
 test("row expansion, keyboard collapse, drafts, avatars, replies, closure and reset", async ({page}, testInfo) => {
   const api = await setup(page);
@@ -71,12 +71,15 @@ test("row expansion, keyboard collapse, drafts, avatars, replies, closure and re
   await expect(row(page)).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByRole("button", {name:/查看申訴|重新整理申訴/})).toHaveCount(0);
   await expect(row(page).getByRole("img")).toHaveJSProperty("naturalWidth", 28);
-  await expect(row(page, 2).getByRole("img")).toHaveCount(0);
+  await expect(row(page, 2).locator("img")).toHaveCount(0);
+  await expect(row(page, 2).locator('svg[role="img"]')).toHaveCount(1);
+  await expect(row(page)).not.toContainText("#1");
   await expect(row(page, 3)).toContainText("已結案");
   await row(page).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByText("Please review 1", {exact:true})).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("button", {name:"重新整理留言"})).toHaveCount(0);
   const firstInput = page.getByRole("textbox", {name:"複核回覆"});
   await firstInput.fill("Unsent draft");
   await row(page).focus();
@@ -143,7 +146,7 @@ for (const action of ["reply", "close"] as const) {
     releaseReads();
     // Wait for both Reset requests to settle before checking the final row and conversation.
     await expect(page.getByRole("region", {name:"成績申訴管理"})).toHaveAttribute("aria-busy", "false");
-    await expect(page.getByRole("button", {name:"重新整理留言"})).toBeEnabled();
+    await expect(page.getByRole("region", {name:"申訴對話"})).toBeVisible();
     await expect(row(page)).toContainText(action === "reply" ? "等待考生回覆" : "已結案");
     if (action === "reply") {
       await expect(page.getByText("Reviewed original answer", {exact:true})).toBeVisible();

@@ -152,6 +152,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
         onClick={handleToggle}
       >
         <Avatar
+          identity={user.id}
           name={displayName?.trim() || user.username || user.email || "User"}
           url={avatarUrl || undefined}
           size="sm"
@@ -173,6 +174,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
           {/* User Info */}
           <div className="user-menu-header">
             <Avatar
+              identity={user.id}
               name={displayName?.trim() || user.username || user.email || "User"}
               url={avatarUrl || undefined}
               size="sm"

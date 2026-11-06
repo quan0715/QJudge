@@ -34,10 +34,10 @@ it("preserves failed replies and only closes on the separate staff action", asyn
 
 it("hides cached private content after refresh is denied", async () => {
   vi.mocked(api.getGradeAppeal).mockResolvedValueOnce(ticket).mockRejectedValueOnce(new Error("成績尚未公布"));
-  render(<GradeAppealDialog contestId="c1" appealId={7} managing={false} onClose={vi.fn()} onChanged={vi.fn()} />);
+  const view = render(<GradeAppealDialog contestId="c1" appealId={7} managing={false} onClose={vi.fn()} onChanged={vi.fn()} />);
   await screen.findByText("Please review");
   expect(screen.queryByRole("button",{name:"結案"})).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button",{name:"重新整理留言"}));
+  view.rerender(<GradeAppealDialog contestId="c1" appealId={7} refreshKey={1} managing={false} onClose={vi.fn()} onChanged={vi.fn()} />);
   await screen.findByText("成績尚未公布");
   expect(screen.queryByText("Please review")).not.toBeInTheDocument();
 });

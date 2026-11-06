@@ -23,7 +23,7 @@ const ticket: GradeAppealDetail = {
   messages: [{ id: 1, author_id: 12, author_username: "student", author_avatar_url: "https://example.com/student.png", content: "Please review", created_at: "2026-10-03T00:00:00Z" }],
 };
 const renderPanel = (refreshKey = 0) => <MemoryRouter initialEntries={["/classrooms/room/contest/exam/admin"]}><GradeAppealsPanel contestId="exam" refreshKey={refreshKey} /></MemoryRouter>;
-const row = () => screen.getByRole("button", {name: /student.*1\(b\).*#9/});
+const row = () => screen.getByRole("button", {name: /^student\s*student\s*1\(b\)/});
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -41,12 +41,14 @@ it("opens the conversation in place from the row and keeps the grading destinati
   render(renderPanel());
   await screen.findByText("1(b).");
   expect(row()).toHaveAttribute("aria-expanded", "false");
+  expect(row()).not.toHaveTextContent("#9");
   expect(screen.queryByRole("button", {name: /查看申訴|重新整理申訴/})).not.toBeInTheDocument();
   expect(api.getGradeAppeal).not.toHaveBeenCalled();
   fireEvent.click(row());
   await screen.findByText("Please review");
   expect(row()).toHaveAttribute("aria-expanded", "true");
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", {name:"重新整理留言"})).not.toBeInTheDocument();
   const url = new URL(screen.getByRole("link", {name: "前往批改"}).getAttribute("href")!, "http://localhost");
   expect(url.pathname).toBe("/classrooms/room/contest/exam/admin");
   expect(Object.fromEntries(url.searchParams)).toEqual({panel: "grading-workbench", grading_student: "12", grading_question: "second-question"});
@@ -75,7 +77,7 @@ it("updates the row and conversation to waiting for the student after a reply, t
   }] };
   vi.mocked(api.sendGradeAppealMessage).mockResolvedValue(replied);
   vi.mocked(api.closeGradeAppeal).mockResolvedValue({...replied, status:"closed", waiting_for:null, closed_by:1});
-  render(renderPanel());
+  const view = render(renderPanel());
   await screen.findByText("1(b).");
   expect(within(row()).getByText("等待教師回覆")).toBeInTheDocument();
   fireEvent.click(row());
@@ -89,7 +91,8 @@ it("updates the row and conversation to waiting for the student after a reply, t
   expect(api.getGradeAppeals).toHaveBeenCalledOnce();
   expect(api.sendGradeAppealMessage).toHaveBeenCalledOnce();
   vi.mocked(api.getGradeAppeal).mockResolvedValue({...replied, waiting_for:"staff"});
-  fireEvent.click(screen.getByRole("button", {name:"重新整理留言"}));
+  vi.mocked(api.getGradeAppeals).mockResolvedValue([{...replied, waiting_for:"staff"}]);
+  view.rerender(renderPanel(1));
   await waitFor(() => expect(within(row()).getByText("等待教師回覆")).toBeInTheDocument());
   fireEvent.click(screen.getByRole("button", {name:"結案"}));
   await screen.findByText("此申訴已結案，可查閱對話。");
@@ -102,8 +105,7 @@ it("uses actual avatars in the row, messages and composer, falling back only whe
   render(renderPanel());
   await waitFor(() => expect(screen.getByRole("img", {name:"student"})).toHaveAttribute("src", ticket.student_avatar_url));
   const noAvatar = screen.getByRole("button", {name:/No avatar/});
-  expect(within(noAvatar).queryByRole("img")).not.toBeInTheDocument();
-  expect(within(noAvatar).getByText("N", {exact:true})).toBeInTheDocument();
+  expect(within(noAvatar).getByRole("img", {name:"No avatar"}).tagName).toBe("svg");
   fireEvent.click(row());
   await screen.findByText("Please review");
   expect(screen.getAllByRole("img", {name:"student"})).toHaveLength(2);
