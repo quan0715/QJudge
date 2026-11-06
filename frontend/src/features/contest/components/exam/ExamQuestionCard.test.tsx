@@ -72,11 +72,10 @@ describe("ExamQuestionCard", () => {
     expect(screen.getByText("7.")).toBeInTheDocument();
     expect(screen.getByText("7(b).")).toBeInTheDocument();
     expect(screen.getByText("Shared instructions")).toBeInTheDocument();
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "My answer" } });
-    expect(onAnswerChange).toHaveBeenCalledWith("q1", "My answer", "essay", "plain_text");
+    expect(screen.getByTestId("exam-answer-input-q1")).toBeInTheDocument();
   });
 
-  it("renders markdown answers with preview but without math toolbar", () => {
+  it("uses the same document editor for legacy markdown answers", () => {
     render(
       <ExamQuestionCard
         question={createQuestion("markdown")}
@@ -85,8 +84,9 @@ describe("ExamQuestionCard", () => {
       />,
     );
 
-    expect(screen.getByText("預覽")).toBeInTheDocument();
-    expect(screen.getAllByTestId("markdown-preview").at(-1)).toHaveTextContent("**answer**");
+    expect(screen.queryByText("預覽")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toHaveTextContent("**answer**");
+    expect(screen.getByRole("button", { name: "插入內容" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "分式" })).not.toBeInTheDocument();
   });
 
@@ -120,14 +120,39 @@ describe("ExamQuestionCard", () => {
     );
 
     expect(screen.getByTestId("exam-answer-input-q1")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /插入公式/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /插入內容/ })).toBeInTheDocument();
     expect(screen.queryByText("預覽")).not.toBeInTheDocument();
     expect(container.querySelector("textarea")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /插入公式/ }));
+    fireEvent.click(screen.getByRole("button", { name: /插入內容/ }));
 
-    expect(screen.getByRole("dialog", { name: "插入公式" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "分式" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /獨立公式/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /行內公式/ })).toBeInTheDocument();
     expect(screen.queryByText(/LaTeX/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("workspace answering", () => {
+  it("separates the prompt from the live answer and keeps navigation beside the answer", () => {
+    const changed = vi.fn();
+    render(<ExamQuestionCard layout="workspace" question={createQuestion("plain_text")} index={0} answer="draft" onAnswerChange={changed} footer={<button>Next question</button>} />);
+    const answer = screen.getByRole("region", { name: "answering.question.answerLabel" });
+    expect(answer).not.toHaveTextContent("Explain");
+    expect(answer).not.toContainElement(screen.getByRole("button", { name: "Next question" }));
+    expect(screen.getByRole("button", { name: "Next question" })).toBeVisible();
+    expect(screen.getByRole("textbox")).toHaveTextContent("draft");
+    expect(screen.getByRole("button", { name: "插入內容" })).toBeInTheDocument();
+  });
+  it("retains numeric choice values used by the existing save API", () => {
+    const changed = vi.fn();
+    render(<ExamQuestionCard layout="workspace" question={createQuestion("plain_text", { questionType: "true_false" })} index={0} onAnswerChange={changed} />);
+    fireEvent.click(screen.getByRole("radio", { name: "answering.question.falseOption" }).parentElement!);
+    expect(changed).toHaveBeenCalledWith("q1", 1, "true_false", "plain_text");
+  });
+  it("changes questions without reusing the previous textarea value", () => {
+    const { rerender } = render(<ExamQuestionCard layout="workspace" question={createQuestion("plain_text")} index={0} answer="first answer" />);
+    rerender(<ExamQuestionCard layout="workspace" question={createQuestion("plain_text", { id: "q2" })} index={1} answer="second answer" />);
+    expect(screen.getByRole("textbox")).toHaveTextContent("second answer");
+    expect(screen.getByRole("textbox")).not.toHaveTextContent("first answer");
   });
 });

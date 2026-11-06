@@ -12,19 +12,17 @@ interface UseContestTimersParams {
 
 const DEFAULT_TIME = "00:00:00";
 
+const pad = (value: number) => value.toString().padStart(2, "0");
+
+// Long windows read as "29d 06:44:21" instead of "702:44:21".
 const formatTime = (diffMs: number) => {
   const totalSeconds = Math.max(0, Math.floor(diffMs / 1000));
-  const hours = Math.floor(totalSeconds / 3600)
-    .toString()
-    .padStart(2, "0");
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-    .toString()
-    .padStart(2, "0");
-  const seconds = Math.floor(totalSeconds % 60)
-    .toString()
-    .padStart(2, "0");
-
-  return `${hours}:${minutes}:${seconds}`;
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const clock = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  return days > 0 ? `${days}d ${clock}` : clock;
 };
 
 export const useContestTimers = ({

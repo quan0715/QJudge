@@ -29,10 +29,10 @@ describe("buildExamAnswerPayload", () => {
     });
   });
 
-  it("returns document payload for open document answers", () => {
+  it("returns document payload regardless of legacy question format", () => {
     const document = createEmptyOpenAnswerDocument();
 
-    expect(buildExamAnswerPayload(document, "essay", "open_document")).toEqual({
+    expect(buildExamAnswerPayload(document, "essay", "plain_text")).toEqual({
       document,
     });
   });

@@ -1,0 +1,25 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 var(--exam-panel-height, 2rem);
+  height: var(--exam-panel-height, 2rem);
+  min-height: var(--exam-panel-height, 2rem);
+  min-width: 0;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--exam-panel-border, var(--cds-border-subtle-01));
+  background: var(--exam-panel-background, var(--cds-layer-01));
+  color: var(--cds-text-secondary);
+}
+.content { display: flex; align-items: center; min-width: 0; }
+.title {
+  @include type.type-style("body-compact-01");
+  padding-inline: layout.$spacing-05;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.actions { display: flex; align-items: stretch; flex-shrink: 0; align-self: stretch; }

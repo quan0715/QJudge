@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useEffect } from "react";
 import { InlineNotification } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import { useProblemSolver } from "@/features/problems/hooks/useProblemSolver";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -34,6 +35,8 @@ interface ProblemFullPageSolveProps {
   submissionDisabled?: boolean;
   /** Contest-scoped submissions tab content */
   renderSubmissions: () => React.ReactNode;
+  /** Footer under the statement, e.g. previous / next question. */
+  statementFooter?: React.ReactNode;
 }
 
 /**
@@ -60,7 +63,9 @@ const ProblemSolveSession: React.FC<ProblemFullPageSolveProps & { userId: string
   submissionDisabled = false,
   renderSubmissions,
   userId,
+  statementFooter,
 }) => {
+  const { t } = useTranslation("contest");
   // Use the problem solver hook
   const solver = useProblemSolver({
     problem,
@@ -99,14 +104,6 @@ const ProblemSolveSession: React.FC<ProblemFullPageSolveProps & { userId: string
   const statementCollapsed = statementNavigation?.collapsed ?? internalCollapsed;
   const setStatementCollapsed = statementNavigation?.setCollapsed ?? setInternalCollapsed;
 
-  // Collapse all panels (one-click to maximize editor space)
-  const handleCollapseAll = useCallback(() => {
-    setStatementCollapsed(true);
-    // Close result panel if open
-    if (solver.resultOpen) {
-      solver.toggleResult();
-    }
-  }, [solver, setStatementCollapsed]);
 
   // Handle editor settings change
   const handleEditorSettingsChange = useCallback(
@@ -118,10 +115,10 @@ const ProblemSolveSession: React.FC<ProblemFullPageSolveProps & { userId: string
 
   // Render statement content based on activeTabIndex
   const renderStatementContent = useCallback(
-    (activeTabIndex: number) => (
+    () => (
       <StatementPanel
         problem={problem}
-        activeTabIndex={activeTabIndex}
+        activeTabIndex={0}
         disableCopy={disableCopy}
         renderSubmissions={renderSubmissions}
       />
@@ -144,9 +141,11 @@ const ProblemSolveSession: React.FC<ProblemFullPageSolveProps & { userId: string
       )}
 
       <SolverLayout
-        externalStatementNavigation={!!statementNavigation}
-        activeTabIndex={statementNavigation?.activeTabIndex}
-        onActiveTabChange={statementNavigation?.selectTab}
+        allowStatementCollapse={false}
+        externalStatementNavigation={false}
+        statementTitle={t("answering.workspace.statement", "題目內容")}
+        statementFooter={statementFooter}
+        activeTabIndex={0}
         menuPanel={menuPanel}
         renderStatementContent={renderStatementContent}
         editorPanel={
@@ -159,7 +158,6 @@ const ProblemSolveSession: React.FC<ProblemFullPageSolveProps & { userId: string
             fontSize={editorFontSize}
             tabSize={editorTabSize}
             onEditorSettingsChange={handleEditorSettingsChange}
-            onCollapseAll={handleCollapseAll}
           />
         }
         resultPanel={

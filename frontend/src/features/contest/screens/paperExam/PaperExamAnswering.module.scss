@@ -4,7 +4,7 @@
 
 .container       { @include exam.exam-container; }
 
-.toolbar         { @include exam.exam-toolbar(0); }
+.toolbar { @include exam.exam-toolbar(0); padding-inline: layout.$spacing-05; border-bottom: 1px solid var(--cds-border-subtle-01); }
 .toolbarHidden   { @include exam.exam-toolbar-hidden; }
 .toolbarLeft     { @include exam.exam-toolbar-left; }
 .title           { @include exam.exam-title; }
@@ -56,7 +56,7 @@
 .navWrapper {
   @include exam.exam-nav-wrapper;
 
-  width: clamp(17rem, 22vw, 22rem);
+  width: 16.5rem;
 }
 .navWrapperCollapsed { width: 3rem; }
 .navWrapperHidden { @include exam.exam-nav-wrapper-hidden; }
@@ -96,4 +96,14 @@
   .allContent {
     border-left: 0;
   }
+}
+
+// Runtime content already has a bounded viewport below the application header.
+.container { height: 100%; min-height: 0; }
+.singleContent { min-width: 0; min-height: 0; }
+.navButtons {
+  border-top: 1px solid var(--cds-border-subtle-01);
+  padding: 0;
+  gap: 0;
+  background: var(--cds-background);
 }

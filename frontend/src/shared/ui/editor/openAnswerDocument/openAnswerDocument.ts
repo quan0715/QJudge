@@ -49,6 +49,7 @@ export function isOpenAnswerDocument(value: unknown): value is OpenAnswerDocumen
 export function normalizeOpenAnswerDocument(
   value: unknown,
 ): OpenAnswerDocument {
+  if (typeof value === "string") return { version: 1, nodes: value.split("\n").map(text => ({ type: "paragraph", children: text ? [{ type: "text", text }] : [] })) };
   if (!isOpenAnswerDocument(value)) return createEmptyOpenAnswerDocument();
   if (value.nodes.length === 0) return createEmptyOpenAnswerDocument();
   return value;

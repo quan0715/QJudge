@@ -193,11 +193,6 @@ vi.mock("@/infrastructure/api/repositories/exam.repository", () => ({
   })),
 }));
 
-vi.mock("@/features/contest/components/ContestClarifications", () => ({
-  default: ({ contestId, mode }: { contestId: string; mode: string }) => (
-    <section aria-label="問答內容" data-mode={mode}>{contestId}</section>
-  ),
-}));
 
 const createContest = (
   overrides: Partial<ContestDetail> = {},
@@ -284,13 +279,6 @@ describe("StudentContestDashboard", () => {
     vi.clearAllMocks();
   });
 
-  it("offers standings only for coding participants when scoreboard visibility is enabled", () => {
-    const view = renderDashboard(createContest({ scoreboardVisibleDuringContest: true }));
-    expect(screen.getByRole("tab", { name: "排行榜" })).toBeInTheDocument();
-    view.unmount();
-    renderDashboard(createContest({ scoreboardVisibleDuringContest: false }));
-    expect(screen.queryByRole("tab", { name: "排行榜" })).not.toBeInTheDocument();
-  });
 
   it("lets a classroom student start without a join step", () => {
     // No attempt record yet: the backend reports not_started for candidates,
@@ -305,7 +293,7 @@ describe("StudentContestDashboard", () => {
       }),
     );
 
-    expect(screen.getByRole("main", { name: "學生競賽首頁" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "學生競賽首頁" })).toBeInTheDocument();
     expect(screen.getByText("總時長")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /開始作答/ }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: /加入競賽/ })).not.toBeInTheDocument();
@@ -326,31 +314,11 @@ describe("StudentContestDashboard", () => {
     expect(screen.queryByRole("button", { name: /加入競賽/ })).not.toBeInTheDocument();
   });
 
-  it("opens announcements and questions from the student dashboard", async () => {
-    renderDashboard(createContest());
-    await userEvent.click(screen.getByRole("tab", { name: "競賽資訊" }));
-    expect(screen.getByRole("region", { name: "問答內容" })).toHaveTextContent("contest-1");
-    expect(screen.getByRole("tab", { name: "競賽資訊" })).toHaveAttribute("aria-selected", "true");
-  });
-
-  it("shows the exam-taking Q&A even to a staff participant", async () => {
-    const contest = createContest();
-    renderDashboard({
-      ...contest,
-      permissions: { ...contest.permissions!, canManageClarifications: true },
-    });
-    await userEvent.click(screen.getByRole("tab", { name: "競賽資訊" }));
-    expect(screen.getByRole("region", { name: "問答內容" })).toHaveAttribute("data-mode", "participate");
-  });
-
-  it("opens the questions panel from a direct link", () => {
-    render(
-      <MemoryRouter initialEntries={["/?tab=clarifications"]}>
-        <StudentContestDashboard contest={createContest()} />
-      </MemoryRouter>,
-    );
-    expect(screen.getByRole("region", { name: "問答內容" })).toHaveTextContent("contest-1");
-    expect(screen.getByRole("tab", { name: "競賽資訊" })).toHaveAttribute("aria-selected", "true");
+  it("shows the exam rules on the overview without extra tabs", () => {
+    renderDashboard(createContest({ rules: "請勿使用手機" }));
+    expect(screen.getByRole("heading", { name: "應試規則" })).toBeInTheDocument();
+    expect(screen.getByText("請勿使用手機")).toBeInTheDocument();
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
   });
 
   it("does not show answer records before the participant starts", () => {
@@ -516,7 +484,6 @@ describe("StudentContestDashboard", () => {
     expect(screen.getByText("已作答")).toBeInTheDocument();
     expect(screen.getByText("未作答")).toBeInTheDocument();
     expect(screen.queryByText("draft answer")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: "作答紀錄" }));
     fireEvent.click(screen.getAllByRole("button", { name: /展開第/ })[0]);
     expect(screen.getByText("draft answer")).toBeInTheDocument();
     expect(screen.getByText("第 1(a) 題")).toBeInTheDocument();
@@ -742,7 +709,6 @@ describe("StudentContestDashboard", () => {
 
     expect(await screen.findAllByText("8.00 / 12.00")).not.toHaveLength(0);
     expect(screen.queryByText("Good")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: "作答紀錄" }));
     fireEvent.click(screen.getAllByRole("button", { name: /展開第/ })[0]);
     expect(screen.queryByText("批改者：teacher")).not.toBeInTheDocument();
     expect(screen.queryByText(/5\.00 \/ 10\.00/)).not.toBeInTheDocument();

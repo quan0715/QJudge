@@ -168,3 +168,40 @@
   color: var(--cds-text-secondary);
   font-size: 0.875rem;
 }
+
+/* Inside the exam workspace the statement follows the shell's quieter reading style. */
+:global([data-exam-shell]) {
+  .problemPreview { font-family: var(--ex-font); color: var(--ex-text); }
+  .sections { gap: 28px; }
+  .sectionTitle {
+    margin-bottom: 10px;
+    padding-bottom: 0;
+    border-bottom: 0;
+    color: var(--ex-text);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .sampleCases { gap: 12px; }
+  .sampleCase {
+    border: 1px solid var(--ex-border);
+    border-radius: var(--ex-radius);
+    background: var(--ex-surface);
+  }
+  .sampleCaseHeader {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--ex-border);
+    background: var(--ex-surface-muted);
+  }
+  .sampleCaseTitle { color: var(--ex-text-secondary); font-size: 12.5px; font-weight: 500; }
+  .sampleCaseColumn { padding: 12px 14px; }
+  .sampleCaseColumn:first-child { border-right-color: var(--ex-border); }
+  .sampleCaseLabel { color: var(--ex-text-muted); font-size: 11.5px; font-weight: 500; text-transform: none; }
+  .sampleCaseCode {
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 7px;
+    background: var(--ex-surface-muted);
+    color: var(--ex-text);
+    font-size: 13px;
+  }
+}

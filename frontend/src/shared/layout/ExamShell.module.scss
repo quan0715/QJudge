@@ -1,0 +1,197 @@
+/*
+ * Exam workspace chrome has its own quiet visual language.
+ * Every exam surface reads these tokens; Carbon tokens are remapped inside
+ * the shell so Carbon components inherit the same palette in light and dark.
+ */
+@mixin light-tokens {
+  --ex-canvas: #f2f3f5;
+  --ex-surface: #ffffff;
+  --ex-surface-muted: #f8f9fa;
+  --ex-surface-hover: #f0f1f3;
+  --ex-surface-selected: #e8eaed;
+  --ex-border: #e4e6ea;
+  --ex-border-strong: #cfd3d9;
+  --ex-text: #1d2127;
+  --ex-text-secondary: #555c66;
+  --ex-text-muted: #8a9099;
+  --ex-button: #1d2127;
+  --ex-button-hover: #3a4049;
+  --ex-on-button: #ffffff;
+  --ex-success: #2c7a57;
+  --ex-success-soft: #e6f3ec;
+  --ex-warning: #a5670d;
+  --ex-warning-soft: #fbf0dc;
+  --ex-danger: #c03a28;
+  --ex-danger-soft: #fbe9e6;
+  --ex-focus: #3b6fd6;
+  --ex-shadow: 0 1px 2px rgb(16 24 40 / 4%);
+  --ex-tooltip: #2a2e35;
+  --ex-on-tooltip: #ffffff;
+}
+
+@mixin dark-tokens {
+  --ex-canvas: #0f1012;
+  --ex-surface: #18191c;
+  --ex-surface-muted: #141518;
+  --ex-surface-hover: #212328;
+  --ex-surface-selected: #2a2d33;
+  --ex-border: #282a2f;
+  --ex-border-strong: #3a3d44;
+  --ex-text: #e7e9ec;
+  --ex-text-secondary: #a8aeb6;
+  --ex-text-muted: #767d86;
+  --ex-button: #41454d;
+  --ex-button-hover: #50555e;
+  --ex-on-button: #ffffff;
+  --ex-success: #5cc191;
+  --ex-success-soft: #17291f;
+  --ex-warning: #e0a54a;
+  --ex-warning-soft: #2c2213;
+  --ex-danger: #f17b68;
+  --ex-danger-soft: #2f1814;
+  --ex-focus: #7fa6ff;
+  --ex-shadow: none;
+  --ex-tooltip: #e7e9ec;
+  --ex-on-tooltip: #121316;
+}
+
+.shell {
+  @include light-tokens;
+
+  --ex-radius: 10px;
+  --ex-gap: 8px;
+  --ex-bar: 48px;
+  --ex-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", sans-serif;
+
+  /* PanelHeader reads these. */
+  --exam-panel-height: 40px;
+  --exam-panel-background: var(--ex-surface);
+  --exam-panel-border: var(--ex-border);
+
+  /* Carbon components inside the shell follow the exam palette. */
+  --cds-background: var(--ex-surface);
+  --cds-background-hover: var(--ex-surface-hover);
+  --cds-background-selected: var(--ex-surface-selected);
+  --cds-layer-01: var(--ex-surface);
+  --cds-layer-02: var(--ex-surface-muted);
+  --cds-layer-hover-01: var(--ex-surface-hover);
+  --cds-layer-hover-02: var(--ex-surface-hover);
+  --cds-layer-selected-01: var(--ex-surface-selected);
+  --cds-layer-accent-01: var(--ex-surface-selected);
+  --cds-field-01: var(--ex-surface-muted);
+  --cds-field-02: var(--ex-surface);
+  --cds-field-hover-01: var(--ex-surface-hover);
+  --cds-border-subtle-00: var(--ex-border);
+  --cds-border-subtle-01: var(--ex-border);
+  --cds-border-subtle-02: var(--ex-border);
+  --cds-border-strong-01: var(--ex-border-strong);
+  --cds-text-primary: var(--ex-text);
+  --cds-text-secondary: var(--ex-text-secondary);
+  --cds-text-helper: var(--ex-text-muted);
+  --cds-text-placeholder: var(--ex-text-muted);
+  --cds-icon-primary: var(--ex-text);
+  --cds-icon-secondary: var(--ex-text-secondary);
+  --cds-button-primary: var(--ex-button);
+  --cds-button-primary-hover: var(--ex-button-hover);
+  --cds-button-primary-active: var(--ex-button-hover);
+  --cds-button-tertiary: var(--ex-text);
+  --cds-button-tertiary-hover: var(--ex-surface-hover);
+  --cds-link-primary: var(--ex-text);
+  --cds-link-primary-hover: var(--ex-text-secondary);
+  --cds-focus: var(--ex-focus);
+  --cds-border-interactive: var(--ex-text);
+
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--ex-canvas);
+  color: var(--ex-text);
+  font-family: var(--ex-font);
+}
+
+:global([data-carbon-theme="g90"]) .shell,
+:global([data-carbon-theme="g100"]) .shell {
+  @include dark-tokens;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 var(--ex-bar);
+  min-width: 0;
+  padding-right: 12px;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  gap: var(--ex-gap);
+  min-height: 0;
+  min-width: 0;
+  padding: 0 var(--ex-gap) var(--ex-gap) 0;
+  overflow: hidden;
+}
+
+.rail {
+  display: flex;
+  flex: 0 0 var(--ex-bar);
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.navigation {
+  display: flex;
+  flex: 0 0 216px;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--ex-surface-muted);
+  border: 1px solid var(--ex-border);
+  border-radius: var(--ex-radius);
+  transition: flex-basis 160ms ease;
+
+  &[data-collapsed="true"] { flex-basis: 48px; }
+  &[hidden] { display: none; }
+}
+
+.workspace {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.auxiliary {
+  flex: 0 0 320px;
+  min-height: 0;
+  overflow: auto;
+  background: var(--ex-surface);
+  border: 1px solid var(--ex-border);
+  border-radius: var(--ex-radius);
+}
+
+/* Phones: the question list floats over the workspace instead of taking its width. */
+@media (max-width: 41.98rem) {
+  .body { position: relative; }
+
+  .navigation[data-collapsed="true"] { display: none; }
+  .navigation[data-collapsed="false"] {
+    position: absolute;
+    z-index: 20;
+    top: 0;
+    bottom: var(--ex-gap);
+    left: calc(var(--ex-bar) + var(--ex-gap));
+    width: min(280px, calc(100% - var(--ex-bar) - 2 * var(--ex-gap)));
+    box-shadow: var(--ex-shadow);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navigation { transition: none; }
+}

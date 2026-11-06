@@ -23,7 +23,7 @@
   border: 1px solid var(--cds-border-subtle-01);
   background: var(--cds-background);
   color: var(--cds-text-primary);
-  line-height: 2;
+  line-height: 1.75;
   cursor: text;
 }
 
@@ -32,18 +32,22 @@
   outline: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  padding: layout.$spacing-03 layout.$spacing-02 layout.$spacing-07;
+  caret-color: var(--cds-text-primary);
 }
 
 .editorSurface p {
   margin: 0;
-  min-height: 1.75rem;
+  min-height: 2rem;
+  padding-block: layout.$spacing-02;
+  letter-spacing: 0.02em;
 }
 
 .editorSurface p + p {
-  margin-top: layout.$spacing-02;
+  margin-top: layout.$spacing-03;
 }
 
-.editorSurface p.is-editor-empty:first-child::before {
+.editorSurface p:global(.is-editor-empty):first-child::before {
   content: attr(data-placeholder);
   color: var(--cds-text-placeholder);
   pointer-events: none;
@@ -88,3 +92,45 @@
 .mathToken .katex {
   font-size: 1.05em;
 }
+
+.paper {
+  min-height: 100%;
+  .sheet {
+    flex: 1;
+    min-height: 20rem;
+    border: 0;
+    padding: 0;
+    background: transparent;
+  }
+  .toolbar { position: sticky; top: -1.5rem; z-index: 2; min-height: 2.5rem; margin: -1.5rem -1.5rem layout.$spacing-04; padding: 0 layout.$spacing-05; background: var(--cds-background); border-bottom: 1px solid var(--cds-border-subtle-01); }
+  .editorSurface { padding-inline: 0; }
+  .editorSurface:focus-visible { outline: none; }
+}
+
+.historyTools { display: flex; margin-left: auto; }
+.insertMenu {
+  z-index: 20;
+  padding: layout.$spacing-02;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-background);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--cds-text-primary) 12%, transparent);
+}
+.insertChoice {
+  display: flex; align-items: center; width: 100%; max-width: none;
+  gap: layout.$spacing-04; padding: layout.$spacing-04; justify-content: flex-start; text-align: left;
+  min-height: 3.75rem; color: var(--cds-text-primary);
+  small { display: block; margin-top: layout.$spacing-02; color: var(--cds-text-secondary); @include type.type-style("helper-text-01"); }
+}
+.mathInline, .mathBlock { position: relative; }
+.mathInline { display: inline-block; vertical-align: baseline; max-width: 100%; margin-inline: layout.$spacing-02; }
+.mathBlock { display: block; margin: layout.$spacing-05 0; padding-right: layout.$spacing-07; }
+.renderedBlock { margin: layout.$spacing-05 0; }
+
+.menuHeading { @include type.type-style("label-01"); color: var(--cds-text-secondary); padding: layout.$spacing-03 layout.$spacing-04; }
+.choiceIcon { display: flex; flex: 0 0 auto; color: var(--cds-icon-secondary); }
+.menuFooter { display: flex; justify-content: space-between; gap: layout.$spacing-03; border-top: 1px solid var(--cds-border-subtle-01); margin-top: layout.$spacing-02; padding: layout.$spacing-03 layout.$spacing-04; color: var(--cds-text-secondary); @include type.type-style("helper-text-01"); }
+
+.formulaPreview { display: inline-block; padding: layout.$spacing-02; cursor: pointer; border-radius: 2px; &:hover { background: var(--cds-layer-hover-01); } &:focus-visible { outline: 2px solid var(--cds-focus); outline-offset: 2px; } }
+.formulaSelected { background: color-mix(in srgb, var(--cds-focus) 12%, transparent); }
+
+.formulaPreview :global(.katex-display) { margin: 0; text-align: left; }

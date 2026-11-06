@@ -8,6 +8,7 @@ import {
   ListBulleted,
 } from "@carbon/icons-react";
 import { ExamNavigator } from "./ExamNavigator";
+import { QuestionStepper } from "@/shared/layout/QuestionStepper";
 import { useRegisterContestRuntimeNavigator } from "@/features/contest/contexts";
 import type { ExamItem, ExamViewMode } from "../../types/exam.types";
 
@@ -39,6 +40,7 @@ function useScrollDirection(ref: React.RefObject<HTMLElement | null>) {
 }
 
 interface PaperExamCoreProps {
+  workbench?: boolean;
   items: ExamItem[];
   answeredIds: Set<string>;
   markedIds?: Set<string>;
@@ -48,7 +50,7 @@ interface PaperExamCoreProps {
   externalNavigator?: boolean;
   overviewLabel?: string;
   onSelectOverview?: () => void;
-  renderItem: (item: ExamItem, index: number, mode: ExamViewMode) => React.ReactNode;
+  renderItem: (item: ExamItem, index: number, mode: ExamViewMode, footer?: React.ReactNode) => React.ReactNode;
   styles: Record<string, string>;
   syncIndex?: number | null;
   onActiveIndexChange?: (prevIndex: number, nextIndex: number) => void;
@@ -56,6 +58,7 @@ interface PaperExamCoreProps {
 
 export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
   items,
+  workbench = false,
   answeredIds,
   markedIds,
   toolbarLeft,
@@ -78,6 +81,9 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
 
   const [viewMode, setViewMode] = useState<ExamViewMode>("single");
   const [activeIndex, setActiveIndex] = useState(0);
+  // In answering mode a deep link selects the initial question, but must not
+  // keep overriding subsequent sidebar / previous / next navigation.
+  const [workspaceSelection, setWorkspaceSelection] = useState({ request: syncIndex, index: syncIndex ?? 0 });
   const [allModeActiveIndex, setAllModeActiveIndex] = useState(0);
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [slideDir, setSlideDir] = useState<"left" | "right">("right");
@@ -88,8 +94,13 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
   const prevIndexRef = useRef<number | null>(null);
   const maxIndex = items.length > 0 ? items.length - 1 : 0;
   const isSyncIndexActive = syncIndex != null && syncIndex >= 0 && syncIndex < items.length;
-  const effectiveViewMode = isSyncIndexActive ? "single" : viewMode;
-  const effectiveActiveIndex = isSyncIndexActive ? syncIndex : Math.min(activeIndex, maxIndex);
+  const effectiveViewMode = workbench || isSyncIndexActive ? "single" : viewMode;
+  if (workbench && workspaceSelection.request !== syncIndex) {
+    setWorkspaceSelection({ request: syncIndex, index: isSyncIndexActive ? syncIndex : workspaceSelection.index });
+  }
+  const effectiveActiveIndex = workbench
+    ? Math.max(0, Math.min(workspaceSelection.index, maxIndex))
+    : isSyncIndexActive ? syncIndex : Math.min(activeIndex, maxIndex);
   const effectiveAllModeActiveIndex = Math.min(allModeActiveIndex, maxIndex);
 
   const clampIndex = useCallback(
@@ -101,12 +112,16 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
   );
 
   const handleSetActiveIndex = useCallback((newIndex: number | ((prev: number) => number)) => {
+    if (workbench) {
+      setWorkspaceSelection(prev => ({ ...prev, index: clampIndex(typeof newIndex === "function" ? newIndex(prev.index) : newIndex) }));
+      return;
+    }
     setActiveIndex((prev) => {
       const current = clampIndex(prev);
       const requested = typeof newIndex === "function" ? newIndex(current) : newIndex;
       return clampIndex(requested);
     });
-  }, [clampIndex]);
+  }, [clampIndex, workbench]);
 
   // Fire side effects (animation + callback) after activeIndex commits
   useEffect(() => {
@@ -217,13 +232,15 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
         : styles.slideInLeft
       : "";
 
-    return (
-      <div className={styles.singleContent}>
-        <div className={styles.questionArea} ref={questionAreaRef}>
-          <div className={`${styles.questionInner} ${slideClass}`} key={effectiveActiveIndex}>
-            {renderItem(item, effectiveActiveIndex, "single")}
-          </div>
-        </div>
+    const navigation = workbench ? (
+      <QuestionStepper
+        index={effectiveActiveIndex}
+        total={items.length}
+        onChange={(next) => handleSetActiveIndex(() => next)}
+        previousLabel={t("answering.navigation.prevQuestion")}
+        nextLabel={t("answering.navigation.nextQuestion")}
+      />
+    ) : (
         <div className={styles.navButtons}>
           <Button
             kind="ghost"
@@ -245,6 +262,20 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
             {t("answering.navigation.nextQuestion")}
           </Button>
         </div>
+    );
+    if (workbench) {
+      return <div className={styles.singleContent}>
+        {renderItem(item, effectiveActiveIndex, "single", navigation)}
+      </div>;
+    }
+    return (
+      <div className={styles.singleContent}>
+        <div className={styles.questionArea} ref={questionAreaRef}>
+          <div className={`${styles.questionInner} ${slideClass}`} key={effectiveActiveIndex}>
+            {renderItem(item, effectiveActiveIndex, "single")}
+          </div>
+        </div>
+        {navigation}
       </div>
     );
   };
@@ -277,7 +308,7 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
         </div>
       )}
 
-      <div className={styles.modeSwitcher}>
+      {!workbench && <div className={styles.modeSwitcher}>
         {VIEW_MODES.map((m) => (
           <Tooltip key={m.key} label={m.label} align="left" autoAlign>
                   <button
@@ -290,7 +321,7 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
             </button>
           </Tooltip>
         ))}
-      </div>
+      </div>}
 
       <div className={styles.body}>
         {!externalNavigator && (

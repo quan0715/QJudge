@@ -99,3 +99,8 @@
   }
 
 }
+
+.records {
+  display: grid;
+  gap: layout.$spacing-05;
+}

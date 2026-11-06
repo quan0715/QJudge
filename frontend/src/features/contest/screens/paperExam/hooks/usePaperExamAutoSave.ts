@@ -27,21 +27,21 @@ const OBJECTIVE_TYPES: ExamQuestionType[] = [
 
 function unwrapDraftValue(answer: Record<string, unknown>): unknown {
   if ("selected" in answer) return answer.selected;
-  if ("text" in answer) return answer.text;
   if ("document" in answer && isOpenAnswerDocument(answer.document)) return answer.document;
+  if ("text" in answer) return answer.text;
   return answer;
 }
 
 export function buildExamAnswerPayload(
   value: unknown,
   questionType?: ExamQuestionType,
-  answerFormat?: ExamQuestionAnswerFormat,
+  _answerFormat?: ExamQuestionAnswerFormat,
 ): ExamAnswerPayload {
   if (questionType && OBJECTIVE_TYPES.includes(questionType)) {
     return { selected: value };
   }
 
-  if (answerFormat === "open_document" && isOpenAnswerDocument(value)) {
+  if (isOpenAnswerDocument(value)) {
     return { document: value };
   }
 

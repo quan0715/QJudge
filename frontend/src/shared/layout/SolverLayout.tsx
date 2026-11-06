@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
-import { Button, Tooltip } from "@carbon/react";
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
+import { Button, IconButton, Tooltip } from "@carbon/react";
 import {
   DocumentBlank,
   RecentlyViewed,
@@ -7,6 +7,7 @@ import {
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import "./SolverLayout.scss";
+import { PanelHeader } from "./PanelHeader";
 
 /** Tab definition for statement panel */
 export interface StatementTab {
@@ -25,9 +26,14 @@ interface SolverLayoutProps {
   /** Custom tabs configuration, defaults to 題目/繳交記錄 */
   statementTabs?: StatementTab[];
   editorPanel: React.ReactNode;
-  resultPanel: React.ReactNode;
+  resultPanel?: React.ReactNode;
+  /** A simple heading for workspaces without statement tabs. */
+  statementTitle?: string;
+  statementKey?: string;
+  statementFooter?: React.ReactNode;
   /** Controlled statement collapsed state */
   statementCollapsed?: boolean;
+  allowStatementCollapse?: boolean;
   /** Callback when statement collapsed state changes */
   onStatementCollapsedChange?: (collapsed: boolean) => void;
   resultCollapsed?: boolean;
@@ -69,11 +75,16 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
   statementTabs = DEFAULT_STATEMENT_TABS,
   editorPanel,
   resultPanel,
+  statementTitle,
+  statementKey,
+  allowStatementCollapse = true,
+  statementFooter,
   statementCollapsed: statementCollapsedProp,
   onStatementCollapsedChange,
   resultCollapsed: resultCollapsedProp,
 }) => {
   const { t } = useTranslation("common");
+  const hasResultPanel = resultPanel != null;
   // Internal state for uncontrolled mode
   const [statementCollapsedInternal, setStatementCollapsedInternal] = useState(false);
   const [internalTabIndex, setInternalTabIndex] = useState(0);
@@ -82,7 +93,7 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
 
   // Use controlled state if provided, otherwise use internal state
   const isControlled = statementCollapsedProp !== undefined;
-  const statementCollapsed = isControlled ? statementCollapsedProp : statementCollapsedInternal;
+  const statementCollapsed = allowStatementCollapse && (isControlled ? statementCollapsedProp : statementCollapsedInternal);
 
   // Update collapsed state (works for both controlled and uncontrolled)
   const setStatementCollapsed = (collapsed: boolean) => {
@@ -113,6 +124,13 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
   const [editorHeightPercent, setEditorHeightPercent] = useState(50); // %
   const layoutRef = useRef<HTMLDivElement>(null);
   const rightColumnRef = useRef<HTMLDivElement>(null);
+  const statementBodyRef = useRef<HTMLDivElement>(null);
+  const statementScrollPositions = useRef(new Map<string, number>());
+  useLayoutEffect(() => {
+    if (statementKey && statementBodyRef.current) {
+      statementBodyRef.current.scrollTop = statementScrollPositions.current.get(statementKey) ?? 0;
+    }
+  }, [statementKey, statementCollapsed]);
   const hasInitializedWidth = useRef(false);
 
   // Dragging state
@@ -224,7 +242,7 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
   }, [menuPanel, saveStatementWidth]);
 
   return (
-    <div className="solver-layout" ref={layoutRef}>
+    <div className="solver-layout" data-paper-workspace={!hasResultPanel || undefined} ref={layoutRef}>
       {/* Optional Menu Panel - Fixed 48px */}
       {menuPanel && <div className="solver-layout__menu">{menuPanel}</div>}
 
@@ -260,9 +278,15 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
         ) : (
           // Expanded: show tabs header and content
           <div className="solver-layout__statement-content">
-            <div className="solver-layout__statement-header">
+            <PanelHeader title={statementTitle} actions={allowStatementCollapse && <IconButton
+                kind="ghost"
+                size="sm"
+                align="bottom-right"
+                label={t("workspaceTopNav.closeInfoPanel")}
+                onClick={() => setStatementCollapsed(true)}
+              ><Close size={20} /></IconButton>}>
               <div className="solver-layout__statement-tabs">
-                {!externalStatementNavigation && statementTabs.map((tab, index) => {
+                {!statementTitle && !externalStatementNavigation && statementTabs.map((tab, index) => {
                   const Icon = tab.icon;
                   return (
                     <Tooltip key={tab.id} label={tab.label} align="bottom">
@@ -277,18 +301,13 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
                   );
                 })}
               </div>
-              <Button
-                kind="ghost"
-                hasIconOnly
-                renderIcon={Close}
-                iconDescription={t("workspaceTopNav.closeInfoPanel")}
-                tooltipPosition="bottom"
-                onClick={() => setStatementCollapsed(true)}
-              />
-            </div>
-            <div className="solver-layout__statement-body">
+            </PanelHeader>
+            <div className="solver-layout__statement-body" ref={statementBodyRef} onScroll={(event) => {
+              if (statementKey) statementScrollPositions.current.set(statementKey, event.currentTarget.scrollTop);
+            }}>
               {renderStatementContent(activeTabIndex)}
             </div>
+            {statementFooter}
           </div>
         )}
       </div>
@@ -297,6 +316,20 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
       {!statementCollapsed && (
         <div
           className="solver-layout__resize-handle solver-layout__resize-handle--horizontal"
+          role="separator"
+          tabIndex={0}
+          aria-label={t("workspaceTopNav.resizeStatement", "調整題目區寬度")}
+          aria-orientation="vertical"
+          aria-valuemin={MIN_STATEMENT_WIDTH}
+          aria-valuenow={Math.round(statementWidth)}
+          onKeyDown={(event) => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+            event.preventDefault();
+            const max = (layoutRef.current?.clientWidth ?? 800) - (menuPanel ? 48 : 0) - 300;
+            const width = Math.max(MIN_STATEMENT_WIDTH, Math.min(statementWidth + (event.key === "ArrowRight" ? 16 : -16), max));
+            setStatementWidth(width);
+            saveStatementWidth(width);
+          }}
           onMouseDown={handleHorizontalMouseDown}
         />
       )}
@@ -307,9 +340,9 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
         <div
           className="solver-layout__editor"
           style={{
-            height: resultCollapsed
-              ? `calc(100% - ${COLLAPSED_SIZE_PX}px)`
-              : `calc(${editorHeightPercent}% - 1px)`, // -1px for resize handle
+            height: !hasResultPanel ? "100%" : resultCollapsed
+              ? `calc(100% - ${COLLAPSED_SIZE_PX}px - var(--solver-collapsed-gap, 0px))`
+              : `calc(${editorHeightPercent}% - var(--solver-gutter, 1px) / 2)`, // Share the resize gutter between both panes
             flex: "none",
           }}
         >
@@ -317,7 +350,7 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
         </div>
 
         {/* Vertical Resize Handle */}
-        {!resultCollapsed && (
+        {hasResultPanel && !resultCollapsed && (
           <div
             className="solver-layout__resize-handle solver-layout__resize-handle--vertical"
             onMouseDown={handleVerticalMouseDown}
@@ -325,19 +358,19 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
         )}
 
         {/* Result Panel */}
-        <div
+        {hasResultPanel && <div
           className={`solver-layout__result ${
             resultCollapsed ? "solver-layout__result--collapsed" : ""
           }`}
           style={{
             height: resultCollapsed
               ? `${COLLAPSED_SIZE_PX}px`
-              : `calc(${100 - editorHeightPercent}% - 1px)`,
+              : `calc(${100 - editorHeightPercent}% - var(--solver-gutter, 1px) / 2)`,
             flex: "none",
           }}
         >
           {resultPanel}
-        </div>
+        </div>}
       </div>
     </div>
   );

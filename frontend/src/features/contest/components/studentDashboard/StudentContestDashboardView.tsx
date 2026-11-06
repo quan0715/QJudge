@@ -35,7 +35,8 @@ import {
   Time,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { createPortal } from "react-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import type {
   ContestDetail,
@@ -43,8 +44,6 @@ import type {
   ExamQuestionType,
 } from "@/core/entities/contest.entity";
 import { getContestState } from "@/core/entities/contest.entity";
-import ContestClarifications from "@/features/contest/components/ContestClarifications";
-import ContestStandingsScreen from "@/features/contest/screens/ContestStandingsScreen";
 import { downloadMyReport } from "@/infrastructure/api/repositories";
 import {
   getExamDashboardSummary,
@@ -58,7 +57,6 @@ import {
   type ExamResults,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { formatScore } from "@/features/contest/utils/scoreFormat";
-import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { MobileActionFooter } from "@/shared/ui/MobileActionFooter";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { formatDate } from "@/shared/utils/format";
@@ -68,17 +66,9 @@ import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { usePageHeaderActions } from "@/features/app/contexts/PageHeaderActionsContext";
 import {
   BlockHeader,
-  DashboardBlock,
-  DashboardContainer,
-  DashboardPage,
-  DashboardTabBar,
-  DashboardTabPanel,
-  DashboardTabs,
   KPIBlock,
-  MetricBlock,
 } from "@/shared/components/dashboard";
 import { buildStudentLocatorQrValue } from "@/features/contest/attendance/attendanceQr";
-import { CountdownProgress } from "@/features/contest/components/CountdownProgress";
 import { isContestParticipant } from "@/features/contest/domain/contestRuntimePolicy";
 import PaperQuestionReportCard from "@/features/contest/components/exam/PaperQuestionReportCard";
 import { getMarkedQuestionIds } from "@/features/contest/screens/paperExam/hooks";
@@ -89,6 +79,8 @@ import {
   resolveStudentContestPhase,
 } from "./studentDashboardState";
 import styles from "./StudentContestDashboard.module.scss";
+import { ExamOverviewLayout } from "../layout/ExamOverviewLayout";
+import { useExamReviewSlot } from "@/features/contest/contexts/ExamReviewSlotContext";
 import CodingAnswerRecords from "./CodingAnswerRecords";
 import PaperAnswerRecordsTable from "./PaperAnswerRecordsTable";
 
@@ -196,15 +188,13 @@ export default function StudentContestDashboard({
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [searchParams, setSearchParams] = useSearchParams();
-  const requestedTab = searchParams.get("tab");
-  const infoTab = requestedTab && ["records", "standings"].includes(requestedTab)
-    ? requestedTab : "information";
-  const setInfoTab = (id: string) => setSearchParams((previous) => {
-    const next = new URLSearchParams(previous);
-    next.set("tab", id);
-    return next;
-  });
+  const reviewSlot = useExamReviewSlot();
+  const setHasRecords = reviewSlot?.setHasRecords;
+  useEffect(() => {
+    if (!setHasRecords) return;
+    setHasRecords(true);
+    return () => setHasRecords(false);
+  }, [setHasRecords]);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showStudentQrModal, setShowStudentQrModal] = useState(false);
@@ -227,10 +217,6 @@ export default function StudentContestDashboard({
 
   const phase = resolveStudentContestPhase(contest, nowMs);
   const participant = isContestParticipant(contest);
-  const showStandings = participant && contest.contestType === "coding" && (
-    contest.scoreboardVisibleDuringContest ||
-    (phase === "after" && contest.permissions?.canViewFullScoreboard)
-  );
   const contestState = getContestState({
     status: contest.status,
     startTime: contest.startTime,
@@ -872,165 +858,21 @@ export default function StudentContestDashboard({
   };
 
 
-  return (
-    <>
-    {appealEnabled && appealTarget && <GradeAppealDialog key={appealTarget.answerId} contestId={contest.id} answerId={appealTarget.answerId} appealId={appealTarget.appealId} questionPrompt={appealTarget.prompt} questionLabel={appealTarget.label} managing={false} onClose={() => { setAppealTarget(null); setPaperReloadKey(k => k + 1); }} onChanged={() => void refreshAppeals()} />}
-    <DashboardPage
-      ariaLabel={t("studentDashboard.ariaLabel", "學生競賽首頁")}
-      fullBleed
-    >
-      <DashboardContainer
-        layout="split"
-        proportions="main-aside"
-        dividers="auto"
-      >
-        <DashboardContainer
-          layout="stack"
-          dividers="auto"
-          ariaLabel={t("studentDashboard.mainContent", "競賽主要內容")}
-        >
-          <DashboardBlock>
-            <BlockHeader
-              titleSize="page"
-              title={contest.name}
-              description={
-                contest.description ? (
-                  <div className={styles.headerDescription}>
-                    <MarkdownRenderer>{contest.description}</MarkdownRenderer>
-                  </div>
-                ) : null
-              }
-              actions={renderStudentQrNavbarAction()}
-            />
-          </DashboardBlock>
-
-          <DashboardContainer
-            layout="grid"
-            columns={3}
-            dividers="auto"
-            ariaLabel={t("studentDashboard.infoLabel", "競賽資訊")}
-          >
-            <DashboardBlock>
-              <MetricBlock
-                label={t("studentDashboard.metrics.startTime", "開始時間")}
-                value={formatDate(contest.startTime, { includeSeconds: false })}
-              />
-            </DashboardBlock>
-            <DashboardBlock>
-              <MetricBlock
-                label={t("studentDashboard.metrics.endTime", "截止時間")}
-                value={formatDate(contest.endTime, { includeSeconds: false })}
-              />
-            </DashboardBlock>
-            <DashboardBlock>
-              <MetricBlock
-                label={t("studentDashboard.metrics.duration", "總時長")}
-                value={durationDisplay}
-              />
-            </DashboardBlock>
-          </DashboardContainer>
-
-          <DashboardBlock padding="flush">
-            <DashboardTabs
-              activeId={infoTab === "standings" && !showStandings ? "information" : infoTab}
-              onChange={(id) => setInfoTab(id as typeof infoTab)}
-            >
-              <DashboardTabBar
-                ariaLabel={t("studentDashboard.tabs.ariaLabel", "競賽資訊切換")}
-                tabs={[
-                  { id: "information", label: t("studentDashboard.infoLabel", "競賽資訊") },
-                  {
-                    id: "records",
-                    label: t("studentDashboard.tabs.records", "作答紀錄"),
-                  },
-                  ...(showStandings ? [{ id: "standings", label: t("standings.title", "排行榜") }] : []),
-                ]}
-              />
-              <DashboardTabPanel tabId="records">
-                <div className={styles.tabContent}>
-                  <BlockHeader
-                    titleAs="h3"
-                    title={
-                      phase === "during"
-                        ? t("studentDashboard.records.currentStatus", "目前作答狀況")
-                        : phase === "after" && contest.resultsPublished
-                          ? t(
-                              "studentDashboard.records.withResults",
-                              "作答紀錄與成績",
-                            )
-                          : t("studentDashboard.records.title", "作答紀錄")
-                    }
-                  />
-                  {contest.contestType === "paper_exam"
-                    ? renderPaperRecords()
-                    : renderCodingRecords()}
-                </div>
-              </DashboardTabPanel>
-              {infoTab === "information" ? (
-                <DashboardTabPanel tabId="information">
-                  <div className={styles.tabContent}>
-                    <ContestClarifications
-                      contestId={contest.id}
-                      mode="participate"
-                      problems={contest.problems}
-                      contestStatus={contest.status}
-                      contestEndTime={contest.endTime}
-                      embedded
-                      rules={contest.rules ?? ""}
-                    />
-                  </div>
-                </DashboardTabPanel>
-              ) : null}
-              {showStandings && infoTab === "standings" ? (
-                <DashboardTabPanel tabId="standings">
-                  <div className={styles.tabContent}>
-                    <ContestStandingsScreen />
-                  </div>
-                </DashboardTabPanel>
-              ) : null}
-            </DashboardTabs>
-          </DashboardBlock>
-        </DashboardContainer>
-
-        <DashboardContainer
-          layout="stack"
-          dividers="auto"
-          ariaLabel={t("studentDashboard.summary.ariaLabel", "競賽摘要")}
-        >
-          <DashboardBlock>
-            <CountdownProgress
-              startTime={contest.startTime}
-              endTime={contest.endTime}
-              afterPhase={
-                contest.resultsPublished
-                  ? {
-                      label: t("studentDashboard.summary.examResult", "考試成績"),
-                      value: afterPhaseValue,
-                    }
-                  : {
-                      label: t("studentDashboard.summary.examStatus", "考試狀態"),
-                      value: t(
-                        "studentDashboard.results.waitingPublish",
-                        "等待成績發布",
-                      ),
-                    }
-              }
-            />
-          </DashboardBlock>
-
-          <KPIBlock
-            title={t("studentDashboard.summary.completionRate", "完成率")}
-            value={`${progressPercent}%`}
-          >
-            <div className={styles.progressTrack} aria-hidden="true">
-              <div
-                className={styles.progressFill}
-                style={{ inlineSize: `${progressPercent}%` }}
-              />
-            </div>
-          </KPIBlock>
-
-          {contest.resultsPublished && contest.contestType === "paper_exam" ? (
+  // Records and results live on the workspace review page; standalone renders keep them inline.
+  const recordsSection = (
+    <section className={styles.records} aria-label={t("studentDashboard.tabs.records", "作答紀錄")}>
+      {!reviewSlot && <BlockHeader
+        titleAs="h3"
+        title={
+          phase === "during"
+            ? t("studentDashboard.records.currentStatus", "目前作答狀況")
+            : phase === "after" && contest.resultsPublished
+              ? t("studentDashboard.records.withResults", "作答紀錄與成績")
+              : t("studentDashboard.records.title", "作答紀錄")
+        }
+      />}
+      {contest.contestType === "paper_exam" ? renderPaperRecords() : renderCodingRecords()}
+{contest.resultsPublished && contest.contestType === "paper_exam" ? (
             <KPIBlock
               title={t("studentDashboard.summary.scoreDistribution", "成績分布")}
               value={
@@ -1067,20 +909,40 @@ export default function StudentContestDashboard({
               </div>
             </KPIBlock>
           ) : null}
+    </section>
+  );
 
-          {!showMobileActionFooter ? (
-            <DashboardBlock>
-              <div className={styles.actionStack}>
-                {buildActionSetItems().map((item) => (
-                  <div key={item.key} className={styles.actionStackItem}>
-                    {item.node}
-                  </div>
-                ))}
-              </div>
-            </DashboardBlock>
-          ) : null}
-        </DashboardContainer>
-      </DashboardContainer>
+  return (
+    <>
+    {appealEnabled && appealTarget && <GradeAppealDialog key={appealTarget.answerId} contestId={contest.id} answerId={appealTarget.answerId} appealId={appealTarget.appealId} questionPrompt={appealTarget.prompt} questionLabel={appealTarget.label} managing={false} onClose={() => { setAppealTarget(null); setPaperReloadKey(k => k + 1); }} onChanged={() => void refreshAppeals()} />}
+    <ExamOverviewLayout
+      ariaLabel={t("studentDashboard.ariaLabel", "學生競賽首頁")}
+      kicker={<>{contest.contestType === "coding" ? t("workspace.overview.coding", "程式考試") : t("workspace.overview.paper", "考卷考試")}{progressSummary.totalItems > 0 && <> · {t("workspace.overview.questionCount", `${progressSummary.totalItems} 題`, { count: progressSummary.totalItems })}</>}</>}
+      title={contest.name}
+      description={contest.description || t("workspace.overview.defaultDescription", "請閱讀考試資訊，準備好後即可進入作答。")}
+      rules={contest.rules?.trim() ? { title: t("workspace.overview.rules", "應試規則"), body: contest.rules } : null}
+      facts={[
+        { key: "start", label: t("studentDashboard.metrics.startTime", "開始時間"), value: formatDate(contest.startTime, { includeSeconds: false }) },
+        { key: "end", label: t("studentDashboard.metrics.endTime", "截止時間"), value: formatDate(contest.endTime, { includeSeconds: false }) },
+        { key: "duration", label: t("studentDashboard.metrics.duration", "總時長"), value: durationDisplay },
+        { key: "progress", label: t("studentDashboard.summary.completionRate", "完成率"), value: `${progressPercent}%` },
+        ...(phase === "after"
+          ? [{
+              key: "result",
+              label: contest.resultsPublished ? t("studentDashboard.summary.examResult", "考試成績") : t("studentDashboard.summary.examStatus", "考試狀態"),
+              value: contest.resultsPublished ? afterPhaseValue : t("studentDashboard.results.waitingPublish", "等待成績發布"),
+            }]
+          : []),
+      ]}
+      actions={!showMobileActionFooter ? (
+        <>
+          {renderStudentQrNavbarAction()}
+          {buildActionSetItems().map((item) => <Fragment key={item.key}>{item.node}</Fragment>)}
+        </>
+      ) : null}
+      details={reviewSlot ? undefined : recordsSection}
+    />
+    {reviewSlot?.target ? createPortal(recordsSection, reviewSlot.target) : null}
 
       <MobileActionFooter>
         {buildActionSetItems().map((item) => (
@@ -1181,7 +1043,6 @@ export default function StudentContestDashboard({
           </p>
         </div>
       </Modal>
-    </DashboardPage>
     </>
   );
 }

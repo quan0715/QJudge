@@ -222,3 +222,13 @@
   background: transparent;
   cursor: default;
 }
+
+/* Inside the exam workspace the timer is a quiet chip, not a full-height cell. */
+:global([data-exam-shell]) .runtimeTimer {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--ex-border);
+  border-radius: 7px;
+  background: var(--ex-surface);
+  color: var(--ex-text);
+}

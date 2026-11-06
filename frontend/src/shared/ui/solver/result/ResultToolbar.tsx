@@ -85,6 +85,7 @@ export const ResultToolbar: React.FC<ResultToolbarProps> = ({
         <Tooltip label="編輯測資" align="top">
           <Button
             kind={!collapsed && mode === "testcases" ? "tertiary" : "ghost"}
+            size="md"
             hasIconOnly
             renderIcon={Edit}
             iconDescription="編輯測資"
@@ -95,6 +96,7 @@ export const ResultToolbar: React.FC<ResultToolbarProps> = ({
         <Tooltip label="執行結果" align="top">
           <Button
             kind={!collapsed && mode === "results" ? "tertiary" : "ghost"}
+            size="md"
             hasIconOnly
             renderIcon={Terminal}
             iconDescription="執行結果"
@@ -108,6 +110,7 @@ export const ResultToolbar: React.FC<ResultToolbarProps> = ({
         {onRunTest && (
           <Button
             kind="ghost"
+            size="md"
             renderIcon={Chemistry}
             onClick={handleRunTest}
             disabled={testDisabled}
@@ -119,6 +122,7 @@ export const ResultToolbar: React.FC<ResultToolbarProps> = ({
         {onSubmit && (
           <Button
             kind="primary"
+            size="md"
             renderIcon={SendFilled}
             onClick={handleSubmit}
             disabled={submitDisabled}
@@ -132,6 +136,7 @@ export const ResultToolbar: React.FC<ResultToolbarProps> = ({
           <Tooltip label={collapsed ? "展開" : "收合"} align="top">
             <Button
               kind="ghost"
+              size="md"
               hasIconOnly
               renderIcon={collapsed ? ChevronUp : ChevronDown}
               iconDescription={collapsed ? "展開面板" : "收合面板"}
