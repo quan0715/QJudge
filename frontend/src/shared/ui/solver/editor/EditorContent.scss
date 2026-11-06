@@ -37,3 +37,11 @@
     overflow: hidden;
   }
 }
+
+/* Exam workspace: same header height and line as the other panels. */
+[data-exam-shell] .editor-content__toolbar {
+  height: var(--exam-panel-height);
+  min-height: var(--exam-panel-height);
+  border-bottom-color: var(--ex-border);
+  background: var(--ex-surface);
+}

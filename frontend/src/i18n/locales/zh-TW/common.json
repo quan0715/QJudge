@@ -565,6 +565,7 @@
     }
   },
   "workspaceTopNav": {
+    "resizeStatement": "調整題目區寬度",
     "adminConsole": "管理後台",
     "aiAssistant": "AI 助教",
     "backToContest": "返回競賽儀表板",

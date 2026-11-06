@@ -131,6 +131,33 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         self.assertIsNone(ans.is_correct)
         self.assertIsNone(ans.score)
 
+    def test_legacy_subjective_question_accepts_document_answer(self):
+        self.client.force_authenticate(user=self.student)
+        document = {'version': 1, 'nodes': [{'type': 'paragraph', 'children': [
+            {'type': 'text', 'text': '理由 '}, {'type': 'math', 'latex': 'x+1'},
+        ]}]}
+        resp = self.client.post(self._url(), {
+            'question_id': self.q_essay.id, 'answer': {'document': document},
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        ans = ExamAnswer.objects.get(participant=self.participant, question=self.q_essay)
+        self.assertEqual(ans.answer['document'], document)
+
+    def test_document_validation_applies_to_legacy_subjective_questions(self):
+        self.client.force_authenticate(user=self.student)
+        for document in [
+            {'version': 2, 'nodes': []},
+            {'version': 1, 'nodes': [{'type': 'paragraph', 'children': [
+                {'type': 'text', 'text': 'x' * (32 * 1024 + 1)},
+            ]}]},
+        ]:
+            with self.subTest(document_version=document['version']):
+                resp = self.client.post(self._url(), {
+                    'question_id': self.q_essay.id, 'answer': {'document': document},
+                }, format='json')
+                self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(ExamAnswer.objects.filter(participant=self.participant, question=self.q_essay).exists())
+
     def test_submit_subjective_answer_rejects_text_over_32kb(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self._url(), {

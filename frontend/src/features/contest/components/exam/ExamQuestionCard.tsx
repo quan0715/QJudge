@@ -1,13 +1,13 @@
-import { type FC, memo, useCallback, useRef, useEffect } from "react";
+import { type FC, memo, useRef, useLayoutEffect, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   RadioButton,
   RadioButtonGroup,
   Checkbox,
-  TextArea,
   Tag,
+  IconButton,
 } from "@carbon/react";
-import { Flag, FlagFilled } from "@carbon/icons-react";
+import { Flag, FlagFilled, DocumentBlank, Home } from "@carbon/icons-react";
 import type {
   ExamQuestion,
   ExamQuestionAnswerFormat,
@@ -15,15 +15,15 @@ import type {
   ExamQuestionType,
 } from "@/core/entities/contest.entity";
 import {
-  MathMarkdownEditor,
   OpenAnswerDocumentEditor,
-  createEmptyOpenAnswerDocument,
-  isOpenAnswerDocument,
+  normalizeOpenAnswerDocument,
 } from "@/shared/ui/editor";
-import { formatScore, roundScore } from "@/features/contest/utils/scoreFormat";
+import { formatScore, formatScoreCompact, roundScore } from "@/features/contest/utils/scoreFormat";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import ExamQuestionPrompt from "./ExamQuestionPrompt";
 import ExamQuestionGroupStem from "./ExamQuestionGroupStem";
+import { PanelHeader } from "@/shared/layout/PanelHeader";
+import { SolverLayout } from "@/shared/layout/SolverLayout";
 import styles from "./ExamQuestionCard.module.scss";
 
 const TYPE_COLORS: Record<ExamQuestionType, string> = {
@@ -32,47 +32,6 @@ const TYPE_COLORS: Record<ExamQuestionType, string> = {
   multiple_choice: "purple",
   short_answer: "cyan",
   essay: "magenta",
-};
-
-const AutoResizeTextArea: FC<React.ComponentProps<typeof TextArea> & { minHeight?: number }> = ({
-  id,
-  labelText,
-  minHeight = 120,
-  ...props
-}) => {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const resize = useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.max(el.scrollHeight, minHeight)}px`;
-  }, [minHeight]);
-
-  useEffect(() => {
-    resize();
-  }, [props.value, resize]);
-
-  return (
-    <div className={styles.textArea}>
-      <TextArea
-        {...props}
-        id={id}
-        labelText={labelText}
-        ref={(node: HTMLTextAreaElement | null) => {
-          (textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = node;
-          if (node) {
-            node.style.height = "auto";
-            node.style.height = `${Math.max(node.scrollHeight, minHeight)}px`;
-          }
-        }}
-        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-          props.onChange?.(e);
-          resize();
-        }}
-      />
-    </div>
-  );
 };
 
 const OptionMarkdownLabel: FC<{ letter: string; children: string }> = ({
@@ -88,6 +47,11 @@ const OptionMarkdownLabel: FC<{ letter: string; children: string }> = ({
 );
 
 interface ExamQuestionCardProps {
+  /** "workspace" splits statement and answer into the exam shell's panels. */
+  layout?: "card" | "workspace";
+  /** Workspace only: footer under the statement, e.g. previous / next. */
+  footer?: ReactNode;
+  onBackToDashboard?: () => void;
   question: ExamQuestion;
   group?: ExamQuestionGroup;
   showGroupStem?: boolean;
@@ -109,6 +73,9 @@ interface ExamQuestionCardProps {
 
 export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
   question,
+  layout = "card",
+  footer,
+  onBackToDashboard,
   group,
   showGroupStem = false,
   index,
@@ -125,6 +92,13 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
   const isObjective = question.questionType === "single_choice"
     || question.questionType === "multiple_choice"
     || question.questionType === "true_false";
+  const answerScrollRef = useRef<HTMLDivElement>(null);
+  const answerScrollPositions = useRef(new Map<string, number>());
+  useLayoutEffect(() => {
+    if (answerScrollRef.current) {
+      answerScrollRef.current.scrollTop = answerScrollPositions.current.get(question.id) ?? 0;
+    }
+  }, [question.id]);
 
   const handleChange = (value: unknown) => {
     onAnswerChange?.(question.id, value, question.questionType, question.answerFormat);
@@ -134,85 +108,32 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
     onBlur?.(question.id);
   };
 
-  const renderSubjectiveInput = (minRows: number, placeholder: string) => {
-    const value = typeof answer === "string" ? answer : "";
+  const renderSubjectiveInput = () => (
+    <OpenAnswerDocumentEditor
+      variant={layout === "workspace" ? "paper" : "default"}
+      data-testid={`exam-answer-input-${question.id}`}
+      value={normalizeOpenAnswerDocument(answer)}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      readOnly={readOnly}
+      ariaLabel={t("answering.openAnswer.ariaLabel", "開放題作答紙")}
+      placeholder="直接開始寫，或輸入 / 插入文字與公式"
+    />
+  );
 
-    if (question.answerFormat === "open_document") {
-      return (
-        <OpenAnswerDocumentEditor
-          data-testid={`exam-answer-input-${question.id}`}
-          value={isOpenAnswerDocument(answer) ? answer : createEmptyOpenAnswerDocument()}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          readOnly={readOnly}
-          ariaLabel={t("answering.openAnswer.ariaLabel", "開放題作答紙")}
-          placeholder={t(
-            "answering.openAnswer.placeholder",
-            "輸入解題過程，可用工具列或 / 插入公式",
-          )}
-        />
-      );
-    }
-
-    if (
-      question.answerFormat === "markdown" ||
-      question.answerFormat === "markdown_math"
-    ) {
-      const enableMath = question.answerFormat === "markdown_math";
-      return (
-        <MathMarkdownEditor
-          id={`q-${question.id}`}
-          data-testid={`exam-answer-input-${question.id}`}
-          enableMath={enableMath}
-          showMathToolbar={enableMath}
-          ariaLabel={
-            enableMath
-              ? t("answering.mathEditor.ariaLabel", "數學解答編輯器")
-              : t("answering.markdownEditor.ariaLabel", "Markdown 解答編輯器")
-          }
-          placeholder={
-            enableMath
-              ? t(
-                  "answering.mathEditor.placeholder",
-                  "輸入計算過程，可用上方按鈕插入常用公式",
-                )
-              : t(
-                  "answering.markdownEditor.placeholder",
-                  "輸入解答，可使用 Markdown 排版",
-                )
-          }
-          value={value}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          readOnly={readOnly}
-          minRows={minRows}
-        />
-      );
-    }
-
-    return (
-      <AutoResizeTextArea
-        id={`q-${question.id}`}
-        data-testid={`exam-answer-input-${question.id}`}
-        labelText={t("answering.question.answerLabel", "作答內容")}
-        hideLabel
-        placeholder={placeholder}
-        value={value}
-        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-          handleChange(e.target.value)
-        }
-        onBlur={handleBlur}
-        disabled={readOnly}
-        minHeight={minRows <= 4 ? 48 : 120}
-      />
-    );
+  const handleChoiceSurfaceClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (target.closest("label, input")) return;
+    const option = target.closest(`.${styles.choiceOption}`);
+    const input = option?.querySelector<HTMLInputElement>("input");
+    if (input && !input.disabled) input.click();
   };
 
   const renderAnswerInput = () => {
     switch (question.questionType) {
       case "true_false":
         return (
-          <div onBlur={handleBlur}>
+          <div className={styles.choiceGroup} onClick={handleChoiceSurfaceClick} onBlur={handleBlur}>
             <RadioButtonGroup
               name={`q-${question.id}`}
               legendText=""
@@ -226,12 +147,14 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
               disabled={readOnly}
             >
               <RadioButton
+                className={styles.choiceOption}
                 labelText={t("answering.question.trueOption")}
                 value="0"
                 id={`${question.id}-true`}
                 data-testid={`exam-answer-option-${question.id}-true`}
               />
               <RadioButton
+                className={styles.choiceOption}
                 labelText={t("answering.question.falseOption")}
                 value="1"
                 id={`${question.id}-false`}
@@ -243,7 +166,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
 
       case "single_choice":
         return (
-          <div onBlur={handleBlur}>
+          <div className={styles.choiceGroup} onClick={handleChoiceSurfaceClick} onBlur={handleBlur}>
             <RadioButtonGroup
               name={`q-${question.id}`}
               legendText=""
@@ -258,6 +181,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
             >
               {question.options.map((opt, i) => (
                 <RadioButton
+                className={styles.choiceOption}
                   key={i}
                   labelText={
                     <OptionMarkdownLabel letter={String.fromCharCode(65 + i)}>
@@ -276,9 +200,10 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
       case "multiple_choice": {
         const selected = (answer as number[]) || [];
         return (
-          <div className={styles.optionList} onBlur={handleBlur}>
+          <div className={styles.optionList} onClick={handleChoiceSurfaceClick} onBlur={handleBlur}>
             {question.options.map((opt, i) => (
               <Checkbox
+                className={styles.choiceOption}
                 key={i}
                 id={`${question.id}-opt-${i}`}
                 data-testid={`exam-answer-option-${question.id}-${i}`}
@@ -302,16 +227,8 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
       }
 
       case "short_answer":
-        return renderSubjectiveInput(
-          4,
-          t("answering.question.shortAnswerPlaceholder"),
-        );
-
       case "essay":
-        return renderSubjectiveInput(
-          8,
-          t("answering.question.essayPlaceholder"),
-        );
+        return renderSubjectiveInput();
 
       default:
         return null;
@@ -329,6 +246,69 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
       <span>{t("answering.mark.toggle")}</span>
     </button>
   ) : null;
+
+  if (layout === "workspace") {
+    const statement = (
+      <>
+        {group && showGroupStem && <ExamQuestionGroupStem group={group} label={groupLabel} compactScore />}
+        <div className={styles.header}>
+          <span className={styles.label}>
+            {t("answering.submit.questionPreview", { index: displayLabel ?? index + 1 })}
+            <span className={styles.typeChip}>{t(`answering.questionTypes.${question.questionType}`)}</span>
+          </span>
+          <div className={styles.headerRight}>
+            {onBackToDashboard && <IconButton kind="ghost" size="sm" label={t("contestShell.backToContestHome", "返回競賽主頁")} onClick={onBackToDashboard}><Home size={16} /></IconButton>}
+            {!readOnly && onToggleMark && (
+              <IconButton
+                kind="ghost"
+                size="sm"
+                className={isMarked ? styles.markBtnActive : undefined}
+                onClick={() => onToggleMark(question.id)}
+                label={t("answering.mark.toggle")}
+                aria-pressed={isMarked}
+                type="button"
+              >
+                {isMarked ? <FlagFilled size={16} /> : <Flag size={16} />}
+              </IconButton>
+            )}
+            <span className={styles.score}>{formatScoreCompact(question.score)} {t("scoreboard.status.pts")}</span>
+          </div>
+        </div>
+        <ExamQuestionPrompt content={question.prompt} emptyText={t("answering.question.promptEmpty")} />
+      </>
+    );
+    return (
+      <div className={styles.workspace} data-testid={`exam-question-card-${question.id}`}>
+        <SolverLayout
+          allowStatementCollapse={false}
+          statementFooter={footer}
+          statementKey={question.id}
+          statementTitle={t("answering.workspace.statement", "題目內容")}
+          statementTabs={[{ id: "question", label: t("answering.workspace.statement", "題目內容"), icon: DocumentBlank }]}
+          renderStatementContent={() => <section className={styles.statement} aria-label={t("answering.workspace.statement", "題目內容")}>{statement}</section>}
+          editorPanel={
+            <section className={styles.answerPanel} aria-label={t("answering.question.answerLabel")}>
+              <PanelHeader title={t("answering.question.answerLabel")} />
+              <div
+                ref={answerScrollRef}
+                onScroll={(event) => answerScrollPositions.current.set(question.id, event.currentTarget.scrollTop)}
+                className={`${styles.answerContent} ${isObjective ? "" : styles.paperAnswer}`}
+              >
+                {isObjective && (
+                  <p className={styles.responseHint}>
+                    {question.questionType === "multiple_choice"
+                      ? t("answering.question.selectAll", "選擇所有符合的答案")
+                      : t("answering.question.selectOne", "選擇一個答案")}
+                  </p>
+                )}
+                <div key={question.id}>{renderAnswerInput()}</div>
+              </div>
+            </section>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.card} data-testid={`exam-question-card-${question.id}`}>

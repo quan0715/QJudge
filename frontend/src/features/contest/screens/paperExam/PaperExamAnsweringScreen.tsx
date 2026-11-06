@@ -290,7 +290,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
   }, [requestedQuestionId, items]);
 
   const renderItem = useCallback(
-    (item: ExamItem, _index: number, mode: "single" | "all") => {
+    (item: ExamItem, _index: number, mode: "single" | "all", footer?: React.ReactNode) => {
       if (item.kind !== "question") return null;
       const presentation =
         mode === "single"
@@ -298,6 +298,8 @@ const PaperExamAnsweringScreen: React.FC = () => {
           : allModePresentationById.get(item.data.id);
       return (
         <ExamQuestionCard
+          layout="workspace"
+          footer={footer}
           question={item.data}
           group={presentation?.group}
           showGroupStem={presentation?.showGroupStem ?? false}
@@ -314,6 +316,8 @@ const PaperExamAnsweringScreen: React.FC = () => {
     },
     [
       answers,
+      dashboardPath,
+      navigate,
       allModePresentationById,
       handleAnswerChange,
       handleBlur,
@@ -439,6 +443,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
   return (
     <>
       <PaperExamCore
+        workbench
         items={items}
         answeredIds={answeredIds}
         markedIds={markedIds}

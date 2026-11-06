@@ -562,6 +562,7 @@
     }
   },
   "workspaceTopNav": {
+    "resizeStatement": "문제 영역 너비 조절",
     "adminConsole": "管理後台",
     "aiAssistant": "AI 어시스턴트",
     "backToContest": "대회 대시보드로 돌아가기",

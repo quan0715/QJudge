@@ -1,0 +1,156 @@
+import { useMemo, useState, type ReactNode } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { ExamShell } from "@/shared/layout/ExamShell";
+import { usePageHeaderActionsSlot } from "@/features/app/contexts/PageHeaderActionsContext";
+import { RuntimeNavExtras } from "@/features/app/components/workspace/WorkspaceTopNav";
+import { useContest } from "../../contexts/ContestContext";
+import { useContestRuntimeNavigator } from "../../contexts/useContestRuntimeNavigator";
+import { ExamReviewSlotContext } from "../../contexts/ExamReviewSlotContext";
+import { isContestParticipant } from "../../domain/contestRuntimePolicy";
+import { resolveStudentContestPhase } from "../studentDashboard/studentDashboardState";
+import { ExamQuestionList } from "./ExamQuestionList";
+import { ExamIconButton } from "./ExamIconButton";
+import { ExamWorkspaceIcon, type ExamWorkspaceIconName } from "./ExamWorkspaceIcon";
+import { ExamWorkspacePanels, type ExamWorkspacePage } from "./ExamWorkspacePanels";
+import styles from "./ExamWorkspaceShell.module.scss";
+
+interface ExamWorkspaceShellProps {
+  children: ReactNode;
+  /** Teacher trial run: no timer, monitoring or saving. */
+  preview?: boolean;
+  /** Contest root route: children render the formal overview. */
+  dashboard?: boolean;
+}
+
+interface RailEntry {
+  id: ExamWorkspacePage;
+  label: string;
+  icon: ExamWorkspaceIconName;
+}
+
+export function ExamWorkspaceShell({ children, preview = false, dashboard = false }: ExamWorkspaceShellProps) {
+  const { t } = useTranslation("contest");
+  const { contest } = useContest();
+  const navigator = useContestRuntimeNavigator();
+  const navigate = useNavigate();
+  const { classroomId, contestId } = useParams();
+  const headerActions = usePageHeaderActionsSlot();
+  const [page, setPage] = useState<ExamWorkspacePage>(dashboard ? "overview" : "questions");
+  const [listCollapsed, setListCollapsed] = useState(false);
+
+  const [recordsTarget, setRecordsTarget] = useState<HTMLElement | null>(null);
+  const [hasRecords, setHasRecords] = useState(false);
+  const reviewSlot = useMemo(() => ({ target: recordsTarget, setHasRecords }), [recordsTarget]);
+
+  // Same rule as the formal overview: live scoreboard, or the full board after the exam when permitted.
+  const canSeeStandings = contest?.contestType === "coding" && (
+    !!contest.scoreboardVisibleDuringContest ||
+    (!preview && isContestParticipant(contest) && resolveStudentContestPhase(contest) === "after" && !!contest.permissions?.canViewFullScoreboard)
+  );
+  const activePage: ExamWorkspacePage = page === "standings" && !canSeeStandings ? "overview" : page;
+  const onQuestions = activePage === "questions";
+
+  const entries: RailEntry[] = [
+    { id: "overview", label: t("workspace.rail.overview", "考試概覽"), icon: "overview" },
+    { id: "questions", label: t("workspace.rail.questions", "題目"), icon: "questions" },
+    { id: "announcements", label: t("workspace.rail.announcements", "公告"), icon: "announcements" },
+    { id: "review", label: t("workspace.rail.review", "作答檢查"), icon: "review" },
+    ...(canSeeStandings ? [{ id: "standings" as const, label: t("workspace.rail.standings", "排行榜"), icon: "standings" as const }] : []),
+  ];
+
+  const selectPage = (next: ExamWorkspacePage) => {
+    // The formal overview lives on the contest root route; answering lives under /solve.
+    if (dashboard && next === "questions") {
+      navigate(`/classrooms/${classroomId}/contest/${contestId}/solve`);
+      return;
+    }
+    // The questions entry always brings the list back.
+    if (next === "questions") setListCollapsed(false);
+    setPage(next);
+  };
+
+  const openQuestion = (index: number) => {
+    navigator?.onSelect(index);
+    setPage("questions");
+  };
+
+  const collapseLabel = listCollapsed
+    ? t("workspace.header.expandList", "展開題目列表")
+    : t("workspace.header.collapseList", "收合題目列表");
+
+  const header = (
+    <>
+      <div className={styles.headerLead}>
+        <ExamIconButton label={t("workspace.header.back", "返回課程")} onClick={() => navigate(`/classrooms/${classroomId}`)}>
+          <ExamWorkspaceIcon name="back" />
+        </ExamIconButton>
+      </div>
+      {onQuestions && (
+        <ExamIconButton label={collapseLabel} aria-expanded={!listCollapsed} onClick={() => setListCollapsed((value) => !value)}>
+          <ExamWorkspaceIcon name="sidebar" />
+        </ExamIconButton>
+      )}
+      <h1 className={styles.title}>{contest?.name || t("workspace.header.fallbackTitle", "考試")}</h1>
+      {preview ? (
+        <div className={styles.headerStatus}>
+          <span className={styles.modeChip}>{t("workspace.header.previewMode", "試作答")}</span>
+          <span className={styles.statusText}>{t("workspace.header.previewNotSaved", "不儲存答案")}</span>
+        </div>
+      ) : (
+        <div className={styles.headerActions}><RuntimeNavExtras showRefresh={!headerActions} />{headerActions}</div>
+      )}
+    </>
+  );
+
+  const rail = entries.map(({ id, label, icon }) => (
+    <ExamIconButton
+      key={id}
+      label={label}
+      tooltipPlacement="right"
+      className={styles.railButton}
+      aria-pressed={activePage === id}
+      onClick={() => selectPage(id)}
+    >
+      <ExamWorkspaceIcon name={icon} size={19} />
+    </ExamIconButton>
+  ));
+
+  const navigation = navigator && (
+    <ExamQuestionList
+      items={navigator.items}
+      activeIndex={navigator.activeIndex}
+      answeredIds={navigator.answeredIds}
+      markedIds={navigator.markedIds}
+      onSelect={navigator.onSelect}
+      collapsed={listCollapsed}
+    />
+  );
+
+  // The answer surface stays mounted while other pages are open so drafts and editor state survive.
+  const answerVisible = dashboard ? activePage === "overview" : onQuestions;
+  const showPanel = !onQuestions && !(dashboard && activePage === "overview");
+
+  return (
+    <ExamReviewSlotContext.Provider value={reviewSlot}>
+    <ExamShell header={header} rail={rail} navigation={navigation} showNavigation={onQuestions} navigationCollapsed={listCollapsed}>
+      <div className={styles.answerSurface} data-dashboard={dashboard} hidden={!answerVisible}>
+        {dashboard ? <div className={styles.pageInner} data-page="overview">{children}</div> : children}
+      </div>
+      {showPanel && (
+        <section className={styles.page} aria-label={entries.find((entry) => entry.id === activePage)?.label}>
+          <div className={styles.pageInner} data-page={activePage}>
+            <ExamWorkspacePanels
+              page={activePage}
+              onResume={() => selectPage("questions")}
+              onQuestion={openQuestion}
+              hasRecords={hasRecords}
+              recordsRef={setRecordsTarget}
+            />
+          </div>
+        </section>
+      )}
+    </ExamShell>
+    </ExamReviewSlotContext.Provider>
+  );
+}

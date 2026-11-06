@@ -565,6 +565,7 @@
     }
   },
   "workspaceTopNav": {
+    "resizeStatement": "Resize question pane",
     "adminConsole": "Admin console",
     "aiAssistant": "AI assistant",
     "backToContest": "Back to contest dashboard",

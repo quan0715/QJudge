@@ -20,3 +20,15 @@
     align-items: center;
   }
 }
+
+/* Exam workspace: controls sit inside the framed bar with even gaps. */
+[data-exam-shell] .result-toolbar {
+  padding-inline: 4px;
+  border-bottom-color: var(--ex-border);
+  background: var(--ex-surface);
+
+  &__modes,
+  &__actions { gap: 4px; }
+}
+[data-exam-shell] .result-panel--collapsed .result-toolbar,
+[data-exam-shell] .solver-layout__result--collapsed .result-toolbar { border-bottom: 0; }

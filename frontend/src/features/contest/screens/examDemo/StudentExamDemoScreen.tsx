@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import type { FC } from "react";
+import type { FC, ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Button,
@@ -23,13 +23,15 @@ import type { ExamPaperSection, ExamQuestion } from "@/core/entities/contest.ent
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import styles from "./StudentExamDemoScreen.module.scss";
+import workbenchStyles from "../paperExam/PaperExamAnswering.module.scss";
+import { CodingQuestionStepper } from "../../components/layout/CodingQuestionStepper";
 
 // The preview keeps its own answered marks; judging states are not shown here.
 const PREVIEW_JUDGE_STATUSES = {};
 
 const StudentExamDemoScreen: FC = () => {
   const navigate = useNavigate();
-  const { contestId } = useParams<{ contestId: string }>();
+  const { contestId, classroomId } = useParams<{ contestId: string; classroomId: string }>();
 
   const [contest, setContest] = useState<ContestDetail | null>(null);
   const [contestLoading, setContestLoading] = useState(true);
@@ -137,8 +139,8 @@ const StudentExamDemoScreen: FC = () => {
   }, []);
 
   const handleBack = useCallback(() => {
-    navigate(-1);
-  }, [navigate]);
+    navigate(`/classrooms/${classroomId}/contest/${contestId}`);
+  }, [navigate, classroomId, contestId]);
 
   const codingProblems = useMemo(
     () => [...(contest?.problems ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
@@ -155,7 +157,7 @@ const StudentExamDemoScreen: FC = () => {
   const statementNavigation = useCodingRuntimeNavigator(contest?.contestType === "coding" ? codingProblems : [], activeCodingProblem?.id, solvedIds, setSelectedCodingProblemId, PREVIEW_JUDGE_STATUSES);
 
   const renderItem = useCallback(
-    (item: ExamItem, index: number, mode: "single" | "all") => {
+    (item: ExamItem, index: number, mode: "single" | "all", footer?: ReactNode) => {
       if (item.kind === "question") {
         const presentation =
           mode === "single"
@@ -164,6 +166,8 @@ const StudentExamDemoScreen: FC = () => {
         const label = questionLabels.get(item.data.id);
         return (
           <ExamQuestionCard
+            layout="workspace"
+            footer={footer}
             question={item.data}
             group={presentation?.group}
             showGroupStem={presentation?.showGroupStem ?? false}
@@ -260,13 +264,14 @@ const StudentExamDemoScreen: FC = () => {
       <div className={styles.codingPreview}>
         <main className={styles.codingWorkspace}>
           <ProblemFullPageSolve
-        statementNavigation={statementNavigation}
+            statementNavigation={statementNavigation}
             key={activeCodingProblem.id}
             onAccepted={handleAccepted}
             problem={activeCodingProblemDetail}
             problemLabel={activeCodingProblem.label}
             contestId={contest.id}
             disableCopy={contest.cheatDetectionEnabled}
+            statementFooter={<CodingQuestionStepper />}
             renderSubmissions={() => (
               <ContestProblemSubmissions
                 contestId={contest.id}
@@ -292,10 +297,15 @@ const StudentExamDemoScreen: FC = () => {
     <PaperExamCore
       items={items}
       answeredIds={answeredIds}
-      styles={styles}
+      styles={workbenchStyles}
       renderItem={renderItem}
-      showToolbar={false}
+      workbench
       externalNavigator
+      showToolbar={false}
+      overviewLabel="返回競賽儀表板"
+      onSelectOverview={handleBack}
+      toolbarLeft={<span className={workbenchStyles.title}>{contest.name}</span>}
+      toolbarCenter={<span className={workbenchStyles.headerSaveStatus}>試作答 · 不儲存答案</span>}
     />
   );
 };

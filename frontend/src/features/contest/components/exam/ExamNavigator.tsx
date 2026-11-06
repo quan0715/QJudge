@@ -1,10 +1,10 @@
 import { type ComponentType, type FC, memo, useEffect, useRef } from "react";
+import { IconButton } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type { ExamItem } from "../../types/exam.types";
 import { Home, SidePanelClose, SidePanelOpen } from "@carbon/icons-react";
 import {
   ListPanel,
-  ListHeader,
   ListFooter,
   ListItem,
   ListItemContent,
@@ -13,6 +13,7 @@ import {
 } from "@/shared/ui/list/ListPanel";
 import { stripMarkdown } from "@/shared/utils/stringUtils";
 import { buildPaperQuestionLabels } from "../../domain/paperQuestionLabels";
+import { PanelHeader } from "@/shared/layout/PanelHeader";
 import styles from "./ExamNavigator.module.scss";
 
 interface ExamNavigatorProps {
@@ -69,27 +70,13 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
           footer={
             onToggleCollapse ? (
               <ListFooter className={styles.panelFooter}>
-                <button
-                  type="button"
-                  className={styles.panelToggle}
-                  onClick={onToggleCollapse}
-                  aria-label={t("answering.navigation.showList")}
-                  title={t("answering.navigation.showList")}
-                >
-                  <SidePanelClose size={20} />
-                </button>
+                <IconButton kind="ghost" size="sm" align="top-left" onClick={onToggleCollapse} label={t("answering.navigation.showList")}><SidePanelClose size={20} /></IconButton>
               </ListFooter>
             ) : null
           }
         >
           {onSelectOverview && (
-            <ListItem
-              size="compact"
-              onClick={onSelectOverview}
-              className={styles.miniOverviewItem}
-            >
-              <OverviewIcon size={18} />
-            </ListItem>
+            <div className={styles.miniOverviewItem}><IconButton kind="ghost" size="sm" align="right" label={overviewLabel ?? "返回競賽儀表板"} onClick={onSelectOverview}><OverviewIcon size={18}/></IconButton></div>
           )}
           {items.map((item, index) => {
             const id = item.kind === "coding" ? item.data.id : item.data.id;
@@ -124,20 +111,11 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
       <ListPanel
         className={styles.panel}
         header={!hideHeader ? (
-          <ListHeader
+          <PanelHeader
             title={t("answering.navigation.questionList")}
-            className={styles.panelHeader}
-            action={
+            actions={
               onToggleCollapse ? (
-                <button
-                  type="button"
-                  className={styles.panelToggle}
-                  onClick={onToggleCollapse}
-                  aria-label={t("answering.navigation.hideList")}
-                  title={t("answering.navigation.hideList")}
-                >
-                  <SidePanelOpen size={20} />
-                </button>
+                <IconButton kind="ghost" size="sm" align="bottom-right" onClick={onToggleCollapse} label={t("answering.navigation.hideList")}><SidePanelOpen size={20} /></IconButton>
               ) : null
             }
           />

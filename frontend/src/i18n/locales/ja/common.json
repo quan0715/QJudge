@@ -562,6 +562,7 @@
     }
   },
   "workspaceTopNav": {
+    "resizeStatement": "問題ペインの幅を調整",
     "adminConsole": "管理後台",
     "aiAssistant": "AI アシスタント",
     "backToContest": "コンテストダッシュボードに戻る",

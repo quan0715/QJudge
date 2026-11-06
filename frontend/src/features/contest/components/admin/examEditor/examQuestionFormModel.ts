@@ -335,11 +335,13 @@ export const DEFAULT_QUESTION_PAYLOADS: Record<
   },
   short_answer: {
     question_type: "short_answer",
+    answer_format: "open_document",
     prompt: DEFAULT_QUESTION_PROMPT,
     score: 5,
   },
   essay: {
     question_type: "essay",
+    answer_format: "open_document",
     prompt: DEFAULT_QUESTION_PROMPT,
     score: 5,
   },

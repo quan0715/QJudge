@@ -214,7 +214,9 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
-            if question.answer_format == ExamQuestionAnswerFormat.OPEN_DOCUMENT:
+            if question.answer_format == ExamQuestionAnswerFormat.OPEN_DOCUMENT or "document" in answer:
+                if question.question_type not in (ExamQuestionType.SHORT_ANSWER, ExamQuestionType.ESSAY):
+                    raise ValidationError({'answer': ['document is only supported for subjective questions']})
                 document = answer.get('document')
                 validate_open_answer_document(document)
                 serialized = json.dumps(document, ensure_ascii=False)

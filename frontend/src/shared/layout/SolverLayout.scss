@@ -73,17 +73,6 @@
     overflow: hidden;
   }
 
-  &__statement-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: layout.rem(48px);
-    min-height: layout.rem(48px);
-    border-bottom: 1px solid var(--cds-border-subtle-01);
-    flex-shrink: 0;
-    box-sizing: border-box;
-  }
-
   &__statement-tabs {
     display: flex;
     align-items: center;
@@ -126,3 +115,44 @@
 
   // Note: Scrollbar styles are now globally defined in styles/_scrollbar.scss
 }
+
+.solver-layout__resize-handle--horizontal:focus-visible {
+  outline: 2px solid var(--cds-focus);
+  outline-offset: 0;
+}
+
+.solver-layout__statement { max-width: calc(100% - 18.75rem); }
+.solver-layout__resize-handle--horizontal {
+  position: relative;
+  &::after { content: ""; position: absolute; inset: 0 -4px; }
+}
+
+
+.solver-layout[data-paper-workspace] .solver-layout__statement { background: var(--cds-background); }
+
+/* Each exam pane is an independent frame; the gutter also owns resizing. */
+[data-exam-shell] .solver-layout { background: transparent; --solver-gutter: var(--ex-gap); --solver-collapsed-gap: var(--ex-gap); }
+[data-exam-shell] .solver-layout__statement,
+[data-exam-shell] .solver-layout__editor,
+[data-exam-shell] .solver-layout__result {
+  border: 1px solid var(--ex-border);
+  border-radius: var(--ex-radius);
+  background: var(--ex-surface);
+  box-shadow: var(--ex-shadow);
+}
+[data-exam-shell] .solver-layout__statement { transition: none; }
+[data-exam-shell] .solver-layout__resize-handle { position: relative; background: transparent; }
+[data-exam-shell] .solver-layout__resize-handle--horizontal { width: var(--ex-gap); }
+[data-exam-shell] .solver-layout__resize-handle--vertical { height: var(--ex-gap); }
+[data-exam-shell] .solver-layout__resize-handle::before {
+  content: "";
+  position: absolute;
+  border-radius: 2px;
+  background: transparent;
+  transition: background 120ms ease;
+}
+[data-exam-shell] .solver-layout__resize-handle--horizontal::before { inset: 30% 3px; }
+[data-exam-shell] .solver-layout__resize-handle--vertical::before { inset: 3px 30%; }
+[data-exam-shell] .solver-layout__resize-handle:hover::before,
+[data-exam-shell] .solver-layout__resize-handle:focus-visible::before { background: var(--ex-border-strong); }
+[data-exam-shell] .solver-layout__result--collapsed { margin-top: var(--solver-collapsed-gap); }

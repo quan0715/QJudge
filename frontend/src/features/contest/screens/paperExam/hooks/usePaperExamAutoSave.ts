@@ -35,13 +35,13 @@ function unwrapDraftValue(answer: Record<string, unknown>): unknown {
 export function buildExamAnswerPayload(
   value: unknown,
   questionType?: ExamQuestionType,
-  answerFormat?: ExamQuestionAnswerFormat,
+  _answerFormat?: ExamQuestionAnswerFormat,
 ): ExamAnswerPayload {
   if (questionType && OBJECTIVE_TYPES.includes(questionType)) {
     return { selected: value };
   }
 
-  if (answerFormat === "open_document" && isOpenAnswerDocument(value)) {
+  if (isOpenAnswerDocument(value)) {
     return { document: value };
   }
 
