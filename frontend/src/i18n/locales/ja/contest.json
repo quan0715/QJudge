@@ -2372,5 +2372,9 @@
       "bottom": "下位 25%",
       "zero": "0 点"
     }
+  },
+  "gradeAppeal": {
+    "waitingForStaff": "教員の返信待ち",
+    "waitingForStudent": "受験者の返信待ち"
   }
 }

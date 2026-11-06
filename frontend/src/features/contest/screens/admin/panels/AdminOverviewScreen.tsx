@@ -510,7 +510,7 @@ export default function AdminOverviewScreen({
               }
               clarificationsContent={
                 <>
-                {contest.contestType === "paper_exam" && <GradeAppealsPanel contestId={contest.id} />}
+                {contest.contestType === "paper_exam" && <GradeAppealsPanel key={contest.id} contestId={contest.id} refreshKey={resultRefreshKey} />}
                 <ContestClarifications
                   contestId={contest.id}
                   mode="manage"

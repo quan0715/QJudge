@@ -2634,6 +2634,8 @@
     "title": "成績申訴",
     "statusClosed": "已結案",
     "statusOpen": "未結案",
+    "waitingForStaff": "等待教師回覆",
+    "waitingForStudent": "等待考生回覆",
     "currentScore": "目前成績",
     "refreshMessages": "重新整理留言",
     "openGrading": "前往批改",

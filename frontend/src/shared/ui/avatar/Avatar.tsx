@@ -1,4 +1,4 @@
-import type { FC } from "react";
+import { useState, type FC } from "react";
 import styles from "./Avatar.module.scss";
 
 export interface AvatarProps {
@@ -21,14 +21,16 @@ const sizeClassMap = {
  * 支援圖片 URL 顯示或首字母顯示（當無圖片時）
  */
 export const Avatar: FC<AvatarProps> = ({ name, url, size = "md" }) => {
+  const [failedUrl, setFailedUrl] = useState<string>();
   const initial = name?.charAt(0).toUpperCase() || "?";
   const sizeClass = sizeClassMap[size];
 
-  if (url) {
+  if (url && url !== failedUrl) {
     return (
       <img
         src={url}
         alt={name || "avatar"}
+        onError={() => setFailedUrl(url)}
         className={`${styles.avatar} ${sizeClass}`}
       />
     );
