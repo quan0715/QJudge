@@ -198,7 +198,16 @@ jobs:
 
       - name: Collect compose logs
         if: always() && env.QJ_DC != ''
-        run: $QJ_DC logs --no-color > integration.log
+        run: |
+          {
+            $QJ_DC ps --all || true
+            container_ids="$($QJ_DC ps --all --quiet)" || true
+            if [ -n "$container_ids" ]; then
+              docker inspect --format '{{.Name}} state={{.State.Status}} exit={{.State.ExitCode}} restarts={{.RestartCount}} health={{json .State.Health}}' $container_ids || true
+            fi
+            $QJ_DC logs --no-color --tail=200 || true
+          } > integration.log 2>&1
+          cat integration.log
 
       - name: Upload artifacts
         if: always()
