@@ -18,4 +18,13 @@ describe("ExamShell", () => {
     expect(screen.getByRole("textbox", { name: "答案" })).toBe(answer);
     expect(screen.queryByRole("complementary", { name: "考試輔助工具" })).not.toBeInTheDocument();
   });
+  it("locks page scrolling while mounted and restores it afterwards", () => {
+    document.body.style.overflow = "auto";
+    const { unmount } = render(<ExamShell header="考試" navigation="題目" navigationCollapsed={false}>內容</ExamShell>);
+    expect(document.documentElement.style.overflow).toBe("hidden");
+    expect(document.body.style.overflow).toBe("hidden");
+    unmount();
+    expect(document.documentElement.style.overflow).toBe("");
+    expect(document.body.style.overflow).toBe("auto");
+  });
 });

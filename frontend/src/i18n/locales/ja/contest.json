@@ -2429,7 +2429,12 @@
       "progress": "進捗",
       "resume": "解答へ進む",
       "durationDays": "{{days}} 日 {{hours}} 時間",
-      "durationHours": "{{hours}} 時間 {{minutes}} 分"
+      "durationHours": "{{hours}} 時間 {{minutes}} 分",
+      "remaining": "残り {{time}}",
+      "startsIn": "開始まで {{time}}",
+      "ended": "終了",
+      "timeProgress": "試験時間の進行状況",
+      "itemProgress": "{{done}} / {{total}} 問"
     },
     "announcements": {
       "title": "お知らせ",
@@ -2465,6 +2470,28 @@
       "student": "受験者",
       "solved": "正解",
       "score": "得点"
+    },
+    "report": {
+      "title": "解答状況",
+      "details": "詳細を見る",
+      "question": "第 {{label}} 問",
+      "points": "{{score}} / {{max}} 点",
+      "full": "満点",
+      "partial": "部分点",
+      "zero": "得点なし",
+      "answered": "解答済み",
+      "unanswered": "未解答",
+      "accepted": "正解",
+      "attempted": "不正解",
+      "classTitle": "クラスの成績",
+      "average": "クラス平均",
+      "you": "あなたの得点",
+      "aboveAverage": "平均より {{diff}} 点高い",
+      "belowAverage": "平均より {{diff}} 点低い",
+      "atAverage": "平均と同じ",
+      "distribution": "成績分布",
+      "people": "{{count}} 人",
+      "yourRange": "あなたの位置"
     }
   }
 }

@@ -15,7 +15,7 @@ const DEFAULT_TIME = "00:00:00";
 const pad = (value: number) => value.toString().padStart(2, "0");
 
 // Long windows read as "29d 06:44:21" instead of "702:44:21".
-const formatTime = (diffMs: number) => {
+export const formatCountdown = (diffMs: number) => {
   const totalSeconds = Math.max(0, Math.floor(diffMs / 1000));
   const days = Math.floor(totalSeconds / 86400);
   const hours = Math.floor((totalSeconds % 86400) / 3600);
@@ -62,7 +62,7 @@ export const useContestTimers = ({
       return;
     }
 
-    setTimeLeft(formatTime(diff));
+    setTimeLeft(formatCountdown(diff));
   }, [contest, enableMainCountdown, refreshContest]);
 
   useEffect(() => {

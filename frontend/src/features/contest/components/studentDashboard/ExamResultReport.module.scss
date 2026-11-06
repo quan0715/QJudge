@@ -1,0 +1,158 @@
+// Post-exam report on the exam overview; colours come from the exam shell's --ex-* tokens.
+
+// Hairline rules separate the report from the title above and the rules below.
+.report {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px 48px;
+  margin-bottom: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--ex-border);
+
+  // With the class average shared, answers and class standing sit side by side.
+  &[data-with-class="true"] { grid-template-columns: minmax(0, 3fr) minmax(240px, 2fr); }
+}
+
+// A column rule between the student's answers and the class.
+.report[data-with-class="true"] .standing {
+  padding-left: 48px;
+  border-left: 1px solid var(--ex-border);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+
+  h3 { margin: 0; color: var(--ex-text); font-size: 14px; font-weight: 600; }
+}
+
+.more {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  color: var(--ex-text-secondary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+
+  svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  &:hover { color: var(--ex-text); }
+  &:focus-visible { outline: 2px solid var(--ex-focus); outline-offset: 2px; border-radius: 4px; }
+}
+
+/* ---------- one tile per question ---------- */
+// Every tile has the same footprint, whatever the label, so the grid stays even.
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 52px);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tile,
+.legend i {
+  border: 1px solid transparent;
+  background: var(--ex-surface-muted);
+  color: var(--ex-text);
+
+  &[data-state="full"],
+  &[data-state="accepted"] { border-color: var(--ex-success); background: var(--ex-success); color: var(--ex-surface); }
+  &[data-state="partial"] { border-color: var(--ex-warning); background: var(--ex-warning-soft); color: var(--ex-text); }
+  &[data-state="zero"],
+  &[data-state="attempted"] { border-color: var(--ex-danger); background: var(--ex-danger-soft); color: var(--ex-danger); }
+  &[data-state="answered"] { border-color: var(--ex-text); background: var(--ex-text); color: var(--ex-surface); }
+  &[data-state="unanswered"] { border-style: dashed; border-color: var(--ex-border-strong); background: transparent; color: var(--ex-text-muted); }
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  // Two-digit numbers with a sub-question, e.g. "14(a)", shrink instead of widening the tile.
+  &[data-long="true"] { font-size: 11px; letter-spacing: -0.02em; }
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ex-text-muted);
+  font-size: 12px;
+
+  li { display: inline-flex; align-items: center; gap: 6px; }
+  i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+}
+
+/* ---------- class standing ---------- */
+.figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  margin: 0 0 18px;
+
+  dt { margin-bottom: 4px; color: var(--ex-text-muted); font-size: 12px; }
+  dd { margin: 0; color: var(--ex-text); font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  small { color: var(--ex-text-muted); font-size: 12.5px; font-weight: 400; letter-spacing: 0; }
+}
+
+.histogram {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 64px;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--ex-border);
+  list-style: none;
+
+  li { display: flex; flex: 1; align-items: flex-end; height: 100%; }
+  li > span:first-child { width: 100%; border-radius: 3px 3px 0 0; background: var(--ex-border-strong); }
+  // The student's own score band, in the same red pen as the grade.
+  li[data-own="true"] > span:first-child { background: var(--ex-ink); }
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  color: var(--ex-text-muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 41.98rem) {
+  .report[data-with-class="true"] { grid-template-columns: minmax(0, 1fr); }
+
+  .report[data-with-class="true"] .standing {
+    padding: 32px 0 0;
+    border-top: 1px solid var(--ex-border);
+    border-left: 0;
+  }
+}

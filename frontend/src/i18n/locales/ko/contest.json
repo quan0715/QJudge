@@ -2429,7 +2429,12 @@
       "progress": "진행률",
       "resume": "문제로 이동",
       "durationDays": "{{days}}일 {{hours}}시간",
-      "durationHours": "{{hours}}시간 {{minutes}}분"
+      "durationHours": "{{hours}}시간 {{minutes}}분",
+      "remaining": "남은 시간 {{time}}",
+      "startsIn": "시작까지 {{time}}",
+      "ended": "종료됨",
+      "timeProgress": "시험 시간 진행률",
+      "itemProgress": "{{done}} / {{total}} 문항"
     },
     "announcements": {
       "title": "공지",
@@ -2465,6 +2470,28 @@
       "student": "학생",
       "solved": "정답",
       "score": "점수"
+    },
+    "report": {
+      "title": "답안 현황",
+      "details": "자세히 보기",
+      "question": "{{label}}번 문항",
+      "points": "{{score}} / {{max}}점",
+      "full": "만점",
+      "partial": "부분 점수",
+      "zero": "0점",
+      "answered": "답안 제출",
+      "unanswered": "미응답",
+      "accepted": "통과",
+      "attempted": "미통과",
+      "classTitle": "반 성적",
+      "average": "반 평균",
+      "you": "내 점수",
+      "aboveAverage": "평균보다 {{diff}}점 높음",
+      "belowAverage": "평균보다 {{diff}}점 낮음",
+      "atAverage": "평균과 같음",
+      "distribution": "성적 분포",
+      "people": "{{count}}명",
+      "yourRange": "내 위치"
     }
   }
 }

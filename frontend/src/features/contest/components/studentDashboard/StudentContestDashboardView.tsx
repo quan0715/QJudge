@@ -12,9 +12,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { ScaleTypes } from "@carbon/charts";
-import { LollipopChart } from "@carbon/charts-react";
-import "@carbon/charts-react/styles.css";
 import { QRCodeSVG } from "@rc-component/qrcode";
 import {
   Button,
@@ -22,11 +19,10 @@ import {
   Modal,
   Select,
   SelectItem,
-  SkeletonPlaceholder,
 } from "@carbon/react";
 import {
   ArrowRight,
-  Document,
+  Download,
   Flag,
   Launch,
   Play,
@@ -56,17 +52,14 @@ import {
   type ExamAnswer,
   type ExamResults,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
-import { formatScore } from "@/features/contest/utils/scoreFormat";
+import { formatScore, formatScoreCompact } from "@/features/contest/utils/scoreFormat";
 import { MobileActionFooter } from "@/shared/ui/MobileActionFooter";
-import { useTheme } from "@/shared/ui/theme/ThemeContext";
-import { formatDate } from "@/shared/utils/format";
 import { useInterval } from "@/shared/hooks/useInterval";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { usePageHeaderActions } from "@/features/app/contexts/PageHeaderActionsContext";
 import {
   BlockHeader,
-  KPIBlock,
 } from "@/shared/components/dashboard";
 import { buildStudentLocatorQrValue } from "@/features/contest/attendance/attendanceQr";
 import { isContestParticipant } from "@/features/contest/domain/contestRuntimePolicy";
@@ -75,11 +68,15 @@ import { getMarkedQuestionIds } from "@/features/contest/screens/paperExam/hooks
 import { formatContestCompactDuration } from "@/features/contest/utils/contestTimeFormat";
 import {
   buildCodingProgressSummary,
+  buildCodingResultItems,
   buildPaperProgressSummary,
+  resolveResultTileState,
   resolveStudentContestPhase,
+  type StudentResultItem,
 } from "./studentDashboardState";
 import styles from "./StudentContestDashboard.module.scss";
 import { ExamOverviewLayout } from "../layout/ExamOverviewLayout";
+import { ExamResultReport, type ExamClassStanding, type ExamResultTile, type ExamResultTileState } from "./ExamResultReport";
 import { useExamReviewSlot } from "@/features/contest/contexts/ExamReviewSlotContext";
 import CodingAnswerRecords from "./CodingAnswerRecords";
 import PaperAnswerRecordsTable from "./PaperAnswerRecordsTable";
@@ -120,36 +117,9 @@ const QUESTION_TYPE_LABEL: Record<string, string> = {
   essay: "申論題",
 };
 
-const PASSING_SCORE_THRESHOLD_PERCENT = 60;
 const CONTEST_STATE_REFRESH_INTERVAL_MS = 30_000;
 
 
-const resolveCarbonChartTheme = (
-  theme: string,
-): "white" | "g10" | "g90" | "g100" => {
-  switch (theme) {
-    case "g10":
-    case "g90":
-    case "g100":
-    case "white":
-      return theme;
-    default:
-      return "white";
-  }
-};
-
-const getBucketUpperPercent = (label: string): number | null => {
-  const values = label.match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-  if (values.length === 0) return null;
-  return Math.max(...values);
-};
-
-const isFailingScoreBucket = (label: string) => {
-  const upperPercent = getBucketUpperPercent(label);
-  return (
-    upperPercent !== null && upperPercent < PASSING_SCORE_THRESHOLD_PERCENT
-  );
-};
 
 export default function StudentContestDashboard({
   contest,
@@ -164,7 +134,6 @@ export default function StudentContestDashboard({
   const { t: tc } = useTranslation("common");
   const navigate = useNavigate();
   const { classroomId } = useParams();
-  const { theme } = useTheme();
   const { user } = useAuth();
   const appealEnabled = contest.contestType === "paper_exam" && contest.resultsPublished;
   const { appeals, refresh: refreshAppeals } = useGradeAppeals(contest.id, !!appealEnabled);
@@ -205,8 +174,6 @@ export default function StudentContestDashboard({
     useState<PaperExamDashboardData>(EMPTY_PAPER_DATA);
   const [scoreSummary, setScoreSummary] =
     useState<ExamDashboardSummaryDto | null>(null);
-  const [scoreSummaryLoading, setScoreSummaryLoading] = useState(false);
-  const [scoreSummaryError, setScoreSummaryError] = useState<string | null>(null);
   const [paperReloadKey, setPaperReloadKey] = useState(0);
   const [markedQuestionIds, setMarkedQuestionIds] = useState<Set<string>>(
     () => getMarkedQuestionIds(contest.id),
@@ -381,37 +348,22 @@ export default function StudentContestDashboard({
 
   useEffect(() => {
     if (
-      contest.contestType !== "paper_exam" ||
+      // The class summary has the same shape for paper and coding exams.
       !participant ||
       !contest.resultsPublished
     ) {
       setScoreSummary(null);
-      setScoreSummaryLoading(false);
-      setScoreSummaryError(null);
       return;
     }
 
     let cancelled = false;
-    setScoreSummaryLoading(true);
-    setScoreSummaryError(null);
     void (async () => {
       try {
         const summary = await getExamDashboardSummary(contest.id);
-        if (cancelled) return;
-        setScoreSummary(summary);
-      } catch (error) {
-        if (cancelled) return;
-        setScoreSummary(null);
-        setScoreSummaryError(
-          error instanceof Error
-            ? error.message
-            : tr(
-                "studentDashboard.errors.scoreDistributionLoadFailed",
-                "成績分布暫時無法載入",
-              ),
-        );
-      } finally {
-        if (!cancelled) setScoreSummaryLoading(false);
+        if (!cancelled) setScoreSummary(summary);
+      } catch {
+        // Without the summary the overview simply leaves out the class standing.
+        if (!cancelled) setScoreSummary(null);
       }
     })();
 
@@ -437,12 +389,56 @@ export default function StudentContestDashboard({
     return buildCodingProgressSummary(contest);
   }, [contest, paperData]);
 
-  const progressPercent =
-    progressSummary.totalItems > 0
-      ? Math.round(
-          (progressSummary.completedItems / progressSummary.totalItems) * 100,
-        )
-      : 0;
+  // After submission the overview reads like a report card: one tile per question.
+  const reportMode =
+    participant &&
+    hasAnswerRecord &&
+    (phase === "after" || examStatus === "submitted") &&
+    // A failed answer load must not paint every question as unanswered.
+    !(contest.contestType === "paper_exam" && (paperData.loading || paperData.error));
+  // Both exam types reduce to the same items, so the report reads one way for either.
+  const resultItems = useMemo<StudentResultItem[]>(() => {
+    if (contest.contestType !== "paper_exam") return buildCodingResultItems(contest);
+    const labels = buildPaperQuestionLabels(paperData.questions);
+    const results = new Map((paperData.results?.answers ?? []).map((result) => [String(result.questionId), result]));
+    const answers = new Map(paperData.answers.map((answer) => [String(answer.questionId), answer]));
+    return paperData.questions.map((question, index) => {
+      const id = String(question.id);
+      const result = results.get(id);
+      return {
+        key: id,
+        label: labels.get(question.id)?.label ?? String(index + 1),
+        answered: !!(result?.answer ?? answers.get(id)?.answer),
+        score: contest.resultsPublished ? result?.effectiveScore ?? result?.score ?? null : null,
+        maxScore: result?.effectiveMaxScore ?? question.score ?? result?.maxScore ?? 0,
+      };
+    });
+  }, [contest, paperData]);
+  const resultTiles = useMemo<ExamResultTile[]>(() => {
+    const stateLabel: Record<ExamResultTileState, string> = {
+      full: t("workspace.report.full", "滿分"),
+      partial: t("workspace.report.partial", "部分得分"),
+      zero: t("workspace.report.zero", "未得分"),
+      answered: t("workspace.report.answered", "已作答"),
+      unanswered: t("workspace.report.unanswered", "未作答"),
+      accepted: t("workspace.report.accepted", "已通過"),
+      attempted: t("workspace.report.attempted", "未通過"),
+    };
+    return resultItems.map((item) => {
+      const state = resolveResultTileState(item);
+      return {
+        key: item.key,
+        label: item.label,
+        state,
+        detail: item.answered && item.score !== null
+          ? t("workspace.report.points", `${formatScoreCompact(item.score)} / ${formatScoreCompact(item.maxScore)} 分`, {
+              score: formatScoreCompact(item.score),
+              max: formatScoreCompact(item.maxScore),
+            })
+          : stateLabel[state],
+      };
+    });
+  }, [resultItems, t]);
 
   const canStartExam =
     participant &&
@@ -482,6 +478,28 @@ export default function StudentContestDashboard({
     contest.contestType === "paper_exam" && paperData.loading
       ? t("studentDashboard.loading", "載入中...")
       : scoreDisplay;
+  const gradeMark =
+    phase === "after" &&
+    contest.resultsPublished &&
+    progressSummary.totalScore !== null &&
+    !(contest.contestType === "paper_exam" && paperData.loading)
+      ? {
+          score: formatScoreCompact(progressSummary.totalScore),
+          max: formatScoreCompact(progressSummary.maxScore),
+          label: t("studentDashboard.summary.examResult", "考試成績"),
+        }
+      : undefined;
+  // Placeholder for the teacher's "share class average" setting; the report is laid out for both cases.
+  const showClassAverage = true;
+  const classStanding: ExamClassStanding | undefined =
+    showClassAverage && contest.resultsPublished && scoreSummary
+      ? {
+          average: scoreSummary.summary.average_score,
+          max: scoreSummary.summary.max_total_score,
+          score: progressSummary.totalScore,
+          distribution: scoreSummary.score_distribution.map((bucket) => bucket.count),
+        }
+      : undefined;
   const reportDownloadLabel = contest.resultsPublished
     ? t("studentDashboard.actions.downloadReport", "下載成績單")
     : t("studentDashboard.actions.downloadProof", "下載作答證明");
@@ -491,56 +509,6 @@ export default function StudentContestDashboard({
     Number.isFinite(startMs) && Number.isFinite(endMs)
       ? formatContestCompactDuration(endMs - startMs)
       : "-";
-  const chartTheme = resolveCarbonChartTheme(theme);
-  const scoreDistributionData = useMemo(
-    () =>
-      scoreSummary
-        ? scoreSummary.score_distribution.map((bucket) => ({
-            group: bucket.range_label,
-            value: bucket.count,
-          }))
-        : [],
-    [scoreSummary],
-  );
-  const hasScoreDistributionData = scoreDistributionData.some(
-    (item) => item.value > 0,
-  );
-  const scoreDistributionOptions = useMemo(
-    () => ({
-      title: "",
-      height: "180px",
-      theme: chartTheme,
-      toolbar: { enabled: false },
-      legend: { enabled: false },
-      axes: {
-        left: {
-          mapsTo: "group",
-          scaleType: ScaleTypes.LABELS,
-          visible: false,
-        },
-        bottom: {
-          mapsTo: "value",
-          scaleType: ScaleTypes.LINEAR,
-          visible: false,
-        },
-      },
-      grid: {
-        x: { enabled: false },
-        y: { enabled: false },
-      },
-      color: {
-        scale: (scoreSummary?.score_distribution ?? []).reduce<
-          Record<string, string>
-        >((acc, bucket) => {
-          acc[bucket.range_label] = isFailingScoreBucket(bucket.range_label)
-            ? "var(--cds-support-error)"
-            : "var(--cds-link-primary)";
-          return acc;
-        }, {}),
-      },
-    }),
-    [chartTheme, scoreSummary?.score_distribution],
-  );
 
   const handleDownloadReport = async () => {
     setReportError(null);
@@ -626,7 +594,7 @@ export default function StudentContestDashboard({
     return (
       <Button
         kind="ghost"
-        renderIcon={Document}
+        renderIcon={Download}
         onClick={() => setShowReportModal(true)}
       >
         {reportDownloadLabel}
@@ -872,43 +840,6 @@ export default function StudentContestDashboard({
         }
       />}
       {contest.contestType === "paper_exam" ? renderPaperRecords() : renderCodingRecords()}
-{contest.resultsPublished && contest.contestType === "paper_exam" ? (
-            <KPIBlock
-              title={t("studentDashboard.summary.scoreDistribution", "成績分布")}
-              value={
-                scoreSummary
-                  ? tr(
-                      "studentDashboard.summary.averageScore",
-                      "平均 {{average}} / {{max}}",
-                      {
-                        average: formatScore(scoreSummary.summary.average_score),
-                        max: formatScore(scoreSummary.summary.max_total_score),
-                      },
-                    )
-                  : "—"
-              }
-            >
-              <div className={styles.scoreDistributionChart}>
-                {scoreSummaryLoading ? (
-                  <SkeletonPlaceholder className={styles.chartSkeleton} />
-                ) : scoreSummaryError ? (
-                  <p className={styles.emptyText}>{scoreSummaryError}</p>
-                ) : hasScoreDistributionData ? (
-                  <LollipopChart
-                    data={scoreDistributionData}
-                    options={scoreDistributionOptions}
-                  />
-                ) : (
-                  <p className={styles.emptyText}>
-                    {t(
-                      "studentDashboard.empty.noScoreDistribution",
-                      "尚無成績分布資料。",
-                    )}
-                  </p>
-                )}
-              </div>
-            </KPIBlock>
-          ) : null}
     </section>
   );
 
@@ -917,23 +848,40 @@ export default function StudentContestDashboard({
     {appealEnabled && appealTarget && <GradeAppealDialog key={appealTarget.answerId} contestId={contest.id} answerId={appealTarget.answerId} appealId={appealTarget.appealId} questionPrompt={appealTarget.prompt} questionLabel={appealTarget.label} managing={false} onClose={() => { setAppealTarget(null); setPaperReloadKey(k => k + 1); }} onChanged={() => void refreshAppeals()} />}
     <ExamOverviewLayout
       ariaLabel={t("studentDashboard.ariaLabel", "學生競賽首頁")}
-      kicker={<>{contest.contestType === "coding" ? t("workspace.overview.coding", "程式考試") : t("workspace.overview.paper", "考卷考試")}{progressSummary.totalItems > 0 && <> · {t("workspace.overview.questionCount", `${progressSummary.totalItems} 題`, { count: progressSummary.totalItems })}</>}</>}
       title={contest.name}
       description={contest.description || t("workspace.overview.defaultDescription", "請閱讀考試資訊，準備好後即可進入作答。")}
       rules={contest.rules?.trim() ? { title: t("workspace.overview.rules", "應試規則"), body: contest.rules } : null}
-      facts={[
-        { key: "start", label: t("studentDashboard.metrics.startTime", "開始時間"), value: formatDate(contest.startTime, { includeSeconds: false }) },
-        { key: "end", label: t("studentDashboard.metrics.endTime", "截止時間"), value: formatDate(contest.endTime, { includeSeconds: false }) },
-        { key: "duration", label: t("studentDashboard.metrics.duration", "總時長"), value: durationDisplay },
-        { key: "progress", label: t("studentDashboard.summary.completionRate", "完成率"), value: `${progressPercent}%` },
-        ...(phase === "after"
-          ? [{
-              key: "result",
-              label: contest.resultsPublished ? t("studentDashboard.summary.examResult", "考試成績") : t("studentDashboard.summary.examStatus", "考試狀態"),
-              value: contest.resultsPublished ? afterPhaseValue : t("studentDashboard.results.waitingPublish", "等待成績發布"),
-            }]
-          : []),
-      ]}
+      schedule={{
+        startTime: contest.startTime,
+        endTime: contest.endTime,
+        duration: durationDisplay,
+        serverTimeOffsetMs: contest.serverTimeOffsetMs,
+      }}
+      // The question count stays hidden until the student has started.
+      progress={!reportMode && hasAnswerRecord && progressSummary.totalItems > 0 ? {
+        done: progressSummary.completedItems,
+        total: progressSummary.totalItems,
+        label: contest.contestType === "coding"
+          ? t("workspace.status.accepted", "已通過")
+          : t("workspace.status.answered", "已作答"),
+      } : undefined}
+      grade={gradeMark}
+      report={reportMode ? (
+        <ExamResultReport
+          tiles={resultTiles}
+          classStanding={classStanding}
+          onOpenDetails={reviewSlot?.openReview}
+          formatScore={formatScoreCompact}
+        />
+      ) : undefined}
+      facts={phase === "after" ? [
+        // The red-pen grade replaces this figure once there is a score to mark.
+        ...(gradeMark ? [] : [{
+          key: "result",
+          label: contest.resultsPublished ? t("studentDashboard.summary.examResult", "考試成績") : t("studentDashboard.summary.examStatus", "考試狀態"),
+          value: contest.resultsPublished ? afterPhaseValue : t("studentDashboard.results.waitingPublish", "等待成績發布"),
+        }]),
+      ] : []}
       actions={!showMobileActionFooter ? (
         <>
           {renderStudentQrNavbarAction()}

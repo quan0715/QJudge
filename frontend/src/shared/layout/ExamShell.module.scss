@@ -23,6 +23,8 @@
   --ex-warning-soft: #fbf0dc;
   --ex-danger: #c03a28;
   --ex-danger-soft: #fbe9e6;
+  /* Teacher red pen: the published grade, never errors. */
+  --ex-ink: #d42b2b;
   --ex-focus: #3b6fd6;
   --ex-shadow: 0 1px 2px rgb(16 24 40 / 4%);
   --ex-tooltip: #2a2e35;
@@ -49,6 +51,7 @@
   --ex-warning-soft: #2c2213;
   --ex-danger: #f17b68;
   --ex-danger-soft: #2f1814;
+  --ex-ink: #ff7466;
   --ex-focus: #7fa6ff;
   --ex-shadow: none;
   --ex-tooltip: #e7e9ec;
@@ -101,9 +104,11 @@
   --cds-focus: var(--ex-focus);
   --cds-border-interactive: var(--ex-text);
 
+  /* Pinned to the viewport so nothing outside the shell can scroll it away. */
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  height: 100dvh;
   min-width: 0;
   overflow: hidden;
   background: var(--ex-canvas);
@@ -142,6 +147,22 @@
   align-items: center;
   gap: 4px;
   padding-top: 4px;
+}
+
+.railFooter {
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  padding-bottom: 8px;
+
+  // The account trigger is sized for the app header; in the rail it matches the rail buttons.
+  :global(.user-menu-trigger) {
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 8px;
+  }
 }
 
 .navigation {

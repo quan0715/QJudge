@@ -3,7 +3,9 @@ import type {
   ExamQuestion,
   ExamStatusType,
 } from "@/core/entities/contest.entity";
+import type { ContestProblemSummary } from "@/core/entities/contest.entity";
 import { getContestState } from "@/core/entities/contest.entity";
+import type { ExamResultTileState } from "./ExamResultReport";
 
 export type StudentContestPhase = "before" | "during" | "after";
 
@@ -63,9 +65,49 @@ export const buildCodingProgressSummary = (
     totalItems,
     completedItems,
     attemptedItems,
-    totalScore: null,
+    // Like paper exams, the total appears once results are published.
+    totalScore: contest.resultsPublished
+      ? contest.problems.reduce((sum, problem) => sum + codingProblemScore(problem), 0)
+      : null,
     maxScore,
   };
+};
+
+/** A problem's points by the scoreboard's rule: accepted earns full marks, otherwise the best submission. */
+export const codingProblemScore = (problem: ContestProblemSummary): number =>
+  problem.userStatus === "AC" ? problem.maxScore ?? 0 : problem.userScore ?? 0;
+
+/** One question or problem, reduced to what the post-exam report needs whatever the exam type. */
+export interface StudentResultItem {
+  key: string;
+  label: string;
+  answered: boolean;
+  /** Earned points once results are published; null before. */
+  score: number | null;
+  maxScore: number;
+  /** Judge verdict, known before publishing; paper answers have none. */
+  accepted?: boolean;
+}
+
+export const buildCodingResultItems = (contest: ContestDetail): StudentResultItem[] =>
+  [...contest.problems]
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((problem) => ({
+      key: problem.id,
+      label: problem.label,
+      answered: !!problem.userStatus,
+      score: contest.resultsPublished && problem.userStatus ? codingProblemScore(problem) : null,
+      maxScore: problem.maxScore ?? 0,
+      accepted: problem.userStatus === "AC",
+    }));
+
+export const resolveResultTileState = (item: StudentResultItem): ExamResultTileState => {
+  if (!item.answered) return "unanswered";
+  if (item.score !== null) {
+    return item.maxScore > 0 && item.score >= item.maxScore ? "full" : item.score > 0 ? "partial" : "zero";
+  }
+  if (item.accepted !== undefined) return item.accepted ? "accepted" : "attempted";
+  return "answered";
 };
 
 type PaperProgressAnswer = {

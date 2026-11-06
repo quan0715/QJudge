@@ -8,6 +8,8 @@ export interface ExamReviewSlot {
   /** Element on the review page to portal records into; null while that page is closed. */
   target: HTMLElement | null;
   setHasRecords: (hasRecords: boolean) => void;
+  /** Opens the review page, where each question's answer, grade and appeals live. */
+  openReview: () => void;
 }
 
 export const ExamReviewSlotContext = createContext<ExamReviewSlot | null>(null);

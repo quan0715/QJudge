@@ -180,8 +180,12 @@
   p { margin: 0 0 12px; }
   p:last-child { margin-bottom: 0; }
   a { color: var(--ex-text); text-decoration: underline; text-underline-offset: 3px; }
+  /* Carbon resets list markers; restore them so the list indent holds the numbers. */
   ul, ol { margin: 0 0 12px; padding-left: 1.4em; }
-  li { list-style: revert; }
+  ul { list-style: disc; }
+  ol { list-style: decimal; }
+  li { display: list-item; }
+  li::marker { color: var(--ex-text-muted); }
   code { padding: 1px 5px; border-radius: 4px; background: var(--ex-surface-muted); font-size: 0.9em; }
 }
 
@@ -282,7 +286,94 @@
   flex-direction: column;
 }
 
-.hero { padding-block: 16px 40px; }
+.hero { position: relative; padding-block: 16px 40px; }
+
+/* Leave the paper's top-right corner to the grade. */
+.hero[data-graded="true"] > .heroTitle,
+.hero[data-graded="true"] > .prose { max-width: min(720px, calc(100% - 240px)); }
+
+/* ---------- grade: the score in red pen, ruled off twice ---------- */
+.grade {
+  position: absolute;
+  top: 12px;
+  right: 0;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  color: var(--ex-ink);
+  transform: rotate(-4deg);
+  transform-origin: right center;
+}
+
+.gradeFigure {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding-inline: 4px;
+  animation: grade-press 240ms ease-out 200ms both;
+}
+
+.gradeScore {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 64px;
+  font-style: italic;
+  font-weight: 600;
+  font-variant-numeric: lining-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.gradeMax {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.gradeRule {
+  width: 100%;
+  height: 16px;
+  margin-top: 2px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2.6;
+  stroke-dasharray: 1;
+  vector-effect: non-scaling-stroke;
+
+  path { vector-effect: non-scaling-stroke; animation: grade-draw 280ms ease-out both; }
+  path:first-child { animation-delay: 520ms; }
+  path:last-child { animation-delay: 760ms; }
+}
+
+@keyframes grade-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes grade-press {
+  from { opacity: 0; transform: scale(1.3); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gradeFigure, .gradeRule path { animation: none; }
+}
+
+@media (max-width: 41.98rem) {
+  .hero[data-graded="true"] > .heroTitle,
+  .hero[data-graded="true"] > .prose { max-width: none; }
+
+  .grade {
+    position: relative;
+    top: 0;
+    float: right;
+    margin: 0 0 8px 16px;
+  }
+
+  .gradeScore { font-size: 46px; }
+  .gradeMax { font-size: 13px; }
+}
 
 .kicker {
   color: var(--ex-text-muted);
@@ -309,18 +400,133 @@
   h3 { margin: 0 0 10px; color: var(--ex-text); font-size: 14px; font-weight: 600; }
 }
 
+.rulesAfterReport { margin-bottom: 40px; padding-top: 32px; border-top: 1px solid var(--ex-border); }
+.rulesAfterReport > .rules { margin-top: 0; }
+
 .overviewFooter {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
   gap: 24px;
   margin-top: auto;
   padding-top: 24px;
   border-top: 1px solid var(--ex-border);
 }
 
+.overviewSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px 36px;
+}
+
+/* Exam window timeline: start → now → end. */
+.schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ex-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.scheduleHead,
+.scheduleEnds {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.scheduleStatus { color: var(--ex-text); font-size: 13.5px; font-weight: 600; }
+
+.scheduleTrack {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--ex-surface-muted);
+  box-shadow: inset 0 0 0 1px var(--ex-border);
+}
+
+.scheduleFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background: var(--ex-text);
+  transition: width 400ms linear;
+}
+
+/* While the exam runs, a sheen travels along the elapsed time and the "now" mark breathes. */
+.scheduleTrack[data-running="true"] {
+  .scheduleFill::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ex-surface) 45%, transparent), transparent);
+    transform: translateX(-100%);
+    animation: schedule-sheen 2.8s ease-in-out infinite;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: var(--schedule-now);
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--ex-surface);
+    border-radius: 50%;
+    background: var(--ex-text);
+    transform: translate(-50%, -50%);
+    animation: schedule-now 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes schedule-sheen {
+  to { transform: translateX(100%); }
+}
+
+@keyframes schedule-now {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ex-text) 35%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--ex-text) 0%, transparent); }
+}
+
+/* Answering progress: a ring, so it never reads as a second timeline. */
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progressRing {
+  width: 40px;
+  height: 40px;
+  transform: rotate(-90deg);
+}
+
+.progressRingTrack { fill: none; stroke: var(--ex-border); stroke-width: 3.5; }
+.progressRingValue { fill: none; stroke: var(--ex-success); stroke-width: 3.5; stroke-linecap: round; transition: stroke-dashoffset 300ms ease; }
+.progressLabel { margin-bottom: 4px; color: var(--ex-text-muted); font-size: 11.5px; }
+.progressValue { color: var(--ex-text); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .scheduleFill, .progressRingValue { transition: none; }
+  .scheduleTrack[data-running="true"] .scheduleFill::before,
+  .scheduleTrack[data-running="true"]::after { animation: none; }
+}
+
 .overview[data-has-details="true"] .overviewFooter { margin-top: 0; }
-.overviewActions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* Long rules scroll under the footer: the schedule, progress and actions stay in view. */
+/* Sticky insets stop at the panel padding, so the footer reaches past it to the panel edge. */
+.overview:not([data-has-details="true"]) .overviewFooter {
+  position: sticky;
+  z-index: 1;
+  bottom: -48px;
+  margin-bottom: -48px;
+  padding-bottom: 48px;
+  background: var(--ex-surface);
+}
+.overviewActions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
 .overviewDetails { margin-top: 40px; }
 
 .facts {

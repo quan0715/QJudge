@@ -4,10 +4,11 @@ import { useTranslation } from "react-i18next";
 import { ExamShell } from "@/shared/layout/ExamShell";
 import { usePageHeaderActionsSlot } from "@/features/app/contexts/PageHeaderActionsContext";
 import { RuntimeNavExtras } from "@/features/app/components/workspace/WorkspaceTopNav";
+import { UserMenu } from "@/features/app/components/UserMenu";
 import { useContest } from "../../contexts/ContestContext";
 import { useContestRuntimeNavigator } from "../../contexts/useContestRuntimeNavigator";
 import { ExamReviewSlotContext } from "../../contexts/ExamReviewSlotContext";
-import { isContestParticipant } from "../../domain/contestRuntimePolicy";
+import { isContestParticipant, shouldLockContestWorkspaceNavigation } from "../../domain/contestRuntimePolicy";
 import { resolveStudentContestPhase } from "../studentDashboard/studentDashboardState";
 import { ExamQuestionList } from "./ExamQuestionList";
 import { ExamIconButton } from "./ExamIconButton";
@@ -39,24 +40,27 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
   const navigate = useNavigate();
   const { classroomId, contestId } = useParams();
   const headerActions = usePageHeaderActionsSlot();
+  const contestPath = `/classrooms/${classroomId}/contest/${contestId}`;
   const [page, setPage] = useState<ExamWorkspacePage>(dashboard ? "overview" : "questions");
   const [listCollapsed, setListCollapsed] = useState(isNarrowViewport);
 
   const [recordsTarget, setRecordsTarget] = useState<HTMLElement | null>(null);
   const [hasRecords, setHasRecords] = useState(false);
-  const reviewSlot = useMemo(() => ({ target: recordsTarget, setHasRecords }), [recordsTarget]);
+  const reviewSlot = useMemo(() => ({ target: recordsTarget, setHasRecords, openReview: () => setPage("review") }), [recordsTarget]);
 
   // Same rule as the formal overview: live scoreboard, or the full board after the exam when permitted.
   const canSeeStandings = contest?.contestType === "coding" && (
     !!contest.scoreboardVisibleDuringContest ||
     (!preview && isContestParticipant(contest) && resolveStudentContestPhase(contest) === "after" && !!contest.permissions?.canViewFullScoreboard)
   );
+  // Once the exam is over or submitted there is nothing left to answer, so the questions entry goes.
+  const canAnswer = preview || !contest || resolveStudentContestPhase(contest) !== "after";
   const activePage: ExamWorkspacePage = page === "standings" && !canSeeStandings ? "overview" : page;
   const onQuestions = activePage === "questions";
 
   const entries: RailEntry[] = [
     { id: "overview", label: t("workspace.rail.overview", "考試概覽"), icon: "overview" },
-    { id: "questions", label: t("workspace.rail.questions", "題目"), icon: "questions" },
+    ...(canAnswer ? [{ id: "questions" as const, label: t("workspace.rail.questions", "題目"), icon: "questions" as const }] : []),
     { id: "announcements", label: t("workspace.rail.announcements", "公告"), icon: "announcements" },
     { id: "review", label: t("workspace.rail.review", "作答檢查"), icon: "review" },
     ...(canSeeStandings ? [{ id: "standings" as const, label: t("workspace.rail.standings", "排行榜"), icon: "standings" as const }] : []),
@@ -70,7 +74,7 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
     }
     // The formal overview holds the end-exam action; only the teacher preview keeps a local one.
     if (!dashboard && !preview && next === "overview") {
-      navigate(`/classrooms/${classroomId}/contest/${contestId}`);
+      navigate(contestPath);
       return;
     }
     // The questions entry always brings the list back.
@@ -87,12 +91,17 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
     ? t("workspace.header.expandList", "展開題目列表")
     : t("workspace.header.collapseList", "收合題目列表");
 
+  // Only a proctored attempt in progress keeps the student inside the exam.
+  const canLeave = preview || !(contest?.cheatDetectionEnabled && shouldLockContestWorkspaceNavigation(contest));
+
   const header = (
     <>
       <div className={styles.headerLead}>
-        <ExamIconButton label={t("workspace.header.back", "返回課程")} onClick={() => navigate(`/classrooms/${classroomId}`)}>
-          <ExamWorkspaceIcon name="back" />
-        </ExamIconButton>
+        {canLeave && (
+          <ExamIconButton label={t("workspace.header.back", "返回課程")} onClick={() => navigate(`/classrooms/${classroomId}`)}>
+            <ExamWorkspaceIcon name="back" />
+          </ExamIconButton>
+        )}
       </div>
       {onQuestions && (
         <ExamIconButton label={collapseLabel} aria-expanded={!listCollapsed} onClick={() => setListCollapsed((value) => !value)}>
@@ -111,6 +120,10 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
     </>
   );
 
+  // Settings only, so language and theme change without leaving the exam; the full menu
+  // panel is anchored to the top-right header and would open far from the rail.
+  const accountMenu = <UserMenu settingsOnly />;
+
   const rail = entries.map(({ id, label, icon }) => (
     <ExamIconButton
       key={id}
@@ -118,6 +131,7 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
       tooltipPlacement="right"
       className={styles.railButton}
       aria-pressed={activePage === id}
+      data-page={id}
       onClick={() => selectPage(id)}
     >
       <ExamWorkspaceIcon name={icon} size={19} />
@@ -144,7 +158,7 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
 
   return (
     <ExamReviewSlotContext.Provider value={reviewSlot}>
-    <ExamShell header={header} rail={rail} navigation={navigation} showNavigation={onQuestions} navigationCollapsed={listCollapsed}>
+    <ExamShell header={header} rail={rail} railFooter={accountMenu} navigation={navigation} showNavigation={onQuestions} navigationCollapsed={listCollapsed}>
       <div className={styles.answerSurface} data-dashboard={dashboard} hidden={!answerVisible}>
         {dashboard ? <div className={styles.pageInner} data-page="overview">{children}</div> : children}
       </div>

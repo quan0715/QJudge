@@ -73,25 +73,22 @@ function StatusPill({ tone, children }: { tone: "neutral" | "success" | "warning
 function OverviewPanel({ contest, onResume }: { contest: ContestDetail; onResume?: () => void }) {
   const { t } = useTranslation("contest");
   const navigator = useContestRuntimeNavigator();
-  const items = navigator?.items ?? [];
-  const total = items.length || contest.problems?.length || 0;
+  const total = navigator?.items.length || contest.problems?.length || 0;
   const answered = navigator?.answeredIds.size ?? 0;
-  const maxScore = items.reduce((sum, item) => sum + (item.kind === "coding" ? item.data.maxScore ?? 0 : item.data.score ?? 0), 0);
   const durationMinutes = Math.max(0, Math.round((Date.parse(contest.endTime) - Date.parse(contest.startTime)) / 60000));
-  const typeLabel = contest.contestType === "coding" ? t("workspace.overview.coding", "程式考試") : t("workspace.overview.paper", "考卷考試");
 
+  // Mirrors the student overview, which shows no question count above the title.
   return (
     <ExamOverviewLayout
-      kicker={<>{typeLabel} · {t("workspace.overview.questionCount", `${total} 題`, { count: total })}{maxScore > 0 && <> · {t("workspace.overview.totalScore", `共 ${formatScore(maxScore)} 分`, { score: formatScore(maxScore) })}</>}</>}
       title={contest.name}
       description={contest.description || t("workspace.overview.defaultDescription", "請閱讀考試資訊，準備好後即可進入作答。")}
       rules={contest.rules ? { title: t("workspace.overview.rules", "應試規則"), body: contest.rules } : null}
-      facts={[
-        { key: "start", label: t("workspace.overview.start", "開始時間"), value: formatWhen(contest.startTime) },
-        { key: "end", label: t("workspace.overview.end", "截止時間"), value: formatWhen(contest.endTime) },
-        { key: "duration", label: t("workspace.overview.duration", "作答時長"), value: formatDuration(durationMinutes, t) },
-        { key: "progress", label: t("workspace.overview.progress", "作答進度"), value: `${answered} / ${total}` },
-      ]}
+      schedule={{ startTime: contest.startTime, endTime: contest.endTime, duration: formatDuration(durationMinutes, t) }}
+      progress={total > 0 ? {
+        done: answered,
+        total,
+        label: contest.contestType === "coding" ? t("workspace.status.accepted", "已通過") : t("workspace.status.answered", "已作答"),
+      } : undefined}
       actions={onResume && (
         <button type="button" className={styles.primaryButton} onClick={onResume}>
           {t("workspace.overview.resume", "進入作答")}

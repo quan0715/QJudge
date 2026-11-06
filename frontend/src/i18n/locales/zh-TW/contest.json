@@ -2818,7 +2818,12 @@
       "progress": "作答進度",
       "resume": "進入作答",
       "durationDays": "{{days}} 天 {{hours}} 小時",
-      "durationHours": "{{hours}} 小時 {{minutes}} 分"
+      "durationHours": "{{hours}} 小時 {{minutes}} 分",
+      "remaining": "剩餘 {{time}}",
+      "startsIn": "距離開始 {{time}}",
+      "ended": "已結束",
+      "timeProgress": "考試時間進度",
+      "itemProgress": "{{done}} / {{total}} 題"
     },
     "announcements": {
       "title": "公告",
@@ -2854,6 +2859,28 @@
       "student": "學生",
       "solved": "通過",
       "score": "分數"
+    },
+    "report": {
+      "title": "作答情況",
+      "details": "查看詳情",
+      "question": "第 {{label}} 題",
+      "points": "{{score}} / {{max}} 分",
+      "full": "滿分",
+      "partial": "部分得分",
+      "zero": "未得分",
+      "answered": "已作答",
+      "unanswered": "未作答",
+      "accepted": "已通過",
+      "attempted": "未通過",
+      "classTitle": "班級表現",
+      "average": "班平均",
+      "you": "你的分數",
+      "aboveAverage": "高於平均 {{diff}} 分",
+      "belowAverage": "低於平均 {{diff}} 分",
+      "atAverage": "與平均相同",
+      "distribution": "成績分布",
+      "people": "{{count}} 人",
+      "yourRange": "你在這裡"
     }
   }
 }

@@ -2821,7 +2821,12 @@
       "progress": "Progress",
       "resume": "Go to questions",
       "durationDays": "{{days}} d {{hours}} h",
-      "durationHours": "{{hours}} h {{minutes}} min"
+      "durationHours": "{{hours}} h {{minutes}} min",
+      "remaining": "{{time}} left",
+      "startsIn": "Starts in {{time}}",
+      "ended": "Ended",
+      "timeProgress": "Exam time progress",
+      "itemProgress": "{{done}} / {{total}} questions"
     },
     "announcements": {
       "title": "Announcements",
@@ -2858,6 +2863,28 @@
       "student": "Student",
       "solved": "Solved",
       "score": "Score"
+    },
+    "report": {
+      "title": "Your answers",
+      "details": "View details",
+      "question": "Question {{label}}",
+      "points": "{{score}} / {{max}} pts",
+      "full": "Full marks",
+      "partial": "Partial credit",
+      "zero": "No credit",
+      "answered": "Answered",
+      "unanswered": "Unanswered",
+      "accepted": "Accepted",
+      "attempted": "Not accepted",
+      "classTitle": "Class results",
+      "average": "Class average",
+      "you": "Your score",
+      "aboveAverage": "{{diff}} above average",
+      "belowAverage": "{{diff}} below average",
+      "atAverage": "Same as average",
+      "distribution": "Score distribution",
+      "people": "{{count}} students",
+      "yourRange": "You are here"
     }
   }
 }
