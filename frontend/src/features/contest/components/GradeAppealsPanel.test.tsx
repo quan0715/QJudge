@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import type { GradeAppealDetail } from "@/core/entities/gradeAppeal.entity";
@@ -24,6 +24,12 @@ const ticket: GradeAppealDetail = {
 };
 const renderPanel = (refreshKey = 0) => <MemoryRouter initialEntries={["/classrooms/room/contest/exam/admin"]}><GradeAppealsPanel contestId="exam" refreshKey={refreshKey} /></MemoryRouter>;
 const row = () => screen.getByRole("button", {name: /student.*1\(b\).*#9/});
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(done => { resolve = done; });
+  return { promise, resolve };
+}
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -170,4 +176,61 @@ it("keeps closed rows closed even when their last reply was from a student", asy
   render(renderPanel());
   await screen.findByText("已結案");
   expect(screen.queryByText("等待教師回覆")).not.toBeInTheDocument();
+});
+
+it.each(["reply", "close"] as const)("keeps a successful %s when Reset started during the request returns an older snapshot", async action => {
+  const view = render(renderPanel());
+  await screen.findByText("1(b).");
+  fireEvent.click(row());
+  await screen.findByText("Please review");
+  const updated: GradeAppealDetail = action === "close"
+    ? {...ticket, status:"closed", waiting_for:null, closed_by:1}
+    : {...ticket, waiting_for:"student", messages:[...ticket.messages, {
+      id:2, author_id:1, author_username:"teacher", content:"Reviewed original answer", created_at:"2026-10-03T01:00:00Z",
+    }]};
+  const mutation = deferred<GradeAppealDetail>();
+  const oldList = deferred<GradeAppealDetail[]>();
+  const oldDetail = deferred<GradeAppealDetail>();
+  let saved = false;
+  vi.mocked(api.getGradeAppeals).mockReturnValue(oldList.promise);
+  vi.mocked(api.getGradeAppeal).mockImplementation(() => saved ? Promise.resolve({...updated, current_score:8}) : oldDetail.promise);
+  vi.mocked(api.sendGradeAppealMessage).mockReturnValue(mutation.promise);
+  vi.mocked(api.closeGradeAppeal).mockReturnValue(mutation.promise);
+  if (action === "reply") fireEvent.change(screen.getByRole("textbox"), {target:{value:"Reviewed original answer"}});
+  fireEvent.click(screen.getByRole("button", {name:action === "reply" ? "送出回覆" : "結案", exact:true}));
+  view.rerender(renderPanel(1));
+  view.rerender(renderPanel(2));
+  await act(async () => { saved = true; mutation.resolve(updated); });
+  // A slow list may still contain a pre-write snapshot and a new unrelated appeal.
+  await act(async () => {
+    oldDetail.resolve(ticket);
+    oldList.resolve([ticket, {...ticket, id:10, student_username:"another student"}]);
+  });
+  await waitFor(() => expect(within(row()).getByText(action === "close" ? "已結案" : "等待考生回覆")).toBeInTheDocument());
+  expect(screen.getByText("another student")).toBeInTheDocument();
+  expect(screen.getByText(/目前成績 8\.00 \/ 10\.00/)).toBeInTheDocument();
+  if (action === "close") {
+    expect(screen.getByText("此申訴已結案，可查閱對話。")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  } else {
+    expect(screen.getByText("Reviewed original answer")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toHaveValue("");
+  }
+});
+
+it("keeps a reply in the row when an earlier list refresh finishes after the reply", async () => {
+  const view = render(renderPanel());
+  await screen.findByText("1(b).");
+  fireEvent.click(row());
+  await screen.findByText("Please review");
+  const oldList = deferred<GradeAppealDetail[]>();
+  vi.mocked(api.getGradeAppeals).mockReturnValue(oldList.promise);
+  view.rerender(renderPanel(1));
+  const input = await screen.findByRole("textbox");
+  vi.mocked(api.sendGradeAppealMessage).mockResolvedValue({...ticket, waiting_for:"student"});
+  fireEvent.change(input, {target:{value:"Reviewed"}});
+  fireEvent.click(screen.getByRole("button", {name:"送出回覆"}));
+  await waitFor(() => expect(within(row()).getByText("等待考生回覆")).toBeInTheDocument());
+  await act(async () => { oldList.resolve([ticket]); });
+  expect(within(row()).getByText("等待考生回覆")).toBeInTheDocument();
 });

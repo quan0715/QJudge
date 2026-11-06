@@ -8,11 +8,13 @@
 
 ## 驗證結果
 
-- 前端 Vitest：19 tests passed（申訴列表、既有申訴 dialog、Avatar、AdminOverview）。
-- 後端不使用資料庫的 pytest：16 passed（summary 與 route）。
-- Playwright：4 passed（desktop、tablet，以及 390px 手機深色畫面）。
+- 前端 Vitest：22 tests passed（申訴列表、既有申訴 dialog、Avatar、AdminOverview）。
+- 後端不使用資料庫的 pytest：22 passed（summary 與 route）。
+- Playwright：8 passed（desktop、tablet，以及 390px 手機深色畫面）。
 - Typecheck、ESLint、naming、architecture、repository exports、Carbon strict `--all` 均通過。
 - 需資料庫的後端申訴整合測試依專案規範留給 CI，未宣稱已在本機通過。
+- 本機全量 Vitest：1987 passed、1 failed；未修改的 `shared/utils/format.test.ts` 午夜日期斷言受本機時區影響，UTC 單檔測試通過。
+- 新增延遲讀寫回歸測試：Reset 不會以舊結果覆蓋回覆或結案；儲存期間的詳情刷新會在 POST 結束後執行，列表仍納入其他新增申訴。
 
 瀏覽器重現命令：
 

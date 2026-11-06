@@ -36,6 +36,7 @@ export default function GradeAppealDialog({ contestId, appealId, answerId, quest
   const [loading, setLoading] = useState(!!appealId);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  const pendingRefresh = useRef<number | undefined>(undefined);
   const [error, setError] = useState("");
   const generation = useRef(0);
   const messageInputId = useId();
@@ -45,6 +46,10 @@ export default function GradeAppealDialog({ contestId, appealId, answerId, quest
   const loadFailure = t("gradeAppeal.loadFailed", "申訴載入失敗，請重新整理。");
   const onLoaded = inline ? onChanged : undefined;
   const load = useCallback(async (id: number) => {
+    if (savingRef.current) {
+      pendingRefresh.current = id;
+      return;
+    }
     const version = ++generation.current;
     setLoading(true);
     setError("");
@@ -67,7 +72,7 @@ export default function GradeAppealDialog({ contestId, appealId, answerId, quest
     if (appealId) void load(appealId).then(data => {
       if (data) onLoaded?.(data);
     });
-    return () => { generation.current += 1; };
+    return () => { generation.current += 1; pendingRefresh.current = undefined; };
   }, [appealId, load, onLoaded, refreshKey]);
 
   const reopening = ticket?.status === "closed" && !managing;
@@ -75,10 +80,23 @@ export default function GradeAppealDialog({ contestId, appealId, answerId, quest
     const data = await load(id);
     if (data) onChanged(data);
   };
+  const startSaving = () => {
+    savingRef.current = true;
+    // Reads started before the mutation must not replace its result or error state.
+    generation.current += 1;
+    setLoading(false);
+    setSaving(true);
+  };
+  const finishSaving = async () => {
+    savingRef.current = false;
+    setSaving(false);
+    const id = pendingRefresh.current;
+    pendingRefresh.current = undefined;
+    if (id !== undefined) await refreshTicket(id);
+  };
   const send = async () => {
     if (savingRef.current || !draft.trim() || Array.from(draft.trim()).length > 5000) return;
-    savingRef.current = true;
-    setSaving(true);
+    startSaving();
     try {
       const data = currentId
         ? reopening
@@ -103,12 +121,11 @@ export default function GradeAppealDialog({ contestId, appealId, answerId, quest
       } else if (e instanceof EnvelopeError && e.status === 409 && currentId) {
         await refreshTicket(currentId);
       }
-    } finally { savingRef.current = false; setSaving(false); }
+    } finally { await finishSaving(); }
   };
   const close = async () => {
     if (!currentId || savingRef.current) return;
-    savingRef.current = true;
-    setSaving(true);
+    startSaving();
     try {
       const data = await closeGradeAppeal(contestId, currentId);
       setTicket(data);
@@ -121,7 +138,7 @@ export default function GradeAppealDialog({ contestId, appealId, answerId, quest
         setTicket(null);
         setError(e.message);
       }
-    } finally { savingRef.current = false; setSaving(false); }
+    } finally { await finishSaving(); }
   };
   const displayLabel = ticket?.question_label ?? questionLabel ?? (ticket ? String(ticket.question_order + 1) : undefined);
   const tooLong = Array.from(draft.trim()).length > 5000;

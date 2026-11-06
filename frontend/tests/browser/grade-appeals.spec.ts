@@ -11,20 +11,34 @@ const makeTicket = (id: number): GradeAppealDetail => ({
   messages: [{ id: 1, author_id: id + 10, author_username: `Student ${id}`, author_avatar_url: id === 1 ? avatar : null, content: `Please review ${id}`, created_at: "2026-10-03T00:00:00Z" }],
 });
 
+function gate() {
+  let release!: () => void;
+  const promise = new Promise<void>(done => { release = done; });
+  return { promise, release };
+}
+
 async function setup(page: Page) {
   let tickets = [makeTicket(1), makeTicket(2), makeTicket(3)];
   let sends = 0;
   let lists = 0;
   let details = 0;
+  let readGate: ReturnType<typeof gate> | undefined;
+  let writeGate: ReturnType<typeof gate> | undefined;
   await page.addInitScript(() => localStorage.setItem("i18nextLng", "zh-TW"));
   await page.route("**/api/v1/users/me", route => route.fulfill({json: {data: {id:1, username:"Teacher", role:"teacher", profile:{avatar_url: avatar}}, meta:{}}}));
   await page.route("**/api/v1/contests/exam/grade-appeals/**", async route => {
     const request = route.request();
     const match = new URL(request.url()).pathname.match(/grade-appeals\/(?:(\d+)\/(messages\/|close\/)?)?$/)!;
-    if (!match[1]) { lists++; return route.fulfill({json:{data:tickets, meta:{}}}); }
+    if (!match[1]) {
+      lists++;
+      const snapshot = tickets;
+      await readGate?.promise;
+      return route.fulfill({json:{data:snapshot, meta:{}}});
+    }
     const id = Number(match[1]);
     let ticket = tickets.find(ticket => ticket.id === id)!;
     if (request.method() === "POST") {
+      await writeGate?.promise;
       if (match[2] === "messages/") {
         sends++;
         // Keep the response pending long enough to exercise repeated submit clicks.
@@ -35,10 +49,17 @@ async function setup(page: Page) {
         }]};
       } else ticket = {...ticket, status:"closed", waiting_for:null, closed_by:1};
       tickets = tickets.map(current => current.id === id ? ticket : current);
-    } else details++;
+    } else {
+      details++;
+      await readGate?.promise;
+    }
     return route.fulfill({json:{data:ticket, meta:{}}});
   });
-  return { counts: () => ({sends, lists, details}) };
+  return {
+    counts: () => ({sends, lists, details}),
+    holdReads: () => { readGate = gate(); return readGate.release; },
+    holdWrites: () => { writeGate = gate(); return writeGate.release; },
+  };
 }
 const row = (page: Page, id = 1) => page.getByRole("button", {name: new RegExp(`Student ${id}.*#${id}`)});
 
@@ -104,3 +125,32 @@ test("mobile dark theme wraps expanded content without horizontal overflow", asy
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
   await page.screenshot({path:testInfo.outputPath("appeals-mobile-dark.png"), fullPage:true});
 });
+
+for (const action of ["reply", "close"] as const) {
+  test(`Reset cannot roll back a pending ${action} when old reads return last`, async ({page}) => {
+    const api = await setup(page);
+    await page.goto("/tests/browser/fixtures/grade-appeals.html");
+    await row(page).click();
+    await expect(page.getByText("Please review 1", {exact:true})).toBeVisible();
+    const releaseWrites = api.holdWrites();
+    const releaseReads = api.holdReads();
+    if (action === "reply") await page.getByRole("textbox", {name:"複核回覆"}).fill("Reviewed original answer");
+    await page.getByRole("button", {name:action === "reply" ? "送出回覆" : "結案", exact:true}).click();
+    await page.getByRole("button", {name:"Reset", exact:true}).click();
+    await expect.poll(() => api.counts().lists).toBe(2);
+    releaseWrites();
+    await expect(row(page)).toContainText(action === "reply" ? "等待考生回覆" : "已結案");
+    releaseReads();
+    // Wait for both Reset requests to settle before checking the final row and conversation.
+    await expect(page.getByRole("region", {name:"成績申訴管理"})).toHaveAttribute("aria-busy", "false");
+    await expect(page.getByRole("button", {name:"重新整理留言"})).toBeEnabled();
+    await expect(row(page)).toContainText(action === "reply" ? "等待考生回覆" : "已結案");
+    if (action === "reply") {
+      await expect(page.getByText("Reviewed original answer", {exact:true})).toBeVisible();
+      await expect(page.getByRole("textbox")).toHaveValue("");
+    } else {
+      await expect(page.getByText("此申訴已結案，可查閱對話。")).toBeVisible();
+      await expect(page.getByRole("textbox")).toHaveCount(0);
+    }
+  });
+}
