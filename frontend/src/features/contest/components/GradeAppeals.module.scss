@@ -159,15 +159,12 @@
 
 .ticket {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   column-gap: layout.$spacing-04;
-  padding-block: layout.$spacing-04;
-  border-block-end: 1px solid var(--cds-border-subtle);
-
-  &:last-child {
-    border-block-end: 0;
-  }
+  padding-block: layout.$spacing-03;
+  min-width: 0;
+  text-align: start;
 }
 
 .ticketMain {
@@ -178,4 +175,9 @@
 
 .dialogContent {
   padding-block-end: layout.$spacing-07;
+}
+
+.inlineContent {
+  padding-block: layout.$spacing-05;
+  min-width: 0;
 }

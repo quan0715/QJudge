@@ -229,3 +229,51 @@ def test_group_context_and_labels_match_in_create_list_detail_and_reply(case):
     assert case['answer'].answer == {'text': 'My answer'}
     assert case['answer'].score == 6
     assert response.data['data']['question_label'] == '1(b)'
+
+
+def test_avatar_and_waiting_state_follow_replies_closure_and_reopen(case):
+    for name in ['student', 'teacher']:
+        profile = case[name].profile
+        profile.avatar_url = f'https://example.com/{name}.png'
+        profile.save(update_fields=['avatar_url'])
+    ticket = opened(case)
+    detail = url(case, f"{ticket['id']}/")
+
+    def check(expected, response):
+        assert response['waiting_for'] == expected
+        assert response['student_avatar_url'] == 'https://example.com/student.png'
+        listing = client(case['teacher']).get(url(case)).data['data'][0]
+        assert listing['waiting_for'] == expected
+        assert listing['status'] == response['status']
+        assert listing['student_avatar_url'] == response['student_avatar_url']
+
+    check('staff', ticket)
+    assert ticket['messages'][0]['author_avatar_url'] == 'https://example.com/student.png'
+    for name, expected in [('teacher', 'student'), ('student', 'staff'), ('teacher', 'student')]:
+        response = client(case[name]).post(detail+'messages/', {'content': name}, format='json')
+        assert response.status_code == 201
+        check(expected, response.data['data'])
+        assert response.data['data']['messages'][-1]['author_avatar_url'] == f'https://example.com/{name}.png'
+    check(None, client(case['teacher']).post(detail+'close/').data['data'])
+    reopened = client(case['student']).post(detail+'reopen/', {'content':'Please explain'}, format='json')
+    assert reopened.status_code == 200
+    check('staff', reopened.data['data'])
+
+
+def test_missing_and_deleted_author_avatars_are_null(case):
+    ticket = opened(case)
+    assert ticket['student_avatar_url'] is None
+    assert ticket['messages'][0]['author_avatar_url'] is None
+    detail = url(case, f"{ticket['id']}/")
+    client(case['teacher']).post(detail+'messages/', {'content':'Reviewed'}, format='json')
+    # Same timestamp messages still follow the conversation's id ordering.
+    from apps.contests.models import GradeAppealMessage
+    GradeAppealMessage.objects.filter(appeal_id=ticket['id']).update(created_at=timezone.now())
+    assert client(case['student']).get(url(case)).data['data'][0]['waiting_for'] == 'student'
+    last = GradeAppealMessage.objects.filter(appeal_id=ticket['id']).latest('id')
+    last.author = None
+    last.save(update_fields=['author'])
+    data = client(case['student']).get(detail).data['data']
+    assert data['messages'][-1]['author_id'] is None
+    assert data['messages'][-1]['author_avatar_url'] is None
+    assert data['waiting_for'] is None

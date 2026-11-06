@@ -2372,5 +2372,9 @@
       "bottom": "하위 25%",
       "zero": "0점"
     }
+  },
+  "gradeAppeal": {
+    "waitingForStaff": "교사 답변 대기 중",
+    "waitingForStudent": "응시자 답변 대기 중"
   }
 }
