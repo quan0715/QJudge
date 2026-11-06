@@ -2881,6 +2881,14 @@
       "distribution": "成績分布",
       "people": "{{count}} 人",
       "yourRange": "你在這裡"
+    },
+    "handIn": {
+      "open_one": "還有 {{count}} 題未作答",
+      "open_other": "還有 {{count}} 題未作答",
+      "complete": "{{count}} 題都已作答",
+      "marked": "{{count}} 題已標記",
+      "note": "交卷後就不能再修改答案。",
+      "noteSelect": "點題號可回到該題。交卷後就不能再修改答案。"
     }
   }
 }

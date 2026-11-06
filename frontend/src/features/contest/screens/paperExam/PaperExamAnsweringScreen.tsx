@@ -1,24 +1,21 @@
-import i18n from "i18next";
 import React, { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Button,
-  Tag,
   Loading,
   Modal,
-  InlineNotification,
 } from "@carbon/react";
 import {
   ChevronLeft,
   SendFilled,
   CheckmarkFilled,
-  FlagFilled,
 } from "@carbon/icons-react";
 import { useExamSessionFlow } from "@/features/contest/hooks/useExamSessionFlow";
 import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { PaperExamCore } from "../../components/exam/PaperExamCore";
-import ProblemPromptPreview from "../../components/exam/ProblemPromptPreview";
+import { HandInCheck } from "../../components/exam/HandInCheck";
+import type { ExamResultTile } from "../../components/exam/ExamAnswerTiles";
 import {
   usePaperExamAutoSave,
   usePaperExamQuestions,
@@ -57,7 +54,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     classroomId?: string;
     contestId?: string;
   }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { contestId, contest, submitExam, loading } = useExamSessionFlow();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const classroomContestContext =
@@ -289,6 +286,28 @@ const PaperExamAnsweringScreen: React.FC = () => {
     return index >= 0 ? index : null;
   }, [requestedQuestionId, items]);
 
+  // The hand-in check uses the overview's tiles; marked questions carry the folded corner.
+  const handInTiles = useMemo<ExamResultTile[]>(() => items.flatMap((item) => {
+    if (item.kind !== "question") return [];
+    const answered = answeredIds.has(item.data.id);
+    return [{
+      key: item.data.id,
+      label: questionLabels.get(item.data.id)?.label ?? String(item.data.order + 1),
+      state: answered ? "answered" as const : "unanswered" as const,
+      detail: answered ? t("workspace.report.answered", "已作答") : t("workspace.report.unanswered", "未作答"),
+      marked: markedIds.has(item.data.id),
+    }];
+  }), [items, answeredIds, markedIds, questionLabels, t]);
+  const openQuestionFromHandIn = useCallback((id: string) => {
+    setShowSubmitReview(false);
+    setSearchParams((params) => {
+      const next = new URLSearchParams(params);
+      next.set("q", id);
+      next.delete("review");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   const renderItem = useCallback(
     (item: ExamItem, _index: number, mode: "single" | "all", footer?: React.ReactNode) => {
       if (item.kind !== "question") return null;
@@ -328,10 +347,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
     ],
   );
 
-  const totalCount = items.length;
-  const answeredCount = answeredIds.size;
-  const unansweredCount = Math.max(0, totalCount - answeredCount);
-  const markedCount = markedIds.size;
 
   const openSubmitReview = useCallback(async () => {
     await flushAll();
@@ -506,72 +521,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
         onSecondarySubmit={() => setShowSubmitReview(false)}
         danger
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <Tag type={unansweredCount === 0 ? "green" : "red"}>
-              {t("answering.submit.stats", { answered: answeredCount, total: totalCount })}
-            </Tag>
-            {markedCount > 0 && (
-              <Tag type="warm-gray">
-                <FlagFilled size={12} style={{ marginRight: "4px", verticalAlign: "middle", color: "var(--cds-support-warning)" }} />
-                {t("answering.submit.markedCount", { count: markedCount })}
-              </Tag>
-            )}
-            <Tag type="teal">
-              {contest?.endTime
-                ? t("answering.submit.deadline", { time: new Date(contest.endTime).toLocaleString(i18n.language || undefined) })
-                : t("answering.submit.noDeadline")}
-            </Tag>
-          </div>
-
-          {unansweredCount > 0 && (
-            <InlineNotification
-              kind="warning"
-              lowContrast
-              hideCloseButton
-              title={t("answering.submit.unansweredWarning", { count: unansweredCount })}
-              subtitle={t("answering.submit.unansweredSubtitle")}
-            />
-          )}
-
-          <div
-            style={{
-              maxHeight: "42vh",
-              overflow: "auto",
-              border: "1px solid var(--cds-border-subtle-01)",
-              borderRadius: "4px",
-            }}
-          >
-            {items.map((item) => {
-              if (item.kind !== "question") return null;
-              const done = answeredIds.has(item.data.id);
-              const marked = markedIds.has(item.data.id);
-              return (
-                <div
-                  key={item.data.id}
-                  style={{
-                    padding: "0.5rem 0.75rem",
-                    borderBottom: "1px solid var(--cds-border-subtle-00)",
-                    color: done ? "var(--cds-text-primary)" : "var(--cds-support-error)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                  }}
-                >
-                  {marked && <FlagFilled size={14} style={{ color: "var(--cds-support-warning)", flexShrink: 0 }} />}
-                  <span style={{ flexShrink: 0 }}>
-                    {t("answering.submit.questionPreview", { index: questionLabels.get(item.data.id)?.label ?? item.data.order + 1 })}
-                  </span>
-                  <ProblemPromptPreview
-                    content={item.data.prompt}
-                    maxLines={1}
-                    className={styles.submitQuestionPreview}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <HandInCheck tiles={handInTiles} onSelect={openQuestionFromHandIn} />
       </Modal>
       <ExamSubmissionProgressModal
         state={submitProgress.state}

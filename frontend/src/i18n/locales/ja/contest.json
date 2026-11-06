@@ -2492,6 +2492,14 @@
       "distribution": "成績分布",
       "people": "{{count}} 人",
       "yourRange": "あなたの位置"
+    },
+    "handIn": {
+      "open_one": "未解答が {{count}} 問あります",
+      "open_other": "未解答が {{count}} 問あります",
+      "complete": "全 {{count}} 問に解答済み",
+      "marked": "{{count}} 問にマーク",
+      "note": "提出後は解答を変更できません。",
+      "noteSelect": "問題番号を押すとその問題に戻れます。提出後は解答を変更できません。"
     }
   }
 }

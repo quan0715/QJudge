@@ -93,13 +93,21 @@ export const ExamQuestionList = memo(function ExamQuestionList({ items, activeIn
 
   return (
     <div className={styles.list} data-collapsed={collapsed}>
-      {!collapsed && (
-        <div className={styles.header}>
-          <span className={styles.heading}>{t("workspace.questionList.title", "題目")}</span>
-          <span className={styles.count}>{t("workspace.questionList.count", `${rows.length} 題`, { count: rows.length })}</span>
-        </div>
-      )}
-      <div className={styles.scroll} role="list">
+      {/* Kept when collapsed so the cells start below the same line as the panes' headers. */}
+      <div className={styles.header}>
+        {collapsed ? (
+          <span className={styles.count} key="collapsed" title={t("answering.navigation.answeredProgress", { answered: answeredCount, total: rows.length })}>
+            {answeredCount}/{rows.length}
+          </span>
+        ) : (
+          <>
+            <span className={styles.heading}>{t("workspace.questionList.title", "題目")}</span>
+            <span className={styles.count}>{t("workspace.questionList.count", `${rows.length} 題`, { count: rows.length })}</span>
+          </>
+        )}
+      </div>
+      {/* Keyed by state so the new layout fades in while the column changes width. */}
+      <div className={styles.scroll} role="list" key={collapsed ? "collapsed" : "expanded"}>
         {rows.map((row) => {
           const answered = answeredIds.has(row.id);
           const marked = markedIds?.has(row.id) ?? false;
@@ -121,13 +129,14 @@ export const ExamQuestionList = memo(function ExamQuestionList({ items, activeIn
                 }}
                 className={styles.row}
                 data-active={active}
+                data-answered={answered}
                 data-grouped={row.grouped && !collapsed}
                 aria-current={active ? "step" : undefined}
                 aria-label={collapsed ? `${row.isCoding ? row.badge : `Q${row.badge}`}，${status}` : undefined}
                 title={collapsed ? `${row.isCoding ? row.badge : `Q${row.badge}`} · ${status}` : undefined}
                 onClick={() => onSelect(row.index)}
               >
-                <span className={styles.badge} data-answered={answered} data-marked={marked}>
+                <span className={styles.badge} data-answered={answered} data-marked={marked} data-long={collapsed && !row.isCoding && row.badge.length > 4}>
                   {row.isCoding ? row.badge : collapsed ? `Q${row.badge}` : row.badge}
                 </span>
                 {!collapsed && (

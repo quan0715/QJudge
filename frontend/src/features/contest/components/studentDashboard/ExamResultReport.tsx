@@ -1,22 +1,9 @@
 import { useTranslation } from "react-i18next";
+import { ExamAnswerTiles, type ExamResultTile } from "../exam/ExamAnswerTiles";
+
 import styles from "./ExamResultReport.module.scss";
 
-export type ExamResultTileState =
-  | "full"
-  | "partial"
-  | "zero"
-  | "answered"
-  | "unanswered"
-  | "accepted"
-  | "attempted";
-
-export interface ExamResultTile {
-  key: string;
-  label: string;
-  state: ExamResultTileState;
-  /** Read aloud and shown on hover, e.g. "20 / 20 分". */
-  detail: string;
-}
+export type { ExamResultTile, ExamResultTileState } from "../exam/ExamAnswerTiles";
 
 export interface ExamClassStanding {
   average: number;
@@ -35,22 +22,9 @@ interface ExamResultReportProps {
   formatScore: (value: number) => string;
 }
 
-const LEGEND_ORDER: ExamResultTileState[] = ["full", "partial", "zero", "accepted", "attempted", "answered", "unanswered"];
-
 /** After the exam: one tile per question, and how the class did when that is shared. */
 export function ExamResultReport({ tiles, classStanding, onOpenDetails, formatScore }: ExamResultReportProps) {
   const { t } = useTranslation("contest");
-  const stateLabel: Record<ExamResultTileState, string> = {
-    full: t("workspace.report.full", "滿分"),
-    partial: t("workspace.report.partial", "部分得分"),
-    zero: t("workspace.report.zero", "未得分"),
-    answered: t("workspace.report.answered", "已作答"),
-    unanswered: t("workspace.report.unanswered", "未作答"),
-    accepted: t("workspace.report.accepted", "已通過"),
-    attempted: t("workspace.report.attempted", "未通過"),
-  };
-  const present = new Set(tiles.map((tile) => tile.state));
-  const legend = LEGEND_ORDER.filter((state) => present.has(state));
 
   return (
     <div className={styles.report} data-with-class={!!classStanding}>
@@ -64,27 +38,7 @@ export function ExamResultReport({ tiles, classStanding, onOpenDetails, formatSc
             </button>
           )}
         </header>
-        <ol className={styles.tiles}>
-          {tiles.map((tile) => (
-            <li
-              key={tile.key}
-              className={styles.tile}
-              data-state={tile.state}
-              data-long={tile.label.length > 3}
-              title={`${t("workspace.report.question", `第 ${tile.label} 題`, { label: tile.label })}：${tile.detail}`}
-            >
-              <span aria-hidden="true">{tile.label}</span>
-              <span className={styles.srOnly}>
-                {t("workspace.report.question", `第 ${tile.label} 題`, { label: tile.label })}，{tile.detail}
-              </span>
-            </li>
-          ))}
-        </ol>
-        <ul className={styles.legend} aria-hidden="true">
-          {legend.map((state) => (
-            <li key={state}><i data-state={state} />{stateLabel[state]}</li>
-          ))}
-        </ul>
+        <ExamAnswerTiles tiles={tiles} />
       </section>
 
       {classStanding && <ClassStanding standing={classStanding} formatScore={formatScore} />}

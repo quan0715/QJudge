@@ -36,9 +36,12 @@ export function ExamShell({ header, rail, railFooter, showNavigation = true, nav
             {railFooter && <div className={styles.railFooter}>{railFooter}</div>}
           </nav>
         )}
-        <aside hidden={!showNavigation} className={styles.navigation} data-collapsed={navigationCollapsed} aria-label="題目導覽">{navigation}</aside>
-        <main className={styles.workspace} aria-label="考試工作區">{children}</main>
-        {auxiliary && <aside className={styles.auxiliary} aria-label="考試輔助工具">{auxiliary}</aside>}
+        {/* While answering, the question list and the panes share one frame split by dividers. */}
+        <div className={styles.stage} data-joined={showNavigation}>
+          <aside hidden={!showNavigation} className={styles.navigation} data-collapsed={navigationCollapsed} aria-label="題目導覽">{navigation}</aside>
+          <main className={styles.workspace} aria-label="考試工作區">{children}</main>
+          {auxiliary && <aside className={styles.auxiliary} aria-label="考試輔助工具">{auxiliary}</aside>}
+        </div>
       </div>
     </div>
   );

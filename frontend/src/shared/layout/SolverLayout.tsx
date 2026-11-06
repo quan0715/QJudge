@@ -121,7 +121,7 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
     return Math.max(MIN_STATEMENT_WIDTH, window.innerWidth * 0.35);
   });
   const statementWidthRef = useRef(statementWidth);
-  const [editorHeightPercent, setEditorHeightPercent] = useState(50); // %
+  const [editorHeightPercent, setEditorHeightPercent] = useState(64); // % — the editor keeps most of the height when results open
   const layoutRef = useRef<HTMLDivElement>(null);
   const rightColumnRef = useRef<HTMLDivElement>(null);
   const statementBodyRef = useRef<HTMLDivElement>(null);

@@ -574,5 +574,35 @@
     "previewMode": "プレビューモード",
     "problemInfo": "問題情報",
     "submissions": "提出履歴"
+  },
+  "verdict": {
+    "AC": "正解",
+    "WA": "不正解",
+    "TLE": "実行時間超過",
+    "MLE": "メモリ超過",
+    "RE": "実行時エラー",
+    "CE": "コンパイルエラー",
+    "SE": "システムエラー",
+    "KR": "強制終了"
+  },
+  "solver": {
+    "queued": "待機中",
+    "judging": "採点中",
+    "running": "実行中",
+    "error": "エラーが発生しました",
+    "passedCount": "通過 {{passed}} / {{total}}",
+    "score": "得点 {{score}}",
+    "waitingSeconds": "{{seconds}} 秒待機中",
+    "submissionKind": "本提出 · 採点対象",
+    "testKind": "テスト · 採点なし",
+    "viewSubmissions": "提出履歴を見る",
+    "panelTabs": "結果パネル",
+    "tabs": {
+      "testcases": "テストケース",
+      "results": "結果",
+      "submissions": "提出履歴"
+    },
+    "test": "テスト",
+    "submit": "提出"
   }
 }

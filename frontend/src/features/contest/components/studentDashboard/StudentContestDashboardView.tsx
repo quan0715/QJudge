@@ -76,6 +76,7 @@ import {
 } from "./studentDashboardState";
 import styles from "./StudentContestDashboard.module.scss";
 import { ExamOverviewLayout } from "../layout/ExamOverviewLayout";
+import { HandInCheck } from "../exam/HandInCheck";
 import { ExamResultReport, type ExamClassStanding, type ExamResultTile, type ExamResultTileState } from "./ExamResultReport";
 import { useExamReviewSlot } from "@/features/contest/contexts/ExamReviewSlotContext";
 import CodingAnswerRecords from "./CodingAnswerRecords";
@@ -910,12 +911,7 @@ export default function StudentContestDashboard({
         }}
         onRequestClose={() => setShowEndConfirm(false)}
       >
-        <p>
-          {t(
-            "studentDashboard.submitConfirm.body",
-            "交卷後將無法繼續修改答案。",
-          )}
-        </p>
+        <HandInCheck tiles={resultTiles} />
       </Modal>
 
       <Modal

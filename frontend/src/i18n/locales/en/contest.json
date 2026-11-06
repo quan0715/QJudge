@@ -2885,6 +2885,14 @@
       "distribution": "Score distribution",
       "people": "{{count}} students",
       "yourRange": "You are here"
+    },
+    "handIn": {
+      "open_one": "{{count}} question unanswered",
+      "open_other": "{{count}} questions unanswered",
+      "complete": "All {{count}} questions answered",
+      "marked": "{{count}} marked",
+      "note": "You can't change your answers after handing in.",
+      "noteSelect": "Select a question number to go back to it. You can't change your answers after handing in."
     }
   }
 }

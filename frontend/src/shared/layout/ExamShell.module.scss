@@ -165,6 +165,24 @@
   }
 }
 
+.stage {
+  display: flex;
+  flex: 1;
+  gap: var(--ex-gap);
+  min-height: 0;
+  min-width: 0;
+
+  // One frame for the question list and every pane; the panes inside are split by dividers.
+  &[data-joined="true"] {
+    gap: 0;
+    overflow: hidden;
+    background: var(--ex-surface);
+    border: 1px solid var(--ex-border);
+    border-radius: var(--ex-radius);
+    box-shadow: var(--ex-shadow);
+  }
+}
+
 .navigation {
   display: flex;
   flex: 0 0 216px;
@@ -179,6 +197,18 @@
 
   &[data-collapsed="true"] { flex-basis: 48px; }
   &[hidden] { display: none; }
+}
+
+.stage[data-joined="true"] .navigation {
+  border: 0;
+  border-right: 1px solid var(--ex-border);
+  border-radius: 0;
+}
+
+.stage[data-joined="true"] .auxiliary {
+  border: 0;
+  border-left: 1px solid var(--ex-border);
+  border-radius: 0;
 }
 
 .workspace {
@@ -210,6 +240,12 @@
     left: calc(var(--ex-bar) + var(--ex-gap));
     width: min(280px, calc(100% - var(--ex-bar) - 2 * var(--ex-gap)));
     box-shadow: var(--ex-shadow);
+  }
+
+  // Floating over the panes, the list needs its own frame again.
+  .stage[data-joined="true"] .navigation[data-collapsed="false"] {
+    border: 1px solid var(--ex-border);
+    border-radius: var(--ex-radius);
   }
 }
 

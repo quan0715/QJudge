@@ -1,0 +1,31 @@
+// Hand-in confirmation body; sits inside the exam shell, so it uses the --ex-* tokens.
+.check {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin: 0;
+  color: var(--ex-text);
+  font-size: 15px;
+  font-weight: 600;
+
+  &[data-open="true"] { color: var(--ex-danger); }
+}
+
+.marked {
+  color: var(--ex-warning);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.note {
+  margin: 0;
+  color: var(--ex-text-muted);
+  font-size: 12.5px;
+}

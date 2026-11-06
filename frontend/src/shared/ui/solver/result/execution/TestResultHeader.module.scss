@@ -1,0 +1,50 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: layout.$spacing-02 layout.$spacing-03;
+  min-height: layout.rem(44px);
+  padding: layout.$spacing-03 layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+}
+
+.icon {
+  display: inline-flex;
+
+  svg { width: 18px; height: 18px; }
+}
+
+.title {
+  margin: 0;
+  @include type.type-style("heading-compact-02");
+  color: var(--cds-text-primary);
+}
+
+// Test runs read as practice (neutral); submissions read as graded (outlined, stronger).
+.kind {
+  padding: 1px layout.$spacing-03;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 999px;
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+  white-space: nowrap;
+
+  &[data-kind="submit"] {
+    border-color: var(--cds-border-strong-01);
+    color: var(--cds-text-primary);
+    font-weight: 600;
+  }
+}
+
+.subtitle {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.action {
+  margin-left: auto;
+}

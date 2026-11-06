@@ -19,13 +19,17 @@ describe("ExamWorkspaceShell", () => {
     mount();
     const answer = screen.getByRole("textbox", { name: "答案" });
     fireEvent.change(answer, { target: { value: "尚未完成的推導" } });
-    for (const label of ["考試概覽", "公告", "作答檢查"]) {
+    for (const label of ["考試概覽", "作答檢查"]) {
       fireEvent.click(screen.getByRole("button", { name: label, exact: true }));
       expect(answer).not.toBeVisible();
     }
     fireEvent.click(screen.getByRole("button", { name: "題目", exact: true }));
     expect(screen.getByRole("textbox", { name: "答案" })).toBe(answer);
     expect(answer).toHaveValue("尚未完成的推導");
+  });
+  it("hides the announcements entry", () => {
+    mount();
+    expect(screen.queryByRole("button", { name: "公告", exact: true })).toBeNull();
   });
   it("keeps the account settings at the foot of the rail for language and theme", () => {
     mount();
@@ -43,7 +47,7 @@ describe("ExamWorkspaceShell", () => {
     fireEvent.click(screen.getByRole("button", { name: "展開題目列表" }));
     expect(list).toHaveAttribute("data-collapsed", "false");
     fireEvent.click(screen.getByRole("button", { name: "收合題目列表" }));
-    fireEvent.click(screen.getByRole("button", { name: "公告", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "作答檢查", exact: true }));
     fireEvent.click(questions);
     expect(list).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "收合題目列表" }));

@@ -61,7 +61,7 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
   const entries: RailEntry[] = [
     { id: "overview", label: t("workspace.rail.overview", "考試概覽"), icon: "overview" },
     ...(canAnswer ? [{ id: "questions" as const, label: t("workspace.rail.questions", "題目"), icon: "questions" as const }] : []),
-    { id: "announcements", label: t("workspace.rail.announcements", "公告"), icon: "announcements" },
+    // Announcements are hidden for now; the panel stays in ExamWorkspacePanels.
     { id: "review", label: t("workspace.rail.review", "作答檢查"), icon: "review" },
     ...(canSeeStandings ? [{ id: "standings" as const, label: t("workspace.rail.standings", "排行榜"), icon: "standings" as const }] : []),
   ];

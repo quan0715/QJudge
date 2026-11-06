@@ -4,14 +4,36 @@
   height: 100%;
   min-height: 0;
   background: var(--ex-surface-muted);
+
+  // Lay out at the final width while the column grows, so rows never rewrap mid-animation.
+  &[data-collapsed="false"] { min-width: 200px; }
 }
 
+// Same height and rule as the panes' headers, so one line runs across the whole frame.
 .header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   flex: 0 0 40px;
-  padding: 12px 14px 0;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--ex-border);
+  white-space: nowrap;
+}
+
+.list[data-collapsed="true"] .header {
+  justify-content: center;
+  padding: 0;
+}
+
+.header > *,
+.scroll,
+.footer {
+  animation: list-fade 200ms ease 60ms backwards;
+}
+
+@keyframes list-fade {
+  from { opacity: 0; }
 }
 
 .heading {
@@ -22,6 +44,7 @@
 
 .count {
   font-size: 11px;
+  font-variant-numeric: tabular-nums;
   color: var(--ex-text-muted);
 }
 
@@ -35,7 +58,7 @@
 }
 
 .list[data-collapsed="true"] .scroll {
-  padding: 6px 0;
+  padding: 0;
   scrollbar-width: none;
 }
 
@@ -67,12 +90,6 @@
   &[data-grouped="true"] { padding-left: 16px; }
 }
 
-.list[data-collapsed="true"] .row {
-  justify-content: center;
-  width: 36px;
-  margin: 2px auto;
-  padding: 4px 0;
-}
 
 .badge {
   position: relative;
@@ -100,11 +117,11 @@
   &[data-marked="true"]::after {
     content: "";
     position: absolute;
-    top: -3px;
-    right: -3px;
-    width: 7px;
-    height: 7px;
-    border: 1.5px solid var(--ex-surface-muted);
+    top: -4px;
+    right: -4px;
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--ex-surface-muted);
     border-radius: 50%;
     background: var(--ex-warning);
   }
@@ -118,6 +135,59 @@
 .row[data-active="true"] .badge[data-answered="true"] {
   border-color: var(--ex-success);
   color: var(--ex-success);
+}
+
+/* Collapsed: one equal cell per question, edge to edge, split by hairlines. */
+.list[data-collapsed="true"] .row {
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--ex-border);
+  border-radius: 0;
+
+  &[data-answered="true"] { background: var(--ex-success-soft); }
+  &[data-active="true"] { background: var(--ex-surface-selected); }
+
+  // The current question is marked by a bar on the leading edge.
+  &[data-active="true"]::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--ex-text);
+  }
+
+  &[data-active="true"][data-answered="true"]::before { background: var(--ex-success); }
+  &:hover { background: var(--ex-surface-hover); }
+}
+
+.list[data-collapsed="true"] .badge {
+  position: static;
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+
+  // Sub-questions such as "Q12(b)" shrink instead of widening the cell.
+  &[data-long="true"] { font-size: 10px; letter-spacing: -0.02em; }
+
+  // Marked questions get a folded corner, large enough to spot while scanning the column.
+  &[data-marked="true"]::after {
+    top: 0;
+    right: 0;
+    width: 14px;
+    height: 14px;
+    border: 0;
+    border-radius: 0;
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+  }
 }
 
 .text {
@@ -187,4 +257,10 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header > *,
+  .scroll,
+  .footer { animation: none; }
 }

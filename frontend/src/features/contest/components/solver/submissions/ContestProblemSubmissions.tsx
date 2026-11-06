@@ -51,6 +51,7 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
     problemFilter: codingProblemId,
     userId: userId ?? currentUser?.id,
     enabled: !!(userId ?? currentUser?.id),
+    refetchOnOpen: true,
   });
 
   const submissions = data?.results || [];

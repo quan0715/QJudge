@@ -177,6 +177,7 @@ const ProblemSolveSession: React.FC<ProblemFullPageSolveProps & { userId: string
             onSubmit={submissionDisabled ? undefined : handleSubmit}
             testDisabled={solver.testRunning}
             submitDisabled={solver.submitting}
+            renderSubmissions={renderSubmissions}
           />
         }
         statementCollapsed={statementCollapsed}

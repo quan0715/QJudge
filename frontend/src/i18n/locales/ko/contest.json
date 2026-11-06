@@ -2492,6 +2492,14 @@
       "distribution": "성적 분포",
       "people": "{{count}}명",
       "yourRange": "내 위치"
+    },
+    "handIn": {
+      "open_one": "미응답 {{count}}문항",
+      "open_other": "미응답 {{count}}문항",
+      "complete": "{{count}}문항 모두 응답",
+      "marked": "{{count}}문항 표시됨",
+      "note": "제출 후에는 답안을 수정할 수 없습니다.",
+      "noteSelect": "문항 번호를 누르면 해당 문항으로 돌아갑니다. 제출 후에는 답안을 수정할 수 없습니다."
     }
   }
 }
