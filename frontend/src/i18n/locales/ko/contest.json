@@ -2501,5 +2501,9 @@
       "note": "제출 후에는 답안을 수정할 수 없습니다.",
       "noteSelect": "문항 번호를 누르면 해당 문항으로 돌아갑니다. 제출 후에는 답안을 수정할 수 없습니다."
     }
+  },
+  "gradeAppeal": {
+    "waitingForStaff": "교사 답변 대기 중",
+    "waitingForStudent": "응시자 답변 대기 중"
   }
 }

@@ -2639,6 +2639,8 @@
     "title": "Grade appeal",
     "statusClosed": "Closed",
     "statusOpen": "Open",
+    "waitingForStaff": "Awaiting teacher reply",
+    "waitingForStudent": "Awaiting student reply",
     "currentScore": "Current score",
     "refreshMessages": "Refresh messages",
     "openGrading": "Open in grading",

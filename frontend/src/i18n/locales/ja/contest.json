@@ -2501,5 +2501,9 @@
       "note": "提出後は解答を変更できません。",
       "noteSelect": "問題番号を押すとその問題に戻れます。提出後は解答を変更できません。"
     }
+  },
+  "gradeAppeal": {
+    "waitingForStaff": "教員の返信待ち",
+    "waitingForStudent": "受験者の返信待ち"
   }
 }
