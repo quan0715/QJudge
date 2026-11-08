@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, Layer } from "@carbon/react";
 import { Information } from "@carbon/icons-react";
 import type { TestCaseItem } from "@/core/entities/testcase.entity";
@@ -37,12 +38,16 @@ const formatTime = (ms: number) => ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixe
 interface ResultsPanelProps {
   executionState: ExecutionState;
   testCases: TestCaseItem[];
+  /** Opens the problem's submission history; offered once a submission is judged. */
+  onShowSubmissions?: () => void;
 }
 
 export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   executionState,
   testCases,
+  onShowSubmissions,
 }) => {
+  const { t } = useTranslation();
   const [pickedResult, setSelectedResult] = useState<TestResult | null>(null);
   const [expanded, setExpanded] = useState(false);
   const itemRefs = useRef(new Map<TestResult["id"], HTMLElement>());
@@ -70,7 +75,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
     if (autoId !== undefined) itemRefs.current.get(autoId)?.scrollIntoView?.({ block: "nearest" });
   }, [autoId]);
 
-  const header = getHeaderInfo(executionState);
+  const header = getHeaderInfo(executionState, t);
 
   // Show empty state when idle (no results yet)
   if (isIdle && !result) {
@@ -169,8 +174,14 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       <div className={styles.header}>
         <TestResultHeader
           header={header}
+          kind={type}
           isPending={isPending}
           startedAt={startedAt}
+          action={type === "submit" && !isPending && onShowSubmissions && (
+            <Button kind="ghost" size="sm" onClick={onShowSubmissions}>
+              {t("solver.viewSubmissions", "查看提交紀錄")}
+            </Button>
+          )}
         />
       </div>
 

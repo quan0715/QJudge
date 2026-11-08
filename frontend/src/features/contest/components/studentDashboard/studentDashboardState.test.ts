@@ -4,7 +4,10 @@ import type {
   ExamQuestion,
 } from "@/core/entities/contest.entity";
 import {
+  buildCodingProgressSummary,
+  buildCodingResultItems,
   buildPaperProgressSummary,
+  resolveResultTileState,
   resolveStudentContestPhase,
 } from "./studentDashboardState";
 
@@ -103,5 +106,35 @@ describe("studentDashboardState", () => {
     expect(summary.totalScore).toBe(23.5);
     expect(summary.maxScore).toBe(20);
     expect(summary.completedItems).toBe(2);
+  });
+
+  describe("coding results read like paper results", () => {
+    const problems = [
+      { id: "b1", problemId: "p1", label: "A", title: "A", order: 1, maxScore: 100, userStatus: "AC", userScore: 80 },
+      { id: "b2", problemId: "p2", label: "B", title: "B", order: 2, maxScore: 100, userStatus: "WA", userScore: 40 },
+      { id: "b3", problemId: "p3", label: "C", title: "C", order: 3, maxScore: 100, userStatus: "WA", userScore: 0 },
+      { id: "b4", problemId: "p4", label: "D", title: "D", order: 4, maxScore: 100 },
+    ] as ContestDetail["problems"];
+
+    it("totals by the scoreboard's rule, and only once results are published", () => {
+      expect(buildCodingProgressSummary(createContest({ problems })).totalScore).toBeNull();
+      // Accepted earns full marks even when the stored best score is lower.
+      expect(buildCodingProgressSummary(createContest({ problems, resultsPublished: true })).totalScore).toBe(140);
+    });
+
+    it("shows verdicts before publishing and points after, like paper answers", () => {
+      const before = buildCodingResultItems(createContest({ problems })).map(resolveResultTileState);
+      expect(before).toEqual(["accepted", "attempted", "attempted", "unanswered"]);
+      const after = buildCodingResultItems(createContest({ problems, resultsPublished: true })).map(resolveResultTileState);
+      expect(after).toEqual(["full", "partial", "zero", "unanswered"]);
+    });
+
+    it("marks paper answers by points, never by the isCorrect flag", () => {
+      const paper = { key: "q", label: "1", answered: true, maxScore: 10 };
+      expect(resolveResultTileState({ ...paper, score: null })).toBe("answered");
+      expect(resolveResultTileState({ ...paper, score: 10 })).toBe("full");
+      expect(resolveResultTileState({ ...paper, score: 4 })).toBe("partial");
+      expect(resolveResultTileState({ ...paper, score: 0 })).toBe("zero");
+    });
   });
 });

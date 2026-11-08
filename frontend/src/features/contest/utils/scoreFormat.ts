@@ -1,1 +1,1 @@
-export { formatScore, roundScore } from "@/shared/utils/scoreFormat";
+export { formatScore, formatScoreCompact, roundScore } from "@/shared/utils/scoreFormat";

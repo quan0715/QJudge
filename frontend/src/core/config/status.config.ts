@@ -28,6 +28,24 @@ export const SUBMISSION_STATUS_CONFIG: Record<SubmissionStatus, StatusConfig> = 
   'info': { color: 'cyan', labelKey: 'common:status.active', type: 'cyan' },
 };
 
+/** Judge verdicts by name, for students reading their own result; zh-TW is the fallback text. */
+const VERDICTS: Partial<Record<SubmissionStatus, [key: string, fallback: string]>> = {
+  AC: ['common:verdict.AC', '通過'],
+  WA: ['common:verdict.WA', '答案錯誤'],
+  TLE: ['common:verdict.TLE', '執行超時'],
+  MLE: ['common:verdict.MLE', '記憶體超限'],
+  RE: ['common:verdict.RE', '執行錯誤'],
+  CE: ['common:verdict.CE', '編譯錯誤'],
+  SE: ['common:verdict.SE', '系統錯誤'],
+  KR: ['common:verdict.KR', '強制終止'],
+};
+
+/** The verdict's own name (e.g. 答案錯誤) where there is one, otherwise the generic status label. */
+export function translateVerdict(t: (key: string, fallback: string) => string, status: SubmissionStatus | string): string {
+  const verdict = VERDICTS[status as SubmissionStatus];
+  return verdict ? t(verdict[0], verdict[1]) : t(getStatusConfig(status as SubmissionStatus).labelKey, status);
+}
+
 export function getStatusConfig(status: SubmissionStatus): StatusConfig {
   return SUBMISSION_STATUS_CONFIG[status] || { color: 'gray', labelKey: status, type: 'gray' };
 }

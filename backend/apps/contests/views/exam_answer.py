@@ -35,7 +35,10 @@ from ..services.exam_scoring import ExamScoringService
 from ..services.paper_question_labels import build_paper_question_labels
 from ..permissions import can_manage_contest
 from apps.core.api.envelope import envelope
-from ..services.open_answer_document import validate_open_answer_document
+from ..services.open_answer_document import (
+    serialize_open_answer_document,
+    validate_open_answer_document,
+)
 from .exam_validation_response import (
     build_device_conflict_response_for_view,
     validate_exam_operation_for_view,
@@ -214,7 +217,9 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
-            if question.answer_format == ExamQuestionAnswerFormat.OPEN_DOCUMENT:
+            if question.answer_format == ExamQuestionAnswerFormat.OPEN_DOCUMENT or "document" in answer:
+                if question.question_type not in (ExamQuestionType.SHORT_ANSWER, ExamQuestionType.ESSAY):
+                    raise ValidationError({'answer': ['document is only supported for subjective questions']})
                 document = answer.get('document')
                 validate_open_answer_document(document)
                 serialized = json.dumps(document, ensure_ascii=False)
@@ -223,6 +228,11 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
                         {'answer': ['open answer document exceeds 32 KB']},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
+                # Reports, dashboards and grading tools read the text projection.
+                answer = {
+                    'document': document,
+                    'text': serialize_open_answer_document(document).plain_text,
+                }
 
             answer_obj, created = ExamAnswer.objects.update_or_create(
                 participant=participant,

@@ -9,6 +9,13 @@ import {
 } from "./openAnswerDocument";
 
 describe("open answer document", () => {
+  it("keeps legacy text and blank lines in the unified editor", () => {
+    expect(normalizeOpenAnswerDocument("第一段\n\nsecond")).toEqual({ version: 1, nodes: [
+      {type: "paragraph", children: [{type: "text", text: "第一段"}]},
+      {type: "paragraph", children: []},
+      {type: "paragraph", children: [{type: "text", text: "second"}]},
+    ]});
+  });
   it("recognizes versioned open answer documents", () => {
     expect(isOpenAnswerDocument({ version: 1, nodes: [] })).toBe(true);
     expect(isOpenAnswerDocument({ version: 2, nodes: [] })).toBe(false);

@@ -16,6 +16,8 @@ interface ContestProblemSubmissionsProps {
   // list filter targets Submission.problem FK, which points at CodingProblem.
   codingProblemId: string;
   userId?: string;
+  /** Replaces the default empty notification, e.g. inside the exam workspace. */
+  emptyState?: React.ReactNode;
 }
 
 /**
@@ -26,6 +28,7 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
   contestId,
   codingProblemId,
   userId,
+  emptyState,
 }) => {
   const { t } = useTranslation("contest");
   const skeletonWidths = [
@@ -48,6 +51,7 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
     problemFilter: codingProblemId,
     userId: userId ?? currentUser?.id,
     enabled: !!(userId ?? currentUser?.id),
+    refetchOnOpen: true,
   });
 
   const submissions = data?.results || [];
@@ -106,7 +110,7 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
       {isError ? (
         <InlineNotification kind="error" title={t("dashboard.submissionsLoadFailed", "無法載入提交紀錄")} subtitle={error.message} hideCloseButton />
       ) : submissions.length === 0 ? (
-        <InlineNotification
+        emptyState ?? <InlineNotification
           kind="info"
           title="尚無繳交記錄"
           subtitle="提交答案後，記錄將顯示在此處"

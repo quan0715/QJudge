@@ -148,7 +148,7 @@ export const TestCaseDetail: React.FC<TestCaseDetailProps> = ({
                 <TextArea
                   ref={inputRef}
                   id={`${fieldId}-input`}
-                  labelText="Input"
+                  labelText="輸入"
                   placeholder="輸入測試資料..."
                   value={input || ""}
                   onChange={(e) => onInputChange?.(e.target.value)}
@@ -157,7 +157,7 @@ export const TestCaseDetail: React.FC<TestCaseDetailProps> = ({
                 />
               ) : (
                 <>
-                  <h4 className={styles.sectionLabel}>Input</h4>
+                  <h4 className={styles.sectionLabel}>輸入</h4>
                   <CodeSnippet type="multi" feedback="Copied" className={styles.codeSnippet}>
                     {input || "(Empty)"}
                   </CodeSnippet>
@@ -170,7 +170,7 @@ export const TestCaseDetail: React.FC<TestCaseDetailProps> = ({
               {isWritable ? (
                 <TextArea
                   id={`${fieldId}-output`}
-                  labelText="Expected Output"
+                  labelText="預期輸出"
                   placeholder="預期輸出..."
                   value={output || ""}
                   onChange={(e) => onOutputChange?.(e.target.value)}
@@ -179,7 +179,7 @@ export const TestCaseDetail: React.FC<TestCaseDetailProps> = ({
                 />
               ) : (
                 <>
-                  <h4 className={styles.sectionLabel}>Expected Output</h4>
+                  <h4 className={styles.sectionLabel}>預期輸出</h4>
                   <CodeSnippet type="multi" feedback="Copied" className={styles.codeSnippet}>
                     {output || "(Empty)"}
                   </CodeSnippet>

@@ -174,7 +174,8 @@ describe("usePaperExamQuestions", () => {
       {
         id: "answer-1",
         questionId: "q1",
-        answer: { document },
+        // The server also stores a text projection; the editor still gets the document.
+        answer: { document, text: "已儲存推導" },
         createdAt: "",
         updatedAt: "",
       },

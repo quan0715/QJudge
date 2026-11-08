@@ -578,7 +578,9 @@
       "falseOption": "否 (False)",
       "promptEmpty": "（尚未填寫題目敘述）",
       "shortAnswerPlaceholder": "輸入你的答案...",
-      "trueOption": "是 (True)"
+      "trueOption": "是 (True)",
+      "selectAll": "選擇所有符合的答案",
+      "selectOne": "選擇一個答案"
     },
     "questionTypes": {
       "coding": "程式題",
@@ -608,6 +610,9 @@
       "submitting": "交卷中...",
       "unansweredSubtitle": "建議先返回作答頁補完答案，再進行交卷。",
       "unansweredWarning": "尚有 {{count}} 題未作答"
+    },
+    "workspace": {
+      "statement": "題目內容"
     }
   },
   "attendance": {
@@ -2762,6 +2767,130 @@
       "top": "前 25%",
       "bottom": "後 25%",
       "zero": "0 分"
+    }
+  },
+  "workspace": {
+    "loading": "載入考試",
+    "retry": "重試",
+    "header": {
+      "back": "返回課程",
+      "expandList": "展開題目列表",
+      "collapseList": "收合題目列表",
+      "fallbackTitle": "考試",
+      "previewMode": "試作答",
+      "previewNotSaved": "不儲存答案"
+    },
+    "rail": {
+      "overview": "考試概覽",
+      "questions": "題目",
+      "announcements": "公告",
+      "review": "作答檢查",
+      "standings": "排行榜"
+    },
+    "questionList": {
+      "title": "題目",
+      "count": "{{count}} 題",
+      "group": "第 {{number}} 題 · 題組",
+      "acceptedProgress": "已通過 {{answered}} / {{total}}"
+    },
+    "status": {
+      "answered": "已作答",
+      "unanswered": "未作答",
+      "marked": "已標記",
+      "accepted": "已通過",
+      "judging": "評測中",
+      "attempted": "已提交，未通過",
+      "notSubmitted": "未提交"
+    },
+    "stepper": {
+      "previous": "上一題",
+      "next": "下一題"
+    },
+    "overview": {
+      "coding": "程式考試",
+      "paper": "考卷考試",
+      "questionCount": "{{count}} 題",
+      "totalScore": "共 {{score}} 分",
+      "defaultDescription": "請閱讀考試資訊，準備好後即可進入作答。",
+      "rules": "應試規則",
+      "start": "開始時間",
+      "end": "截止時間",
+      "duration": "作答時長",
+      "minutes": "{{count}} 分鐘",
+      "progress": "作答進度",
+      "resume": "進入作答",
+      "durationDays": "{{days}} 天 {{hours}} 小時",
+      "durationHours": "{{hours}} 小時 {{minutes}} 分",
+      "remaining": "剩餘 {{time}}",
+      "startsIn": "距離開始 {{time}}",
+      "ended": "已結束",
+      "timeProgress": "考試時間進度",
+      "itemProgress": "{{done}} / {{total}} 題"
+    },
+    "announcements": {
+      "title": "公告",
+      "description": "考試期間的通知會即時顯示在這裡。",
+      "loading": "載入公告",
+      "failed": "公告載入失敗",
+      "empty": "目前沒有公告"
+    },
+    "review": {
+      "title": "作答檢查",
+      "codingSummary": "已通過 {{answered}} / {{total}} 題。展開題目可查看歷次提交與評測結果。",
+      "paperSummary": "已作答 {{answered}} / {{total}} 題。作答狀態不代表伺服器已儲存。",
+      "emptyTitle": "尚未進入作答",
+      "emptyDescription": "進入作答後即可逐題檢查狀態。",
+      "questionTitle": "第 {{label}} 題",
+      "points": "分",
+      "submissionCount": "提交 {{count}} 次",
+      "resume": "繼續作答",
+      "resumeLabel": "繼續作答：{{title}}",
+      "noSubmissions": "尚無提交紀錄。測試或繳交後，評測結果會顯示在這裡。",
+      "recordsDescription": "作答紀錄、成績與批改回饋會顯示在這裡。"
+    },
+    "standings": {
+      "title": "排行榜",
+      "description": "依通過題數與分數排序，評測完成後更新。",
+      "refresh": "更新",
+      "refreshing": "更新中",
+      "loading": "載入排行榜",
+      "failed": "排行榜載入失敗",
+      "empty": "目前沒有排名資料",
+      "emptyDescription": "有人通過評測後就會出現在這裡。",
+      "rank": "名次",
+      "student": "學生",
+      "solved": "通過",
+      "score": "分數"
+    },
+    "report": {
+      "title": "作答情況",
+      "details": "查看詳情",
+      "question": "第 {{label}} 題",
+      "points": "{{score}} / {{max}} 分",
+      "full": "滿分",
+      "partial": "部分得分",
+      "zero": "未得分",
+      "answered": "已作答",
+      "unanswered": "未作答",
+      "accepted": "已通過",
+      "attempted": "未通過",
+      "classTitle": "班級表現",
+      "average": "班平均",
+      "you": "你的分數",
+      "aboveAverage": "高於平均 {{diff}} 分",
+      "belowAverage": "低於平均 {{diff}} 分",
+      "atAverage": "與平均相同",
+      "distribution": "成績分布",
+      "people": "{{count}} 人",
+      "yourRange": "你在這裡"
+    },
+    "handIn": {
+      "open_one": "還有 {{count}} 題未作答",
+      "open_other": "還有 {{count}} 題未作答",
+      "complete": "{{count}} 題都已作答",
+      "marked": "{{count}} 題已標記",
+      "note": "交卷後就不能再修改答案。",
+      "noteSelect": "點題號可回到該題。交卷後就不能再修改答案。"
     }
   }
 }

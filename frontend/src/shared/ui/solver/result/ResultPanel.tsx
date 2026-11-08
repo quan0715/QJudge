@@ -31,6 +31,9 @@ interface ResultPanelProps {
 
   // Execution
   executionState: ExecutionState;
+
+  /** The problem's submission history, shown as its own tab. */
+  renderSubmissions?: () => React.ReactNode;
 }
 
 /**
@@ -75,6 +78,7 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
   onSubmit,
   testDisabled,
   submitDisabled,
+  renderSubmissions,
 }) => {
   // Check if we have results to show
   const { status, result } = executionState;
@@ -96,6 +100,10 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
       );
     }
 
+    if (mode === "submissions" && renderSubmissions) {
+      return <div className="result-panel__submissions">{renderSubmissions()}</div>;
+    }
+
     // Results mode - show empty state if no results and not running
     if (!hasResults && !isRunning) {
       return <EmptyResultState onRunTest={onRunTest} />;
@@ -103,7 +111,14 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
 
     // Results mode - show ResultsPanel (handles its own skeleton/loading states)
     // A different run remounts the panel, so its selection and expansion start fresh.
-    return <ResultsPanel key={executionState.startedAt} executionState={executionState} testCases={testCases} />;
+    return (
+      <ResultsPanel
+        key={executionState.startedAt}
+        executionState={executionState}
+        testCases={testCases}
+        onShowSubmissions={renderSubmissions ? () => onModeChange("submissions") : undefined}
+      />
+    );
   };
 
   return (
@@ -118,6 +133,7 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
         onSubmit={onSubmit}
         testDisabled={testDisabled}
         submitDisabled={submitDisabled}
+        hasSubmissions={!!renderSubmissions}
       />
 
       {/* Content - hidden when collapsed */}

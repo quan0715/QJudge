@@ -18,6 +18,7 @@ import {
   getClassroomContestSolvePath,
 } from "@/features/contest/domain/contestRoutePolicy";
 import "./ContestProblemScreen.scss";
+import { CodingQuestionStepper } from "@/features/contest/components/layout/CodingQuestionStepper";
 
 const ContestProblemScreen = () => {
   const { t } = useTranslation("contest");
@@ -184,6 +185,7 @@ const ContestProblemScreen = () => {
         contestId={contestId!}
         disableCopy={contest?.cheatDetectionEnabled}
         submissionDisabled={isSubmissionDisabled}
+        statementFooter={<CodingQuestionStepper />}
         renderSubmissions={() => (
           <ContestProblemSubmissions
             contestId={contestId!}

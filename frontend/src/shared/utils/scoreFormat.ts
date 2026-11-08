@@ -19,3 +19,12 @@ export function formatScore(value: number | string | null | undefined): string {
 
   return roundScore(numeric).toFixed(2);
 }
+
+/** Student-facing score without padded decimals, e.g. 5 or 2.5. */
+export function formatScoreCompact(value: number | string | null | undefined): string {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? String(roundScore(numeric)) : "-";
+}

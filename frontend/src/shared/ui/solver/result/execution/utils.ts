@@ -1,6 +1,7 @@
 import type { TestCaseItem } from "@/core/entities/testcase.entity";
 import type { ExecutionState } from "@/core/types/solver.types";
 import type { SubmissionStatus } from "@/core/entities/submission.entity";
+import { translateVerdict } from "@/core/config/status.config";
 
 export interface CaseResultDisplay {
   id: string;
@@ -170,35 +171,47 @@ export const buildCaseResults = (
   return [];
 };
 
-export const getHeaderInfo = ({ status, type, queued, error: globalError, result }: ExecutionState): HeaderInfo => {
-     if (status === "running" || status === "polling") {
-         const title = queued ? "排隊中" : type === "submit" ? "判題中" : "執行中";
-         return { title, type: "blue", subtitle: "" };
-     }
-     if (globalError) {
-         return { title: "Error", type: "red", subtitle: globalError };
-     }
-     
-     if (result?.type === 'submit') {
-         const isAC = result.status === 'AC';
-         const statusText = result.status === 'AC' ? "Accepted" : 
-                            result.status === 'WA' ? "Wrong Answer" : 
-                            result.status || "Failed";
-         return {
-             title: statusText,
-             type: isAC ? "green" : "red",
-             subtitle: `通過 ${result.passed} / ${result.total} · 分數 ${result.score || 0}`
-         };
-     }
+type Translate = (key: string, defaultValue: string, options?: Record<string, unknown>) => string;
 
-     if (result?.type === 'run') {
-         const allPassed = result.failed === 0;
-         return {
-             title: allPassed ? "Accepted" : "Wrong Answer",
-             type: allPassed ? "green" : "red",
-             subtitle: `通過 ${result.passed} / ${result.total}`
-         };
-     }
+/** A test run has no single verdict: all passed, or the first failing case's verdict. */
+const runVerdict = (cases: Array<{ status?: string; passed?: boolean }>, failed: number): string => {
+  if (failed === 0) return "AC";
+  const failing = cases.find((c) => !c.passed && c.status && !["AC", "info", "passed"].includes(c.status));
+  return failing?.status && failing.status !== "failed" ? failing.status : "WA";
+};
 
-     return { title: "Ready", type: "gray", subtitle: "-" };
+export const getHeaderInfo = (
+  { status, type, queued, error: globalError, result }: ExecutionState,
+  t: Translate,
+): HeaderInfo => {
+  if (status === "running" || status === "polling") {
+    const title = queued
+      ? t("solver.queued", "排隊中")
+      : type === "submit" ? t("solver.judging", "判題中") : t("solver.running", "執行中");
+    return { title, type: "blue", subtitle: "" };
+  }
+  if (globalError) {
+    return { title: t("solver.error", "發生錯誤"), type: "red", subtitle: globalError };
+  }
+  const passed = (p: number, total: number) => t("solver.passedCount", `通過 ${p} / ${total}`, { passed: p, total });
+
+  if (result?.type === "submit") {
+    const verdict = result.status || "SE";
+    return {
+      title: translateVerdict(t, verdict),
+      type: verdict === "AC" ? "green" : "red",
+      subtitle: `${passed(result.passed, result.total)} · ${t("solver.score", `得分 ${result.score || 0}`, { score: result.score || 0 })}`,
+    };
+  }
+
+  if (result?.type === "run") {
+    const verdict = runVerdict(result.cases || [], result.failed);
+    return {
+      title: translateVerdict(t, verdict),
+      type: verdict === "AC" ? "green" : "red",
+      subtitle: passed(result.passed, result.total),
+    };
+  }
+
+  return { title: "", type: "gray", subtitle: "" };
 };

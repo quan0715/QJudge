@@ -30,8 +30,8 @@ describe("shared coding answer records", () => {
     expect(getSubmissions).toHaveBeenCalledWith(expect.objectContaining({
       contest: "contest-1", user: "468", problem: "coding-21", include_all: "true",
     }));
-    expect(await screen.findByText("WA")).toBeInTheDocument();
-    expect(screen.getByText("CE")).toBeInTheDocument();
+    expect(await screen.findByText("答案錯誤")).toBeInTheDocument();
+    expect(screen.getByText("編譯錯誤")).toBeInTheDocument();
   });
 
   it("opens the selected problem and defaults to the authenticated student when no user is supplied", async () => {

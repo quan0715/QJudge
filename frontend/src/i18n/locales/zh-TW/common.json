@@ -565,6 +565,7 @@
     }
   },
   "workspaceTopNav": {
+    "resizeStatement": "調整題目區寬度",
     "adminConsole": "管理後台",
     "aiAssistant": "AI 助教",
     "backToContest": "返回競賽儀表板",
@@ -585,5 +586,35 @@
   "ui": {
     "collapseSidebar": "收合側欄",
     "expandSidebar": "展開側欄"
+  },
+  "verdict": {
+    "AC": "通過",
+    "WA": "答案錯誤",
+    "TLE": "執行超時",
+    "MLE": "記憶體超限",
+    "RE": "執行錯誤",
+    "CE": "編譯錯誤",
+    "SE": "系統錯誤",
+    "KR": "強制終止"
+  },
+  "solver": {
+    "queued": "排隊中",
+    "judging": "判題中",
+    "running": "執行中",
+    "error": "發生錯誤",
+    "passedCount": "通過 {{passed}} / {{total}}",
+    "score": "得分 {{score}}",
+    "waitingSeconds": "已等待 {{seconds}} 秒",
+    "submissionKind": "正式提交 · 計入成績",
+    "testKind": "測試 · 不計分",
+    "viewSubmissions": "查看提交紀錄",
+    "panelTabs": "結果面板",
+    "tabs": {
+      "testcases": "測資",
+      "results": "結果",
+      "submissions": "提交紀錄"
+    },
+    "test": "測試",
+    "submit": "繳交"
   }
 }
