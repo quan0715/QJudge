@@ -48,7 +48,7 @@ class ExamAnswerTestBase(APITestCase):
             question_type=ExamQuestionType.SINGLE_CHOICE,
             prompt='Pick one',
             options=['A', 'B', 'C'],
-            correct_answer='B',
+            correct_answer=1,
             explanation='Single-choice explanation',
             score=5,
             order=1,
@@ -58,7 +58,7 @@ class ExamAnswerTestBase(APITestCase):
             question_type=ExamQuestionType.MULTIPLE_CHOICE,
             prompt='Pick many',
             options=['X', 'Y', 'Z'],
-            correct_answer=['X', 'Z'],
+            correct_answer=[0, 2],
             explanation='Multiple-choice explanation',
             score=10,
             order=2,
@@ -94,7 +94,7 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self._url(), {
             'question_id': self.q_single.id,
-            'answer': {'selected': 'B'},
+            'answer': {'selected': 1},
         }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         ans = ExamAnswer.objects.get(participant=self.participant, question=self.q_single)
@@ -105,7 +105,7 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         self.client.force_authenticate(user=self.student)
         self.client.post(self._url(), {
             'question_id': self.q_single.id,
-            'answer': {'selected': 'A'},
+            'answer': {'selected': 0},
         }, format='json')
         ans = ExamAnswer.objects.get(participant=self.participant, question=self.q_single)
         self.assertFalse(ans.is_correct)
@@ -115,7 +115,7 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         self.client.force_authenticate(user=self.student)
         self.client.post(self._url(), {
             'question_id': self.q_multi.id,
-            'answer': {'selected': ['X', 'Z']},
+            'answer': {'selected': [0, 2]},
         }, format='json')
         ans = ExamAnswer.objects.get(participant=self.participant, question=self.q_multi)
         self.assertTrue(ans.is_correct)
@@ -176,24 +176,24 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         self.client.force_authenticate(user=self.student)
         self.client.post(self._url(), {
             'question_id': self.q_single.id,
-            'answer': {'selected': 'A'},
+            'answer': {'selected': 0},
         }, format='json')
         resp = self.client.post(self._url(), {
             'question_id': self.q_single.id,
-            'answer': {'selected': 'B'},
+            'answer': {'selected': 1},
         }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(ExamAnswer.objects.filter(
             participant=self.participant, question=self.q_single
         ).count(), 1)
         ans = ExamAnswer.objects.get(participant=self.participant, question=self.q_single)
-        self.assertEqual(ans.answer['selected'], 'B')
+        self.assertEqual(ans.answer['selected'], 1)
 
     def test_auto_grade_uses_current_question_rules(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self._url(), {
             'question_id': self.q_single.id,
-            'answer': {'selected': 'B'},
+            'answer': {'selected': 1},
         }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         answer = ExamAnswer.objects.get(
@@ -201,7 +201,7 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
             question=self.q_single,
         )
 
-        self.q_single.correct_answer = 'A'
+        self.q_single.correct_answer = 0
         self.q_single.score = 7
         self.q_single.save(update_fields=['correct_answer', 'score'])
         answer.auto_grade()
@@ -213,14 +213,14 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         self.client.force_authenticate(user=self.student)
         self.client.post(self._url(), {
             'question_id': self.q_single.id,
-            'answer': {'selected': 'B'},
+            'answer': {'selected': 1},
         }, format='json')
         self.assertEqual(self._roster_total(), 5.0)
 
         self.client.force_authenticate(user=self.student)
         self.client.post(self._url(), {
             'question_id': self.q_single.id,
-            'answer': {'selected': 'A'},
+            'answer': {'selected': 0},
         }, format='json')
         self.assertEqual(self._roster_total(), 0.0)
 
@@ -231,7 +231,7 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self._url(), {
             'question_id': self.q_single.id,
-            'answer': {'selected': 'A'},
+            'answer': {'selected': 0},
         }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -239,14 +239,14 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self._url(), {
             'question_id': str(uuid4()),
-            'answer': {'selected': 'A'},
+            'answer': {'selected': 0},
         }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_submit_unauthenticated(self):
         resp = self.client.post(self._url(), {
             'question_id': self.q_single.id,
-            'answer': {'selected': 'A'},
+            'answer': {'selected': 0},
         }, format='json')
         self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
 
@@ -282,7 +282,7 @@ class ExamAnswerMyAnswersTests(ExamAnswerTestBase):
         ExamAnswer.objects.create(
             participant=self.participant,
             question=self.q_single,
-            answer={'selected': 'B'},
+            answer={'selected': 1},
         )
         self.client.force_authenticate(user=self.student)
         resp = self.client.get(self._url())
@@ -334,7 +334,7 @@ class ExamAnswerResultsTests(ExamAnswerTestBase):
         ExamAnswer.objects.create(
             participant=self.participant,
             question=self.q_single,
-            answer={'selected': 'B'},
+            answer={'selected': 1},
             is_correct=True,
             score=5,
         )
@@ -357,7 +357,7 @@ class ExamAnswerResultsTests(ExamAnswerTestBase):
         ExamAnswer.objects.create(
             participant=self.participant,
             question=self.q_single,
-            answer={'selected': 'B'},
+            answer={'selected': 1},
             is_correct=True,
             score=5,
         )
@@ -375,7 +375,7 @@ class ExamAnswerResultsTests(ExamAnswerTestBase):
         self.assertEqual(resp.data['meta']['total_score'], 35.0)
         self.assertEqual(resp.data['meta']['max_total_score'], 35.0)
 
-    def test_results_use_current_question_explanation(self):
+    def test_results_never_carry_the_question_explanation(self):
         self.client.force_authenticate(user=self.student)
         submit_url = reverse(
             'contests:contest-exam-answers-submit-answer',
@@ -387,18 +387,14 @@ class ExamAnswerResultsTests(ExamAnswerTestBase):
         }, format='json')
         self.assertEqual(submit_resp.status_code, status.HTTP_201_CREATED)
 
-        self.q_essay.explanation = 'Corrected explanation'
-        self.q_essay.save(update_fields=['explanation'])
         self.contest.results_published = True
         self.contest.save(update_fields=['results_published'])
 
         resp = self.client.get(self._url())
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            resp.data['data'][0]['question_explanation'],
-            'Corrected explanation',
-        )
+        # Students get their answer and grading, never the teacher's explanation.
+        self.assertNotIn('question_explanation', resp.data['data'][0])
 
     def test_teacher_can_view_before_publish(self):
         self.client.force_authenticate(user=self.teacher)
@@ -500,7 +496,7 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         graded = ExamAnswer.objects.create(
             participant=self.participant,
             question=self.q_single,
-            answer={'selected': 'B'},
+            answer={'selected': 1},
             score=5,
         )
         ungraded = ExamAnswer.objects.create(
@@ -532,7 +528,7 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         other = ExamAnswer.objects.create(
             participant=self.participant,
             question=self.q_single,
-            answer={'selected': 'B'},
+            answer={'selected': 1},
         )
         target = ExamAnswer.objects.create(
             participant=self.participant,
@@ -642,7 +638,7 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         ExamAnswer.objects.create(
             participant=self.participant,
             question=self.q_single,
-            answer={'selected': 'B'},
+            answer={'selected': 1},
         )
         self.client.force_authenticate(user=self.teacher)
         url = reverse(
@@ -678,7 +674,7 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         ExamAnswer.objects.create(
             participant=self.participant,
             question=self.q_single,
-            answer={'selected': 'B'},
+            answer={'selected': 1},
             is_correct=True,
             score=5,
         )
@@ -691,7 +687,7 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         ExamAnswer.objects.create(
             participant=second_participant,
             question=self.q_single,
-            answer={'selected': 'A'},
+            answer={'selected': 0},
             is_correct=False,
             score=0,
         )
@@ -730,7 +726,7 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         ExamAnswer.objects.create(
             participant=self.participant,
             question=self.q_single,
-            answer={'selected': 'B'},
+            answer={'selected': 1},
             is_correct=True,
             score=5,
         )
@@ -745,6 +741,8 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data['contest']['participant_count'], 1)
         self.assertEqual(resp.data['score_distribution'][-1]['range_label'], '90-100%')
+        # Students get the class standing; per-question statistics stay with staff.
+        self.assertEqual(resp.data['questions'], [])
 
     def test_participant_cannot_view_dashboard_summary_before_results_published(self):
         self.client.force_authenticate(user=self.student)
@@ -780,7 +778,7 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
             submit_url,
             {
                 'question_id': self.q_single.id,
-                'answer': {'selected': 'B'},
+                'answer': {'selected': 1},
             },
             format='json',
         )
@@ -812,14 +810,14 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         ExamAnswer.objects.create(
             participant=self.participant,
             question=self.q_single,
-            answer={'selected': 'B'},
+            answer={'selected': 1},
             is_correct=True,
             score=5,
         )
         ExamAnswer.objects.create(
             participant=second_participant,
             question=self.q_single,
-            answer={'selected': 'A'},
+            answer={'selected': 0},
             is_correct=False,
             score=0,
         )

@@ -373,16 +373,17 @@ const PaperExamAnsweringScreen: React.FC = () => {
             {saveStatusLabel}
           </span>
         ) : null}
-        <Button
-          kind="primary"
+        {/* Same chip shape as the countdown beside it, filled so it still reads as the main action. */}
+        <button
+          type="button"
           className={styles.headerSubmitButton}
           data-testid="paper-exam-open-submit-review-btn"
-          renderIcon={SendFilled}
           onClick={openSubmitReview}
           disabled={!isInProgress}
         >
           {t("answering.submit.button")}
-        </Button>
+          <SendFilled size={14} aria-hidden="true" />
+        </button>
       </div>,
     );
 

@@ -40,6 +40,7 @@ from ..services.question_edit_lock import (
 from ..services.locked_question_update import apply_locked_question_update
 from ..services.objective_answer import objective_answer_error
 from ..services.activity_log import log_contest_activity
+from ..services.question_kinds import parse_kind_filter
 from .exam_validation_response import build_device_conflict_response_for_view
 
 logger = logging.getLogger(__name__)
@@ -132,38 +133,6 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             return None
         return build_device_conflict_response_for_view(contest, participant, self.request)
 
-    # Aliases consumed by the `?kind=` filter in addition to raw enum values.
-    _KIND_ALIAS = {
-        'subjective': {ExamQuestionType.SHORT_ANSWER, ExamQuestionType.ESSAY},
-        'objective': {
-            ExamQuestionType.TRUE_FALSE,
-            ExamQuestionType.SINGLE_CHOICE,
-            ExamQuestionType.MULTIPLE_CHOICE,
-        },
-    }
-
-    @classmethod
-    def _parse_kind_filter(cls, raw):
-        """Translate ``?kind=<alias|csv of enums>`` into a set of enum values.
-
-        Returns ``None`` for no filter, or an empty set for an unknown value
-        (caller can treat empty-set as "no matches")."""
-        if not raw:
-            return None
-        tokens = {t.strip() for t in raw.split(',') if t.strip()}
-        if not tokens:
-            return None
-        kinds = set()
-        all_enum_values = set(ExamQuestionType.values)
-        for tok in tokens:
-            if tok in cls._KIND_ALIAS:
-                kinds |= cls._KIND_ALIAS[tok]
-            elif tok in all_enum_values:
-                kinds.add(tok)
-            # Unknown tokens are ignored (strict validation would add noise for
-            # a filter-only-hint query param).
-        return kinds
-
     def get_queryset(self):
         contest = self._get_contest()
         # Students can only list; admin check is enforced per-action for writes
@@ -182,7 +151,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
 
         qs = ExamQuestion.objects.filter(contest=contest).select_related("group", "contest").order_by('order', 'id')
 
-        kind_filter = self._parse_kind_filter(self.request.query_params.get('kind'))
+        kind_filter = parse_kind_filter(self.request.query_params.get('kind'))
         if kind_filter is not None:
             qs = qs.filter(question_type__in=kind_filter)
 

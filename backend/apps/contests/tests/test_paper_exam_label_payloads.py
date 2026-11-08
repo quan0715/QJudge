@@ -46,7 +46,7 @@ def paper(monkeypatch):
     scoring.get_participant_breakdown.return_value = SimpleNamespace(
         items=[], max_total_score=40, total_score=0, graded_count=0, correct_count=0,
     )
-    scoring._round_score.side_effect = lambda value: Decimal(str(value))
+    scoring.round_score.side_effect = lambda value: Decimal(str(value))
     scoring.compute_participant_scores.return_value = {}
     scoring.get_question_stats.return_value = {
         q.id: SimpleNamespace(
@@ -94,7 +94,7 @@ def test_dashboard_labels_are_computed_before_subjective_filter(paper, monkeypat
     contest.expand_question_numbers = expanded
     view = exam_answer.ExamAnswerViewSet()
     monkeypatch.setattr(view, "_get_contest", lambda contest_pk: contest)
-    monkeypatch.setattr(view, "_can_view_dashboard_summary", lambda user, contest: True)
+    monkeypatch.setattr(exam_answer, "can_manage_contest", lambda user, contest: True)
     participants = MagicMock()
     participants.values.return_value = []
     monkeypatch.setattr(view, "_attempted_participants_qs", lambda contest: participants)
