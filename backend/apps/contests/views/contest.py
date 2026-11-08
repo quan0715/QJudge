@@ -697,6 +697,8 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
                 language=language,
                 scale=scale,
                 include_grading=contest.report_includes_grading,
+                # The student's own copy shows their answers and grading, never the answer key.
+                include_answer_key=False,
             )
 
         except Exception as e:

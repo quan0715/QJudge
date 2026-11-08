@@ -23,11 +23,13 @@ class PaperExamReportRenderer(BaseRenderer):
 
     OPTION_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-    def __init__(self, contest, user, language='zh-TW', scale=1.0, include_grading=True):
+    def __init__(self, contest, user, language='zh-TW', scale=1.0, include_grading=True, include_answer_key=True):
         super().__init__(contest, language)
         self.user = user
         self.scale = max(0.5, min(2.0, scale))
         self.include_grading = include_grading
+        # Correct options, reference answers and explanations; staff copies only.
+        self.include_answer_key = include_grading and include_answer_key
         self._questions_cache = None
         self._answers_cache = None
         self._participant_cache = None
@@ -201,7 +203,7 @@ class PaperExamReportRenderer(BaseRenderer):
                     )
                     status = {"icon": "—", "status_class": "status-excluded", "color": "#6f6f6f"}
                 elif q.score_policy == ExamQuestionScorePolicy.REDISTRIBUTE:
-                    score_display = f'<span style="color:#6f6f6f;">— / —</span>'
+                    score_display = '<span style="color:#6f6f6f;">— / —</span>'
                     status = {"icon": "→", "status_class": "status-excluded", "color": "#eb6200"}
                 elif q.score_policy == ExamQuestionScorePolicy.FULL_MARKS:
                     eff_str = self._fmt_score(eff_max)
@@ -349,7 +351,7 @@ class PaperExamReportRenderer(BaseRenderer):
                 score_color = '#6f6f6f'
                 status = {"icon": "—", "status_class": "status-excluded", "label": excluded_label}
             elif question.score_policy == ExamQuestionScorePolicy.REDISTRIBUTE:
-                score_display = f'<span style="color:#eb6200;">— / —</span>'
+                score_display = '<span style="color:#eb6200;">— / —</span>'
                 score_color = '#eb6200'
                 status = {"icon": "→", "status_class": "status-excluded", "label": redistribute_label}
             elif question.score_policy == ExamQuestionScorePolicy.FULL_MARKS:
@@ -468,9 +470,9 @@ class PaperExamReportRenderer(BaseRenderer):
                 else:
                     student_indices = {sel}
 
-        # Correct answers — only used when grading is included
+        # Correct answers — only on copies that carry the answer key
         correct_indices = set()
-        if self.include_grading:
+        if self.include_answer_key:
             correct_answer = question.correct_answer
             if correct_answer is not None:
                 if isinstance(correct_answer, list):
@@ -490,7 +492,11 @@ class PaperExamReportRenderer(BaseRenderer):
             is_correct = i in correct_indices
 
             css_classes = ['option-row']
-            if self.include_grading:
+            if self.include_grading and not self.include_answer_key:
+                # Without the key, only the student's own pick is marked right or wrong.
+                if is_selected:
+                    css_classes.append('option-correct-selected' if answer and answer.is_correct else 'option-wrong-selected')
+            elif self.include_grading:
                 if is_selected and is_correct:
                     css_classes.append('option-correct-selected')
                 elif is_selected and not is_correct:
@@ -506,7 +512,7 @@ class PaperExamReportRenderer(BaseRenderer):
             if is_selected:
                 sel_label = self.get_label('your_choice')
                 markers.append(f'<span class="option-marker-text marker-selected">{sel_label}</span>')
-            if self.include_grading and is_correct:
+            if self.include_answer_key and is_correct:
                 cor_label = self.get_label('correct')
                 markers.append(f'<span class="option-marker-text marker-correct">{cor_label}</span>')
 
@@ -524,7 +530,7 @@ class PaperExamReportRenderer(BaseRenderer):
 
         student_letters = {self._index_to_letter(idx) for idx in student_indices}
 
-        if self.include_grading:
+        if self.include_answer_key:
             correct_letters = {self._index_to_letter(idx) for idx in correct_indices}
             if has_ans or correct_letters:
                 lines.append(self._render_choice_answer_summary(
@@ -537,7 +543,7 @@ class PaperExamReportRenderer(BaseRenderer):
             lines.append(f'<div class="choice-answer-summary">{your_label}: <strong>{student_str}</strong></div>')
 
         explanation = question.explanation
-        if self.include_grading and explanation:
+        if self.include_answer_key and explanation:
             explanation_label = self.get_label('explanation', '詳解')
             lines.append(
                 f'<div class="answer-block answer-block-reference">'
@@ -558,7 +564,7 @@ class PaperExamReportRenderer(BaseRenderer):
         your_label = self.get_label('your_answer')
         correct_label = self.get_label('reference_answer') # or correct_answer
 
-        parts = [f'<div class="choice-answer-summary">']
+        parts = ['<div class="choice-answer-summary">']
         parts.append(f'{your_label}: <strong class="{val_class}">{student_str}</strong>')
         if correct_str:
             parts.append(f' &nbsp;·&nbsp; {correct_label}: <strong class="choice-summary-correct">{correct_str}</strong>')
@@ -593,9 +599,9 @@ class PaperExamReportRenderer(BaseRenderer):
                 f'</div>'
             )
 
-        # Reference answer — only when grading is included
+        # Reference answer — only on copies that carry the answer key
         reference_answer = question.correct_answer
-        if self.include_grading and reference_answer:
+        if self.include_answer_key and reference_answer:
             ref_label = self.get_label('reference_answer')
             ref_text = reference_answer
             ref_html = render_markdown(ref_text) if isinstance(ref_text, str) else str(ref_text)
@@ -607,7 +613,7 @@ class PaperExamReportRenderer(BaseRenderer):
             )
 
         explanation = question.explanation
-        if self.include_grading and explanation:
+        if self.include_answer_key and explanation:
             explanation_label = self.get_label('explanation', '詳解')
             lines.append(
                 f'<div class="answer-block answer-block-reference">'

@@ -208,23 +208,23 @@ def _build_paper_exam_report(
         # Determine displayed score based on policy
         if policy == ExamQuestionScorePolicy.EXCLUDED:
             earned_score = None
-            question_score = float(scoring._round_score(question.score))
+            question_score = float(scoring.round_score(question.score))
             status = {"code": "excluded", "label": "不計分", "color": "gray"}
         elif policy == ExamQuestionScorePolicy.REDISTRIBUTE:
             earned_score = None
             question_score = None
             status = {"code": "redistribute", "label": "配分重分配", "color": "blue"}
         elif policy == ExamQuestionScorePolicy.FULL_MARKS:
-            question_score = float(scoring._round_score(question.score))
+            question_score = float(scoring.round_score(question.score))
             earned_score = question_score
             status = {"code": "full_marks", "label": "送分", "color": "green"}
         else:
             status = _question_status(question, answer)
             question_score = float(
-                scoring._round_score(effective_max.get(question.id, question.score))
+                scoring.round_score(effective_max.get(question.id, question.score))
             )
             earned_score = (
-                float(scoring._round_score(item["score"]))
+                float(scoring.round_score(item["score"]))
                 if item and item.get("score") is not None
                 else None
             )
@@ -274,8 +274,8 @@ def _build_paper_exam_report(
         round((correct_count / graded_count) * 100, 1) if graded_count else 0.0
     )
     overview = {
-        "total_score": float(scoring._round_score(total_score)),
-        "max_score": float(scoring._round_score(max_score)),
+        "total_score": float(scoring.round_score(total_score)),
+        "max_score": float(scoring.round_score(max_score)),
         "correct_rate": correct_rate,
         "graded_count": graded_count,
         "total_questions": len(questions),

@@ -19,14 +19,8 @@ interface ExamAnswerDetailDto extends ExamAnswerDto {
   graded_at: string | null;
   question_prompt?: string;
   question_type?: string;
-  question_options?: string[];
-  question_explanation?: string;
-  max_score?: string | number | null;
   effective_score?: number | null;
   effective_max_score?: number | null;
-  participant_user_id?: number;
-  participant_username?: string;
-  participant_display_name?: string;
 }
 
 export interface ExamAnswer {
@@ -45,15 +39,9 @@ interface ExamAnswerDetail extends ExamAnswer {
   gradedAt: string | null;
   questionPrompt?: string;
   questionType?: string;
-  questionOptions?: string[];
-  questionExplanation?: string;
-  maxScore?: number | null;
   /** Score after score policies (redistribute / full marks); null when not counted. */
   effectiveScore?: number | null;
   effectiveMaxScore?: number | null;
-  participantUserId?: string;
-  participantUsername?: string;
-  participantDisplayName?: string;
 }
 
 interface ExamResultsMeta extends BaseMeta {
@@ -144,15 +132,9 @@ const mapAnswerDetailDto = (dto: ExamAnswerDetailDto): ExamAnswerDetail => ({
   gradedAt: dto.graded_at,
   questionPrompt: dto.question_prompt,
   questionType: dto.question_type,
-  questionOptions: dto.question_options,
-  questionExplanation: dto.question_explanation,
-  maxScore: dto.max_score != null ? Number(dto.max_score) : null,
   effectiveScore: dto.effective_score != null ? Number(dto.effective_score) : null,
   effectiveMaxScore:
     dto.effective_max_score != null ? Number(dto.effective_max_score) : null,
-  participantUserId: dto.participant_user_id != null ? String(dto.participant_user_id) : undefined,
-  participantUsername: dto.participant_username,
-  participantDisplayName: dto.participant_display_name,
 });
 
 // ── Student API ──
