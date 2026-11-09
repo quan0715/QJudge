@@ -236,20 +236,16 @@ class StudentReportRenderer(BaseRenderer):
             # Status-based colors
             if status == 'AC':
                 status_icon = '✓'
-                row_bg = '#defbe6'
-                label_bg = '#24a148'
+                status_tone = 'success'
             elif score > 0 and score < max_score:
                 status_icon = '◐'
-                row_bg = '#fcf4d6'
-                label_bg = '#f1c21b'
+                status_tone = 'warning'
             elif ac_count > 0 or wa_count > 0:
                 status_icon = '✗'
-                row_bg = '#fff1f1'
-                label_bg = '#da1e28'
+                status_tone = 'danger'
             else:
                 status_icon = '—'
-                row_bg = '#f4f4f4'
-                label_bg = '#8d8d8d'
+                status_tone = 'neutral'
 
             grid_items.append({
                 'label': problem.label,
@@ -258,8 +254,7 @@ class StudentReportRenderer(BaseRenderer):
                 'ac_count': ac_count,
                 'wa_count': wa_count,
                 'status_icon': status_icon,
-                'row_bg': row_bg,
-                'label_bg': label_bg,
+                'status_tone': status_tone,
             })
 
         # Split into 2 columns

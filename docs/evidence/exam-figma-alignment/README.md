@@ -4,13 +4,15 @@ Validated on 2026-11-09 from the isolated feature checkout, based on dev `9add20
 
 - Frontend: `TZ=UTC npm test`, 316 files / 2030 tests pass. New regressions cover a title-row action slot, published/unpublished report dialogs remaining visible while the overview is hidden, and retaining an expanded original answer when grades are withdrawn.
 - Typecheck, build, architecture and naming checks pass. Targeted ESLint has zero errors and one existing `tr` effect-dependency warning. Build retains the existing large-chunk warning. Existing i18n namespace gaps are recorded separately; new publication labels exist in all four locales.
-- Backend (database-free, owning development runtime): 17 tests pass across report score trends, document printing, literal paper answers, PDF conversion and repeated table headers. The teacher-sheet database test and existing standings/export database suites run in PR CI per the environment policy.
+- Backend (database-free, owning development runtime): 18 tests pass across report score trends, document printing, literal paper answers, PDF conversion repeated table headers and four distinct verdict colors. The teacher-sheet database test and existing standings/export database suites run in PR CI per the environment policy.
 - Browser: 12 cases across desktop 1440px, tablet 768px, phone 390px and dark 1440px. Published/unpublished paper and coding records all align the download action with the title, expand/collapse correctly, and have no page errors or document horizontal overflow. Phone table column bounds were checked after the final sizing fix.
 - Download dialogs open and close from the visible review header for published paper, unpublished proof and coding. The paper appeal dialog opens and closes without submitting anything. These dialogs portal into the visible review slot, retaining the Carbon theme instead of remaining inside the hidden overview.
-- Actual Django download views return 200 `application/pdf` for published paper, unpublished proof and coding. Baseline acceptance rendered six document types, 90 pages in total, with no words outside page bounds. This correction rerendered the 15-page coding report and an additional long synthetic result table. Real `<thead>` headings repeat on both synthetic continuation pages. The earlier 180-line answer/feedback render spans 8 pages with both ending markers preserved.
+- Actual Django download views return 200 `application/pdf` for published paper, unpublished proof and coding. Baseline acceptance rendered six document types, 90 pages in total, with no words outside page bounds. The latest correction rerendered the 11-page teacher answer key, 7-page student paper report, 15-page coding report and an additional 3-page synthetic result table. All 40 teacher answer/explanation labels align with their content; all refreshed documents have zero out-of-page words. Real `<thead>` headings repeat on both synthetic continuation pages. The earlier 180-line answer/feedback render spans 8 pages with both ending markers preserved.
 - Independent whole-change review found two important issues (AC after allocation reduction, structured paragraph/literal-text loss). Both have failing-before / passing-after regressions. No newly introduced grading disclosure was found.
 
 ## Behavior and design
+
+PDF answer, explanation and feedback sections now stack the label above the content at the same left edge, removing the fixed label column. Result icons alone use the light exam status colors: green for accepted, amber for partial points, red for failed attempts and gray for no submission. Scores and table backgrounds stay neutral.
 
 作答內容 retains the collapsible question table used on main. Paper details show the submitted answer, feedback and appeals; coding details lazy-load submission history. Header download actions share the title row, with descriptive text below. Unpublished exams offer 作答證明; published exams offer 成績單.
 
@@ -64,7 +66,7 @@ Structured formula nodes preserve escaped LaTeX source in PDFs; the existing Wea
 | --- | --- |
 | ![Coding report](coding-report.png) | ![Teacher answer key](teacher-answer-key.png) |
 
-The next pair uses a deliberately long synthetic table to demonstrate header repetition. It is an acceptance fixture, not an additional product report.
+The next pair uses a deliberately long synthetic table to demonstrate all four result colors and header repetition. It is an acceptance fixture, not an additional product report.
 
 | Long table, page 1 | Continued table, page 2 |
 | --- | --- |

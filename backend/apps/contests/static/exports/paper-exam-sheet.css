@@ -253,7 +253,7 @@ body { font-size: 14px; line-height: 1.6; }
 .question-group-block { break-inside: auto; }
 .question-group-heading { break-after: avoid; }
 .question-headline { break-after: avoid; }
-.answer-box { display: table; width: 100%; background: transparent; border: 0; padding: 12px 0; border-top: 1px solid #e4e6ea; }
-.answer-box > .answer-label { display: table-cell; width: 72px; vertical-align: top; padding-right: 16px; color: #555c66; }
-.answer-box > .answer-content { display: table-cell; overflow-wrap: anywhere; }
+.answer-box { display: block; width: 100%; background: transparent; border: 0; padding: 12px 0; border-top: 1px solid #e4e6ea; }
+.answer-box > .answer-label { display: block; margin-bottom: 6px; color: #555c66; }
+.answer-box > .answer-content { display: block; overflow-wrap: anywhere; }
 .answer-key-section { break-before: auto; page-break-before: auto; break-after: page; }

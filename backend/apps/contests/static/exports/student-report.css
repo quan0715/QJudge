@@ -392,3 +392,8 @@
 .problem-result-table th, .problem-result-table td { padding: 7px 4px; border-bottom: 1px solid #e4e6ea; text-align: center; white-space: nowrap; }
 .problem-result-table thead th { color: #555c66; font-size: 10px; font-weight: 400; }
 .problem-result-table tbody th { color: #1d2127; font-weight: 600; }
+/* Light exam status colors, limited to the verdict glyph. */
+.problem-result-status.result-success { color: #2c7a57; }
+.problem-result-status.result-warning { color: #a5670d; }
+.problem-result-status.result-danger { color: #c03a28; }
+.problem-result-status.result-neutral { color: #8d8d8d; }

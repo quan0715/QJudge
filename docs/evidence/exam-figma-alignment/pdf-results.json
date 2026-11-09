@@ -22,7 +22,8 @@
   {
     "document": "teacher-paper-answers",
     "pages": 11,
-    "outOfPageWords": 0
+    "outOfPageWords": 0,
+    "answerExplanationLabelsAlignedWithContent": 40
   },
   {
     "document": "teacher-paper-questions",
@@ -33,6 +34,8 @@
     "document": "coding-result-table-long-synthetic",
     "pages": 3,
     "headerOnEveryPage": true,
-    "fixture": true
+    "fixture": true,
+    "distinctStatusColors": 4,
+    "outOfPageWords": 0
   }
 ]
