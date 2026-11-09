@@ -12,13 +12,14 @@ from apps.contests.tasks import deliver_contest_email
 from apps.users.models import User
 
 
+@pytest.mark.parametrize('publisher_is_member', [False, True])
 @pytest.mark.parametrize('title', ['Schedule update', 'Schedule\r\nupdate'])
-def test_create_delivers_content_and_link_only_after_commit(settings, title):
+def test_create_delivers_content_and_link_only_after_commit(settings, title, publisher_is_member):
     """Exercise the create action and real email worker with persistence stubbed."""
     settings.EMAIL_MODE = 'external'
     settings.FRONTEND_URL = 'https://qjudge.test/'
     classroom = SimpleNamespace(uuid='classroom-public-id', name='Algorithms', memberships=Mock())
-    classroom.memberships.values_list.return_value = [1, 2, 3]
+    classroom.memberships.values_list.return_value = [1, 2, 3] if publisher_is_member else [2, 3]
     announcement = SimpleNamespace(
         classroom=classroom, title=title, content='Class starts at 10:00.',
         created_by_id=1,
@@ -35,16 +36,19 @@ def test_create_delivers_content_and_link_only_after_commit(settings, title):
          patch('apps.contests.tasks.deliver_contest_email.delay', side_effect=deliver_contest_email.run), \
          patch('apps.contests.tasks.get_user_model') as users:
         output.return_value.data = {'title': announcement.title}
-        users.return_value.objects.filter.return_value.first.side_effect = [
-            SimpleNamespace(email='student@example.com'), SimpleNamespace(email='ta@example.com'),
-        ]
+        addresses = {1: 'publisher@example.com', 2: 'student@example.com', 3: 'ta@example.com'}
+        users.return_value.objects.filter.side_effect = lambda **filters: SimpleNamespace(
+            first=lambda: SimpleNamespace(email=addresses[filters['pk']]),
+        )
         response = view.announcements(request)
         assert response.status_code == 201
         assert len(mail.outbox) == 0
         for callback in callbacks:
             callback()
-    assert len(mail.outbox) == 2
-    assert [message.to for message in mail.outbox] == [['student@example.com'], ['ta@example.com']]
+    assert len(mail.outbox) == 3
+    assert [message.to for message in mail.outbox] == [
+        ['publisher@example.com'], ['student@example.com'], ['ta@example.com'],
+    ]
     for message in mail.outbox:
         assert 'Schedule update' in message.subject
         assert 'Algorithms' in message.body
@@ -54,8 +58,11 @@ def test_create_delivers_content_and_link_only_after_commit(settings, title):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('email_mode,expected_count', [('external', 2), ('disabled', 0)])
-def test_api_notifies_current_members_once(settings, django_capture_on_commit_callbacks, email_mode, expected_count):
+@pytest.mark.parametrize('publisher_is_member', [False, True])
+@pytest.mark.parametrize('email_mode,expected_count', [('external', 3), ('disabled', 0)])
+def test_api_notifies_current_members_and_publisher_once(
+    settings, django_capture_on_commit_callbacks, email_mode, expected_count, publisher_is_member,
+):
     settings.EMAIL_MODE = email_mode
     owner = User.objects.create_user(username='owner', email='owner@example.com')
     classroom = Classroom.objects.create(name='Algorithms', owner=owner, invite_code='MAILTEST')
@@ -67,8 +74,9 @@ def test_api_notifies_current_members_once(settings, django_capture_on_commit_ca
     ]:
         user = User.objects.create_user(username=name, email=email, is_active=active)
         ClassroomMember.objects.create(classroom=classroom, user=user, role=role)
-    # Even a publisher who is also a member must not receive their own notice.
-    ClassroomMember.objects.create(classroom=classroom, user=owner, role='ta')
+    # The publisher receives exactly one copy, with or without a membership.
+    if publisher_is_member:
+        ClassroomMember.objects.create(classroom=classroom, user=owner, role='ta')
     User.objects.create_user(username='outsider', email='outsider@example.com')
     client = APIClient()
     client.force_authenticate(owner)
@@ -78,7 +86,7 @@ def test_api_notifies_current_members_once(settings, django_capture_on_commit_ca
     assert response.status_code == 201
     assert len(mail.outbox) == expected_count
     if expected_count:
-        assert {message.to[0] for message in mail.outbox} == {'student@example.com', 'ta@example.com'}
+        assert {message.to[0] for message in mail.outbox} == {'owner@example.com', 'student@example.com', 'ta@example.com'}
     mail.outbox.clear()
     detail = f'{url}{response.data["id"]}/'
     with django_capture_on_commit_callbacks(execute=True):

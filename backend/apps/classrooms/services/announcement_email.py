@@ -10,7 +10,7 @@ def notify_classroom_announcement(announcement):
         return
     classroom = announcement.classroom
     recipients = set(classroom.memberships.values_list('user_id', flat=True))
-    recipients.discard(announcement.created_by_id)
+    recipients.add(announcement.created_by_id)
     title = ' '.join(announcement.title.splitlines())
     url = f'{settings.FRONTEND_URL.rstrip("/")}/classrooms/{classroom.uuid}'
     body = (

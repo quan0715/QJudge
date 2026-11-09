@@ -56,7 +56,7 @@
     "createFailed": "Failed to create announcement",
     "delete": "Delete announcement",
     "modal": {
-      "emailNotice": "Publishing emails this announcement to classroom students and TAs, excluding the author. Editing does not send another email.",
+      "emailNotice": "Publishing emails this announcement to classroom students, TAs, and the author. Editing does not send another email.",
       "form": {
         "content": "Content",
         "contentPlaceholder": "Enter announcement content, Markdown supported...",
