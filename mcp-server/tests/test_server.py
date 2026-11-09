@@ -1283,7 +1283,7 @@ def test_qjudge_contest_manager_update_rejects_setting_and_clearing_the_same_fie
 
 def test_update_schema_replaces_the_device_policy_with_webcam_required():
     tools = {tool.name: tool for tool in run(server.mcp.list_tools())}
-    properties = tools["qjudge_contest_manager"].inputSchema["properties"]
+    properties = tools["qjudge_contest_manager"].input_schema["properties"]
 
     assert "anticheat_device_policy" not in properties
     assert any(option.get("type") == "boolean" for option in properties["webcam_required"]["anyOf"])
@@ -1506,7 +1506,7 @@ def test_tool_schemas_enumerate_supported_actions():
         "qjudge_appeals": {"list", "get", "send"},
     }
     for name, actions in expected.items():
-        assert set(tools[name].inputSchema["properties"]["action"]["enum"]) == actions
+        assert set(tools[name].input_schema["properties"]["action"]["enum"]) == actions
 
 
 def test_browse_list_contests_follows_pagination(monkeypatch):
@@ -1847,7 +1847,7 @@ def test_django_api_omits_auth_when_request_is_none(monkeypatch):
 def test_protected_resource_metadata_advertises_only_mcp_scope():
     from starlette.testclient import TestClient
 
-    app = server.mcp.streamable_http_app()
+    app = server.create_app()
     metadata_path = next(
         route.path
         for route in app.routes
@@ -1857,6 +1857,50 @@ def test_protected_resource_metadata_advertises_only_mcp_scope():
 
     assert response.status_code == 200
     assert response.json()["scopes_supported"] == ["mcp"]
+
+
+@pytest.mark.parametrize("path", ["/", "/mcp"])
+def test_http_tool_endpoints_require_bearer_authentication(path):
+    from starlette.testclient import TestClient
+
+    with TestClient(server.create_app()) as client:
+        response = client.post(path, json={
+            "jsonrpc": "2.0", "id": 1, "method": "tools/list",
+        })
+
+    assert response.status_code == 401
+    assert "Bearer" in response.headers["www-authenticate"]
+
+
+def test_mcp_client_round_trip_preserves_tool_schemas_and_json_envelopes(monkeypatch):
+    from mcp.client import Client
+
+    async def fake_django_api(method, path, ctx, **kwargs):
+        return [{"uuid": "classroom-1", "name": "Algorithms"}]
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    async def exercise_protocol():
+        async with Client(server.mcp) as client:
+            tools = await client.list_tools()
+            result = await client.call_tool("qjudge_browse", {"action": "list_classrooms"})
+        return tools, result
+
+    tools, result = run(exercise_protocol())
+
+    assert {tool.name for tool in tools.tools} == {
+        "qjudge_browse", "qjudge_contest_manager", "qjudge_exam", "qjudge_grading",
+        "qjudge_coding_problems", "qjudge_code_runner", "qjudge_appeals",
+    }
+    browse = next(tool for tool in tools.tools if tool.name == "qjudge_browse")
+    assert "list_classrooms" in browse.input_schema["properties"]["action"]["enum"]
+    assert result.is_error is False
+    assert json.loads(result.content[0].text) == {
+        "count": 1, "items": [{
+            "classroom_id": "classroom-1", "name": "Algorithms",
+            "description": None, "current_user_role": None,
+        }],
+    }
 
 
 @pytest.mark.parametrize("action", ["create", "update"])
@@ -1886,7 +1930,7 @@ def test_exam_tool_validation_allows_numeric_string_lists(monkeypatch, action):
 
 @pytest.mark.parametrize("answer", [True, [True], ["0", False]])
 def test_exam_tool_validation_rejects_boolean_answers(answer):
-    from mcp.server.fastmcp.exceptions import ToolError
+    from mcp.server.mcpserver.exceptions import ToolError
     with pytest.raises(ToolError):
         run(server.mcp._tool_manager.call_tool("qjudge_exam", {
             "action": "create",
