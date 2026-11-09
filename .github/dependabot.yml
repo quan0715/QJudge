@@ -1,38 +1,32 @@
 version: 2
 
+# Keep scheduled maintenance in one review and one CI run across the stack.
+# GitHub still opens security updates independently of this weekly schedule.
+multi-ecosystem-groups:
+  maintenance:
+    target-branch: dev
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 1
+
 updates:
   - package-ecosystem: pip
     directories:
       - /backend/requirements
       - /ai-service
       - /integrity-service
-    target-branch: dev
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      python-minor-patch:
-        update-types: [minor, patch]
+    patterns: ["*"]
+    multi-ecosystem-group: maintenance
 
   - package-ecosystem: uv
     directory: /mcp-server
-    target-branch: dev
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      mcp-server-minor-patch:
-        update-types: [minor, patch]
+    patterns: ["*"]
+    multi-ecosystem-group: maintenance
 
   - package-ecosystem: npm
     directory: /frontend
-    target-branch: dev
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      frontend-minor-patch:
-        update-types: [minor, patch]
+    patterns: ["*"]
+    multi-ecosystem-group: maintenance
 
   - package-ecosystem: docker
     directories:
@@ -43,13 +37,8 @@ updates:
       - /mcp-server
       - /integrity-service
       - /deploy/agent
-    target-branch: dev
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      docker-minor-patch:
-        update-types: [minor, patch]
+    patterns: ["*"]
+    multi-ecosystem-group: maintenance
     ignore:
       # Python 3.x runtime upgrades are deliberate migrations, not routine bumps.
       - dependency-name: python
@@ -60,10 +49,5 @@ updates:
       - /
       - /.github/actions/frontend-deps
       - /.github/actions/qjudge-stack
-    target-branch: dev
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      actions-minor-patch:
-        update-types: [minor, patch]
+    patterns: ["*"]
+    multi-ecosystem-group: maintenance
