@@ -5,6 +5,10 @@ description: QJudge 的 GitHub 全責工作流。當任務涉及 branch 策略�
 
 # QJudge GitHub Workflow Owner
 
+## Repository scope
+
+此 repo 的 codex/* → dev → main 流程適用主系統與文件站。官網變更在 `PopcornT/qjudge-website` 提 PR，main 通過 Website CI 後由自己的 Deploy Website workflow 部署 Worker；不要恢復主 repo 的 Deploy Landing。 See `docs/website-migration.md` at the repository root.
+
 ## Quick start
 - 先檢查工作區與分支，再取得 `origin/dev`、`origin/main` 最新 refs；只有需要開新分支時才切換，不在未知工作區直接合併。
 - 從 `dev` 開分支：`git switch -c codex/<topic>`。

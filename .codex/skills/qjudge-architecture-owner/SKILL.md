@@ -5,6 +5,10 @@ description: QJudge 架構全責技能。當任務涉及分層責任、import di
 
 # QJudge Architecture Owner
 
+## Repository scope
+
+官網位於獨立 `PopcornT/qjudge-website`；主 repo 不保留 landing feature、翻譯或跨 repo source import。本機首頁由 AppEntryScreen 進入登入；驗證資產引用時也檢查後端 provider metadata。 See `docs/website-migration.md` at the repository root.
+
 ## Quick start
 - 先讀 `references/layer-boundaries.md` 決定代碼落點。
 - 新功能或大重構再讀 `references/feature-workflow.md`。
