@@ -92,10 +92,19 @@ class CppIntegrationTests(TestCase):
         self.assertEqual(r["status"], "AC")
 
     def test_mle(self):
-        # Try to allocate 300 MB while limit is 128 MB
-        code = "#include<vector>\nint main(){std::vector<int>v(75000000,1);}"
-        r = judge_one(self.judge, code, "", "", 3000, 128)
-        self.assertIn(r["status"], ["MLE", "RE"])
+        # GCC 15 can remove an unused vector entirely. Volatile page writes
+        # ensure this optimized program really touches its 300 MB allocation.
+        code = (
+            "#include<vector>\n"
+            "int main(){std::vector<int>v(75000000,1);volatile int* p=v.data();"
+            "for(int i=0;i<75000000;i+=1024)p[i]=i;}"
+        )
+        for limit, statuses in [(128, ["MLE", "RE"]), (512, ["AC"])]:
+            with self.subTest(memory_limit=limit):
+                r = judge_one(self.judge, code, "", "", 3000, limit)
+                self.assertIn(r["status"], statuses, r)
+                if limit == 512:
+                    self.assertGreater(r["memory"], 250 * 1024, r)
 
     def test_bits_stdcpp_compiles_for_a_128mb_problem(self):
         # The second program cannot use the precompiled header: g++ needs
