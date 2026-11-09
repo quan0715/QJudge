@@ -10,6 +10,6 @@ Website build, dependency lockfile, browser tests and deployment workflow belong
 
 Public HTML requests to the product homepage continue to redirect to the website with query parameters and fragments retained. Markdown requests and MCP discovery remain served by the existing product ingress/backend.
 
-The previous `qjudge-landing` Cloudflare Pages project is retained for rollback during migration. Domain cutover is performed after the independent Worker passes validation.
+The old `qjudge-landing` Cloudflare Pages project has been deleted. The proxied `www` CNAME points to `qjudge-website.quan-cs13.workers.dev`, with `www.q-judge.com/*` routed to the Worker. Roll back through Worker deployments or a known-good website commit; do not remove the route expecting Pages fallback.
 
 Local and self-hosted homepage requests now enter `/login`; the existing guest guard routes authenticated users to their normal product destination. Marketing UI and translations are no longer bundled in the product.
