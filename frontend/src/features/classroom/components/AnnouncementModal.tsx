@@ -100,6 +100,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
       size="lg"
     >
       <div className="classroom-announcement-modal__form">
+        {!isEdit && <p>{t("announcement.modal.emailNotice")}</p>}
         <TextInput
           id="announcement-title"
           labelText={t("announcement.modal.form.title")}
