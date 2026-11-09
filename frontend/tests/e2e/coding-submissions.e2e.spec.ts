@@ -103,8 +103,8 @@ test("coding exam: sample run, custom input run, and formal submission use the r
     await test.step("Add custom input and verify its actual output", async () => {
       await page.getByRole("button", { name: "測資", exact: true }).click();
       await page.getByRole("button", { name: "新增測資", exact: true }).click();
-      await page.getByRole("textbox", { name: "Input", exact: true }).fill("12345 6789\n");
-      await page.getByRole("textbox", { name: "Expected Output", exact: true }).fill("19134\n");
+      await page.getByRole("textbox", { name: "輸入", exact: true }).fill("12345 6789\n");
+      await page.getByRole("textbox", { name: "預期輸出", exact: true }).fill("19134\n");
       const request = page.waitForResponse(r => r.request().method() === "POST" && r.url().includes("/test_run/"), { timeout: 15_000 });
       await page.getByRole("button", { name: "測試", exact: true }).click();
       const response = await request;
