@@ -39,3 +39,16 @@
   white-space: normal;
   border-bottom: 1px solid var(--cds-border-subtle);
 }
+
+@media (max-width: 672px) {
+  .table { table-layout: fixed; font-size: 12px; }
+  .table .columnHeader, .table td { padding-inline: 4px; }
+  .table .columnHeader { font-size: 12px; }
+  .table .columnHeader:first-child { width: 40px; }
+  .table .columnHeader:nth-child(2) { width: 26%; }
+  .table .columnHeader:nth-child(3) { width: 34%; }
+  .table .columnHeader:last-child { width: calc(40% - 40px); }
+  .table .score { white-space: normal; }
+  .table td:not([colspan]):first-child { padding-inline: 0; }
+  .table td:not([colspan]):first-child > button { width: 40px; min-width: 40px; padding-inline: 8px; }
+}

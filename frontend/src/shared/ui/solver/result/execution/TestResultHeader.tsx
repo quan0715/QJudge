@@ -36,10 +36,10 @@ export const TestResultHeader: React.FC<TestResultHeaderProps> = ({ header, kind
     <div className={styles.header} data-tone={header.type}>
       <span className={styles.icon}>{getHeaderStatusIcon(header.type)}</span>
       <h3 className={styles.title}>{header.title}</h3>
-      <span className={styles.kind} data-kind={kind}>{kindLabel}</span>
       <span className={styles.subtitle}>
         {isPending ? startedAt !== undefined && <WaitingSeconds startedAt={startedAt} /> : header.subtitle}
       </span>
+      <span className={styles.kind}>{kindLabel}</span>
       {action && <span className={styles.action}>{action}</span>}
     </div>
   );

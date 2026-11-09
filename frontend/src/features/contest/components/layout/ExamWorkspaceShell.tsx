@@ -45,8 +45,9 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
   const [listCollapsed, setListCollapsed] = useState(isNarrowViewport);
 
   const [recordsTarget, setRecordsTarget] = useState<HTMLElement | null>(null);
+  const [reviewActionsTarget, setReviewActionsTarget] = useState<HTMLElement | null>(null);
   const [hasRecords, setHasRecords] = useState(false);
-  const reviewSlot = useMemo(() => ({ target: recordsTarget, setHasRecords, openReview: () => setPage("review") }), [recordsTarget]);
+  const reviewSlot = useMemo(() => ({ target: recordsTarget, actionsTarget: reviewActionsTarget, setHasRecords, openReview: () => setPage("review") }), [recordsTarget, reviewActionsTarget]);
 
   // Same rule as the formal overview: live scoreboard, or the full board after the exam when permitted.
   const canSeeStandings = contest?.contestType === "coding" && (
@@ -62,7 +63,7 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
     { id: "overview", label: t("workspace.rail.overview", "考試概覽"), icon: "overview" },
     ...(canAnswer ? [{ id: "questions" as const, label: t("workspace.rail.questions", "題目"), icon: "questions" as const }] : []),
     // Announcements are hidden for now; the panel stays in ExamWorkspacePanels.
-    { id: "review", label: t("workspace.rail.review", "作答檢查"), icon: "review" },
+    { id: "review", label: t("workspace.rail.review", "作答內容"), icon: "review" },
     ...(canSeeStandings ? [{ id: "standings" as const, label: t("workspace.rail.standings", "排行榜"), icon: "standings" as const }] : []),
   ];
 
@@ -171,6 +172,7 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
               onQuestion={openQuestion}
               hasRecords={hasRecords}
               recordsRef={setRecordsTarget}
+              reviewActionsRef={setReviewActionsTarget}
             />
           </div>
         </section>

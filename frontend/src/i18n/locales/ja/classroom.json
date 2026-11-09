@@ -56,6 +56,7 @@
     "createFailed": "お知らせの作成に失敗しました",
     "delete": "お知らせを削除",
     "modal": {
+      "emailNotice": "公開すると、クラスの学生、TA、投稿者本人にお知らせメールが送信されます。編集時には再送信されません。",
       "form": {
         "content": "内容",
         "contentPlaceholder": "お知らせの内容を入力してください。Markdown をサポートしています...",

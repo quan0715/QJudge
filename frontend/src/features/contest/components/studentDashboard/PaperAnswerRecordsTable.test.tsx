@@ -32,3 +32,13 @@ it("expands a question when any part of its row is clicked", () => {
   fireEvent.click(screen.getByRole("button", {name:"展開第 2 題"}));
   expect(screen.getByText("原作答")).toBeVisible();
 });
+
+it("keeps an expanded answer accessible when published grades are withdrawn", () => {
+  const rows = [{id:"q1",label:"1",typeLabel:"問答題",score:"6 / 10",status:"已批改",tone:"cool-gray" as const,detail:<p>你的長篇作答</p>}];
+  const { rerender } = render(<PaperAnswerRecordsTable showGrading rows={rows} />);
+  fireEvent.click(screen.getByRole("button", {name:"展開第 1 題"}));
+  expect(screen.getByText("你的長篇作答")).toBeVisible();
+  rerender(<PaperAnswerRecordsTable showGrading={false} rows={rows} />);
+  expect(screen.getByText("你的長篇作答")).toBeVisible();
+  expect(screen.queryByText("6 / 10")).not.toBeInTheDocument();
+});

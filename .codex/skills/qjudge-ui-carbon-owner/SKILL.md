@@ -5,6 +5,10 @@ description: Use when implementing or reviewing QJudge frontend components, Carb
 
 # QJudge UI Carbon Owner
 
+## Repository scope
+
+官網 UI、主題、影片與 landing 翻譯在 PopcornT/qjudge-website 維護。此 repo 保留登入／主系統 UI 與其共用資產；官網副本不與此處 shared 元件自動同步。 See `docs/website-migration.md` at the repository root.
+
 ## Quick start
 - 先確認需求屬於：元件/UI 行為、樣式、版面或 Storybook。
 - 先讀：`references/carbon-policy.md`。

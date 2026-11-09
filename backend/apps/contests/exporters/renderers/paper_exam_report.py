@@ -144,14 +144,14 @@ class PaperExamReportRenderer(BaseRenderer):
         score_display = self._fmt_score(breakdown.total_score)
         max_score = self._fmt_score(breakdown.max_total_score)
 
-        score_label = self.get_label('total_score')
+        score_label = '得分' if self.is_chinese else 'Score'
         rate_label = self.get_label('correct_rate')
 
         return (
             f'<div class="score-line">'
             f'{score_label}: <span class="score-value">{score_display} / {max_score}</span>'
             f' &nbsp;&middot;&nbsp; '
-            f'{rate_label}: <span class="score-value">{correct_rate:.0f}%</span>'
+            f'{rate_label}: <span class="score-rate">{correct_rate:.0f}%</span>'
             f'</div>'
         )
 
@@ -228,7 +228,7 @@ class PaperExamReportRenderer(BaseRenderer):
                 status_cell = (
                     f'<td class="overview-cell overview-cell-status">'
                     f'<span class="status-text {status["status_class"]}">{status["icon"]}</span></td>'
-                    f'<td class="overview-cell overview-cell-score" style="color:{status["color"]}">'
+                    f'<td class="overview-cell overview-cell-score" style="color:#1d2127">'
                     f'{score_display}</td>'
                 )
             else:
@@ -380,7 +380,7 @@ class PaperExamReportRenderer(BaseRenderer):
                 f'<span class="question-heading-right">'
                 f'<span class="status-text {status["status_class"]}">{status["icon"]} {status["label"]}</span>'
                 f'&nbsp;&nbsp;'
-                f'<span class="question-earned" style="color:{score_color}">{score_display}</span>'
+                f'<span class="question-earned" style="color:#1d2127">{score_display}</span>'
                 f'</span>'
             )
 

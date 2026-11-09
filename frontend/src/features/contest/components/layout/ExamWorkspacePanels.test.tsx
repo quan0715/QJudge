@@ -28,3 +28,11 @@ it("hands the review page to the overview's records when there is no active answ
   expect(slot).toBeInstanceOf(HTMLElement);
   expect(screen.queryByText("尚未進入作答")).not.toBeInTheDocument();
 });
+
+it("places the review download action inside the same header as its title", () => {
+  let target: HTMLElement | null = null;
+  render(<ExamWorkspacePanels page="review" onQuestion={vi.fn()} hasRecords reviewActionsRef={element => { target = element; }} />);
+  const header = screen.getByRole("heading", {name:"作答內容"}).closest("header");
+  expect(target).toBeInstanceOf(HTMLElement);
+  expect(header).toContainElement(target);
+});

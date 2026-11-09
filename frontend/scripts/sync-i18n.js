@@ -9,7 +9,7 @@ const I18N_DIR = path.join(__dirname, "../src/i18n/locales");
 const REFERENCE_LANG = "zh-TW";
 const TARGET_LANGS = ["en", "ja", "ko"];
 const ALL_LANGUAGES = [REFERENCE_LANG, ...TARGET_LANGS];
-const NAMESPACES = ["admin", "chatbot", "classroom", "common", "contest", "docs", "landing", "problem"];
+const NAMESPACES = ["admin", "chatbot", "classroom", "common", "contest", "docs", "problem"];
 
 function flattenKeys(obj, prefix = "") {
   const keys = {};

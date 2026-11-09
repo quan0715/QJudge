@@ -81,21 +81,6 @@
       "removalCondition": "Migrate when the surface can use ClickableTile or another Carbon selection primitive without nested-interaction or layout regressions."
     },
     {
-      "id": "landing-disclosure-controls",
-      "rules": [
-        "raw-interactive-control"
-      ],
-      "components": [
-        "button"
-      ],
-      "paths": [
-        "features/landing/sections/FaqSection.tsx"
-      ],
-      "reason": "The FAQ question is a native disclosure trigger with aria-expanded and aria-controls; Carbon Button would not add disclosure semantics.",
-      "owner": "frontend-ui",
-      "removalCondition": "Replace only if the landing FAQ adopts Carbon Accordion without losing the branded presentation."
-    },
-    {
       "id": "editor-media-controls",
       "rules": [
         "raw-interactive-control"

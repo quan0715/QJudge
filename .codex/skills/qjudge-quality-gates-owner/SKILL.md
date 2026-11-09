@@ -5,6 +5,10 @@ description: Use when auditing or enforcing QJudge naming, architecture, Carbon 
 
 # QJudge Quality Gates Owner
 
+## Repository scope
+
+主 repo gates 只涵蓋主系統與文件站；官網在 PopcornT/qjudge-website 執行自己的 build、Worker tests 與 browser tests。移出的檔案須同步移除 audit decisions 與過時 fixture，不要重新加入 landing baseline。 See `docs/website-migration.md` at the repository root.
+
 ## Quick start
 依變更範圍選擇以下命令；文件整理不需要先跑全套 frontend 檢查。
 - 先跑 naming：

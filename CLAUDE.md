@@ -2,6 +2,13 @@
 
 本文件只提供穩定的入口與責任分工。分支、PR、部署與服務狀態會變動，執行前必須讀取目前 Git／Compose 狀態，不以本文件保存歷史快照。
 
+## Repository ownership
+
+- 主系統與 docs.q-judge.com 留在本 repo；官網 www.q-judge.com 已移至私有 [PopcornT/qjudge-website](https://github.com/PopcornT/qjudge-website)，以 Cloudflare Workers 部署。
+- 官網 UI、landing 翻譯、影片、SEO、建置與部署請在官網 repo 修改；不要重新加入主系統 bundle 或 Pages workflow。
+- 本機／自架首頁進入 `/login`；公開 q-judge.com 首頁保留官網導向及 query/hash，Markdown 與 MCP discovery 仍由主系統處理。
+- 詳細邊界見 [docs/website-migration.md](docs/website-migration.md)。部署狀態須即時查證。
+
 ## Canonical skills
 
 QJudge 維護中的技能位於 `.codex/skills/`：

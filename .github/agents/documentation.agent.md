@@ -5,6 +5,10 @@ description: "文檔維護 Agent - 負責維護專案文檔的品質與一致性
 
 # 文檔維護 Agent (Documentation)
 
+## Repository scope
+
+官網與 landing 翻譯由 [PopcornT/qjudge-website](https://github.com/PopcornT/qjudge-website) 維護；本 repo 僅維護主系統與 docs.q-judge.com。詳見 `docs/website-migration.md`。
+
 ## 概述
 
 本 Agent 負責維護專案文檔的品質與一致性，確保文檔內容與程式碼同步更新，並維護多語言版本的一致性。

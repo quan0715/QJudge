@@ -23,6 +23,7 @@ from apps.core.services import (
 )
 
 from .models import Classroom, ClassroomAnnouncement
+from .services.announcement_email import notify_classroom_announcement
 from .serializers import (
     ClassroomListSerializer,
     ClassroomDetailSerializer,
@@ -280,7 +281,8 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         if request.method.lower() == 'post':
             serializer = ClassroomAnnouncementWriteSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            serializer.save(classroom=classroom, created_by=request.user)
+            announcement = serializer.save(classroom=classroom, created_by=request.user)
+            notify_classroom_announcement(announcement)
             return Response(
                 ClassroomAnnouncementSerializer(serializer.instance).data,
                 status=status.HTTP_201_CREATED,

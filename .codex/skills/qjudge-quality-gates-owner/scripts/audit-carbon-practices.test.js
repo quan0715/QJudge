@@ -209,8 +209,8 @@ test("does not blanket-exempt Carbon internals in application tests", (t) => {
 
 test("attaches exact policy decisions without hiding future raw controls", (t) => {
   const result = runFixture(t, {
-    "features/landing/sections/FaqSection.tsx": `
-      export const FaqSection = () => <>
+    "features/app/components/SideMenu.tsx": `
+      export const SideMenu = () => <>
         <button type="button">Question</button>
         <input aria-label="Unexpected input" />
       </>;
@@ -223,7 +223,7 @@ test("attaches exact policy decisions without hiding future raw controls", (t) =
 
   assert.equal(rawControls.length, 2);
   assert.equal(rawControls[0].disposition, "policy-reviewed");
-  assert.equal(rawControls[0].decision?.id, "landing-disclosure-controls");
+  assert.equal(rawControls[0].decision?.id, "composite-navigation-controls");
   assert.equal(rawControls[1].disposition, "review");
 });
 
