@@ -29,7 +29,6 @@ from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
 from deepagents.middleware.summarization import SummarizationMiddleware
 from langchain.agents.middleware import ModelRetryMiddleware
 from langchain_core.callbacks import AsyncCallbackHandler
-from langchain_core.messages import AnyMessage
 from langchain_core.tracers.context import register_configure_hook
 from langgraph.types import Command
 
@@ -256,18 +255,11 @@ _AGENT_RECURSION_LIMIT = 100
 
 
 class _SafeSummarizationMiddleware(SummarizationMiddleware):
-    """Patches deepagents 0.5.3's SummarizationMiddleware tool_call pair bug.
+    """Apply QJudge model limits and publish compaction lifecycle events.
 
-    deepagents calls _lc_helper._partition_messages(messages, cutoff_index) directly
-    without first adjusting the cutoff via _find_safe_cutoff_point. This causes
-    ToolMessages to be split from their parent AIMessage, resulting in 400 errors.
-
-    langchain 1.2.15 already has the fix in _lc_helper._find_safe_cutoff_point.
-    This subclass simply wires it up until deepagents releases a fix.
-    See: https://github.com/langchain-ai/langchain/issues/34282
-
-    Also emits SummarizationStarted / SummarizationEnded via an asyncio.Queue
-    side-channel so callers can show/clear UI when compaction runs.
+    The pinned DeepAgents/LangChain stack already selects cutoffs that preserve
+    tool-call groups. QJudge only normalizes missing model-profile limits and
+    emits SummarizationStarted / SummarizationEnded through the run's queue.
     """
 
     _FALLBACK_TRIGGER_TOKENS = 170_000
@@ -346,16 +338,6 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
                 kwargs["trim_tokens_to_summarize"] = model_trim_hint
             else:
                 kwargs["trim_tokens_to_summarize"] = cls._DEFAULT_SUMMARY_TRIM_TOKENS
-
-    def _partition_messages(
-        self,
-        conversation_messages: list[AnyMessage],
-        cutoff_index: int,
-    ) -> tuple[list[AnyMessage], list[AnyMessage]]:
-        safe_cutoff = self._lc_helper._find_safe_cutoff_point(
-            conversation_messages, cutoff_index
-        )
-        return self._lc_helper._partition_messages(conversation_messages, safe_cutoff)
 
     async def awrap_model_call(self, request: Any, handler: Any) -> Any:
         emitted_start = False
