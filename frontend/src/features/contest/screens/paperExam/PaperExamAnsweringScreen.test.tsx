@@ -58,9 +58,11 @@ vi.mock("./hooks", () => ({
     flushAll: mocks.flushAutoSaves,
   }),
   usePaperExamQuestions: () => ({
-    items: [{ kind: "question", data: { id: "q1", order: 0, questionType: "true_false",
-      contestId: "contest-1", prompt: "Is 1 equal to 1?", options: [], score: 1,
-      explanation: "", createdAt: "2026-07-26T00:00:00Z", updatedAt: "2026-07-26T00:00:00Z" } }],
+    items: [1, 2].map((number) => ({ kind: "question", data: {
+      id: `q${number}`, order: number - 1, questionType: "true_false",
+      contestId: "contest-1", prompt: `Is ${number} equal to ${number}?`, options: [], score: 1,
+      explanation: "", createdAt: "2026-07-26T00:00:00Z", updatedAt: "2026-07-26T00:00:00Z",
+    } })),
     sections: [],
     answers: {},
     setAnswers: vi.fn(),
@@ -155,6 +157,33 @@ describe("PaperExamAnsweringScreen contest refresh ownership", () => {
     await waitFor(() => expect(requests.some((request) => request.upload_scope?.attempt_id === attemptId &&
       request.observations?.records.some((record) => record.event_type === "exam_entered"))).toBe(true), { timeout: 6000 });
     unmount();
+  });
+
+  it("returns to the selected hand-in question after navigating to another question", async () => {
+    render(<MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/solve"]}>
+      <Routes><Route path="/classrooms/:classroomId/contest/:contestId/solve" element={<PaperExamAnsweringScreen />} /></Routes>
+    </MemoryRouter>);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("paper-exam-open-submit-review-btn"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /第 1 題/ }));
+    });
+    expect(screen.getByTestId("exam-question-card-q1")).toHaveTextContent("Is 1 equal to 1?");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "answering.navigation.nextQuestion" }));
+    });
+    expect(screen.getByTestId("exam-question-card-q2")).toHaveTextContent("Is 2 equal to 2?");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("paper-exam-open-submit-review-btn"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /第 1 題/ }));
+    });
+    expect(screen.getByTestId("exam-question-card-q1")).toHaveTextContent("Is 1 equal to 1?");
   });
 
   it("does not start a second contest poll while the workspace layout owns polling", () => {
