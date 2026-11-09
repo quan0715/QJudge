@@ -17,9 +17,27 @@
   height: 100%;
 }
 
+// Matches the countdown chip in the exam header: same height and radius, inverse fill.
 .headerSubmitButton {
-  min-height: 3rem;
-  height: 3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--ex-text);
+  border-radius: 7px;
+  background: var(--ex-text);
+  color: var(--ex-surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+
+  svg { fill: currentColor; }
+  &:hover { opacity: 0.88; }
+  &:focus-visible { outline: 2px solid var(--ex-focus); outline-offset: 2px; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 .headerSaveStatus {

@@ -77,6 +77,7 @@ import {
 import styles from "./StudentContestDashboard.module.scss";
 import { ExamOverviewLayout } from "../layout/ExamOverviewLayout";
 import { HandInCheck } from "../exam/HandInCheck";
+import { isSubjectiveType } from "../../screens/settings/grading/gradingTypes";
 import { ExamResultReport, type ExamClassStanding, type ExamResultTile, type ExamResultTileState } from "./ExamResultReport";
 import { useExamReviewSlot } from "@/features/contest/contexts/ExamReviewSlotContext";
 import CodingAnswerRecords from "./CodingAnswerRecords";
@@ -410,8 +411,9 @@ export default function StudentContestDashboard({
         key: id,
         label: labels.get(question.id)?.label ?? String(index + 1),
         answered: !!(result?.answer ?? answers.get(id)?.answer),
-        score: contest.resultsPublished ? result?.effectiveScore ?? result?.score ?? null : null,
-        maxScore: result?.effectiveMaxScore ?? question.score ?? result?.maxScore ?? 0,
+        // Only the policy-adjusted score counts; an excluded question's raw grade must not show.
+        score: contest.resultsPublished ? result?.effectiveScore ?? null : null,
+        maxScore: result?.effectiveMaxScore ?? question.score,
       };
     });
   }, [contest, paperData]);
@@ -732,7 +734,7 @@ export default function StudentContestDashboard({
             question.questionType
           ) as ExamQuestionType;
           const maxScore =
-            result?.effectiveMaxScore ?? question.score ?? result?.maxScore ?? 0;
+            result?.effectiveMaxScore ?? question.score;
           const status =
             marked
               ? {
@@ -783,7 +785,7 @@ export default function StudentContestDashboard({
 
           const label = questionLabels.get(question.id)?.label ?? String(index + 1);
           const scoreText = question.scorePolicy === "redistribute" ? "— / —"
-            : `${question.scorePolicy === "excluded" ? "—" : formatScore(result?.effectiveScore ?? result?.score)} / ${formatScore(maxScore)}`;
+            : `${question.scorePolicy === "excluded" ? "—" : formatScore(result?.effectiveScore)} / ${formatScore(maxScore)}`;
           return {
             id: String(question.id), label,
             typeLabel: t(`common:questionType.label.${questionType}`, QUESTION_TYPE_LABEL[questionType] ?? questionType) + (question.scorePolicy === "excluded" ? " · 不計分" : question.scorePolicy === "full_marks" ? " · 送分" : question.scorePolicy === "redistribute" ? " · 配分重分配" : ""),
@@ -811,13 +813,9 @@ export default function StudentContestDashboard({
               maxScore={maxScore}
               gradedByUsername={result?.gradedByUsername}
               feedback={result?.feedback}
-              correctAnswer={question.correctAnswer}
-              referenceAnswerDocument={question.referenceAnswerDocument}
-              explanation={
-                result?.questionExplanation ??
-                question.explanation
-              }
-              explanationDocument={question.explanationDocument}
+              // Students see the question, their answer and the grading only: the correct option
+              // marks choice answers, but reference answers and explanations stay with teachers.
+              correctAnswer={isSubjectiveType(questionType) ? undefined : question.correctAnswer}
               scorePolicy={question.scorePolicy}
               actions={contest.resultsPublished && result?.score != null ? <Button kind="tertiary" size="sm" onClick={() => setAppealTarget({ answerId: Number(result.id), appealId: appeals.find(a => a.exam_answer === Number(result.id))?.id, prompt, label: questionLabels.get(question.id)?.label })}>{appeals.some(a => a.exam_answer === Number(result.id)) ? "查看申訴" : "提出申訴"}</Button> : undefined}
             />,

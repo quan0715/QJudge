@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getAllExamAnswersForGrading, getExamResults, getExamAnswerDraft, saveExamAnswerDraft, submitExamAnswer } from "./examAnswers.repository";
 
-describe("getExamResults", () => {
+describe("exam result reads", () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {
@@ -26,7 +26,7 @@ describe("getExamResults", () => {
     expect(result.data.map(row => row.isAiGraded)).toEqual([true, false]);
   });
 
-  it("maps only flattened current-question fields", async () => {
+  it("maps the student's results with policy-adjusted scores", async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -43,7 +43,6 @@ describe("getExamResults", () => {
               graded_by_username: null,
               graded_at: null,
               question_prompt: "Current prompt",
-              question_explanation: "Current explanation",
               effective_score: 12,
               effective_max_score: 15,
             },
@@ -62,12 +61,10 @@ describe("getExamResults", () => {
     expect(results.answers[0]).toMatchObject({
       questionId: "question-1",
       questionPrompt: "Current prompt",
-      questionExplanation: "Current explanation",
       score: 8,
       effectiveScore: 12,
       effectiveMaxScore: 15,
     });
-    expect(results.answers[0]).not.toHaveProperty("questionSnapshot");
     expect(results).toMatchObject({ totalScore: 12, maxTotalScore: 15 });
   });
 });

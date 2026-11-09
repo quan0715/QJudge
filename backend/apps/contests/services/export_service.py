@@ -68,14 +68,21 @@ def build_contest_download_response(contest, file_format: str, language: str, sc
     return response
 
 
-def build_student_report_response(contest, user, language: str, scale: float, include_grading: bool = True):
-    """Generate downloadable participant report response."""
-    REPORT_RENDERERS = {
-        'coding': StudentReportRenderer,
-        'paper_exam': PaperExamReportRenderer,
-    }
-    RendererClass = REPORT_RENDERERS.get(contest.contest_type, StudentReportRenderer)
-    exporter = RendererClass(contest, user, language, scale, include_grading=include_grading)
+def build_student_report_response(
+    contest, user, language: str, scale: float, include_grading: bool = True, include_answer_key: bool = True,
+):
+    """Generate downloadable participant report response.
+
+    ``include_answer_key`` adds correct options, reference answers and explanations to a
+    paper exam report; the copy a student downloads for themself never carries them.
+    """
+    if contest.contest_type == 'paper_exam':
+        exporter = PaperExamReportRenderer(
+            contest, user, language, scale,
+            include_grading=include_grading, include_answer_key=include_answer_key,
+        )
+    else:
+        exporter = StudentReportRenderer(contest, user, language, scale, include_grading=include_grading)
     
     pdf_file = exporter.export()
 
