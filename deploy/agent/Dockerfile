@@ -5,6 +5,8 @@
 FROM docker:29.9.3-cli AS docker
 
 FROM python:3.11-slim
+# The deploy agent uses only the standard library and the copied Docker CLI.
+RUN python -m pip uninstall --yes setuptools wheel packaging pip
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
