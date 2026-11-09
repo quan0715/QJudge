@@ -266,6 +266,12 @@ class StudentReportRenderer(BaseRenderer):
         mid = (len(grid_items) + 1) // 2
         context = {
             'title': self.get_label('problem_status'),
+            'headers': {
+                'problem': '題號' if self.is_chinese else 'Problem',
+                'score': '得分 / 配分' if self.is_chinese else 'Score / max',
+                'ac': 'AC', 'non_ac': '非 AC' if self.is_chinese else 'Non-AC',
+                'result': '結果' if self.is_chinese else 'Result',
+            },
             'column1': grid_items[:mid],
             'column2': grid_items[mid:],
         }

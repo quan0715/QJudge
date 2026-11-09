@@ -27,15 +27,16 @@ interface ExamWorkspacePanelsProps {
   /** The formal overview supplies answer records and results for the review page. */
   hasRecords?: boolean;
   recordsRef?: (element: HTMLElement | null) => void;
+  reviewActionsRef?: (element: HTMLElement | null) => void;
 }
 
-export function ExamWorkspacePanels({ page, onQuestion, onResume, hasRecords = false, recordsRef }: ExamWorkspacePanelsProps) {
+export function ExamWorkspacePanels({ page, onQuestion, onResume, hasRecords = false, recordsRef, reviewActionsRef }: ExamWorkspacePanelsProps) {
   const { t } = useTranslation("contest");
   const { contest } = useContest();
   if (!contest) return <PageState kind="loading" title={t("workspace.loading", "載入考試")} />;
   if (page === "overview") return <OverviewPanel contest={contest} onResume={onResume} />;
   if (page === "announcements") return <AnnouncementsPanel contest={contest} />;
-  if (page === "review") return <ReviewPanel contest={contest} onQuestion={onQuestion} hasRecords={hasRecords} recordsRef={recordsRef} />;
+  if (page === "review") return <ReviewPanel contest={contest} onQuestion={onQuestion} hasRecords={hasRecords} recordsRef={recordsRef} reviewActionsRef={reviewActionsRef} />;
   if (page === "standings") return <StandingsPanel contest={contest} />;
   return null;
 }
@@ -45,11 +46,9 @@ export function ExamWorkspacePanels({ page, onQuestion, onResume, hasRecords = f
 function PageHeader({ title, description, actions, status }: { title: string; description?: ReactNode; actions?: ReactNode; status?: ReactNode }) {
   return (
     <header className={styles.pageHeader}>
-      <div>
-        <div className={styles.pageTitleRow}><h2 className={styles.pageTitle}>{title}</h2>{status}</div>
-        {description && <p className={styles.pageDescription}>{description}</p>}
-      </div>
+      <div className={styles.pageTitleRow}><h2 className={styles.pageTitle}>{title}</h2>{status}</div>
       {actions && <div className={styles.pageActions}>{actions}</div>}
+      {description && <p className={styles.pageDescription}>{description}</p>}
     </header>
   );
 }
@@ -147,9 +146,10 @@ interface ReviewPanelProps {
   onQuestion: (index: number) => void;
   hasRecords: boolean;
   recordsRef?: (element: HTMLElement | null) => void;
+  reviewActionsRef?: (element: HTMLElement | null) => void;
 }
 
-function ReviewPanel({ contest, onQuestion, hasRecords, recordsRef }: ReviewPanelProps) {
+function ReviewPanel({ contest, onQuestion, hasRecords, recordsRef, reviewActionsRef }: ReviewPanelProps) {
   const { t } = useTranslation("contest");
   const navigator = useContestRuntimeNavigator();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -176,6 +176,7 @@ function ReviewPanel({ contest, onQuestion, hasRecords, recordsRef }: ReviewPane
     <>
       <PageHeader
         title={t("workspace.review.title", "作答內容")}
+        actions={hasRecords ? <div ref={reviewActionsRef} /> : undefined}
         status={<StatusPill tone={contest.resultsPublished ? "success" : "neutral"}>{contest.resultsPublished ? t("workspace.review.published", "成績已公布") : t("workspace.review.unpublished", "成績未公布")}</StatusPill>}
         description={items.length ? summary : hasRecords ? t("workspace.review.recordsDescription", "作答紀錄、成績與批改回饋會顯示在這裡。") : undefined}
       />

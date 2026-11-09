@@ -18,6 +18,7 @@ import {
 import { getExamDashboardSummary } from "@/infrastructure/api/repositories/exam.repository";
 import userEvent from "@testing-library/user-event";
 import StudentContestDashboard from "./StudentContestDashboardView";
+import { ExamReviewSlotContext } from "../../contexts/ExamReviewSlotContext";
 
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn().mockResolvedValue(undefined) }),
@@ -524,6 +525,41 @@ describe("StudentContestDashboard", () => {
 
     expect(await screen.findByText("作答紀錄暫時無法載入")).toBeInTheDocument();
     expect(screen.queryByText("未作答")).not.toBeInTheDocument();
+  });
+
+  it.each([true, false])("opens a visible report dialog from the review header (published=%s)", async (resultsPublished) => {
+    const recordsTarget = document.createElement("section");
+    const actionsTarget = document.createElement("header");
+    document.body.append(recordsTarget, actionsTarget);
+    try {
+      render(
+        <MemoryRouter>
+          <ExamReviewSlotContext.Provider value={{
+            target: recordsTarget,
+            actionsTarget,
+            setHasRecords: vi.fn(),
+            openReview: vi.fn(),
+          }}>
+            <div hidden>
+              <StudentContestDashboard contest={createContest({
+                startTime: "2000-05-05T10:00:00.000Z",
+                endTime: "2000-05-05T12:00:00.000Z",
+                examStatus: "submitted",
+                resultsPublished,
+              })} />
+            </div>
+          </ExamReviewSlotContext.Provider>
+        </MemoryRouter>,
+      );
+      await userEvent.click(within(actionsTarget).getByRole("button", {
+        name: resultsPublished ? "下載成績單" : "下載作答證明",
+      }));
+      expect(screen.getByRole("dialog")).toBeVisible();
+      expect(within(recordsTarget).getByRole("dialog")).toBeInTheDocument();
+    } finally {
+      recordsTarget.remove();
+      actionsTarget.remove();
+    }
   });
 
   it("renders the post-exam report with the class standing", async () => {

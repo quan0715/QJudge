@@ -40,8 +40,15 @@
   border-bottom: 1px solid var(--cds-border-subtle);
 }
 
-.document { min-width: 0; }
-.questionSection { padding-block: layout.$spacing-07; border-bottom: 1px solid var(--cds-border-subtle-01); }
-.questionHeader { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: layout.$spacing-04; margin-bottom: layout.$spacing-05; }
-.questionHeader h3 { @include type.type-style("heading-compact-02"); margin: 0; }
-.questionResult { display: flex; align-items: center; gap: layout.$spacing-04; }
+@media (max-width: 672px) {
+  .table { table-layout: fixed; font-size: 12px; }
+  .table .columnHeader, .table td { padding-inline: 4px; }
+  .table .columnHeader { font-size: 12px; }
+  .table .columnHeader:first-child { width: 40px; }
+  .table .columnHeader:nth-child(2) { width: 26%; }
+  .table .columnHeader:nth-child(3) { width: 34%; }
+  .table .columnHeader:last-child { width: calc(40% - 40px); }
+  .table .score { white-space: normal; }
+  .table td:not([colspan]):first-child { padding-inline: 0; }
+  .table td:not([colspan]):first-child > button { width: 40px; min-width: 40px; padding-inline: 8px; }
+}

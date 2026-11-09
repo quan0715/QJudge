@@ -94,7 +94,6 @@
   gap: layout.$spacing-05;
 }
 
-.recordActions { display: flex; justify-content: flex-end; margin-bottom: 16px; }
 .recordSummary { display: flex; flex-wrap: wrap; margin: 0; padding: 16px 0; border-block: 1px solid var(--cds-border-subtle-01); }
 .recordSummary > div { padding-inline: 24px; border-inline-start: 1px solid var(--cds-border-subtle-01); }
 .recordSummary > div:first-child { padding-inline-start: 0; border: 0; }

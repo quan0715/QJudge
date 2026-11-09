@@ -1,27 +1,79 @@
 # Exam design alignment acceptance
 
-Validated against origin/dev `9add20cb3` on 2026-11-09. The original checkout and existing development volumes were preserved. Screenshots are from the isolated feature checkout; other students' names are masked in the standings image.
+Validated on 2026-11-09 from the isolated feature checkout, based on dev `9add20cb3`. Refreshed dev `7997a67eb` only changes the judge image and does not change these UI/export files. The original checkout and development volumes were preserved. Screenshots use existing development fixtures; other students' names are masked in the standings image.
 
-- Frontend: `TZ=UTC npm test`, 316 files / 2027 tests pass. The first host-timezone run failed the existing date-format assertion; UTC matches its expected calendar date.
-- `npm run typecheck`, `npm run build`, architecture and naming checks pass. Targeted ESLint: zero errors, one existing `tr` effect-dependency warning. Build retains the existing large-chunk warning. The i18n checker reports existing namespace gaps; the two new publication labels exist in all four locales.
-- Backend (database-free, owning dev runtime): 16 tests pass across report score trends, document printing, literal paper answers and PDF conversion. The new teacher-sheet database test and the existing standings/export database suites are left to PR CI per the environment policy.
-- Browser: real existing dev APIs; published/unpublished paper answers, proof download, coding records and standings on 1440px / 390px plus dark. No page errors or document horizontal overflow. The repository screenshot script additionally produced 30 state images; fixture schedules were not reseeded.
-- Actual new Django download views return 200 `application/pdf` for published paper, unpublished proof and coding. Actual WeasyPrint output: six PDF types, 90 pages in total; no extracted words outside page bounds. Representative pages and contact sheets were visually inspected. A separate synthetic 180-line answer and feedback render spans 8 pages with both ending markers preserved.
+- Frontend: `TZ=UTC npm test`, 316 files / 2030 tests pass. New regressions cover a title-row action slot, published/unpublished report dialogs remaining visible while the overview is hidden, and retaining an expanded original answer when grades are withdrawn.
+- Typecheck, build, architecture and naming checks pass. Targeted ESLint has zero errors and one existing `tr` effect-dependency warning. Build retains the existing large-chunk warning. Existing i18n namespace gaps are recorded separately; new publication labels exist in all four locales.
+- Backend (database-free, owning development runtime): 17 tests pass across report score trends, document printing, literal paper answers, PDF conversion and repeated table headers. The teacher-sheet database test and existing standings/export database suites run in PR CI per the environment policy.
+- Browser: 12 cases across desktop 1440px, tablet 768px, phone 390px and dark 1440px. Published/unpublished paper and coding records all align the download action with the title, expand/collapse correctly, and have no page errors or document horizontal overflow. Phone table column bounds were checked after the final sizing fix.
+- Download dialogs open and close from the visible review header for published paper, unpublished proof and coding. The paper appeal dialog opens and closes without submitting anything. These dialogs portal into the visible review slot, retaining the Carbon theme instead of remaining inside the hidden overview.
+- Actual Django download views return 200 `application/pdf` for published paper, unpublished proof and coding. Baseline acceptance rendered six document types, 90 pages in total, with no words outside page bounds. This correction rerendered the 15-page coding report and an additional long synthetic result table. Real `<thead>` headings repeat on both synthetic continuation pages. The earlier 180-line answer/feedback render spans 8 pages with both ending markers preserved.
 - Independent whole-change review found two important issues (AC after allocation reduction, structured paragraph/literal-text loss). Both have failing-before / passing-after regressions. No newly introduced grading disclosure was found.
 
-## Scope and decisions
+## Behavior and design
 
-Latest dev intentionally reserves reference answers/explanations for teachers. This change preserves that boundary rather than restoring the older Figma student explanation toggle. Student proof downloads, appeals, score policies and lazy submission history remain available.
+作答內容 retains the collapsible question table used on main. Paper details show the submitted answer, feedback and appeals; coding details lazy-load submission history. Header download actions share the title row, with descriptive text below. Unpublished exams offer 作答證明; published exams offer 成績單.
 
-Structured formula nodes preserve escaped LaTeX source in PDFs; browser KaTeX equation typesetting is not provided by the existing WeasyPrint renderer. No new formula service or dependency is introduced.
+The Figma sample now has editable collapsed/expanded variants for paper and coding, plus published/unpublished examples. Its shared PageHeader aligns download actions with the title. Existing synthetic sample data was retained. Figma images below are explicitly reference images, separate from implementation captures. No local exam data was uploaded to Figma.
 
-The existing Figma sample was corrected for publication/download wording, ended headers, partial scores/ranking, teacher-only explanation and fake verification codes. The broader Figma state-library expansion (all error/focus/mobile/dark specimens) is not represented as completed. A direct localhost import was blocked by automatic approval review because fixtures contained exam data; no such data was sent to Figma.
+Latest dev reserves reference answers/explanations for teachers. This change preserves that boundary. Student proof downloads, appeals, score policies and lazy submission history remain available. The broader Figma state-library expansion (every error/focus/mobile/dark specimen) is not represented as complete.
 
-## Screenshots
+Structured formula nodes preserve escaped LaTeX source in PDFs; the existing WeasyPrint renderer does not provide browser KaTeX typesetting. No new formula service or dependency is introduced.
 
-![Published paper answers](answers-desktop.png)
-![Unpublished proof on phone](proof-phone.png)
-![Standings, names masked](standings-desktop.png)
-![Coding answers in dark mode](coding-dark.png)
-![Coding report](coding-report.png)
-![Teacher answers and explanations](teacher-answer-key.png)
+## Implementation screenshots
+
+| Paper, published | Expanded original answer |
+| --- | --- |
+| ![Published paper, collapsed](answers-desktop.png) | ![Published paper, expanded](answers-desktop-expanded.png) |
+
+| Paper, unpublished | Expanded submitted answer |
+| --- | --- |
+| ![Unpublished paper, collapsed](proof-desktop.png) | ![Unpublished paper, expanded](proof-desktop-expanded.png) |
+
+| Coding, collapsed | Coding, submission history |
+| --- | --- |
+| ![Coding, collapsed](coding-desktop.png) | ![Coding, expanded](coding-desktop-expanded.png) |
+
+| Phone, published | Phone, expanded |
+| --- | --- |
+| ![Phone published](answers-phone.png) | ![Phone published expanded](answers-phone-expanded.png) |
+
+| Phone, unpublished | Phone, expanded proof |
+| --- | --- |
+| ![Phone proof](proof-phone.png) | ![Phone proof expanded](proof-phone-expanded.png) |
+
+| Tablet | Tablet, expanded |
+| --- | --- |
+| ![Tablet](answers-tablet.png) | ![Tablet expanded](answers-tablet-expanded.png) |
+
+| Dark | Dark, expanded |
+| --- | --- |
+| ![Dark paper](answers-dark.png) | ![Dark paper expanded](answers-dark-expanded.png) |
+
+| Dark coding | Standings, names masked |
+| --- | --- |
+| ![Dark coding](coding-dark.png) | ![Standings](standings-desktop.png) |
+
+| Download dialog | Appeal dialog, no submission |
+| --- | --- |
+| ![Download report](report-download-dialog.png) | ![Appeal dialog](appeal-dialog.png) |
+
+## Rendered PDF screenshots
+
+| Coding report with column headings | Teacher answers and explanations |
+| --- | --- |
+| ![Coding report](coding-report.png) | ![Teacher answer key](teacher-answer-key.png) |
+
+The next pair uses a deliberately long synthetic table to demonstrate header repetition. It is an acceptance fixture, not an additional product report.
+
+| Long table, page 1 | Continued table, page 2 |
+| --- | --- |
+| ![Table headers](report-header-page1.png) | ![Repeated table headers](report-header-page2.png) |
+
+## Figma references
+
+| Paper, published | Coding, published |
+| --- | --- |
+| ![Figma paper reference](figma-answer-content.png) | ![Figma coding reference](figma-coding-content.png) |
+
+Editable sources: [paper](https://www.figma.com/design/ehoK8UeCxoSxyVZbi334AS?node-id=32-1355), [coding](https://www.figma.com/design/ehoK8UeCxoSxyVZbi334AS?node-id=35-1531).

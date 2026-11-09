@@ -19,13 +19,11 @@ interface PaperAnswerRecordsTableProps {
   rows: PaperAnswerRecordRow[];
   showGrading: boolean;
   hint?: string;
-  layout?: "table" | "document";
 }
 
 export default function PaperAnswerRecordsTable({
   rows,
   showGrading,
-  layout = "table",
   hint = "展開題目查看原作答、評語與申訴紀錄。",
 }: PaperAnswerRecordsTableProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -37,18 +35,6 @@ export default function PaperAnswerRecordsTable({
     else next.add(id);
     return next;
   });
-
-  if (layout === "document") return (
-    <div className={styles.document}>
-      {rows.map((row) => <section key={row.id} className={styles.questionSection} aria-label={`第 ${row.label} 題作答內容`}>
-        <header className={styles.questionHeader}>
-          <div><h3>第 {row.label} 題</h3><span className={styles.type}>{row.typeLabel}</span></div>
-          <div className={styles.questionResult}><Tag type={row.tone}>{row.status}</Tag><span className={styles.score}>{showGrading ? row.score : "成績未公布"}</span></div>
-        </header>
-        {row.detail}
-      </section>)}
-    </div>
-  );
 
   return (
     <div className={styles.root}>

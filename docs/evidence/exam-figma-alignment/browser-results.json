@@ -1,56 +1,114 @@
-[
-  {
-    "mode": "desktop",
-    "name": "paper",
-    "overflow": false,
-    "errors": []
+{
+  "viewports": {
+    "desktop": 1440,
+    "tablet": 768,
+    "phone": 390,
+    "dark": 1440
   },
-  {
-    "mode": "desktop",
-    "name": "unpublished",
-    "overflow": false,
-    "errors": []
+  "cases": [
+    {
+      "mode": "desktop",
+      "name": "paper",
+      "headerActionAligned": true,
+      "expandCollapse": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "mode": "desktop",
+      "name": "unpublished",
+      "headerActionAligned": true,
+      "expandCollapse": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "mode": "desktop",
+      "name": "coding",
+      "headerActionAligned": true,
+      "expandCollapse": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "mode": "tablet",
+      "name": "paper",
+      "headerActionAligned": true,
+      "expandCollapse": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "mode": "tablet",
+      "name": "unpublished",
+      "headerActionAligned": true,
+      "expandCollapse": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "mode": "tablet",
+      "name": "coding",
+      "headerActionAligned": true,
+      "expandCollapse": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "mode": "phone",
+      "name": "paper",
+      "headerActionAligned": true,
+      "expandCollapse": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "mode": "phone",
+      "name": "unpublished",
+      "headerActionAligned": true,
+      "expandCollapse": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "mode": "phone",
+      "name": "coding",
+      "headerActionAligned": true,
+      "expandCollapse": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "mode": "dark",
+      "name": "paper",
+      "headerActionAligned": true,
+      "expandCollapse": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "mode": "dark",
+      "name": "unpublished",
+      "headerActionAligned": true,
+      "expandCollapse": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "mode": "dark",
+      "name": "coding",
+      "headerActionAligned": true,
+      "expandCollapse": true,
+      "overflow": false,
+      "errors": []
+    }
+  ],
+  "dialogs": {
+    "publishedPaperDownload": true,
+    "unpublishedProofDownload": true,
+    "codingReportDownload": true,
+    "appealOpenedAndClosedWithoutSubmitting": true
   },
-  {
-    "mode": "desktop",
-    "name": "coding",
-    "overflow": false,
-    "errors": []
-  },
-  {
-    "mode": "phone",
-    "name": "paper",
-    "overflow": false,
-    "errors": []
-  },
-  {
-    "mode": "phone",
-    "name": "unpublished",
-    "overflow": false,
-    "errors": []
-  },
-  {
-    "mode": "phone",
-    "name": "coding",
-    "overflow": false,
-    "errors": []
-  },
-  {
-    "mode": "dark",
-    "name": "paper",
-    "overflow": false,
-    "errors": []
-  },
-  {
-    "mode": "dark",
-    "name": "unpublished",
-    "overflow": false,
-    "errors": []
-  },
-  {
-    "mode": "dark",
-    "name": "coding",
-    "overflow": false,
-    "errors": []
-  }
-]
+  "fixtureDataChanged": false,
+  "standingsNamesMasked": true
+}
