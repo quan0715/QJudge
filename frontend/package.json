@@ -83,7 +83,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.57.0",
-    "@storybook/addon-docs": "9.1.20",
+    "@storybook/addon-docs": "10.6.6",
     "@storybook/react-vite": "9.1.20",
     "@testing-library/dom": "^10.0.0",
     "@testing-library/jest-dom": "^6.9.1",
