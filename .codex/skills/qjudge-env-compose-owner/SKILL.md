@@ -5,6 +5,10 @@ description: Use when QJudge work involves Docker Compose environments, migratio
 
 # QJudge Env Compose Owner
 
+## Repository scope
+
+The public website lives in PopcornT/qjudge-website and runs on Cloudflare Workers, independently of Compose and deploy/qjudge. Use that repository’s README and workflows for website commands; product and documentation deployment stay here. See `docs/website-migration.md` at the repository root.
+
 ## Environment choice
 
 - `dev`: the only local environment. Interactive development, Storybook, and manual runtime inspection. It keeps its data: never add `-v` to `down`.

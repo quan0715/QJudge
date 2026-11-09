@@ -44,7 +44,7 @@ import { docsRoutes } from "@/features/docs/routes";
 import DocsLayout from "@/features/docs/components/DocsLayout";
 import { errorRoutes, fallbackRoute } from "@/features/app/routes";
 import { adminRoutes } from "@/features/admin/routes";
-import { landingRoute } from "@/features/landing/routes";
+import AppEntryScreen from "@/features/app/screens/AppEntryScreen";
 import { classroomDetailRoute } from "@/features/classroom/routes";
 import { questionBankDetailRoute } from "@/features/question-banks/routes";
 
@@ -124,7 +124,7 @@ function App() {
                         </Route>
 
                         {/* Public Landing Page */}
-                        {landingRoute}
+                        <Route path="/" element={<AppEntryScreen />} />
 
                         {/* Protected Routes (Dashboard, Problems, etc.) */}
                         <Route element={<RequireAuth />}>

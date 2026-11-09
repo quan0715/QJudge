@@ -1,10 +1,8 @@
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
-import LandingScreen from "./LandingScreen";
+import { Navigate, useLocation } from "react-router-dom";
 
-// The public app homepage uses the canonical site's deployed content.
-// Local development and self-hosted installations keep their own landing page.
-export default function LandingEntryScreen() {
+/** Public product entry points to the website; self-hosted instances sign in locally. */
+export default function AppEntryScreen() {
   const { search, hash } = useLocation();
   const isPublicApp = window.location.hostname === "q-judge.com";
   const destination = `https://www.q-judge.com/${search}${hash}`;
@@ -15,5 +13,5 @@ export default function LandingEntryScreen() {
 
   return isPublicApp
     ? <a href={destination}>QJudge</a>
-    : <LandingScreen />;
+    : <Navigate to={`/login${search}${hash}`} replace />;
 }
