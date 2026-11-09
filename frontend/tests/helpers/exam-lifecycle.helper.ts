@@ -151,7 +151,8 @@ export async function answerFirstPaperQuestion(studentPage: Page): Promise<void>
     return;
   }
 
-  const textInputs = studentPage.locator("[data-testid^='exam-answer-input-']");
+  // Open answers are a rich editor; its textbox sits inside the answer-input wrapper.
+  const textInputs = studentPage.locator("[data-testid^='exam-answer-input-']").getByRole("textbox");
   for (let i = 0; i < (await textInputs.count()); i++) {
     const input = textInputs.nth(i);
     if (await input.isVisible()) {

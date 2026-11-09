@@ -164,19 +164,22 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
       return body.events.filter((event) => String(event.user) === studentId);
     };
     const clipboardEvents = async () => (await studentEvents()).filter((event) => event.event_type === "clipboard_action");
+    type OpenAnswer = { document?: { nodes: Array<{ children: Array<{ text?: string }> }> } };
     const savedAnswer = async () => {
-      const answers = await json<Array<{ question_id: string; answer: { text?: string } }>>(await student.request.get(`/api/v1/contests/${contestId}/exam-answers/my-answers/`, { headers: studentHeaders }));
-      return answers.find((answer) => String(answer.question_id) === String(question.id))?.answer.text;
+      const answers = await json<Array<{ question_id: string; answer: OpenAnswer }>>(await student.request.get(`/api/v1/contests/${contestId}/exam-answers/my-answers/`, { headers: studentHeaders }));
+      const document = answers.find((answer) => String(answer.question_id) === String(question.id))?.answer.document;
+      return document?.nodes.map((node) => node.children.map((child) => child.text ?? "").join("")).join("\n");
     };
     const copyAnswer = async () => {
-      const input = student.getByTestId(`exam-answer-input-${question.id}`);
+      const input = student.getByTestId(`exam-answer-input-${question.id}`).getByRole("textbox");
       await input.focus();
       await input.press("ControlOrMeta+A");
       await input.press("ControlOrMeta+C");
     };
 
     await gotoExamAnsweringThroughPrecheck(student, contestId);
-    const input = student.getByTestId(`exam-answer-input-${question.id}`);
+    // Open answers are a rich editor; its textbox sits inside the answer-input wrapper.
+    const input = student.getByTestId(`exam-answer-input-${question.id}`).getByRole("textbox");
     const firstAnswer = "Student answers remain independent of monitoring delivery.";
     await input.fill(firstAnswer);
     await input.blur();
@@ -188,7 +191,7 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
     const firstAttempt = [...attempts][0];
 
     await json(await teacher.request.patch(contestPath, { headers: teacherHeaders, data: { end_time: new Date(endsAt + 10 * 60_000).toISOString() } }));
-    await expect(input).toHaveValue(firstAnswer);
+    await expect(input).toHaveText(firstAnswer);
     await expect.poll(savedAnswer).toBe(firstAnswer);
 
     let blockedCheckpoints = 0;
@@ -218,7 +221,7 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
       event.event_type === "exam_entered" && !previousEventIds.has(event.id)), { timeout: 45_000 }).toBe(true);
     await expect.poll(() => getContestExamStatus(student, contestId)).toBe("in_progress");
     expect((await studentEvents()).filter((event) => !previousEventIds.has(event.id) && event.penalized)).toEqual([]);
-    await expect(input).toHaveValue("");
+    await expect(input).toHaveText("");
     await input.fill("A genuinely new attempt after explicit teacher reset.");
     await copyAnswer();
     await expect.poll(async () => (await clipboardEvents()).some((event) => !firstEventIds.has(event.id)), { timeout: 45_000 }).toBe(true);
