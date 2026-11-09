@@ -6,11 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:landing": "tsc -b && vite build --config vite.config.landing.ts",
     "build:docs": "tsc -b && vite build --config vite.config.docs.ts",
-    "cf:landing:create": "npx wrangler pages project create qjudge-landing --production-branch=main",
-    "cf:landing:deploy": "npm run build:landing && npx wrangler pages deploy dist-landing --project-name=qjudge-landing --branch=main",
-    "cf:landing:deploy:preview": "npm run build:landing && npx wrangler pages deploy dist-landing --project-name=qjudge-landing --branch=preview",
     "cf:docs:create": "npx wrangler pages project create qjudge-docs --production-branch=main",
     "cf:docs:deploy": "npm run build:docs && npx wrangler pages deploy dist-docs --project-name=qjudge-docs --branch=main",
     "cf:docs:deploy:preview": "npm run build:docs && npx wrangler pages deploy dist-docs --project-name=qjudge-docs --branch=preview",

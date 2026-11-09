@@ -85,13 +85,13 @@ async function collectRuntimeErrors(page: Page) {
 }
 
 async function expectRouteContent(page: Page, route: string) {
-  const expectedPath = route === "/docs" ? "/docs/overview" : route;
+  const expectedPath = route === "/docs" ? "/docs/overview" : route === "/" ? "/login" : route;
   await expect(page).toHaveURL((url) =>
     url.pathname === expectedPath ||
     (route === "/docs" && url.pathname === "/docs" && url.hash === "#/docs/overview"),
   );
   const contentByRoute: Record<string, Locator> = {
-    "/": page.getByTestId("landing-section-hero"),
+    "/": page.getByTestId("auth-login-form"),
     "/login": page.getByTestId("auth-login-form"),
     "/register": page.getByTestId("auth-register-form"),
     "/docs": page.getByRole("main").getByRole("heading", { name: "平台概覽", level: 1 }),

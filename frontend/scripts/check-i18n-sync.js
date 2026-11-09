@@ -26,7 +26,6 @@ const NAMESPACES = [
   "common",
   "contest",
   "docs",
-  "landing",
   "problem",
 ];
 
