@@ -393,6 +393,75 @@ def test_real_transport_classifies_auth_rejection_before_sdk_discards_status(
     assert clients[0].is_closed
 
 
+async def test_concurrent_success_cannot_clear_another_requests_auth_rejection(monkeypatch):
+    auth_body_started = asyncio.Event()
+    release_auth_body = asyncio.Event()
+
+    class PausedAuthBody(httpx2.AsyncByteStream):
+        async def __aiter__(self):
+            auth_body_started.set()
+            await release_auth_body.wait()
+            yield b'{"error":"credential rejected"}'
+
+    def handler(request):
+        payload = json.loads(request.content)
+        if payload["method"] != "tools/call":
+            return _protocol_response(request, payload)
+        if payload["params"]["name"] == "rejected":
+            return httpx2.Response(
+                401, headers={"content-type": "application/json"}, stream=PausedAuthBody(),
+            )
+        return httpx2.Response(200, json={
+            "jsonrpc": "2.0", "id": payload["id"],
+            "result": {"content": [{"type": "text", "text": "completed"}]},
+        })
+
+    clients = _install_http_transport(monkeypatch, handler)
+    provider = MCPToolProvider(server_url="https://example.invalid/mcp")
+
+    async with provider:
+        rejected = asyncio.create_task(provider._call_tool("rejected", {}))
+        try:
+            await asyncio.wait_for(auth_body_started.wait(), timeout=2)
+            success = await provider._call_tool("accepted", {})
+            assert success.content[0].text == "completed"
+        finally:
+            release_auth_body.set()
+        with pytest.raises(httpx2.HTTPStatusError) as raised:
+            await rejected
+        assert raised.value.response.status_code == 401
+
+    assert clients[0].is_closed
+
+
+def test_reconnecting_clears_previous_connections_auth_rejection(monkeypatch):
+    initializes = 0
+
+    def handler(request):
+        nonlocal initializes
+        payload = json.loads(request.content)
+        if payload["method"] == "initialize":
+            initializes += 1
+            if initializes == 1:
+                return httpx2.Response(401, json={"error": "credential rejected"})
+            return httpx2.Response(200, json={
+                "jsonrpc": "2.0", "id": payload["id"],
+                "error": {"code": -32603, "message": "Handshake failed"},
+            })
+        return _protocol_response(request, payload)
+
+    clients = _install_http_transport(monkeypatch, handler)
+    provider = MCPToolProvider(server_url="https://example.invalid/mcp")
+
+    with pytest.raises(McpAuthFailed):
+        asyncio.run(provider.probe())
+    with pytest.raises(McpProtocolError):
+        asyncio.run(provider.probe())
+
+    assert initializes == 2
+    assert all(client.is_closed for client in clients)
+
+
 @pytest.mark.parametrize("boundary", ["initialize", "discovery"])
 def test_probe_classifies_sdk_request_timeout_as_unavailable(monkeypatch, boundary):
     timeout = MCPError(REQUEST_TIMEOUT, "Request timed out")

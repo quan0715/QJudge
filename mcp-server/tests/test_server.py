@@ -1872,6 +1872,44 @@ def test_http_tool_endpoints_require_bearer_authentication(path):
     assert "Bearer" in response.headers["www-authenticate"]
 
 
+@pytest.mark.parametrize("audience, expected_status", [("qjudge-mcp", 200), ("ai-service", 401)])
+@pytest.mark.parametrize("path", ["/", "/mcp"])
+def test_http_endpoints_validate_jwt_audience_even_with_valid_mcp_scope(
+    monkeypatch, audience, expected_status, path,
+):
+    from starlette.testclient import TestClient
+
+    private_key = Ed25519PrivateKey.generate()
+    token = jwt.encode(
+        {
+            "iss": "https://issuer.test", "sub": "teacher-42", "aud": audience,
+            "scope": "mcp", "iat": 1_700_000_000, "exp": 1_900_000_000,
+        },
+        private_key, algorithm="EdDSA", headers={"kid": "qjudge-ai-ed25519-v1"},
+    )
+    verifier = server.QJudgeTokenVerifier(
+        issuer="https://issuer.test",
+        jwks_client=StaticJwksClient(private_key.public_key()),
+        opaque_fallback=FailingFallback(),
+    )
+    monkeypatch.setattr(server.mcp, "_token_verifier", verifier)
+
+    with TestClient(server.create_app()) as client:
+        response = client.post(
+            path,
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/json, text/event-stream"},
+            json={
+                "jsonrpc": "2.0", "id": 1, "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-11-25", "capabilities": {},
+                    "clientInfo": {"name": "test", "version": "1"},
+                },
+            },
+        )
+
+    assert response.status_code == expected_status
+
+
 def test_mcp_client_round_trip_preserves_tool_schemas_and_json_envelopes(monkeypatch):
     from mcp.client import Client
 

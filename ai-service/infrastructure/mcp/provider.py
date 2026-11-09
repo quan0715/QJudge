@@ -67,7 +67,6 @@ class MCPToolProvider:
             )
 
     async def _request(self, operation: Awaitable[Any], *, timeout: float) -> Any:
-        self._http_auth_error = None
         try:
             return await asyncio.wait_for(operation, timeout=timeout)
         except Exception as exc:
@@ -85,6 +84,9 @@ class MCPToolProvider:
         return self
 
     async def _connect(self) -> None:
+        # Concurrent tool calls share one bearer credential. Keep a rejection
+        # latched until reconnecting so another call cannot erase its status.
+        self._http_auth_error = None
         stack = AsyncExitStack()
         headers: dict[str, str] = {}
         if self._authorization_header:
