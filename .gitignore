@@ -198,3 +198,6 @@ reports/
 
 # Local Postal lifecycle lock; contains no credentials.
 deploy/.postal-*.lock
+
+# Local launch-video reference notes
+docs/adal/

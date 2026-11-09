@@ -143,17 +143,17 @@ describe("SideMenu contest admin workspace panels", () => {
     });
 
     render(
-      <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/admin?panel=problem_editor"]}>
+      <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/admin?panel=grading-workbench"]}>
         <SideMenu />
       </MemoryRouter>,
     );
 
     expect(await screen.findByText("adminLayout.nav.overview")).toBeInTheDocument();
-    expect(screen.getByText("adminLayout.nav.problemManagement")).toBeInTheDocument();
+    expect(screen.getByText("adminLayout.nav.gradingWorkbench")).toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.settings")).toBeInTheDocument();
     expect(screen.queryByText("adminLayout.nav.grading")).not.toBeInTheDocument();
 
-    const editorButton = screen.getByText("adminLayout.nav.problemManagement").closest("button");
+    const editorButton = screen.getByText("adminLayout.nav.gradingWorkbench").closest("button");
     expect(editorButton).toHaveClass("side-menu__link--active");
   });
 
@@ -189,8 +189,9 @@ describe("SideMenu contest admin workspace panels", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("adminLayout.nav.examManagement")).toBeInTheDocument();
-    expect(screen.getByText("adminLayout.nav.proctoring")).toBeInTheDocument();
+    expect(await screen.findByText("adminLayout.nav.gradingWorkbench")).toBeInTheDocument();
+    expect(screen.queryByText("adminLayout.nav.examManagement")).not.toBeInTheDocument();
+    expect(screen.getByText("adminLayout.nav.participants")).toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.gradingWorkbench")).toBeInTheDocument();
     expect(screen.queryByText("adminLayout.nav.examGrading")).not.toBeInTheDocument();
     expect(screen.queryByText("adminLayout.nav.examAiGrading")).not.toBeInTheDocument();
@@ -218,7 +219,7 @@ describe("SideMenu contest admin workspace panels", () => {
     );
 
     expect(await screen.findByText("adminLayout.nav.overview")).toBeInTheDocument();
-    expect(screen.getByText("adminLayout.nav.problemManagement")).toBeInTheDocument();
+    expect(screen.getByText("adminLayout.nav.gradingWorkbench")).toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.settings")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Chat" })).toBeInTheDocument();

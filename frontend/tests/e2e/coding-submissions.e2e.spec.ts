@@ -101,10 +101,10 @@ test("coding exam: sample run, custom input run, and formal submission use the r
     });
 
     await test.step("Add custom input and verify its actual output", async () => {
-      await page.getByRole("button", { name: "編輯測資", exact: true }).click();
+      await page.getByRole("button", { name: "測資", exact: true }).click();
       await page.getByRole("button", { name: "新增測資", exact: true }).click();
-      await page.getByRole("textbox", { name: "Input", exact: true }).fill("12345 6789\n");
-      await page.getByRole("textbox", { name: "Expected Output", exact: true }).fill("19134\n");
+      await page.getByRole("textbox", { name: "輸入", exact: true }).fill("12345 6789\n");
+      await page.getByRole("textbox", { name: "預期輸出", exact: true }).fill("19134\n");
       const request = page.waitForResponse(r => r.request().method() === "POST" && r.url().includes("/test_run/"), { timeout: 15_000 });
       await page.getByRole("button", { name: "測試", exact: true }).click();
       const response = await request;
@@ -130,7 +130,7 @@ test("coding exam: sample run, custom input run, and formal submission use the r
       await page.getByRole("button", { name: "繳交", exact: true }).click();
       const submitted = await json(await response);
       expect(submitted.id).toBeTruthy();
-      await expect(page.getByText("通過 2 / 2 · 分數 100", { exact: true })).toBeVisible({ timeout: 90_000 });
+      await expect(page.getByText("通過 2 / 2 · 得分 100", { exact: true })).toBeVisible({ timeout: 90_000 });
       const detail = await json(await page.request.get(`/api/v1/submissions/${submitted.id}/`));
       expect(detail.total_test_cases).toBe(2);
       expect(detail.results).toHaveLength(2);
@@ -139,14 +139,14 @@ test("coding exam: sample run, custom input run, and formal submission use the r
       const records = await submissions();
       expect(records.count).toBe(1);
       expect(records.results[0]).toMatchObject({ id: submitted.id, status: "AC", score: 100 });
-      await page.getByRole("button", { name: "繳交記錄", exact: true }).click();
-      await expect(page.getByRole("cell", { name: "AC", exact: true })).toHaveCount(1);
-      await page.getByRole("cell", { name: "AC", exact: true }).click();
+      await page.getByRole("button", { name: "提交紀錄", exact: true }).click();
+      await expect(page.getByRole("cell", { name: "通過", exact: true })).toHaveCount(1);
+      await page.getByRole("cell", { name: "通過", exact: true }).click();
       await expect(page.getByRole("dialog", { name: "繳交詳情" })).toBeVisible();
       await page.keyboard.press("Escape");
       await page.reload();
-      await page.getByRole("button", { name: "繳交記錄", exact: true }).click();
-      await expect(page.getByRole("cell", { name: "AC", exact: true })).toHaveCount(1);
+      await page.getByRole("button", { name: "提交紀錄", exact: true }).click();
+      await expect(page.getByRole("cell", { name: "通過", exact: true })).toHaveCount(1);
       await testInfo.attach("persisted-submission", { body: await page.screenshot(), contentType: "image/png" });
     });
 
@@ -163,8 +163,8 @@ test("coding exam: sample run, custom input run, and formal submission use the r
       expect(detail.results.map((result: { status: string }) => result.status).sort()).toEqual(["AC", "WA"]);
       expect((await submissions()).count).toBe(2);
       await page.reload();
-      await page.getByRole("button", { name: "繳交記錄", exact: true }).click();
-      await expect(page.getByRole("cell", { name: "WA", exact: true })).toHaveCount(1);
+      await page.getByRole("button", { name: "提交紀錄", exact: true }).click();
+      await expect(page.getByRole("cell", { name: "答案錯誤", exact: true })).toHaveCount(1);
       await testInfo.attach("partial-score-history", { body: await page.screenshot(), contentType: "image/png" });
     });
 
@@ -196,8 +196,8 @@ test("coding exam: sample run, custom input run, and formal submission use the r
       expect(detail.error_message).toBeTruthy();
       expect((await submissions()).count).toBe(3);
       await page.reload();
-      await page.getByRole("button", { name: "繳交記錄", exact: true }).click();
-      await expect(page.getByRole("cell", { name: "CE", exact: true })).toHaveCount(1);
+      await page.getByRole("button", { name: "提交紀錄", exact: true }).click();
+      await expect(page.getByRole("cell", { name: "編譯錯誤", exact: true })).toHaveCount(1);
       await testInfo.attach("compile-error-history", { body: await page.screenshot(), contentType: "image/png" });
     });
   } finally {

@@ -50,14 +50,17 @@ describe("ResultsPanel", () => {
 
   it("summarises passed cases and score", () => {
     const { rerender } = render(<ResultsPanel executionState={submission("WA", 98, 104, 60, cases(3, 1))} testCases={[]} />);
-    expect(screen.getByText("通過 98 / 104 · 分數 60")).toBeInTheDocument();
+    expect(screen.getByText("通過 98 / 104 · 得分 60")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "答案錯誤" })).toBeInTheDocument();
+    expect(screen.getByText("正式提交 · 計入成績")).toBeInTheDocument();
 
     rerender(<ResultsPanel
       executionState={{ type: "test", status: "complete", result: { type: "run", passed: 2, failed: 1, total: 3, cases: cases(3, 2) } }}
       testCases={[]}
     />);
     expect(screen.getByText("通過 2 / 3")).toBeInTheDocument();
-    expect(screen.queryByText(/分數/)).not.toBeInTheDocument();
+    expect(screen.getByText("測試 · 不計分")).toBeInTheDocument();
+    expect(screen.queryByText(/得分/)).not.toBeInTheDocument();
   });
 
   it("selects the first failed case", () => {

@@ -23,6 +23,7 @@ from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.types import ToolAnnotations
+from appeals import register_appeal_tool
 from pydantic import StrictInt
 from starlette.routing import Route
 
@@ -417,9 +418,9 @@ def _compact_answers(raw: Any) -> Any:
             "question_prompt": item.get("question_prompt"),
             "question_type": item.get("question_type"),
             "max_score": item.get("max_score"),
-            "participant_id": item.get("participant_user_id") or item.get("participant_id"),
+            "participant_id": item.get("participant_user_id"),
             "username": item.get("participant_username"),
-            "display_name": item.get("participant_nickname") or item.get("participant_username"),
+            "display_name": item.get("participant_display_name") or item.get("participant_username"),
             "answer": item.get("answer"),
             "is_correct": item.get("is_correct"),
             "score": item.get("score"),
@@ -627,12 +628,14 @@ _TOOL_HELP = {
         "qjudge_coding_problems": "Coding contest problems: get, create, update, delete (no list — use qjudge_contest_manager list_problems)",
         "qjudge_code_runner": "Execute code against a problem's sample test cases: run code, get results",
         "qjudge_grading": "Grading: list_answers, question_detail, dashboard, grade, batch_grade, ungrade",
+        "qjudge_appeals": "Paper-exam grade-appeal comments: list, get, send. Does not change scores or close tickets",
     },
     "routing_rules": {
         "unknown_id": "If classroom_id/contest_id is unknown, use qjudge_browse first.",
         "contest_ops": "Use qjudge_contest_manager create with classroom_id/name/contest_type for a new draft. For an existing contest_id, use get_detail/list_problems/reorder/update.",
         "single_item_crud": "Use qjudge_exam (paper_exam) or qjudge_coding_problems (coding) for single-item CRUD.",
         "code_execution": "Use qjudge_code_runner for running source code.",
+        "appeals": "Use qjudge_appeals list/get to read grade-appeal comments and send to append one. appeal_id is the integer ticket id from list/get. Scores stay on qjudge_grading.",
     },
     "coding_tools_how_to_choose": {
         "summary": (
@@ -725,6 +728,9 @@ _TOOL_HELP = {
         "test_run params removed": "qjudge_code_runner only sends language+code; only public sample cases run",
         "javascript in test_run": "Backend judge supports cpp, c, python, java — not javascript for test_run",
         "exam fields on coding": "Do NOT pass paper-exam fields (options, correct_answer, prompt) to qjudge_coding_problems — use description/test_cases; use qjudge_exam for paper_exam contests",
+        "appeal comments on qjudge_grading": "Do not read or send grade-appeal comments with qjudge_grading. Use qjudge_appeals. send appends a comment and does not change the score.",
+        "appeal_id is not a UUID": "qjudge_appeals appeal_id is the positive integer from list/get. contest_id is still the contest UUID.",
+        "resend appeal comment": "send always appends a new comment. Read with get first. A closed ticket returns 409 and send does not reopen it.",
     },
 }
 
@@ -1740,6 +1746,9 @@ async def qjudge_code_runner(
         json_body=body,
         timeout=120.0,
     )
+
+
+qjudge_appeals = register_appeal_tool(mcp)
 
 
 if __name__ == "__main__":

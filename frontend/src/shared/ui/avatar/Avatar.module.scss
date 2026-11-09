@@ -1,5 +1,4 @@
-@use "@carbon/layout";
-@use "@carbon/type";
+@use "@carbon/colors";
 
 .avatar {
   border-radius: 50%;
@@ -22,23 +21,15 @@
   height: 56px;
 }
 
-.avatarInitial {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--cds-icon-primary);
-  color: var(--cds-background);
-  font-weight: 600;
-
-  &.avatarSm {
-    @include type.type-style("label-01");
-  }
-
-  &.avatarMd {
-    @include type.type-style("body-compact-01");
-  }
-
-  &.avatarLg {
-    @include type.type-style("heading-01");
-  }
+// Generated avatar artwork uses a fixed Carbon palette in both light and dark themes.
+.identicon {
+  background: colors.$gray-10;
+  fill: currentColor;
 }
+
+.blue { color: colors.$blue-60; }
+.purple { color: colors.$purple-60; }
+.magenta { color: colors.$magenta-60; }
+.teal { color: colors.$teal-60; }
+.cyan { color: colors.$cyan-60; }
+.green { color: colors.$green-60; }

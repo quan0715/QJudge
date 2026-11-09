@@ -323,7 +323,9 @@
     "problemList": "Problem List",
     "problems": "Problems",
     "questionBanks": "Question Banks",
-    "submissions": "Submissions"
+    "submissions": "Submissions",
+    "home": "Home",
+    "backToClassroom": "Back to classroom"
   },
   "oauth": {
     "authorize": {
@@ -451,7 +453,8 @@
     "timeLimit": "Time Limit (ms)",
     "type": "Type",
     "untitled": "Untitled",
-    "usedInContests": "{{count}} contest(s)"
+    "usedInContests": "{{count}} contest(s)",
+    "noBank": "No question banks yet"
   },
   "questionType": {
     "description": {
@@ -562,6 +565,7 @@
     }
   },
   "workspaceTopNav": {
+    "resizeStatement": "Resize question pane",
     "adminConsole": "Admin console",
     "aiAssistant": "AI assistant",
     "backToContest": "Back to contest dashboard",
@@ -573,5 +577,44 @@
     "previewMode": "Preview mode",
     "problemInfo": "Problem details",
     "submissions": "Submissions"
+  },
+  "answering": {
+    "runtimeNav": {
+      "startsIn": "Starts in {{time}}"
+    }
+  },
+  "ui": {
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar"
+  },
+  "verdict": {
+    "AC": "Accepted",
+    "WA": "Wrong answer",
+    "TLE": "Time limit exceeded",
+    "MLE": "Memory limit exceeded",
+    "RE": "Runtime error",
+    "CE": "Compile error",
+    "SE": "System error",
+    "KR": "Killed"
+  },
+  "solver": {
+    "queued": "Queued",
+    "judging": "Judging",
+    "running": "Running",
+    "error": "Something went wrong",
+    "passedCount": "Passed {{passed}} / {{total}}",
+    "score": "Score {{score}}",
+    "waitingSeconds": "Waiting {{seconds}}s",
+    "submissionKind": "Submission · graded",
+    "testKind": "Test run · not graded",
+    "viewSubmissions": "View submissions",
+    "panelTabs": "Result panel",
+    "tabs": {
+      "testcases": "Test cases",
+      "results": "Result",
+      "submissions": "Submissions"
+    },
+    "test": "Test",
+    "submit": "Submit"
   }
 }

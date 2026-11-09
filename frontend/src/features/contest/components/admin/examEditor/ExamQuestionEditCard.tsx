@@ -33,7 +33,6 @@ import {
 } from "@carbon/icons-react";
 import type {
   ExamQuestion,
-  ExamQuestionAnswerFormat,
   ExamQuestionType,
 } from "@/core/entities/contest.entity";
 import type { ExamQuestionUpsertPayload } from "@/infrastructure/api/repositories";
@@ -50,6 +49,7 @@ import {
   OpenAnswerDocumentEditor,
   OpenAnswerDocumentRenderer,
   createEmptyOpenAnswerDocument,
+  normalizeOpenAnswerDocument,
 } from "@/shared/ui/editor";
 import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
@@ -431,6 +431,8 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
         return {
           ...prev,
           questionType: nextType,
+          answerFormat: isSubjectiveType(prev.questionType) ? prev.answerFormat : "open_document",
+          explanationDocument: prev.explanationDocument ?? normalizeOpenAnswerDocument(prev.explanation),
           options: [],
           singleAnswerIndex: "",
           multiAnswerIndexes: [],
@@ -591,18 +593,6 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     <DataBase size={12} />
                     {t("examEditor.saveToBank", { defaultValue: "收錄到題庫" })}
                   </button>
-                ) : null}
-                {!isChoiceType(question.questionType) &&
-                question.answerFormat === "markdown_math" ? (
-                  <Tag size="sm" type="cyan">
-                    {t("examEditor.answerFormats.markdownMath", "數學作答")}
-                  </Tag>
-                ) : null}
-                {!isChoiceType(question.questionType) &&
-                question.answerFormat === "open_document" ? (
-                  <Tag size="sm" type="cyan">
-                    {t("examEditor.answerFormats.openDocument", "開放作答紙")}
-                  </Tag>
                 ) : null}
                 {question.scorePolicy && question.scorePolicy !== "normal" && (
                   <ScorePolicyTag policy={question.scorePolicy} />
@@ -901,48 +891,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 />
               </div>
             ) : null}
-            {!isChoiceType(form.questionType) ? (
-              <div className={styles.answerFormatSelector}>
-                <Select
-                  id={`eqc-answer-format-${question.id}`}
-                  labelText={t("examEditor.answerFormat", "作答格式")}
-                  hideLabel
-                  size="sm"
-                  value={form.answerFormat}
-                  onChange={(e) =>
-                    setForm((p) => ({
-                      ...p,
-                      answerFormat: e.target.value as ExamQuestionAnswerFormat,
-                    }))
-                  }
-                  disabled={frozen || contentLocked}
-                  inline
-                >
-                  <SelectItem
-                    value="plain_text"
-                    text={t("examEditor.answerFormats.plainText", "純文字")}
-                  />
-                  <SelectItem
-                    value="markdown"
-                    text={t("examEditor.answerFormats.markdown", "Markdown")}
-                  />
-                  <SelectItem
-                    value="markdown_math"
-                    text={t(
-                      "examEditor.answerFormats.markdownMath",
-                      "數學作答",
-                    )}
-                  />
-                  <SelectItem
-                    value="open_document"
-                    text={t(
-                      "examEditor.answerFormats.openDocument",
-                      "開放作答紙",
-                    )}
-                  />
-                </Select>
-              </div>
-            ) : null}
+
           </div>
           <div className={styles.editToolbarRight}>
             {saving ? (

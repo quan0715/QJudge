@@ -14,7 +14,7 @@
  * - testcases: Edit and manage test cases
  * - results: View execution results
  */
-export type ResultMode = "testcases" | "results";
+export type ResultMode = "testcases" | "results" | "submissions";
 
 // ============================================================================
 // Execution Types

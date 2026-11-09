@@ -16,7 +16,7 @@ concurrency:
 jobs:
   deploy:
     if: github.ref == 'refs/heads/main' && inputs.confirm_production
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     environment: production
     # main only accepts release pull requests that passed the required CI and E2E

@@ -562,6 +562,7 @@
     }
   },
   "workspaceTopNav": {
+    "resizeStatement": "문제 영역 너비 조절",
     "adminConsole": "管理後台",
     "aiAssistant": "AI 어시스턴트",
     "backToContest": "대회 대시보드로 돌아가기",
@@ -573,5 +574,35 @@
     "previewMode": "미리보기 모드",
     "problemInfo": "문제 정보",
     "submissions": "제출 기록"
+  },
+  "verdict": {
+    "AC": "정답",
+    "WA": "오답",
+    "TLE": "시간 초과",
+    "MLE": "메모리 초과",
+    "RE": "런타임 오류",
+    "CE": "컴파일 오류",
+    "SE": "시스템 오류",
+    "KR": "강제 종료"
+  },
+  "solver": {
+    "queued": "대기 중",
+    "judging": "채점 중",
+    "running": "실행 중",
+    "error": "오류가 발생했습니다",
+    "passedCount": "통과 {{passed}} / {{total}}",
+    "score": "점수 {{score}}",
+    "waitingSeconds": "{{seconds}}초 대기 중",
+    "submissionKind": "정식 제출 · 채점 반영",
+    "testKind": "테스트 · 채점 안 함",
+    "viewSubmissions": "제출 기록 보기",
+    "panelTabs": "결과 패널",
+    "tabs": {
+      "testcases": "테스트 케이스",
+      "results": "결과",
+      "submissions": "제출 기록"
+    },
+    "test": "테스트",
+    "submit": "제출"
   }
 }

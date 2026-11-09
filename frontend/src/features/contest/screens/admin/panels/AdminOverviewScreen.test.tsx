@@ -9,14 +9,15 @@ const mocks = vi.hoisted(() => ({
   getExamPaper: vi.fn(),
   updateContest: vi.fn(),
   refreshContest: vi.fn(),
+  contest: null as ReturnType<typeof createMockContest> | null,
 }));
 
 vi.mock("@/features/contest/contexts", () => ({
   useContest: () => ({
-    contest: createMockContest({ status: "draft" }),
+    contest: mocks.contest ?? createMockContest({ status: "draft" }),
     refreshContest: mocks.refreshContest,
   }),
-  useContestAdmin: () => ({ participants: [], examEvents: [], overviewMetrics: null }),
+  useContestAdmin: () => ({ participants: [], examEvents: [], eventFeed: [], overviewMetrics: null }),
   useAdminPanelRefresh: () => ({ registerPanelRefresh: () => () => {} }),
 }));
 vi.mock("@/features/contest/screens/settings/grading", () => ({
@@ -29,6 +30,15 @@ vi.mock("@/infrastructure/api/repositories", () => ({
   getExamPaper: mocks.getExamPaper,
   updateContest: mocks.updateContest,
 }));
+vi.mock("@/features/contest/components/admin/statistics/AdminQuestionStatsGallery", () => ({ default: () => null }));
+vi.mock("@/features/contest/components/admin/statistics/AdminExamResultOverview", () => ({ default: () => null }));
+vi.mock("@/features/contest/screens/settings/grading/GradingMatrixViewScreen", () => ({ default: () => null }));
+vi.mock("@/shared/ui/theme/ThemeContext", () => ({ useTheme: () => ({ theme: "white" }) }));
+vi.mock("@/features/contest/components/GradeAppealsPanel", () => ({ default: () => null }));
+vi.mock("@/features/contest/components/ContestClarifications", () => ({ default: () => null }));
+vi.mock("@/features/contest/screens/ContestSubmissionListScreen", () => ({ default: () => null }));
+vi.mock("@/features/contest/screens/admin/panels/AdminStandingsScreen", () => ({ default: () => null }));
+vi.mock("@/features/contest/screens/settings/ContestLogsScreen", () => ({ default: () => null }));
 vi.mock("@/shared/contexts/ToastContext", () => ({
   useToast: () => ({ showToast: vi.fn() }),
 }));
@@ -48,6 +58,7 @@ async function publishFromOverview() {
 describe("overview publication", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.contest = null;
     mocks.getExamPaper.mockResolvedValue({ questions: [
       { questionType: "single_choice", prompt: "New question", options: ["Option A", "Option B"], correctAnswer: null, order: 2 },
     ] });
@@ -68,5 +79,27 @@ describe("overview publication", () => {
     await screen.findByText(/settings.publishCheck.missingAnswer|第 1 題尚未設定正確答案|Question 1: no correct answer set/);
     fireEvent.click(screen.getByRole("button", { name: /仍要發布|Publish anyway|adminOverview.preparation.confirm.publishAnyway/ }));
     await waitFor(() => expect(mocks.updateContest).toHaveBeenCalledWith("contest-001", { status: "published" }));
+  });
+});
+
+describe("overview drilldown tabs", () => {
+  it("no longer offers a participants tab or student QR scan for a running exam", () => {
+    mocks.contest = createMockContest({
+      status: "published",
+      contestType: "paper_exam",
+      startTime: new Date(Date.now() - 60_000).toISOString(),
+      endTime: new Date(Date.now() + 3_600_000).toISOString(),
+    });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <AdminOverviewScreen />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByRole("tab", { name: /^(參與者|Participants|adminOverview.command.drilldown.participants)$/ })).toBeNull();
+    expect(screen.getByRole("tab", { name: /成績總覽|adminOverview.command.drilldown.scoreMatrix/ }))
+      .toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("button", { name: /掃描學生 QR|adminOverview.screen.actions.studentQrScan/ })).toBeNull();
   });
 });

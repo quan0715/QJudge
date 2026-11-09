@@ -1,15 +1,11 @@
 import { lazy } from "react";
 import type { AdminPanelId, ContestTypeModule, AdminPanelRenderer } from "./types";
-import ContestExamGradingScreen from "../screens/settings/ContestExamGradingScreen";
 
 const AdminOverviewScreen = lazy(
   () => import("../screens/admin/panels/AdminOverviewScreen"),
 );
-const AdminProctoringPanel = lazy(
-  () => import("../screens/admin/panels/AdminProctoringPanel"),
-);
-const ContestAiGradingScreen = lazy(
-  () => import("../screens/settings/ContestAiGradingScreen"),
+const AdminParticipantsPanel = lazy(
+  () => import("../screens/admin/panels/AdminParticipantsPanel"),
 );
 const ContestWorkbenchScreen = lazy(() => import("../screens/settings/ContestWorkbenchScreen"));
 const renderNothing: AdminPanelRenderer = () => null;
@@ -18,11 +14,12 @@ const AdminStandingsScreen = lazy(() => import("../screens/admin/panels/AdminSta
 const defaultAdminRenderers: Record<AdminPanelId, AdminPanelRenderer> = {
   overview: AdminOverviewScreen,
   clarifications: AdminOverviewScreen,
-  proctoring: AdminProctoringPanel,
+  participants: AdminParticipantsPanel,
   standings: AdminStandingsScreen,
-  grading: ContestExamGradingScreen,
+  // Legacy IDs are normalized before dispatch; keep a harmless workbench fallback.
+  grading: ContestWorkbenchScreen,
   "grading-workbench": ContestWorkbenchScreen,
-  "ai-grading": ContestAiGradingScreen,
+  "ai-grading": ContestWorkbenchScreen,
   settings: renderNothing,
   problem_editor: renderNothing,
   statistics: renderNothing,

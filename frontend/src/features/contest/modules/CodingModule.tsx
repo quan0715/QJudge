@@ -1,4 +1,3 @@
-import { lazy } from "react";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import type {
   AdminPanelId,
@@ -6,10 +5,6 @@ import type {
 } from "@/features/contest/modules/types";
 import ContestProblemScreen from "@/features/contest/screens/ContestProblemScreen";
 import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
-
-const CodingTestEditorLayout = lazy(
-  () => import("@/features/contest/components/admin/examEditor/CodingTestEditorLayout"),
-);
 
 const getFirstProblemId = (
   contest?: ContestDetail | null,
@@ -23,10 +18,10 @@ const getFirstProblemId = (
 
 const CODING_ADMIN_PANELS: AdminPanelId[] = [
   "overview",
-  "proctoring",
-  "problem_editor",
+  "participants",
+  "grading-workbench",
 ];
-const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor"];
+const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "grading-workbench"];
 
 export const codingContestModule: ContestTypeModule = {
   type: "coding",
@@ -47,17 +42,6 @@ export const codingContestModule: ContestTypeModule = {
     editorKind: "coding",
     getAvailablePanels: (contest) =>
       contest?.status === "draft" ? DRAFT_ADMIN_PANELS : CODING_ADMIN_PANELS,
-    getPanelRenderers: () => ({
-      problem_editor: (props) => {
-        if (!props.contest) return null;
-        return (
-          <CodingTestEditorLayout
-            contestId={props.contestId}
-            contest={props.contest}
-          />
-        );
-      },
-    }),
     getExportTargets: () => ["coding-pdf", "coding-markdown"],
   },
 };

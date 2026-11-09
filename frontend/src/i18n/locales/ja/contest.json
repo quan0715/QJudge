@@ -21,7 +21,7 @@
       "grading": "採点",
       "overview": "概要",
       "problemManagement": "問題管理",
-      "proctoring": "監視",
+      "participants": "参加者",
       "settings": "設定",
       "standings": "ランキング",
       "statistics": "統計",
@@ -552,7 +552,9 @@
       "falseOption": "いいえ (False)",
       "promptEmpty": "（問題文が未入力です）",
       "shortAnswerPlaceholder": "答えを入力してください...",
-      "trueOption": "はい (True)"
+      "trueOption": "はい (True)",
+      "selectAll": "当てはまるものをすべて選択",
+      "selectOne": "答えを 1 つ選択"
     },
     "questionTypes": {
       "coding": "プログラミング",
@@ -582,6 +584,9 @@
       "submitting": "提出中...",
       "unansweredSubtitle": "すべての問題を解答してから提出することをお勧めします。",
       "unansweredWarning": "未解答の問題が {{count}} 問あります"
+    },
+    "workspace": {
+      "statement": "問題内容"
     }
   },
   "attendance": {
@@ -883,7 +888,9 @@
     "transcodeIssue": "変換メッセージ",
     "trendCharts": "提出推移",
     "tries": "提出回数",
-    "violations": "違反"
+    "violations": "違反",
+    "answerTime": "解答時間",
+    "expandQuestionHint": "問題を展開すると解答と採点コメントを確認できます。"
   },
   "delete": {
     "confirm": "このコンテストを削除してもよろしいですか？この操作は取り消せません。",
@@ -1647,7 +1654,9 @@
       "role": "ロール",
       "score": "スコア",
       "status": "ステータス",
-      "username": "ユーザー"
+      "username": "ユーザー",
+      "name": "氏名",
+      "violations": "違反"
     },
     "listFooterCount": "{{shown}} / {{total}} 人を表示",
     "listHeaderTitle": "学生リスト",
@@ -1781,19 +1790,11 @@
   "problems": "問題数",
   "proctoringPanel": {
     "backToRoster": "一覧に戻る",
-    "emptyDescription": "左側の一覧から別の参加者の監視画面へすばやく切り替えられます。",
     "emptyTitle": "監視を開始する参加者を選択",
-    "highRiskCount": "高リスク {{count}} 件",
     "noSignal": "信号なし",
     "onlineCount": "{{count}} 人オンライン",
-    "outOfWindowBody": "監視機能を使用できません。",
-    "outOfWindowTitle": "現在は試験時間外です",
-    "reviewCount": "確認必要 {{count}} 件",
-    "roster": "監視対象",
-    "searchPlaceholder": "監視対象を検索...",
     "sourceScreen": "画面",
     "sourceWebcam": "Webcam",
-    "title": "監視",
     "focusStudent": "{{name}} を拡大",
     "waitingScreen": "画面を待機中",
     "noScreen": "画面共有なし",
@@ -1802,8 +1803,6 @@
     "pageCount": "{{page}}／{{pages}} ページ・{{count}} 人",
     "previousPage": "前のページ",
     "nextPage": "次のページ",
-    "layout": "監視レイアウト",
-    "focusView": "個別",
     "fourView": "4 人",
     "nineView": "9 人",
     "previousStudent": "前の受験者",
@@ -2358,5 +2357,153 @@
       "stayHere": "この問題に留まる",
       "reviewChecks": "確認"
     }
+  },
+  "participantsPanel": {
+    "title": "参加者",
+    "searchPlaceholder": "氏名またはユーザー名で検索...",
+    "viewTable": "表",
+    "viewCards": "カード",
+    "monitorMode": "監視モード",
+    "backToList": "一覧に戻る",
+    "liveView": "ライブ映像",
+    "dashboardTabs": "受験者の詳細",
+    "tabOverview": "概要",
+    "tabAnswers": "解答",
+    "tabEvents": "イベント",
+    "scoreFilter": {
+      "label": "得点で絞り込み",
+      "all": "すべての得点",
+      "top": "上位 25%",
+      "bottom": "下位 25%",
+      "zero": "0 点"
+    }
+  },
+  "workspace": {
+    "loading": "試験を読み込み中",
+    "retry": "再試行",
+    "header": {
+      "back": "コースに戻る",
+      "expandList": "問題リストを展開",
+      "collapseList": "問題リストを折りたたむ",
+      "fallbackTitle": "試験",
+      "previewMode": "試行",
+      "previewNotSaved": "解答は保存されません"
+    },
+    "rail": {
+      "overview": "概要",
+      "questions": "問題",
+      "announcements": "お知らせ",
+      "review": "解答チェック",
+      "standings": "順位表"
+    },
+    "questionList": {
+      "title": "問題",
+      "count": "{{count}} 問",
+      "group": "第 {{number}} 問 · 大問",
+      "acceptedProgress": "正解 {{answered}} / {{total}}"
+    },
+    "status": {
+      "answered": "解答済み",
+      "unanswered": "未解答",
+      "marked": "マーク済み",
+      "accepted": "正解",
+      "judging": "採点中",
+      "attempted": "提出済み・未正解",
+      "notSubmitted": "未提出"
+    },
+    "stepper": {
+      "previous": "前の問題",
+      "next": "次の問題"
+    },
+    "overview": {
+      "coding": "プログラミング試験",
+      "paper": "筆記試験",
+      "questionCount": "{{count}} 問",
+      "totalScore": "合計 {{score}} 点",
+      "defaultDescription": "試験情報を確認し、準備ができたら解答を始めてください。",
+      "rules": "受験ルール",
+      "start": "開始",
+      "end": "終了",
+      "duration": "試験時間",
+      "minutes": "{{count}} 分",
+      "progress": "進捗",
+      "resume": "解答へ進む",
+      "durationDays": "{{days}} 日 {{hours}} 時間",
+      "durationHours": "{{hours}} 時間 {{minutes}} 分",
+      "remaining": "残り {{time}}",
+      "startsIn": "開始まで {{time}}",
+      "ended": "終了",
+      "timeProgress": "試験時間の進行状況",
+      "itemProgress": "{{done}} / {{total}} 問"
+    },
+    "announcements": {
+      "title": "お知らせ",
+      "description": "試験中のお知らせはここに表示されます。",
+      "loading": "お知らせを読み込み中",
+      "failed": "お知らせを読み込めませんでした",
+      "empty": "お知らせはありません"
+    },
+    "review": {
+      "title": "解答チェック",
+      "codingSummary": "{{total}} 問中 {{answered}} 問正解。問題を展開すると提出履歴と結果を確認できます。",
+      "paperSummary": "{{total}} 問中 {{answered}} 問解答済み。サーバーへの保存を示すものではありません。",
+      "emptyTitle": "まだ解答を始めていません",
+      "emptyDescription": "解答を始めると各問題の状態が表示されます。",
+      "questionTitle": "第 {{label}} 問",
+      "points": "点",
+      "submissionCount": "提出 {{count}} 回",
+      "resume": "解答を続ける",
+      "resumeLabel": "解答を続ける：{{title}}",
+      "noSubmissions": "提出履歴はありません。テストまたは提出後に結果が表示されます。",
+      "recordsDescription": "解答記録、得点、採点コメントがここに表示されます。"
+    },
+    "standings": {
+      "title": "順位表",
+      "description": "正解数と得点で並び、採点後に更新されます。",
+      "refresh": "更新",
+      "refreshing": "更新中",
+      "loading": "順位表を読み込み中",
+      "failed": "順位表を読み込めませんでした",
+      "empty": "順位データはありません",
+      "emptyDescription": "正解が出るとここに表示されます。",
+      "rank": "順位",
+      "student": "受験者",
+      "solved": "正解",
+      "score": "得点"
+    },
+    "report": {
+      "title": "解答状況",
+      "details": "詳細を見る",
+      "question": "第 {{label}} 問",
+      "points": "{{score}} / {{max}} 点",
+      "full": "満点",
+      "partial": "部分点",
+      "zero": "得点なし",
+      "answered": "解答済み",
+      "unanswered": "未解答",
+      "accepted": "正解",
+      "attempted": "不正解",
+      "classTitle": "クラスの成績",
+      "average": "クラス平均",
+      "you": "あなたの得点",
+      "aboveAverage": "平均より {{diff}} 点高い",
+      "belowAverage": "平均より {{diff}} 点低い",
+      "atAverage": "平均と同じ",
+      "distribution": "成績分布",
+      "people": "{{count}} 人",
+      "yourRange": "あなたの位置"
+    },
+    "handIn": {
+      "open_one": "未解答が {{count}} 問あります",
+      "open_other": "未解答が {{count}} 問あります",
+      "complete": "全 {{count}} 問に解答済み",
+      "marked": "{{count}} 問にマーク",
+      "note": "提出後は解答を変更できません。",
+      "noteSelect": "問題番号を押すとその問題に戻れます。提出後は解答を変更できません。"
+    }
+  },
+  "gradeAppeal": {
+    "waitingForStaff": "教員の返信待ち",
+    "waitingForStudent": "受験者の返信待ち"
   }
 }

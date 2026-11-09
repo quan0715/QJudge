@@ -1,8 +1,7 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Button, Tooltip } from "@carbon/react";
 import {
-  Edit,
-  Terminal,
   Chemistry,
   SendFilled,
   ChevronUp,
@@ -28,6 +27,8 @@ interface ResultToolbarProps {
   testDisabled?: boolean;
   /** Disable 繳交 (a submit request is in flight) */
   submitDisabled?: boolean;
+  /** Offer the submission history tab. */
+  hasSubmissions?: boolean;
 }
 
 /**
@@ -49,7 +50,9 @@ export const ResultToolbar: React.FC<ResultToolbarProps> = ({
   onSubmit,
   testDisabled = false,
   submitDisabled = false,
+  hasSubmissions = false,
 }) => {
+  const { t } = useTranslation();
   // Helper to auto-expand if collapsed
   const expandIfCollapsed = () => {
     if (collapsed && onToggle) {
@@ -80,27 +83,23 @@ export const ResultToolbar: React.FC<ResultToolbarProps> = ({
 
   return (
     <div className="result-toolbar">
-      {/* Left: Mode buttons - no selection state when collapsed */}
-      <div className="result-toolbar__modes">
-        <Tooltip label="編輯測資" align="top">
-          <Button
-            kind={!collapsed && mode === "testcases" ? "tertiary" : "ghost"}
-            hasIconOnly
-            renderIcon={Edit}
-            iconDescription="編輯測資"
-            onClick={() => handleModeChange("testcases")}
-          />
-        </Tooltip>
-
-        <Tooltip label="執行結果" align="top">
-          <Button
-            kind={!collapsed && mode === "results" ? "tertiary" : "ghost"}
-            hasIconOnly
-            renderIcon={Terminal}
-            iconDescription="執行結果"
-            onClick={() => handleModeChange("results")}
-          />
-        </Tooltip>
+      {/* Left: named tabs, so each one says what it opens. No selection while collapsed. */}
+      <div className="result-toolbar__modes" role="group" aria-label={t("solver.panelTabs", "結果面板")}>
+        {([
+          ["testcases", t("solver.tabs.testcases", "測資")],
+          ["results", t("solver.tabs.results", "結果")],
+          ...(hasSubmissions ? [["submissions", t("solver.tabs.submissions", "提交紀錄")] as const] : []),
+        ] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            className="result-toolbar__tab"
+            aria-pressed={!collapsed && mode === value}
+            onClick={() => handleModeChange(value)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Right: Actions */}
@@ -108,22 +107,24 @@ export const ResultToolbar: React.FC<ResultToolbarProps> = ({
         {onRunTest && (
           <Button
             kind="ghost"
+            size="md"
             renderIcon={Chemistry}
             onClick={handleRunTest}
             disabled={testDisabled}
           >
-            測試
+            {t("solver.test", "測試")}
           </Button>
         )}
 
         {onSubmit && (
           <Button
             kind="primary"
+            size="md"
             renderIcon={SendFilled}
             onClick={handleSubmit}
             disabled={submitDisabled}
           >
-            繳交
+            {t("solver.submit", "繳交")}
           </Button>
         )}
 
@@ -132,6 +133,7 @@ export const ResultToolbar: React.FC<ResultToolbarProps> = ({
           <Tooltip label={collapsed ? "展開" : "收合"} align="top">
             <Button
               kind="ghost"
+              size="md"
               hasIconOnly
               renderIcon={collapsed ? ChevronUp : ChevronDown}
               iconDescription={collapsed ? "展開面板" : "收合面板"}

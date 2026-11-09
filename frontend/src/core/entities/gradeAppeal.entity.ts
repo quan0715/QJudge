@@ -9,7 +9,9 @@ export interface GradeAppeal {
   question_prompt: string;
   student_id: number;
   student_username: string;
+  student_avatar_url?: string | null;
   status: "open" | "closed";
+  waiting_for?: "staff" | "student" | null;
   created_at: string;
   closed_at: string | null;
   closed_by: number | null;
@@ -21,6 +23,7 @@ export interface GradeAppealDetail extends GradeAppeal {
     id: number;
     author_id: number | null;
     author_username: string;
+    author_avatar_url?: string | null;
     content: string;
     created_at: string;
   }>;

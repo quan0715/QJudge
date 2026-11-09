@@ -12,7 +12,6 @@ import {
   TaskComplete,
   Trophy,
   UserMultiple,
-  VirtualDesktop,
   Settings,
   Home,
   ArrowLeft,
@@ -52,7 +51,7 @@ const CONTEST_PANEL_META: Record<
   overview: { labelKey: "overview", Icon: Dashboard },
   standings: { labelKey: "standings", Icon: ChartColumn },
   clarifications: { labelKey: "clarifications", Icon: QuestionAnswering },
-  proctoring: { labelKey: "proctoring", Icon: VirtualDesktop },
+  participants: { labelKey: "participants", Icon: UserMultiple },
   problem_editor: { labelKey: "problemManagement", examLabelKey: "examManagement", Icon: DocumentTasks },
   grading: { labelKey: "grading", examLabelKey: "examGrading", Icon: TaskComplete },
   "grading-workbench": { labelKey: "gradingWorkbench", Icon: TaskComplete },
@@ -528,13 +527,13 @@ export const SideMenu: React.FC<SideMenuProps> = ({
             <div className="side-menu__bottom">
               <button
                 type="button"
-                title="返回教室"
-                aria-label="返回教室"
+                title={t("nav.backToClassroom", "返回教室")}
+                aria-label={t("nav.backToClassroom", "返回教室")}
                 className="side-menu__link"
                 onClick={() => go(`/classrooms/${contestAdminContext.classroomId}`)}
               >
                 <ArrowLeft size={16} />
-                <span>返回教室</span>
+                <span>{t("nav.backToClassroom", "返回教室")}</span>
               </button>
               <button
                 type="button"

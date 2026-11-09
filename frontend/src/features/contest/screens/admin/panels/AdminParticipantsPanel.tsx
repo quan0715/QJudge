@@ -1,0 +1,466 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import {
+  Button,
+  ContentSwitcher,
+  IconSwitch,
+  InlineNotification,
+  Select,
+  SelectItem,
+  SkeletonText,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
+  TableToolbarSearch,
+  Tag,
+  Toggle,
+} from "@carbon/react";
+import { ArrowLeft, Grid, Renew, Table } from "@carbon/icons-react";
+import { useReducedMotion } from "motion/react";
+import { useTranslation } from "react-i18next";
+
+import type { EventFeedItem, ParticipantDashboard } from "@/core/entities/contest.entity";
+import ParticipantAnswerReport from "@/features/contest/components/participants/ParticipantAnswerReport";
+import ParticipantCardGallery from "@/features/contest/components/participants/ParticipantCardGallery";
+import ParticipantQrScanButton from "@/features/contest/components/participants/ParticipantQrScanButton";
+import ParticipantRail from "@/features/contest/components/participants/ParticipantRail";
+import ParticipantStatusCards from "@/features/contest/components/participants/ParticipantStatusCards";
+import ParticipantSummaryHeader from "@/features/contest/components/participants/ParticipantSummaryHeader";
+import ParticipantTable from "@/features/contest/components/participants/ParticipantTable";
+import { useAdminPanelRefresh, useContestAdmin } from "@/features/contest/contexts";
+import { isContestInExamWindow } from "@/features/contest/domain/examWindow";
+import {
+  PARTICIPANT_SCORE_FILTERS,
+  filterParticipants,
+  isParticipantLive,
+  sortParticipantsByAttention,
+  sortParticipantsByScore,
+  type ParticipantScoreFilter,
+} from "@/features/contest/domain/participantRoster";
+import { useParticipantActions } from "@/features/contest/hooks/useParticipantActions";
+import { useParticipantDashboard } from "@/features/contest/hooks/useParticipantDashboard";
+import type { AdminPanelProps } from "@/features/contest/modules/types";
+import { useMediaQuery } from "@/shared/hooks";
+import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
+
+import ParticipantEventTimeline from "./ParticipantEventTimeline";
+import { MinimalLiveStage } from "./ProctorLiveStage";
+import styles from "./AdminParticipantsPanel.module.scss";
+
+const EMPTY_EVENT_FEED: EventFeedItem[] = [];
+const NOW_TICK_MS = 30000;
+const DASHBOARD_REFRESH_MS = 30000;
+const ANSWERS_TAB = 1;
+
+const isScoreFilter = (value: string | null): value is ParticipantScoreFilter =>
+  PARTICIPANT_SCORE_FILTERS.some((option) => option.id === value);
+
+export default function AdminParticipantsPanel({ contestId, contest }: AdminPanelProps) {
+  const { t } = useTranslation("contest");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isMobile = useMediaQuery("(max-width: 66rem)");
+  const reducedMotion = !!useReducedMotion();
+  const { participants, initialLoading, isRefreshing, refreshAdminData } = useContestAdmin();
+  const { registerPanelRefresh } = useAdminPanelRefresh();
+
+  const selectedUserId = searchParams.get("user");
+  const problemId = searchParams.get("problem") ?? undefined;
+  const query = searchParams.get("q") ?? "";
+  const scoreParam = searchParams.get("score");
+  const score: ParticipantScoreFilter = isScoreFilter(scoreParam) ? scoreParam : "all";
+  const cardsView = searchParams.get("view") === "cards";
+  const monitorRequested = searchParams.get("monitor") === "1";
+
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [gridSize, setGridSize] = useState<4 | 9>(4);
+  const [gridPage, setGridPage] = useState(0);
+  const [discoveryKey, setDiscoveryKey] = useState(0);
+  const [reconnectKey, setReconnectKey] = useState(0);
+  const [dashboardTab, setDashboardTab] = useState(problemId ? ANSWERS_TAB : 0);
+  const [selectedIncidentKey, setSelectedIncidentKey] = useState("");
+  const [eventDetailOpen, setEventDetailOpen] = useState(false);
+
+  const inExamWindow = isContestInExamWindow(contest, nowMs);
+  const monitorMode = monitorRequested && inExamWindow;
+
+  const updateParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          Object.entries(updates).forEach(([key, value]) => {
+            if (value) next.set(key, value);
+            else next.delete(key);
+          });
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNowMs(Date.now()), NOW_TICK_MS);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    if (monitorRequested && !inExamWindow) updateParams({ monitor: null });
+  }, [inExamWindow, monitorRequested, updateParams]);
+
+  // A link to one problem (e.g. from the standings grid) lands on the answers tab.
+  useEffect(() => {
+    if (problemId) setDashboardTab(ANSWERS_TAB);
+  }, [problemId]);
+
+  // Proctoring ranks by who needs attention; otherwise the roster reads by score.
+  const visibleParticipants = useMemo(() => {
+    const filtered = filterParticipants(participants, { query, score: monitorMode ? "all" : score });
+    return monitorMode ? sortParticipantsByAttention(filtered) : sortParticipantsByScore(filtered);
+  }, [monitorMode, participants, query, score]);
+  const selectedParticipant = useMemo(
+    () => participants.find((participant) => participant.userId === selectedUserId) ?? null,
+    [participants, selectedUserId],
+  );
+  const onlineCount = useMemo(() => participants.filter(isParticipantLive).length, [participants]);
+
+  const dashboardState = useParticipantDashboard(contestId, selectedUserId, {
+    refreshIntervalMs: inExamWindow ? DASHBOARD_REFRESH_MS : undefined,
+  });
+  const dashboard: ParticipantDashboard | null = useMemo(() => {
+    const data = dashboardState.data;
+    if (!data || !selectedParticipant) return data;
+    return {
+      ...data,
+      participant: {
+        ...data.participant,
+        ...selectedParticipant,
+        startedAt: data.participant.startedAt,
+        leftAt: data.participant.leftAt,
+        lockedAt: data.participant.lockedAt,
+      },
+    };
+  }, [dashboardState.data, selectedParticipant]);
+  const refreshDashboard = dashboardState.refresh;
+
+  const refreshPanel = useCallback(async () => {
+    await Promise.all([refreshAdminData(), refreshDashboard()]);
+    setDiscoveryKey((key) => key + 1);
+  }, [refreshAdminData, refreshDashboard]);
+
+  useEffect(() => registerPanelRefresh("participants", refreshPanel), [refreshPanel, registerPanelRefresh]);
+
+  const actions = useParticipantActions({
+    contestId,
+    userId: selectedUserId,
+    classroomId: contest?.boundClassroomId,
+    onChanged: refreshPanel,
+  });
+
+  const eventFeed = dashboard?.eventFeed ?? EMPTY_EVENT_FEED;
+  const selectedIncident =
+    eventFeed.find((event) => event.incidentKey === selectedIncidentKey) ||
+    eventFeed.find((event) => event.hasEvidence) ||
+    eventFeed[0] ||
+    null;
+
+  const selectParticipant = useCallback(
+    (userId: string) => {
+      setSelectedIncidentKey("");
+      setEventDetailOpen(false);
+      updateParams({ user: userId, problem: null });
+    },
+    [updateParams],
+  );
+  const backToList = () => updateParams({ user: null, problem: null });
+  const openGrading = () =>
+    updateParams({
+      panel: dashboard?.contestType === "coding" ? "standings" : "grading-workbench",
+      user: null,
+      problem: null,
+    });
+
+  const searchBox = (
+    <TableToolbarSearch
+      labelText={t("participants.searchLabel", "搜尋參賽者")}
+      placeholder={t("participantsPanel.searchPlaceholder", "搜尋姓名或帳號...")}
+      size="md"
+      value={query}
+      persistent
+      onChange={(event) => {
+        if (event && typeof event !== "string" && "target" in event) {
+          updateParams({ q: event.target.value || null });
+        }
+      }}
+    />
+  );
+
+  const listControls = (
+    <div className={styles.viewControls}>
+      <ContentSwitcher
+        size="sm"
+        selectedIndex={cardsView ? 1 : 0}
+        onChange={({ index }) => updateParams({ view: index === 1 ? "cards" : null })}
+      >
+        <IconSwitch name="table" text={t("participantsPanel.viewTable", "表格")} disabled={monitorMode}>
+          <Table size={16} />
+        </IconSwitch>
+        <IconSwitch name="cards" text={t("participantsPanel.viewCards", "卡片")} disabled={monitorMode}>
+          <Grid size={16} />
+        </IconSwitch>
+      </ContentSwitcher>
+      <Toggle
+        id="participants-monitor-mode"
+        size="sm"
+        hideLabel
+        aria-label={t("participantsPanel.monitorMode", "監考模式")}
+        labelText={t("participantsPanel.monitorMode", "監考模式")}
+        toggled={monitorMode}
+        disabled={!inExamWindow}
+        onToggle={(on) => updateParams({ monitor: on ? "1" : null })}
+      />
+      {monitorMode ? (
+        <Select
+          id="participants-grid-size"
+          className={styles.gridSize}
+          size="sm"
+          hideLabel
+          labelText={t("proctoringPanel.gridSize", "每頁監看人數")}
+          value={gridSize}
+          onChange={(event) => {
+            setGridSize(event.target.value === "9" ? 9 : 4);
+            setGridPage(0);
+          }}
+        >
+          <SelectItem value="4" text={t("proctoringPanel.fourView", "4 人")} />
+          <SelectItem value="9" text={t("proctoringPanel.nineView", "9 人")} />
+        </Select>
+      ) : null}
+    </div>
+  );
+
+  const listFilters = (
+    <>
+      <div className={styles.search}>{searchBox}</div>
+      {monitorMode ? null : (
+        <Select
+          id="participants-score-filter"
+          className={styles.scoreFilter}
+          size="md"
+          hideLabel
+          labelText={t("participantsPanel.scoreFilter.label", "分數篩選")}
+          value={score}
+          onChange={(event) => updateParams({ score: event.target.value === "all" ? null : event.target.value })}
+        >
+          {PARTICIPANT_SCORE_FILTERS.map((option) => (
+            <SelectItem key={option.id} value={option.id} text={t(option.labelKey, option.defaultLabel)} />
+          ))}
+        </Select>
+      )}
+    </>
+  );
+
+  const toolbarActions = (
+    <>
+      {!isMobile ? listFilters : null}
+      {!selectedUserId ? (
+        <ParticipantQrScanButton contestId={contestId} participants={participants} onSelect={selectParticipant} />
+      ) : null}
+      <Tag type="green" size="sm">
+        {t("proctoringPanel.onlineCount", "{{count}} 人在線", { count: onlineCount })}
+      </Tag>
+      <Button
+        kind="ghost"
+        size="md"
+        hasIconOnly
+        renderIcon={Renew}
+        iconDescription={t("adminLayout.header.refresh", "重新整理")}
+        disabled={isRefreshing}
+        onClick={() => {
+          setReconnectKey((key) => key + 1);
+          void refreshPanel();
+        }}
+      />
+    </>
+  );
+
+  const timeline = (
+    <div className={styles.timeline}>
+      <ParticipantEventTimeline
+        events={eventFeed}
+        loading={dashboardState.loading}
+        error={dashboardState.error}
+        selectedKey={selectedIncident?.incidentKey ?? ""}
+        selectedIncident={selectedIncident}
+        contestId={contestId}
+        detailOpen={eventDetailOpen}
+        reducedMotion={reducedMotion}
+        hideHeader
+        onCloseDetail={() => setEventDetailOpen(false)}
+        onSelect={(event) => {
+          setSelectedIncidentKey(event.incidentKey);
+          setEventDetailOpen(true);
+        }}
+      />
+    </div>
+  );
+
+  const studentDashboard = (
+    <div className={styles.dashboard}>
+      {dashboard ? (
+        <ParticipantSummaryHeader
+          dashboard={dashboard}
+          actions={actions}
+          attendanceEnabled={!!contest?.attendanceCheckEnabled}
+          onOpenGrading={openGrading}
+        />
+      ) : (
+        <div>
+          <SkeletonText heading width="40%" />
+          <SkeletonText width="65%" />
+        </div>
+      )}
+      {dashboardState.error ? (
+        <InlineNotification
+          kind={dashboard ? "warning" : "error"}
+          lowContrast
+          hideCloseButton
+          title={
+            dashboard
+              ? t("dashboard.partialLoadWarning", "部分資料可能不是最新")
+              : t("dashboard.loadFailed", "載入參賽者 dashboard 失敗")
+          }
+          subtitle={dashboardState.error}
+        />
+      ) : null}
+      <Tabs selectedIndex={dashboardTab} onChange={({ selectedIndex }) => setDashboardTab(selectedIndex)}>
+        <TabList aria-label={t("participantsPanel.dashboardTabs", "學生資料分頁")}>
+          <Tab>{t("participantsPanel.tabOverview", "總覽")}</Tab>
+          <Tab>{t("participantsPanel.tabAnswers", "作答")}</Tab>
+          <Tab>{t("participantsPanel.tabEvents", "事件")}</Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel className={styles.tabPanel}>
+            {dashboard ? (
+              <ParticipantStatusCards dashboard={dashboard} showViolations={!!contest?.cheatDetectionEnabled} />
+            ) : (
+              <SkeletonText paragraph lineCount={4} />
+            )}
+          </TabPanel>
+          <TabPanel className={styles.tabPanel}>
+            {dashboard ? (
+              <ParticipantAnswerReport contestId={contestId} dashboard={dashboard} expandedProblemId={problemId} />
+            ) : (
+              <SkeletonText paragraph lineCount={4} />
+            )}
+          </TabPanel>
+          <TabPanel className={styles.tabPanel}>{timeline}</TabPanel>
+        </TabPanels>
+      </Tabs>
+    </div>
+  );
+
+  // During the exam the right column holds the live view; it keeps one tree
+  // position so switching students only retargets the stream.
+  const liveColumn = inExamWindow ? (
+    <aside className={styles.liveColumn} aria-label={t("participantsPanel.liveView", "即時畫面")}>
+      <h3 className={styles.sectionTitle}>{t("participantsPanel.liveView", "即時畫面")}</h3>
+      <div className={styles.liveStage}>
+        <MinimalLiveStage
+          contestId={contestId}
+          participant={selectedParticipant}
+          discoveryRefreshKey={discoveryKey}
+          reconnectKey={reconnectKey}
+          lockActionBusy={actions.busy}
+          monitoringAvailable={inExamWindow}
+          showIdentity={false}
+        />
+      </div>
+    </aside>
+  ) : null;
+
+  let body;
+  if (selectedUserId) {
+    body = (
+      <div className={`${styles.selected} ${liveColumn ? "" : styles.selectedWithoutLive}`}>
+        {!isMobile ? (
+          <aside className={styles.rail}>
+            <ParticipantRail
+              mode={monitorMode ? "proctor" : "score"}
+              participants={visibleParticipants}
+              selectedUserId={selectedUserId}
+              onSelect={selectParticipant}
+            />
+          </aside>
+        ) : null}
+        {studentDashboard}
+        {liveColumn}
+      </div>
+    );
+  } else if (monitorMode) {
+    body = (
+      <div className={styles.monitorBody}>
+        <MinimalLiveStage
+          contestId={contestId}
+          participant={null}
+          participants={visibleParticipants}
+          discoveryRefreshKey={discoveryKey}
+          reconnectKey={reconnectKey}
+          lockActionBusy={false}
+          monitoringAvailable={inExamWindow}
+          layout={gridSize}
+          gridPage={gridPage}
+          onGridPageChange={setGridPage}
+          onLayoutChange={() => undefined}
+          onSelectParticipant={selectParticipant}
+        />
+      </div>
+    );
+  } else {
+    body = (
+      <div className={styles.listBody}>
+        {cardsView ? (
+          <ParticipantCardGallery
+            participants={visibleParticipants}
+            loading={initialLoading}
+            onSelect={selectParticipant}
+          />
+        ) : (
+          <ParticipantTable
+            participants={visibleParticipants}
+            showViolations={!!contest?.cheatDetectionEnabled}
+            onSelect={selectParticipant}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.page}>
+      <PanelToolbar
+        className={styles.toolbar}
+        leftActions={
+          selectedUserId ? (
+            <Button
+              kind="ghost"
+              size="md"
+              hasIconOnly
+              renderIcon={ArrowLeft}
+              iconDescription={t("participantsPanel.backToList", "返回列表")}
+              onClick={backToList}
+            />
+          ) : undefined
+        }
+        title={t("participantsPanel.title", "參賽者")}
+        status={selectedUserId ? undefined : listControls}
+        actions={toolbarActions}
+      />
+      {!selectedUserId && isMobile ? <div className={styles.mobileFilters}>{listFilters}</div> : null}
+      {body}
+    </div>
+  );
+}

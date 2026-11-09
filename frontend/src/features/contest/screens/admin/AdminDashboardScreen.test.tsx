@@ -30,26 +30,36 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string, fallback?: string) => fallback ?? key }),
 }));
 
-vi.mock("@/features/contest/contexts", () => ({
-  ContestProvider: ({ children }: { children: ReactNode }) => children,
-  ContestAdminProvider: ({ children, loadEvents }: { children: ReactNode; loadEvents: boolean }) => {
-    mockEventDemand(loadEvents);
-    return children;
-  },
-  AdminPanelRefreshProvider: ({ children }: { children: ReactNode }) => children,
-  useContest: () => ({
-    ...mockContestState,
-    refreshContest: mockRefreshContest,
-  }),
-  useContestAdmin: () => ({
-    refreshAllAdminData: mockRefreshAllAdminData,
-    refreshAdminData: mockRefreshAdminData,
-    refreshParticipants: mockRefreshParticipants,
-  }),
-  useAdminPanelRefresh: () => ({
-    triggerPanelRefresh: vi.fn(),
-  }),
-}));
+vi.mock("@/features/contest/contexts", async () => {
+  const React = await import("react");
+  // Mirror the real provider: useContestAdmin throws outside ContestAdminProvider.
+  const AdminContext = React.createContext(false);
+  return {
+    ContestProvider: ({ children }: { children: ReactNode }) => children,
+    ContestAdminProvider: ({ children, loadEvents }: { children: ReactNode; loadEvents: boolean }) => {
+      mockEventDemand(loadEvents);
+      return React.createElement(AdminContext.Provider, { value: true }, children);
+    },
+    AdminPanelRefreshProvider: ({ children }: { children: ReactNode }) => children,
+    useContest: () => ({
+      ...mockContestState,
+      refreshContest: mockRefreshContest,
+    }),
+    useContestAdmin: () => {
+      if (!React.useContext(AdminContext)) {
+        throw new Error("useContestAdmin must be used within a ContestAdminProvider");
+      }
+      return {
+        refreshAllAdminData: mockRefreshAllAdminData,
+        refreshAdminData: mockRefreshAdminData,
+        refreshParticipants: mockRefreshParticipants,
+      };
+    },
+    useAdminPanelRefresh: () => ({
+      triggerPanelRefresh: vi.fn(),
+    }),
+  };
+});
 
 vi.mock("@/features/contest/modules/registry", () => ({
   getContestTypeModule: () => ({
@@ -122,6 +132,20 @@ describe("AdminDashboardScreen", () => {
 
     expect(screen.getByTestId("admin-panel-slot")).toBeInTheDocument();
     expect(screen.getByTestId("location-search")).toHaveTextContent("panel=ai-grading");
+  });
+
+  it.each([
+    ["problem_editor&grading_question=q", "edit"],
+    ["grading&grading_question=q&grading_student=s", "grade"],
+    ["ai-grading&ai_grading_question=q", "grade"],
+  ])("opens the retired paper page %s in the workbench", async (query, mode) => {
+    mockContestState = { contest: { ...mockContest, contestType: "paper_exam" }, loading: false };
+    render(<MemoryRouter initialEntries={[`/classrooms/classroom-1/contest/contest-1/admin?panel=${query}`]}>
+      <Routes><Route path="/classrooms/:classroomId/contest/:contestId/admin" element={<><AdminDashboardScreen /><LocationProbe /></>} /></Routes>
+    </MemoryRouter>);
+    await waitFor(() => expect(screen.getByTestId("location-search")).toHaveTextContent("panel=grading-workbench"));
+    expect(screen.getByTestId("location-search")).toHaveTextContent(`workbench_mode=${mode}`);
+    expect(mockPanelMount).toHaveBeenCalledTimes(1);
   });
 
   it("does not remount the active panel when the dashboard rerenders", () => {

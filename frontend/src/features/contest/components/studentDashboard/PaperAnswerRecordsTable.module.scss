@@ -20,6 +20,7 @@
   font-weight: 400;
   border-bottom: 1px solid var(--cds-border-subtle);
 }
+.row { cursor: pointer; }
 .question { display: block; font-weight: 600; white-space: nowrap; }
 .type {
   @include type.type-style("label-01");

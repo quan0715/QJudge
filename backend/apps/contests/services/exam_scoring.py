@@ -113,7 +113,7 @@ class ExamScoringService:
     SCORE_QUANTUM = Decimal("0.01")
 
     @classmethod
-    def _round_score(cls, value) -> Decimal:
+    def round_score(cls, value) -> Decimal:
         """Canonical score precision for API and export totals."""
         return Decimal(str(value)).quantize(cls.SCORE_QUANTUM, rounding=ROUND_HALF_UP)
 
@@ -141,19 +141,12 @@ class ExamScoringService:
         return self._questions_cache
 
     def get_max_total_score(self) -> float:
+        """Maximum achievable score: every question except excluded ones.
+
+        Redistributed points move to their targets, so they stay in the total.
         """
-        Maximum achievable score.
-        Excludes EXCLUDED questions. REDISTRIBUTE questions' points are moved to
-        their targets, so total achievable remains sum(non-excluded).
-        """
-        total = sum(
-            q.score for q in self.get_questions()
-            if not q.is_excluded and not q.is_redistribute
-        ) + sum(
-            q.score for q in self.get_questions()
-            if q.is_redistribute
-        )
-        return float(self._round_score(total))
+        total = sum(q.score for q in self.get_questions() if not q.is_excluded)
+        return float(self.round_score(total))
 
     def get_effective_max_scores(self) -> dict:
         """Public accessor for per-question effective max scores after redistribution.
@@ -276,12 +269,12 @@ class ExamScoringService:
                     correct_count += 1
             items.append({
                 'question_id': q.id,
-                'score': float(self._round_score(score_val)) if score_val is not None else None,
+                'score': float(self.round_score(score_val)) if score_val is not None else None,
                 'policy': q.score_policy,
             })
 
         return ParticipantScoreBreakdown(
-            total_score=float(self._round_score(total_score)),
+            total_score=float(self.round_score(total_score)),
             max_total_score=self.get_max_total_score(),
             graded_count=graded_count,
             correct_count=correct_count,
@@ -316,7 +309,7 @@ class ExamScoringService:
             if score_val is not None:
                 scores[answer['participant_id']] += score_val
 
-        return {pid: float(self._round_score(score)) for pid, score in scores.items()}
+        return {pid: float(self.round_score(score)) for pid, score in scores.items()}
 
     def get_participant_totals(self, participant_ids: list) -> dict:
         """{participant_id: total_score_float}, querying the answers itself."""
@@ -382,11 +375,11 @@ def build_score_distribution(scores: list[float], max_total: float) -> ScoreDist
     lands in the first bucket.
     """
     avg = (
-        float(ExamScoringService._round_score(sum(scores) / len(scores)))
+        float(ExamScoringService.round_score(sum(scores) / len(scores)))
         if scores
         else 0
     )
-    med = float(ExamScoringService._round_score(median(scores))) if scores else 0
+    med = float(ExamScoringService.round_score(median(scores))) if scores else 0
 
     buckets = [
         {'range_label': f'{i * 10}-{i * 10 + 9}%', 'count': 0}

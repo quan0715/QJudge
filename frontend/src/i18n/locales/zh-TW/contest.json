@@ -21,7 +21,7 @@
       "grading": "作答結果",
       "overview": "總覽",
       "problemManagement": "題目管理",
-      "proctoring": "監考",
+      "participants": "參賽者",
       "settings": "設定",
       "standings": "排行榜",
       "statistics": "統計",
@@ -117,7 +117,8 @@
         "endTime": "結束時間",
         "examParticipants": "考試人數",
         "onlineParticipants": "在線人數",
-        "startTime": "開始時間"
+        "startTime": "開始時間",
+        "contestType": "考卷題型"
       },
       "participants": {
         "empty": "目前沒有考生",
@@ -126,7 +127,17 @@
         "loading": "考生列表載入中",
         "search": "搜尋考生",
         "searchPlaceholder": "搜尋顯示名稱或使用者名稱...",
-        "title": "考生列表"
+        "title": "考生列表",
+        "studentQr": {
+          "cameraUnavailable": "無法使用相機，請改用搜尋欄選取學生。",
+          "heading": "掃描學生 QR",
+          "invalid": "這不是 QJudge 考生 QR。",
+          "notFound": "找不到對應的考生。",
+          "ready": "請掃描學生競賽主頁上的考生 QR。",
+          "requesting": "正在啟用相機...",
+          "selected": "已選取考生。",
+          "wrongContest": "這不是本場考試的考生 QR。"
+        }
       },
       "questionStats": {
         "empty": "目前沒有作答分佈資料",
@@ -147,7 +158,8 @@
         "statusFilter": "篩選提交狀態",
         "statusFilterAria": "篩選提交狀態"
       },
-      "tabsAriaLabel": "教師管理總覽分頁"
+      "tabsAriaLabel": "教師管理總覽分頁",
+      "contestInfo": "競賽基本資訊"
     },
     "events": {
       "critical": "高風險事件",
@@ -363,7 +375,8 @@
         "reviewDescription": "確認設定後發布給學生",
         "title": "競賽準備步驟"
       },
-      "studentView": "學生看到的樣子"
+      "studentView": "學生看到的樣子",
+      "infoLabel": "競賽基本資訊"
     },
     "screen": {
       "actions": {
@@ -435,7 +448,19 @@
       "timelineProgress": "時間進度",
       "title": "控制台",
       "violationCount": "異常事件數",
-      "violationCountAria": "異常事件數 前往事件面板"
+      "violationCountAria": "異常事件數 前往事件面板",
+      "studentDistribution": "學生作答進度"
+    },
+    "resultsPublication": "成績發布",
+    "insight": {
+      "violationTrend": "違規事件時間變化",
+      "peopleUnit": "人",
+      "submittedOf": "已交卷 {{submitted}} / {{total}} 人",
+      "totalStudents": "考生總數 {{count}} 人",
+      "noDistribution": "尚無考生分佈資料",
+      "violations": "違規事件",
+      "gradingLoading": "批改資料載入中",
+      "noViolations": "尚無違規事件資料"
     }
   },
   "adminPreparationDashboard": {
@@ -482,7 +507,8 @@
       "loadAnswersFailed": "無法載入作答紀錄",
       "loadAnswersSubtitle": "網路異常或伺服器錯誤，為避免覆蓋現有答案，建議您重新整理頁面。",
       "loadQuestionsFailed": "無法載入考卷題目",
-      "loadQuestionsSubtitle": "請檢查網路連線或稍後再試"
+      "loadQuestionsSubtitle": "請檢查網路連線或稍後再試",
+      "submitFailed": "交卷失敗"
     },
     "finish": {
       "backToDashboard": "回到競賽主頁",
@@ -552,7 +578,9 @@
       "falseOption": "否 (False)",
       "promptEmpty": "（尚未填寫題目敘述）",
       "shortAnswerPlaceholder": "輸入你的答案...",
-      "trueOption": "是 (True)"
+      "trueOption": "是 (True)",
+      "selectAll": "選擇所有符合的答案",
+      "selectOne": "選擇一個答案"
     },
     "questionTypes": {
       "coding": "程式題",
@@ -582,6 +610,9 @@
       "submitting": "交卷中...",
       "unansweredSubtitle": "建議先返回作答頁補完答案，再進行交卷。",
       "unansweredWarning": "尚有 {{count}} 題未作答"
+    },
+    "workspace": {
+      "statement": "題目內容"
     }
   },
   "attendance": {
@@ -754,7 +785,10 @@
   },
   "button": {
     "backToLobby": "返回競賽大廳",
-    "close": "關閉"
+    "close": "關閉",
+    "cancel": "取消",
+    "delete": "刪除",
+    "save": "儲存"
   },
   "clarifications": {
     "notFound": "找不到競賽",
@@ -767,7 +801,13 @@
     "nextPage": "下一頁",
     "prevPage": "上一頁",
     "saving": "儲存中",
-    "success": "成功"
+    "success": "成功",
+    "cancel": "取消",
+    "close": "關閉",
+    "confirm": "確認",
+    "done": "完成",
+    "reset": "重設",
+    "yes": "是"
   },
   "createModal": {
     "chooseTypeTitle": "建立競賽",
@@ -883,7 +923,40 @@
     "transcodeIssue": "轉檔訊息",
     "trendCharts": "提交趨勢",
     "tries": "提交次數",
-    "violations": "違規"
+    "violations": "違規",
+    "accountRole": "身份",
+    "answerStatus": "作答狀態",
+    "countUnit": "次",
+    "currentAnswerStatus": "目前狀態",
+    "displayName": "顯示名稱",
+    "endedAt": "結束作答",
+    "examConnection": "考試連線",
+    "examStatus": "考試狀態",
+    "gradingProgress": "批改進度",
+    "inProgress": "進行中",
+    "liveMonitoringSignal": "即時監看",
+    "liveStatus": "即時狀態",
+    "moreActions": "更多操作",
+    "pointsUnit": "分",
+    "questionUnit": "題",
+    "quickNavigation": "快速前往",
+    "registrationIdentity": "註冊身份",
+    "registrationIdentityOther": "其他",
+    "registrationIdentitySso": "SSO",
+    "screenShareSignal": "螢幕分享",
+    "selectParticipantDescription": "從左側列表選擇一位參賽者，查看考試狀態與可執行操作。",
+    "selectParticipantTitle": "選擇參賽者",
+    "signalConnected": "已連線",
+    "signalMissing": "未偵測",
+    "submissionsLoadFailed": "無法載入提交紀錄",
+    "username": "使用者名稱",
+    "viewEvents": "查看事件紀錄",
+    "viewProctoring": "查看監控",
+    "viewReport": "查看作答詳情",
+    "viewSubmissions": "查看提交",
+    "webcamSignal": "Webcam",
+    "answerTime": "作答時間",
+    "expandQuestionHint": "展開題目查看作答內容與批改評語。"
   },
   "delete": {
     "confirm": "確定要刪除此競賽嗎？此動作無法復原。",
@@ -1007,7 +1080,18 @@
     "windowBlur": "您離開了視窗",
     "windowBlurRecoveryDesc": "請在 {{seconds}} 秒內回到考試視窗，否則將記錄一次違規。",
     "windowBlurRecoveryTitle": "偵測到離開視窗",
-    "zeroChanceWarning": "若剩餘機會歸零，您將被自動鎖定！"
+    "zeroChanceWarning": "若剩餘機會歸零，您將被自動鎖定！",
+    "clipboardAction": "Clipboard action recorded",
+    "fullscreenSensorWarning": "請回到全螢幕模式繼續作答。",
+    "mouseLeaveSensorWarning": "偵測到游標離開考試視窗，請回到考試頁面。",
+    "multiDisplaySensorWarning": "偵測到多螢幕，請回到單一顯示器。",
+    "reauthorizeWebcam": "重新授權 Webcam",
+    "requestingWebcam": "正在請求 Webcam…",
+    "screenShareSensorWarning": "請重新分享螢幕以恢復監考來源。",
+    "webcamLostDesc": "系統偵測到 Webcam 連線中斷，請確認攝影機未被其他程式佔用。",
+    "webcamLostHeading": "Webcam 已停止運作",
+    "webcamLostTitle": "Webcam 連線中斷",
+    "webcamSensorWarning": "請重新授權 Webcam 以恢復監考來源。"
   },
   "examEditor": {
     "actions": {
@@ -1137,7 +1221,26 @@
       "invalidScore": "配分必須大於 0",
       "minOptions": "至少需要 2 個選項"
     },
-    "validationFailed": "驗證失敗"
+    "validationFailed": "驗證失敗",
+    "addChildQuestion": "新增子題",
+    "blockCount": "{{count}} blocks",
+    "codingTemplate": "程式題",
+    "codingTemplateDesc": "拖入或點擊以新增一道程式題",
+    "confirmDeleteGroup": "刪除這個題組與所有子題？",
+    "defaultGroupTitle": "新題組",
+    "groupBlock": "題組",
+    "groupBlockDesc": "共同題幹加多個子題",
+    "groupBlockNumber": "題組 {{index}}",
+    "groupBlockWithCount": "題組 {{count}} 題",
+    "groupStem": "共同題幹",
+    "groupStemPlaceholder": "點擊新增共同題幹",
+    "groupTitle": "題組標題",
+    "questionManagement": "題目管理",
+    "scoreShort": "{{score}} 分",
+    "sourceTabAdd": "新增題目",
+    "typeSwitchRestricted": "題型切換受限",
+    "typeSwitchRule": "僅允許「單選題 ↔ 多選題」與「簡答題 ↔ 問答題」互相切換。",
+    "lockedReason": "已有考生開始作答，競賽內容已鎖定"
   },
   "examStatus": {
     "in_progress": "進行中",
@@ -1310,7 +1413,48 @@
       "normal": "正常計分",
       "setExcluded": "設為不計分",
       "setFullMarks": "設為送分",
-      "setNormal": "恢復正常計分"
+      "setNormal": "恢復正常計分",
+      "redistribute": "配分重分配",
+      "redistributeDesc": "此題的分數將按比例分配到目標題目上。得分較高的學生將獲得更多加分。",
+      "redistributeNote": "此題不再計分，分數按目標題目原始配分比例重新分配。學生在目標題目的得分會等比放大。可隨時「恢復正常計分」撤銷。",
+      "redistributeNoteTitle": "分數如何重分配",
+      "redistributeStackWarning": "若多題同時重分配到相同目標，分數會疊加累計。",
+      "redistributeStackWarningTitle": "重複目標提醒",
+      "redistributeTitle": "{{index}}. — 配分重分配",
+      "redistributeToAll": "分配到所有正常計分題目（等比例）",
+      "selectTargets": "選擇要接收分數的題目：",
+      "setRedistribute": "設為配分重分配",
+      "allTypes": "全部",
+      "typeShort": {
+        "single_choice": "單選",
+        "multiple_choice": "多選",
+        "true_false": "是非",
+        "short_answer": "簡答",
+        "essay": "申論"
+      },
+      "selectAllOfType": "全選{{type}}",
+      "selectAll": "全選",
+      "deselectAll": "取消全選",
+      "selectedCount": "已選 {{count}} 題",
+      "pointsShort": "{{score}}分",
+      "impact": {
+        "heading": "調整配分政策",
+        "policy": {
+          "normal": "正常計分",
+          "full_marks": "送分",
+          "excluded": "不計分",
+          "redistribute": "重新分配"
+        },
+        "apply": "確認套用",
+        "cancel": "取消",
+        "description": "以下顯示套用後全班成績分佈的預估變化，確認後才會正式儲存。",
+        "noData": "尚無學生作答資料，仍可繼續調整",
+        "before": "調整前",
+        "average": "平均",
+        "points": "分",
+        "after": "調整後",
+        "reselectTargets": "重選目標題目"
+      }
     },
     "searchStudent": "搜尋學生",
     "selectAnswerToGrade": "選擇一位學生的作答來開始批改",
@@ -1335,7 +1479,81 @@
     "unpublishSuccess": "已撤回發布",
     "unpublished": "未發布",
     "updated": "更新",
-    "viewModeResults": "作答結果檢視模式"
+    "viewModeResults": "作答結果檢視模式",
+    "aiReason": "AI 建議評語",
+    "aiScore": "AI 建議評分",
+    "autoScoreLabel": "自動批改成績",
+    "boundSessionFallback": "已綁定 session",
+    "bulkDeselectAll": "取消全選（目前篩選）",
+    "bulkPublish": "批量送出",
+    "bulkRetryAiGrading": "批量重新批改",
+    "bulkRevertConfirm": "確認撤回",
+    "bulkRevertHeading": "撤回已送出評分",
+    "bulkRevertPublish": "撤回已送出評分",
+    "bulkRevertSummary": "將撤回 {{count}} 筆已送出的評分，學生端會回到未評分狀態，AI 建議會保留可再次編輯或送出。",
+    "bulkSelectAll": "全選（目前篩選）",
+    "bulkSubmitConfirm": "確認送出",
+    "bulkSubmitHeading": "批量送出 AI 建議",
+    "bulkSubmitSummary": "將把 {{count}} 筆 AI 建議送出為正式評分，送出後可於學生端查看。",
+    "cardClickDeselect": "點擊取消勾選",
+    "cardClickSelect": "點擊勾選此筆作答",
+    "cardStateAiRunning": "AI批改中",
+    "cardStateMissing": "未產生建議",
+    "cardStatePending": "待批改",
+    "completedCount": "{{graded}}/{{total}} 完成",
+    "currentQuestionHeader": "目前批改題目",
+    "evidenceRegion": "批改內容",
+    "filterAll": "全部",
+    "filterGraded": "已批改",
+    "filterUngraded": "未批改",
+    "gradedAnswerCount": "已批改 {{graded}}，共 {{total}} 份",
+    "gradingList": "批改列表",
+    "inspectorRegion": "評分控制",
+    "keyboardShortcuts": "鍵盤快捷鍵",
+    "loadQuestionFailed": "載入答卷失敗",
+    "loadingQuestion": "載入此題答卷...",
+    "noSelection": "未選擇",
+    "originalFeedback": "原評語",
+    "originalScore": "原評分",
+    "preparingSession": "建立 AI session...",
+    "primaryRetry": "重新批改",
+    "primaryRunning": "批改中",
+    "primaryStart": "開始批改",
+    "primaryStarting": "準備批改",
+    "progressCount": "已完成 {{graded}}，共 {{total}} 題",
+    "questionScoreLabel": "得分 {{score}}，共 {{maxScore}} 分",
+    "questionsCount": "{{count}} 題",
+    "regradeChoiceDescription": "要在目前 AI session 中重新批改，或建立一個全新的 session？沿用現有 session 會保留 rubric 與對話紀錄，並在同一份 grade.csv 上重批；建立新 session 則會從空白 grade.csv 重新開始。",
+    "regradeChoiceHeading": "重新批改",
+    "regradeNewSession": "建立新 session",
+    "regradeReuseSession": "沿用目前 session",
+    "resolvingTaskSession": "尋找對應 AI session...",
+    "retryAiGrading": "重新批改",
+    "retryModalSummary": "將重新批改 {{count}} 筆作答。",
+    "retryNoteLabel": "重新批改建議",
+    "retryNotePlaceholder": "例如：請更嚴格檢查是否提到關鍵概念，或針對第 2 點重新評估。",
+    "reviewable": "可審核",
+    "saveAndNextQuestion": "儲存並下一題",
+    "saveFailed": "儲存評分失敗，請重試",
+    "scoreFilterAll": "全部建議分數",
+    "scoreFilterDiffers": "與原評分有出入",
+    "scoreFilterLabel": "建議分數篩選",
+    "scoreFilterMissing": "未產生建議",
+    "scoreFilterUnsynced": "尚未送出",
+    "scoreFilterValue": "建議分數 {{score}}",
+    "scoreLabel": "批改成績",
+    "selectStudent": "選擇學生",
+    "selectedCount": "已選取 {{count}} 筆",
+    "startRetryAiGrading": "送出重新批改",
+    "submitted": "已送出",
+    "syncProgressLabel": "送出進度",
+    "taskTypeLabel": "AI 批改",
+    "toggleFlag": "標記",
+    "totalScore": "總分 {{score}}",
+    "ungrade": "撤回批改",
+    "ungradeFailed": "撤回批改失敗，請重試",
+    "untitledSession": "(未命名 session)",
+    "viewMode": "批改模式"
   },
   "header": {
     "contestPlatform": "競賽平台"
@@ -1405,7 +1623,9 @@
     "unavailable": "無法連線",
     "unknownError": "即時監看連線失敗",
     "userId": "使用者 ID",
-    "reconnect": "重新連線"
+    "reconnect": "重新連線",
+    "discoveryError": "無法取得目前可監看的來源",
+    "staleSources": "來源狀態暫時無法確認，保留目前畫面。"
   },
   "logs": {
     "capture": {
@@ -1428,7 +1648,23 @@
       "time": "時間",
       "timeRange": "時間範圍",
       "type": "事件類型",
-      "user": "使用者"
+      "user": "使用者",
+      "clipboardLineCount": "{{count}} 行",
+      "clipboardTextLength": "{{count}} 字",
+      "contentTruncated": "部分內容已截斷",
+      "eventContent": "事件內容",
+      "evidenceLoadFailed": "無法載入證據狀態",
+      "evidenceTimeline": "證據時間軸",
+      "incidentAt": "事件發生",
+      "incidentStatus": "事件狀態",
+      "loadingEvidence": "載入證據狀態中…",
+      "noClipboardContent": "此操作未保存內容",
+      "noIntegrityEvidence": "此事件尚無可播放證據片段",
+      "relative": {
+        "atEvent": "事件當下",
+        "before": "事件前 {{seconds}} 秒",
+        "after": "事件後 {{seconds}} 秒"
+      }
     },
     "end": "結束",
     "eventCount": "事件數量",
@@ -1534,7 +1770,8 @@
       "abnormal": "異常事件",
       "system": "系統/管理事件"
     },
-    "totalCount": "共 {{total}} 筆事件"
+    "totalCount": "共 {{total}} 筆事件",
+    "eventDetail": "事件詳情"
   },
   "management": {
     "contestCount": "共 {{count}} 場競賽",
@@ -1608,7 +1845,8 @@
       "edit": "編輯狀態",
       "reopen": "重新開放考試",
       "resetExamRecord": "重置考試紀錄",
-      "unlock": "解除鎖定"
+      "unlock": "解除鎖定",
+      "lock": "鎖定"
     },
     "attendanceReset": "已重置簽到測試紀錄",
     "attendanceResetFailed": "重置簽到測試紀錄失敗",
@@ -1647,7 +1885,9 @@
       "role": "身份",
       "score": "分數",
       "status": "狀態",
-      "username": "使用者"
+      "username": "使用者",
+      "name": "姓名",
+      "violations": "違規"
     },
     "listFooterCount": "顯示 {{shown}} / {{total}} 位",
     "listHeaderTitle": "學生",
@@ -1678,7 +1918,9 @@
     "unlocked": "已解除鎖定",
     "updateFailed": "更新失敗",
     "viewModeLabel": "參賽者檢視模式",
-    "viewTitle": "檢視參與者"
+    "viewTitle": "檢視參與者",
+    "lockFailed": "鎖定失敗",
+    "locked": "已鎖定"
   },
   "placeholder": {
     "contestName": "輸入競賽名稱"
@@ -1699,10 +1941,13 @@
         "noSubmission": "無交卷記錄",
         "passed": "已確認參賽資格",
         "submittedAllowed": "已有交卷紀錄，本場考試允許重複入場",
-        "submittedDenied": "已有交卷紀錄，不可重複入場"
+        "submittedDenied": "已有交卷紀錄，不可重複入場",
+        "attendancePassed": "已完成考試簽到。",
+        "attendanceRequired": "請先在競賽主頁完成簽到。"
       },
       "submission": "交卷紀錄檢查",
-      "title": "參賽資格確認"
+      "title": "參賽資格確認",
+      "attendance": "考試簽到"
     },
     "entryDevice": {
       "monitoring": "監考來源",
@@ -1725,7 +1970,9 @@
         "webcam": "Webcam 授權"
       },
       "deviceUnsupported": {
-        "screenShareRequired": "嚴格考試模式需使用電腦瀏覽器（必須能分享螢幕）。請改用電腦重新進入。"
+        "screenShareRequired": "嚴格考試模式需使用電腦瀏覽器（必須能分享螢幕）。請改用電腦重新進入。",
+        "missingCapabilities": "本考試需要 {{sources}}，但此裝置或瀏覽器不支援。請換用支援的裝置或瀏覽器後重試。",
+        "title": "不支援此裝置"
       },
       "errors": {
         "browserNotSupported": "您的瀏覽器不支援螢幕管理檢測，請改用最新版 Chrome / Edge。",
@@ -1781,19 +2028,11 @@
   "problems": "題目數",
   "proctoringPanel": {
     "backToRoster": "返回列表",
-    "emptyDescription": "左側清單可快速切換不同參賽者的監考畫面。",
     "emptyTitle": "選擇參賽者開始監考",
-    "highRiskCount": "{{count}} 高風險",
     "noSignal": "無訊號",
     "onlineCount": "{{count}} 人在線",
-    "outOfWindowBody": "監控功能無法使用。",
-    "outOfWindowTitle": "目前非考試時段",
-    "reviewCount": "{{count}} 需留意",
-    "roster": "監考對象",
-    "searchPlaceholder": "搜尋監考對象...",
     "sourceScreen": "螢幕",
     "sourceWebcam": "Webcam",
-    "title": "監考",
     "focusStudent": "放大 {{name}}",
     "waitingScreen": "等待螢幕畫面",
     "noScreen": "尚無螢幕分享",
@@ -1802,14 +2041,15 @@
     "pageCount": "第 {{page}}／{{pages}} 頁・{{count}} 人",
     "previousPage": "上一頁",
     "nextPage": "下一頁",
-    "layout": "監看版面",
-    "focusView": "單人",
-    "multipleView": "多人",
     "gridSize": "每頁監看人數",
     "fourView": "4 人",
     "nineView": "9 人",
     "previousStudent": "上一位",
-    "nextStudent": "下一位"
+    "nextStudent": "下一位",
+    "events": "事件",
+    "manualLockModalTitle": "鎖定參賽者",
+    "manualLockReasonLabel": "鎖定原因",
+    "noEvents": "目前沒有事件"
   },
   "progress": "考試進度",
   "public": "公開",
@@ -1938,7 +2178,8 @@
     "refresh": "重新整理",
     "refreshing": "更新中...",
     "solved": "解題數",
-    "title": "即時排行榜"
+    "title": "即時排行榜",
+    "loadFailed": "無法載入排行榜"
   },
   "startTime": "開始時間",
   "statistics": {
@@ -1984,7 +2225,9 @@
     "studentAnswers": "學生作答",
     "title": "題目統計",
     "ungraded": "未批改",
-    "viewSubmissionSamples": "查看提交樣本"
+    "viewSubmissionSamples": "查看提交樣本",
+    "noScoreDistributionData": "尚無分數資料",
+    "resultOverview": "考試結果總覽"
   },
   "studentDashboard": {
     "actions": {
@@ -2206,7 +2449,8 @@
       "suggestion": "建議",
       "none": "未批改",
       "ai": "AI",
-      "manual": "人工確認"
+      "manual": "人工確認",
+      "aiDraft": "AI 草稿"
     },
     "studentPick": "學生選擇",
     "correct": "正解",
@@ -2362,6 +2606,291 @@
       "discardBody": "這題的修改還沒儲存，離開後就會遺失。",
       "stayHere": "留在這題",
       "reviewChecks": "查看"
+    },
+    "aiGrading": "AI 批改中",
+    "moreActions": "更多操作",
+    "persisted": "已寫入",
+    "persistedUnits": "已完成寫分",
+    "session": "Session",
+    "sessionNew": "開新的 session",
+    "sessionReuse": "沿用目前的批改 session"
+  },
+  "action": {
+    "loading": "連線中...",
+    "refresh": "重新整理"
+  },
+  "contestShell": {
+    "backToContestHome": "返回競賽主頁"
+  },
+  "integrity": {
+    "initializationFailed": "監考事件記錄無法啟動",
+    "initializationFailedHelp": "請通知監考人員。作答仍可繼續，請勿清除瀏覽器資料。"
+  },
+  "gradeAppeal": {
+    "loadFailed": "申訴載入失敗，請重新整理。",
+    "alreadyExists": "此題已有申訴",
+    "draftKept": "已保留草稿，請確認對話後送出留言。",
+    "reopened": "申訴已重新開啟",
+    "reopenFailed": "重開申訴失敗",
+    "sendFailed": "留言未送出",
+    "tryLater": "請稍後再試。",
+    "closedToast": "申訴已結案",
+    "closeFailed": "結案失敗",
+    "title": "成績申訴",
+    "statusClosed": "已結案",
+    "statusOpen": "未結案",
+    "waitingForStaff": "等待教師回覆",
+    "waitingForStudent": "等待考生回覆",
+    "currentScore": "目前成績",
+    "refreshMessages": "重新整理留言",
+    "openGrading": "前往批改",
+    "reviewRuleStaff": "請依交卷時的原答案與相同評分規則複核；不得要求補作答或以新增內容給分。",
+    "reviewRuleStudent": "請說明交卷時的原答案，或指出可能漏評、誤判的部分；不得補作答。",
+    "contextRegion": "申訴題目與作答",
+    "question": "題目",
+    "promptFallback": "請說明這題需要重新檢視的部分。",
+    "feedback": "批改評語",
+    "thread": "申訴對話",
+    "roleStudent": "考生",
+    "roleStaff": "教師",
+    "you": "（你）",
+    "closedNoteStaff": "此申訴已結案，可查閱對話。",
+    "closedNoteStudent": "此申訴已結案。如仍有疑問，請填寫理由重新開啟，原對話將保留。",
+    "reopenReason": "重開理由",
+    "staffReply": "複核回覆",
+    "studentExplain": "說明原答案（不得補作答）",
+    "reopenHelp": "限 5000 字；請說明仍有疑問的地方。重開後將通知教師／助教，請勿補作答。",
+    "staffHelp": "限 5000 字；請指出原答案的複核依據及處理結果。",
+    "studentHelp": "限 5000 字；可解釋原答案，不得新增程式、推導或解法來補足作答。",
+    "tooLong": "請將訊息縮短至 5000 字內。",
+    "close": "結案",
+    "processing": "處理中…",
+    "reopen": "重新開啟申訴",
+    "sendReply": "送出回覆",
+    "sendExplanation": "送出說明",
+    "submit": "送出申訴",
+    "manageRegion": "成績申訴管理",
+    "refreshList": "重新整理申訴",
+    "empty": "目前沒有成績申訴。",
+    "lastMessage": "最後留言",
+    "view": "查看申訴"
+  },
+  "countdown": {
+    "label": "倒數計時",
+    "unset": "未設定",
+    "untilStart": "距離開始",
+    "remaining": "剩餘時間",
+    "examStatus": "考試狀態",
+    "ended": "考試已結束",
+    "progress": "時間進度"
+  },
+  "questionStats": {
+    "title": "各題作答數據",
+    "loadFailed": "無法載入題目資料",
+    "allTypes": "全部題型",
+    "empty": "目前沒有題目資料",
+    "focus": {
+      "score_rate": {
+        "description": "低得分率優先",
+        "label": "得分率"
+      },
+      "missing_rate": {
+        "description": "未作答比例高優先",
+        "label": "未作答率"
+      },
+      "zero_rate": {
+        "description": "零分比例高優先",
+        "label": "零分率"
+      }
+    },
+    "questionsUnit": "題",
+    "focusGroup": "關注數據",
+    "search": "搜尋題目",
+    "searchPlaceholder": "搜尋題號或題目",
+    "filterTypes": "篩選題型",
+    "average": "平均",
+    "answered": "人作答",
+    "unansweredCount": "未作答 {{count}} 人",
+    "closeBackdrop": "關閉題目作答數據背景",
+    "drawerLabel": "作答數據",
+    "closeDrawer": "關閉題目作答數據",
+    "answeredLabel": "作答",
+    "unanswered": "未作答",
+    "gradingProgress": "批改進度",
+    "gradedRate": "批改率",
+    "optionDistribution": "選項分布",
+    "noOptions": "目前沒有選項資料",
+    "scoreDistribution": "分數分布",
+    "noGradedScores": "目前沒有已批改分數"
+  },
+  "announcements": {
+    "postFailed": "發布公告失敗",
+    "deleteConfirm": "確定要刪除此公告？",
+    "delete": "刪除",
+    "cancel": "取消",
+    "deleteFailed": "刪除公告失敗",
+    "title": "公告",
+    "descriptionStaff": "發布與管理考試公告。",
+    "descriptionStudent": "查看教師發布的考試消息。",
+    "loadFailed": "公告載入失敗",
+    "refreshRetry": "請重新整理後再試。",
+    "endedNotice": "考試已結束，公告可供查閱，可繼續查看。",
+    "unpublishedNotice": "考試尚未發布，目前不開放新增公告。",
+    "countUnit": "則",
+    "deleteLabel": "刪除公告",
+    "teacher": "教師",
+    "empty": "目前沒有公告，最新考試消息會顯示在這裡。",
+    "rules": "規則說明",
+    "post": "發布公告",
+    "publish": "發布",
+    "titleLabel": "公告標題",
+    "titlePlaceholder": "輸入標題...",
+    "contentLabel": "公告內容",
+    "contentPlaceholder": "輸入內容...",
+    "error": "錯誤"
+  },
+  "participantsPanel": {
+    "title": "參賽者",
+    "searchPlaceholder": "搜尋姓名或帳號...",
+    "viewTable": "表格",
+    "viewCards": "卡片",
+    "monitorMode": "監考模式",
+    "backToList": "返回列表",
+    "liveView": "即時畫面",
+    "dashboardTabs": "學生資料分頁",
+    "tabOverview": "總覽",
+    "tabAnswers": "作答",
+    "tabEvents": "事件",
+    "scoreFilter": {
+      "label": "分數篩選",
+      "all": "全部分數",
+      "top": "前 25%",
+      "bottom": "後 25%",
+      "zero": "0 分"
+    }
+  },
+  "workspace": {
+    "loading": "載入考試",
+    "retry": "重試",
+    "header": {
+      "back": "返回課程",
+      "expandList": "展開題目列表",
+      "collapseList": "收合題目列表",
+      "fallbackTitle": "考試",
+      "previewMode": "試作答",
+      "previewNotSaved": "不儲存答案"
+    },
+    "rail": {
+      "overview": "考試概覽",
+      "questions": "題目",
+      "announcements": "公告",
+      "review": "作答檢查",
+      "standings": "排行榜"
+    },
+    "questionList": {
+      "title": "題目",
+      "count": "{{count}} 題",
+      "group": "第 {{number}} 題 · 題組",
+      "acceptedProgress": "已通過 {{answered}} / {{total}}"
+    },
+    "status": {
+      "answered": "已作答",
+      "unanswered": "未作答",
+      "marked": "已標記",
+      "accepted": "已通過",
+      "judging": "評測中",
+      "attempted": "已提交，未通過",
+      "notSubmitted": "未提交"
+    },
+    "stepper": {
+      "previous": "上一題",
+      "next": "下一題"
+    },
+    "overview": {
+      "coding": "程式考試",
+      "paper": "考卷考試",
+      "questionCount": "{{count}} 題",
+      "totalScore": "共 {{score}} 分",
+      "defaultDescription": "請閱讀考試資訊，準備好後即可進入作答。",
+      "rules": "應試規則",
+      "start": "開始時間",
+      "end": "截止時間",
+      "duration": "作答時長",
+      "minutes": "{{count}} 分鐘",
+      "progress": "作答進度",
+      "resume": "進入作答",
+      "durationDays": "{{days}} 天 {{hours}} 小時",
+      "durationHours": "{{hours}} 小時 {{minutes}} 分",
+      "remaining": "剩餘 {{time}}",
+      "startsIn": "距離開始 {{time}}",
+      "ended": "已結束",
+      "timeProgress": "考試時間進度",
+      "itemProgress": "{{done}} / {{total}} 題"
+    },
+    "announcements": {
+      "title": "公告",
+      "description": "考試期間的通知會即時顯示在這裡。",
+      "loading": "載入公告",
+      "failed": "公告載入失敗",
+      "empty": "目前沒有公告"
+    },
+    "review": {
+      "title": "作答檢查",
+      "codingSummary": "已通過 {{answered}} / {{total}} 題。展開題目可查看歷次提交與評測結果。",
+      "paperSummary": "已作答 {{answered}} / {{total}} 題。作答狀態不代表伺服器已儲存。",
+      "emptyTitle": "尚未進入作答",
+      "emptyDescription": "進入作答後即可逐題檢查狀態。",
+      "questionTitle": "第 {{label}} 題",
+      "points": "分",
+      "submissionCount": "提交 {{count}} 次",
+      "resume": "繼續作答",
+      "resumeLabel": "繼續作答：{{title}}",
+      "noSubmissions": "尚無提交紀錄。測試或繳交後，評測結果會顯示在這裡。",
+      "recordsDescription": "作答紀錄、成績與批改回饋會顯示在這裡。"
+    },
+    "standings": {
+      "title": "排行榜",
+      "description": "依通過題數與分數排序，評測完成後更新。",
+      "refresh": "更新",
+      "refreshing": "更新中",
+      "loading": "載入排行榜",
+      "failed": "排行榜載入失敗",
+      "empty": "目前沒有排名資料",
+      "emptyDescription": "有人通過評測後就會出現在這裡。",
+      "rank": "名次",
+      "student": "學生",
+      "solved": "通過",
+      "score": "分數"
+    },
+    "report": {
+      "title": "作答情況",
+      "details": "查看詳情",
+      "question": "第 {{label}} 題",
+      "points": "{{score}} / {{max}} 分",
+      "full": "滿分",
+      "partial": "部分得分",
+      "zero": "未得分",
+      "answered": "已作答",
+      "unanswered": "未作答",
+      "accepted": "已通過",
+      "attempted": "未通過",
+      "classTitle": "班級表現",
+      "average": "班平均",
+      "you": "你的分數",
+      "aboveAverage": "高於平均 {{diff}} 分",
+      "belowAverage": "低於平均 {{diff}} 分",
+      "atAverage": "與平均相同",
+      "distribution": "成績分布",
+      "people": "{{count}} 人",
+      "yourRange": "你在這裡"
+    },
+    "handIn": {
+      "open_one": "還有 {{count}} 題未作答",
+      "open_other": "還有 {{count}} 題未作答",
+      "complete": "{{count}} 題都已作答",
+      "marked": "{{count}} 題已標記",
+      "note": "交卷後就不能再修改答案。",
+      "noteSelect": "點題號可回到該題。交卷後就不能再修改答案。"
     }
   }
 }

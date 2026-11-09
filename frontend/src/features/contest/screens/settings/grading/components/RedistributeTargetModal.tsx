@@ -177,7 +177,7 @@ export default function RedistributeTargetModal({
                   onClick={() => setTypeFilter(null)}
                   style={{ cursor: "pointer" }}
                 >
-                  全部
+                  {t("grading.scorePolicy.allTypes", "全部")}
                 </Tag>
                 {availableTypes.map((type) => (
                   <Tag
@@ -187,7 +187,7 @@ export default function RedistributeTargetModal({
                     onClick={() => setTypeFilter(type === typeFilter ? null : type)}
                     style={{ cursor: "pointer" }}
                   >
-                    {TYPE_LABELS[type] ?? type}
+                    {t(`grading.scorePolicy.typeShort.${type}`, TYPE_LABELS[type] ?? type)}
                   </Tag>
                 ))}
               </div>
@@ -201,18 +201,20 @@ export default function RedistributeTargetModal({
                 onClick={handleSelectAll}
                 disabled={allFilteredSelected}
               >
-                {typeFilter ? `全選${TYPE_LABELS[typeFilter] ?? typeFilter}` : "全選"}
+                {typeFilter
+                  ? t("grading.scorePolicy.selectAllOfType", "全選{{type}}", { type: t(`grading.scorePolicy.typeShort.${typeFilter}`, TYPE_LABELS[typeFilter] ?? typeFilter) })
+                  : t("grading.scorePolicy.selectAll", "全選")}
               </Button>
               <Button
                 kind="ghost"
                 size="sm"
                 onClick={handleDeselectAll}
               >
-                取消全選
+                {t("grading.scorePolicy.deselectAll", "取消全選")}
               </Button>
               {selectedIds.size > 0 && (
                 <span style={{ fontSize: "0.75rem", color: "var(--cds-text-secondary)", alignSelf: "center" }}>
-                  已選 {selectedIds.size} 題
+                  {t("grading.scorePolicy.selectedCount", "已選 {{count}} 題", { count: selectedIds.size })}
                 </span>
               )}
             </div>
@@ -223,7 +225,7 @@ export default function RedistributeTargetModal({
                 <Checkbox
                   key={q.id}
                   id={`target-${questionIndex}-${q.id}`}
-                  labelText={`${q.questionLabel ?? q.order + 1}. (${formatScore(q.score)}分) — ${q.prompt?.slice(0, 40) || "..."}`}
+                  labelText={`${q.questionLabel ?? q.order + 1}. (${t("grading.scorePolicy.pointsShort", "{{score}}分", { score: formatScore(q.score) })}) — ${q.prompt?.slice(0, 40) || "..."}`}
                   checked={selectedIds.has(q.id)}
                   onChange={(_, { checked }) => handleToggle(q.id, checked)}
                   style={{ marginBottom: "0.25rem" }}

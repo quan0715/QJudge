@@ -4,10 +4,10 @@ import { Button, Theme } from "@carbon/react";
 import { MemoryRouter } from "react-router-dom";
 import { ContestAdminProvider, AdminPanelRefreshProvider } from "@/features/contest/contexts";
 import { ToastProvider } from "@/shared/contexts/ToastContext";
-import AdminProctoringPanel from "@/features/contest/screens/admin/panels/AdminProctoringPanel";
+import AdminParticipantsPanel from "@/features/contest/screens/admin/panels/AdminParticipantsPanel";
 import "@/i18n";
 import "@/styles/globals.scss";
-import type { ContestParticipant } from "@/core/entities/contest.entity";
+import type { ContestDetail, ContestParticipant } from "@/core/entities/contest.entity";
 import type { LiveSource } from "@/core/entities/liveMonitoring.entity";
 import type { LiveTransport } from "@/infrastructure/realtime/livekitTransport";
 import ProctorMonitorGrid from "@/features/contest/screens/admin/panels/ProctorMonitorGrid";
@@ -42,6 +42,12 @@ const participants = Array.from({ length: 14 }, (_, index) => ({
   displayName: `Student ${String(index).padStart(2, "0")}`, violationCount: 0,
 } as ContestParticipant));
 
+// A running exam window so the panel's monitor mode can be switched on.
+const runningContest = {
+  startTime: new Date(Date.now() - 60_000).toISOString(),
+  endTime: new Date(Date.now() + 3_600_000).toISOString(),
+} as ContestDetail;
+
 function Fixture() {
   const size = new URLSearchParams(location.search).get("size") === "9" ? 9 : 4;
   const [sharing, setSharing] = useState(true);
@@ -58,10 +64,10 @@ function Fixture() {
   </Theme>;
 }
 createRoot(document.getElementById("root")!).render(
-  new URLSearchParams(location.search).has("panel") ? <MemoryRouter>
+  new URLSearchParams(location.search).has("panel") ? <MemoryRouter initialEntries={["/?monitor=1"]}>
     <ToastProvider><ContestAdminProvider autoLoad={false}><AdminPanelRefreshProvider>
       <div style={{ height: "100dvh" }}>
-        <AdminProctoringPanel contestId="" contest={null} />
+        <AdminParticipantsPanel contestId="" contest={runningContest} />
       </div>
     </AdminPanelRefreshProvider></ContestAdminProvider></ToastProvider>
   </MemoryRouter> : <Fixture />,

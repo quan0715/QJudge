@@ -1,21 +1,25 @@
 import type { ReactNode } from "react";
 import { ContentSwitcher, IconButton, Switch, Tag } from "@carbon/react";
-import { View } from "@carbon/icons-react";
+import { DocumentDownload, View } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { WorkbenchMode } from "./workbenchMode";
 import styles from "./WorkbenchRailHeader.module.scss";
 export interface WorkbenchRailHeaderProps {
   mode: WorkbenchMode;
   gradeDisabled: boolean;
+  editOnly?: boolean;
   onModeChange(mode: WorkbenchMode): void;
   onPreview?: () => void;
+  onExport?: () => void;
   children?: ReactNode;
 }
 export function WorkbenchRailHeader({
   mode,
   gradeDisabled,
+  editOnly = false,
   onModeChange,
   onPreview,
+  onExport,
   children,
 }: WorkbenchRailHeaderProps) {
   const { t } = useTranslation("contest");
@@ -26,6 +30,12 @@ export function WorkbenchRailHeader({
         <Tag type="purple" size="sm">
           Beta
         </Tag>
+        {editOnly && <Tag type="gray" size="sm">{t("workbench.edit.modeEdit", "編輯")}</Tag>}
+        {onExport && (
+          <IconButton kind="ghost" size="sm" label={t("adminLayout.header.exportFiles", "匯出")} onClick={onExport}>
+            <DocumentDownload />
+          </IconButton>
+        )}
         {onPreview && (
           <IconButton
             kind="ghost"
@@ -37,7 +47,7 @@ export function WorkbenchRailHeader({
           </IconButton>
         )}
       </div>
-      <ContentSwitcher
+      {!editOnly && <ContentSwitcher
         size="sm"
         selectedIndex={mode === "edit" ? 0 : 1}
         onChange={({ index }) => onModeChange(index === 0 ? "edit" : "grade")}
@@ -53,7 +63,7 @@ export function WorkbenchRailHeader({
               : undefined
           }
         />
-      </ContentSwitcher>
+      </ContentSwitcher>}
       {children}
     </div>
   );

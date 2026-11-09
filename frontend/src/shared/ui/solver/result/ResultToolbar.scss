@@ -19,4 +19,47 @@
     display: flex;
     align-items: center;
   }
+
+  // Text tabs: the active one is underlined, like the panel headers' own tabs.
+  &__tab {
+    position: relative;
+    height: layout.rem(48px);
+    padding: 0 layout.$spacing-04;
+    border: 0;
+    background: none;
+    color: var(--cds-text-secondary);
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+
+    &:hover { color: var(--cds-text-primary); }
+    &:focus-visible { outline: 2px solid var(--cds-focus); outline-offset: -2px; }
+
+    &[aria-pressed="true"] {
+      color: var(--cds-text-primary);
+      font-weight: 600;
+
+      &::after {
+        content: "";
+        position: absolute;
+        right: layout.$spacing-04;
+        bottom: 0;
+        left: layout.$spacing-04;
+        height: 2px;
+        background: var(--cds-border-interactive);
+      }
+    }
+  }
 }
+
+/* Exam workspace: controls sit inside the framed bar with even gaps. */
+[data-exam-shell] .result-toolbar {
+  padding-inline: 4px;
+  border-bottom-color: var(--ex-border);
+  background: var(--ex-surface);
+
+  &__modes,
+  &__actions { gap: 4px; }
+}
+[data-exam-shell] .result-panel--collapsed .result-toolbar,
+[data-exam-shell] .solver-layout__result--collapsed .result-toolbar { border-bottom: 0; }

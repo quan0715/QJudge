@@ -1,0 +1,105 @@
+// Question tiles shared by the overview report and the hand-in check; colours come from the exam shell's --ex-* tokens.
+
+// Every tile has the same footprint, whatever the label, so the grid stays even.
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 52px);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tile,
+.legend i {
+  border: 1px solid transparent;
+  background: var(--ex-surface-muted);
+  color: var(--ex-text);
+
+  &[data-state="full"],
+  &[data-state="accepted"] { border-color: var(--ex-success); background: var(--ex-success); color: var(--ex-surface); }
+  &[data-state="partial"] { border-color: var(--ex-warning); background: var(--ex-warning-soft); color: var(--ex-text); }
+  &[data-state="zero"],
+  &[data-state="attempted"] { border-color: var(--ex-danger); background: var(--ex-danger-soft); color: var(--ex-danger); }
+  &[data-state="answered"] { border-color: var(--ex-text); background: var(--ex-text); color: var(--ex-surface); }
+  &[data-state="unanswered"] { border-style: dashed; border-color: var(--ex-border-strong); background: transparent; color: var(--ex-text-muted); }
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  // Two-digit numbers with a sub-question, e.g. "14(a)", shrink instead of widening the tile.
+  &[data-long="true"] { font-size: 11px; letter-spacing: -0.02em; }
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ex-text-muted);
+  font-size: 12px;
+
+  li { display: inline-flex; align-items: center; gap: 6px; }
+  i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+}
+
+// The whole tile is the button when tiles jump to their question.
+.tileButton {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+  &:focus-visible { outline: 2px solid var(--ex-focus); outline-offset: 2px; border-radius: inherit; }
+}
+
+// Marked questions get the same folded corner as the collapsed question list.
+.tile { position: relative; }
+
+.tile[data-marked="true"]::after,
+.legend i[data-marked="true"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: var(--ex-warning);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+.legend i[data-marked="true"] {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--ex-border-strong);
+  background: transparent;
+
+  &::after { width: 7px; height: 7px; }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

@@ -1,0 +1,69 @@
+version: 2
+
+updates:
+  - package-ecosystem: pip
+    directories:
+      - /backend/requirements
+      - /ai-service
+      - /integrity-service
+    target-branch: dev
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      python-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: uv
+    directory: /mcp-server
+    target-branch: dev
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      mcp-server-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    target-branch: dev
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directories:
+      - /backend
+      - /backend/judge
+      - /frontend
+      - /ai-service
+      - /mcp-server
+      - /integrity-service
+      - /deploy/agent
+    target-branch: dev
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      docker-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Python 3.x runtime upgrades are deliberate migrations, not routine bumps.
+      - dependency-name: python
+        update-types: [version-update:semver-minor]
+
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/frontend-deps
+      - /.github/actions/qjudge-stack
+    target-branch: dev
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]

@@ -25,6 +25,13 @@
     flex-direction: column;
   }
 
+  // Submission history scrolls on its own under the toolbar.
+  &__submissions {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
   // Empty state
   &__empty {
     display: flex;

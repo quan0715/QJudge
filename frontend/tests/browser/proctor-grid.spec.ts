@@ -4,12 +4,12 @@ test("mode switch shares the top action bar and remembers the multiple-view size
   // The full panel imports the admin feature graph on a cold Vite server.
   test.setTimeout(60_000);
   await page.goto("/tests/browser/fixtures/proctor-grid.html?panel");
-  const toggle = page.getByRole("switch", { name: /多人|Multiple/ });
+  const toggle = page.getByRole("switch", { name: /監考模式|Monitor mode/ });
   const count = page.getByRole("combobox", { name: /每頁監看人數|Students per page/ });
   await expect(toggle).toBeChecked({ timeout: 30_000 });
   await count.selectOption("9");
   const toggleBox = await toggle.boundingBox();
-  const headingBox = await page.getByRole("heading", { name: /監考|Proctor/ }).boundingBox();
+  const headingBox = await page.getByRole("heading", { name: /參賽者|Participants/ }).boundingBox();
   expect(Math.abs(toggleBox!.y - headingBox!.y)).toBeLessThan(30);
   await toggle.focus();
   await page.keyboard.press("Space");

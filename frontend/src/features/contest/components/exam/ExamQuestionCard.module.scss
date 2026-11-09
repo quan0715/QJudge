@@ -130,7 +130,7 @@
 .optionList {
   display: flex;
   flex-direction: column;
-  gap: layout.$spacing-04;
+  gap: layout.$spacing-03;
 }
 
 .optionMarkdownLabel {
@@ -159,41 +159,102 @@
   }
 }
 
-.textArea {
-  width: 100%;
-
-  textarea {
-    min-height: 120px;
-    resize: none;
-    overflow: hidden;
-  }
-}
-
 .headerRight {
   display: flex;
   align-items: center;
   gap: layout.$spacing-03;
 }
 
-.markBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: layout.$spacing-02;
-  background: none;
-  border: none;
-  padding: layout.$spacing-02 layout.$spacing-03;
-  border-radius: 4px;
-  cursor: pointer;
-  color: var(--cds-text-helper);
-  @include type.type-style("label-01");
-  transition: color 100ms;
-
-  &:hover {
-    color: var(--cds-support-warning);
-    background-color: var(--cds-layer-hover-01);
-  }
-}
-
 .markBtnActive {
   color: var(--cds-support-warning);
+}
+
+.workspace {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.statement {
+  padding: layout.$spacing-06;
+  overflow-wrap: anywhere;
+}
+
+.answerPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.answerContent {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: layout.$spacing-06;
+  scrollbar-gutter: stable;
+}
+
+.paperAnswer {
+  // Editor guide lines are decorative and never part of the saved answer.
+  background-color: var(--cds-background);
+  background-image: linear-gradient(color-mix(in srgb, var(--cds-border-subtle-01) 15%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--cds-border-subtle-01) 15%, transparent) 1px, transparent 1px);
+  background-size: 1.5rem 1.5rem;
+
+
+}
+
+.workspace .header { align-items: center; flex-wrap: wrap; gap: layout.$spacing-04; padding-bottom: layout.$spacing-03; margin-bottom: layout.$spacing-06; }
+.workspace .label { @include type.type-style("heading-03"); font-weight: 600; flex-wrap: wrap; }
+
+.responseHint { @include type.type-style("label-01"); color: var(--cds-text-secondary); margin: 0 0 layout.$spacing-05; }
+.choiceGroup, .optionList { width: 100%; max-width: 44rem; }
+.choiceOption {
+  cursor: pointer;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 3.5rem;
+  padding: layout.$spacing-05;
+  margin: 0;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-background);
+  &:hover { background: var(--cds-layer-hover-01); }
+  &:has(input:checked) { border-color: var(--cds-focus); background: color-mix(in srgb, var(--cds-focus) 4%, var(--cds-background)); }
+
+}
+.workspace .score { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.workspace .headerRight { gap: 0; }
+.workspace .score { margin-left: layout.$spacing-03; }
+
+.choiceGroup fieldset { width: 100%; gap: layout.$spacing-03; }
+
+.workspace .choiceOption { margin: 0; }
+.workspace .optionList { gap: layout.$spacing-03; }
+
+:global([data-exam-shell]) .workspace {
+  .groupStem { padding: 18px 20px; border: 1px solid var(--ex-border); border-radius: var(--ex-radius); background: var(--ex-surface-muted); }
+  .groupStemHeader { align-items: flex-start; }
+  .groupStemScore { color: var(--ex-text-muted); font-size: 11.5px; white-space: nowrap; }
+  .groupStemTitle { font-size: 12px; line-height: 1.65; }
+  .score { color: var(--ex-text-muted); font-size: 12px; }
+  .choiceOption { border-color: var(--ex-border); border-radius: 8px; }
+  .choiceOption:hover { background: var(--ex-surface-hover); }
+  .choiceOption:has(input:checked) { border-color: var(--ex-text); background: var(--ex-surface-muted); }
+}
+
+.typeChip {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid var(--ex-border-strong, var(--cds-border-subtle-01));
+  border-radius: 5px;
+  color: var(--ex-text-secondary, var(--cds-text-secondary));
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
 }

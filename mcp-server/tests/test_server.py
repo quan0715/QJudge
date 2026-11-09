@@ -473,7 +473,7 @@ def test_qjudge_grading_list_answers_returns_compact_projection(monkeypatch):
             "feedback": "ok",
             "participant_user_id": 99,
             "participant_username": "alice",
-            "participant_nickname": "Alice",
+            "participant_display_name": "Alice",
             "created_at": "x",
             "updated_at": "y",
             "graded_at": "z",
@@ -524,7 +524,7 @@ def test_qjudge_grading_list_answers_grading_projection(monkeypatch):
             "feedback": "第2點需再補充",
             "participant_user_id": 99,
             "participant_username": "alice",
-            "participant_nickname": "Alice",
+            "participant_display_name": "Alice",
             "graded_at": "z",
         }]
 
@@ -1503,6 +1503,7 @@ def test_tool_schemas_enumerate_supported_actions():
         "qjudge_exam": {"get", "create", "update", "delete", "import_from_bank", "batch_create"},
         "qjudge_grading": {"list_answers", "question_detail", "dashboard", "grade", "batch_grade", "ungrade"},
         "qjudge_coding_problems": {"get", "create", "update", "delete"},
+        "qjudge_appeals": {"list", "get", "send"},
     }
     for name, actions in expected.items():
         assert set(tools[name].inputSchema["properties"]["action"]["enum"]) == actions

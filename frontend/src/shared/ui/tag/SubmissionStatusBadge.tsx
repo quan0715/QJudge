@@ -9,7 +9,7 @@ import {
   InformationFilled,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { getStatusConfig } from "@/core/config/status.config";
+import { getStatusConfig, translateVerdict } from "@/core/config/status.config";
 import type {
   SubmissionStatus,
   TestCaseStatus,
@@ -39,14 +39,16 @@ export const SubmissionStatusBadge: React.FC<SubmissionStatusBadgeProps> = ({
 }) => {
   const { t } = useTranslation();
   const config = getStatusConfig(status as SubmissionStatus);
+  // Same wording as the result header, e.g. 答案錯誤 rather than a generic 未通過.
+  const label = translateVerdict(t, status);
   return (
     <Tag
       type={config.type}
       size={size}
       className={className}
-      title={t(config.labelKey)}
+      title={label}
     >
-      {t(config.labelKey)}
+      {label}
     </Tag>
   );
 };

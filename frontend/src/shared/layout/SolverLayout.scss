@@ -73,17 +73,6 @@
     overflow: hidden;
   }
 
-  &__statement-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: layout.rem(48px);
-    min-height: layout.rem(48px);
-    border-bottom: 1px solid var(--cds-border-subtle-01);
-    flex-shrink: 0;
-    box-sizing: border-box;
-  }
-
   &__statement-tabs {
     display: flex;
     align-items: center;
@@ -125,4 +114,75 @@
   }
 
   // Note: Scrollbar styles are now globally defined in styles/_scrollbar.scss
+}
+
+.solver-layout__resize-handle--horizontal:focus-visible {
+  outline: 2px solid var(--cds-focus);
+  outline-offset: 0;
+}
+
+.solver-layout__statement { max-width: calc(100% - 18.75rem); }
+.solver-layout__resize-handle--horizontal {
+  position: relative;
+  &::after { content: ""; position: absolute; inset: 0 -4px; }
+}
+
+
+.solver-layout[data-paper-workspace] .solver-layout__statement { background: var(--cds-background); }
+
+/* Each exam pane is an independent frame; the gutter also owns resizing. */
+[data-exam-shell] .solver-layout { background: transparent; --solver-gutter: var(--ex-gap); --solver-collapsed-gap: var(--ex-gap); }
+[data-exam-shell] .solver-layout__statement,
+[data-exam-shell] .solver-layout__editor,
+[data-exam-shell] .solver-layout__result {
+  border: 1px solid var(--ex-border);
+  border-radius: var(--ex-radius);
+  background: var(--ex-surface);
+  box-shadow: var(--ex-shadow);
+}
+[data-exam-shell] .solver-layout__statement { transition: none; }
+[data-exam-shell] .solver-layout__resize-handle { position: relative; background: transparent; }
+[data-exam-shell] .solver-layout__resize-handle--horizontal { width: var(--ex-gap); }
+[data-exam-shell] .solver-layout__resize-handle--vertical { height: var(--ex-gap); }
+[data-exam-shell] .solver-layout__resize-handle::before {
+  content: "";
+  position: absolute;
+  border-radius: 2px;
+  background: transparent;
+  transition: background 120ms ease;
+}
+[data-exam-shell] .solver-layout__resize-handle--horizontal::before { inset: 30% 3px; }
+[data-exam-shell] .solver-layout__resize-handle--vertical::before { inset: 3px 30%; }
+[data-exam-shell] .solver-layout__resize-handle:hover::before,
+[data-exam-shell] .solver-layout__resize-handle:focus-visible::before { background: var(--ex-border-strong); }
+[data-exam-shell] .solver-layout__result--collapsed { margin-top: var(--solver-collapsed-gap); }
+
+/* Answering: the panes sit in the shell's shared frame, so the gutters become 1px dividers. */
+[data-exam-shell] [data-joined="true"] .solver-layout { --solver-gutter: 1px; --solver-collapsed-gap: 0px; }
+[data-exam-shell] [data-joined="true"] .solver-layout__statement,
+[data-exam-shell] [data-joined="true"] .solver-layout__editor,
+[data-exam-shell] [data-joined="true"] .solver-layout__result {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+[data-exam-shell] [data-joined="true"] .solver-layout__resize-handle { background: var(--ex-border); }
+[data-exam-shell] [data-joined="true"] .solver-layout__resize-handle--horizontal { width: 1px; }
+[data-exam-shell] [data-joined="true"] .solver-layout__resize-handle--vertical { height: 1px; }
+/* The line thickens on hover; the wider hit area comes from ::after. */
+[data-exam-shell] [data-joined="true"] .solver-layout__resize-handle--horizontal::before { inset: 0 -1px; border-radius: 0; }
+[data-exam-shell] [data-joined="true"] .solver-layout__resize-handle--vertical::before { inset: -1px 0; border-radius: 0; }
+[data-exam-shell] [data-joined="true"] .solver-layout__resize-handle--vertical::after { content: ""; position: absolute; inset: -4px 0; }
+[data-exam-shell] [data-joined="true"] .solver-layout__result--collapsed { border-top: 1px solid var(--ex-border); }
+
+/* Phones: stack the exam panes so both the statement and the answer stay reachable. */
+@media (max-width: 41.98rem) {
+  [data-exam-shell] .solver-layout { flex-direction: column; gap: var(--ex-gap); }
+  /* min/max-width outrank the inline drag width without !important. */
+  [data-exam-shell] .solver-layout__statement { height: auto; min-height: 0; min-width: 100%; max-width: 100%; }
+  [data-exam-shell] .solver-layout__statement:not(.solver-layout__statement--collapsed) { flex: 1 1 0; }
+  [data-exam-shell] .solver-layout__resize-handle--horizontal { display: none; }
+  [data-exam-shell] .solver-layout__right { flex: 1 1 0; min-height: 0; }
+  [data-exam-shell] [data-joined="true"] .solver-layout { gap: 0; }
+  [data-exam-shell] [data-joined="true"] .solver-layout__statement { border-bottom: 1px solid var(--ex-border); }
 }

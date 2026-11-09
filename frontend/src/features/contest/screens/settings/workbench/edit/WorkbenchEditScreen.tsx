@@ -59,6 +59,7 @@ import {
   type QuestionEditAnswerData,
 } from "./WorkbenchGroupEditor";
 import { WorkbenchQuestionEditor } from "./WorkbenchQuestionEditor";
+import ScorePolicyMenu, { ScorePolicyTag } from "../../grading/components/ScorePolicyMenu";
 import styles from "./WorkbenchEdit.module.scss";
 
 export interface WorkbenchEditActions {
@@ -81,9 +82,11 @@ export interface WorkbenchEditActions {
 }
 export default function WorkbenchEditScreen({
   header,
+  registerBeforeLeave,
 }: {
   header: ReactNode;
   onPreview?: () => void;
+  registerBeforeLeave?: (flush: (() => Promise<void>) | null) => void;
 }) {
   const { contest } = useContest();
   const contestId = contest?.id ?? "";
@@ -202,6 +205,10 @@ export default function WorkbenchEditScreen({
     }
   }, [selected, params, setParams]);
   const beforeLeave = useRef<(() => Promise<void>) | null>(null);
+  useEffect(() => {
+    registerBeforeLeave?.(async () => { await beforeLeave.current?.(); });
+    return () => registerBeforeLeave?.(null);
+  }, [registerBeforeLeave]);
   const registerFlush = useCallback((flush: (() => Promise<void>) | null) => {
     beforeLeave.current = flush;
   }, []);
@@ -231,6 +238,20 @@ export default function WorkbenchEditScreen({
     },
     [writeSelection],
   );
+  const goToGrading = async (questionId: string) => {
+    try {
+      await beforeLeave.current?.();
+    } catch {
+      return;
+    }
+    setParams((previous) => {
+      const next = new URLSearchParams(previous);
+      next.set("workbench_mode", "grade");
+      next.set("grading_question", questionId);
+      next.delete("grading_student");
+      return next;
+    });
+  };
   useLayoutEffect(() => {
     if (mainRef.current) mainRef.current.scrollTop = 0;
   }, [selectedBlockId]);
@@ -499,6 +520,7 @@ export default function WorkbenchEditScreen({
   const currentBlock = paper.blocks.find((b) => b.id === selectedBlockId);
   const currentQuestion =
     currentBlock?.kind === "question" ? currentBlock.question : undefined;
+  const policyQuestion = paper.questions.find((question) => question.id === selected);
   const questionRows = rows.filter((row) => row.kind !== "group");
   const questionIndex = questionRows.findIndex((row) => row.key === currentQuestion?.id);
   const previousQuestion = questionRows[questionIndex - 1];
@@ -534,6 +556,30 @@ export default function WorkbenchEditScreen({
           className={styles.main}
           aria-label={t("workbench.edit.editor", "題目編輯")}
         >
+          {policyQuestion && (
+            <div className={styles.policyActions}>
+              <ScorePolicyTag policy={policyQuestion.scorePolicy ?? "normal"} />
+              {impactData.status === "loaded" ? (
+                <ScorePolicyMenu
+                  key={policyQuestion.id}
+                  questionId={policyQuestion.id}
+                  questionIndex={policyQuestion.order + 1}
+                  questionLabel={selectedRow?.label}
+                  currentPolicy={policyQuestion.scorePolicy ?? "normal"}
+                  allQuestions={paper.questions}
+                  impactContext={impactData.impactContext}
+                  onPolicyChanged={() => {
+                    void loadPaper().catch(failed);
+                    refreshImpact();
+                  }}
+                />
+              ) : impactData.status === "error" ? (
+                <Button kind="ghost" size="sm" onClick={refreshImpact}>
+                  {t("workbench.edit.retryImpact", "重新載入作答統計")}
+                </Button>
+              ) : null}
+            </div>
+          )}
           {review && (
             <PublishCheckBar
               items={issues}
@@ -566,15 +612,7 @@ export default function WorkbenchEditScreen({
               answerCounts={answerData?.get(currentQuestion.id)?.counts}
               impactError={impactData.status === "error"}
               onRetryImpact={refreshImpact}
-              onGradeQuestion={() =>
-                setParams((prev) => {
-                  const next = new URLSearchParams(prev);
-                  next.set("workbench_mode", "grade");
-                  next.set("grading_question", currentQuestion.id);
-                  next.delete("grading_student");
-                  return next;
-                })
-              }
+              onGradeQuestion={() => { void goToGrading(currentQuestion.id); }}
               actions={actions}
               saveStatus={saveStatus}
               registerFlush={registerFlush}
@@ -618,15 +656,7 @@ export default function WorkbenchEditScreen({
               answerData={answerData}
               impactError={impactData.status === "error"}
               onRetryImpact={refreshImpact}
-              onGradeQuestion={(id) =>
-                setParams((prev) => {
-                  const next = new URLSearchParams(prev);
-                  next.set("workbench_mode", "grade");
-                  next.set("grading_question", id);
-                  next.delete("grading_student");
-                  return next;
-                })
-              }
+              onGradeQuestion={(id) => { void goToGrading(id); }}
             />
           ) : (
             <EmptyState

@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -100,10 +100,6 @@ vi.mock("@carbon/react", async (importOriginal) => {
 });
 });
 
-vi.mock("@carbon/charts-react", () => ({
-  LollipopChart: () => <div data-testid="score-distribution-chart" />,
-}));
-
 vi.mock("@/shared/ui/theme/ThemeContext", () => ({
   useTheme: () => ({ theme: "white" }),
 }));
@@ -129,6 +125,7 @@ vi.mock("@carbon/icons-react", () => {
     InformationFilled: Icon,
     Warning: Icon,
     Document: Icon,
+    Download: Icon,
     Flag: Icon,
     Launch: Icon,
     Login: Icon,
@@ -193,11 +190,6 @@ vi.mock("@/infrastructure/api/repositories/exam.repository", () => ({
   })),
 }));
 
-vi.mock("@/features/contest/components/ContestClarifications", () => ({
-  default: ({ contestId, mode }: { contestId: string; mode: string }) => (
-    <section aria-label="問答內容" data-mode={mode}>{contestId}</section>
-  ),
-}));
 
 const createContest = (
   overrides: Partial<ContestDetail> = {},
@@ -284,13 +276,6 @@ describe("StudentContestDashboard", () => {
     vi.clearAllMocks();
   });
 
-  it("offers standings only for coding participants when scoreboard visibility is enabled", () => {
-    const view = renderDashboard(createContest({ scoreboardVisibleDuringContest: true }));
-    expect(screen.getByRole("tab", { name: "排行榜" })).toBeInTheDocument();
-    view.unmount();
-    renderDashboard(createContest({ scoreboardVisibleDuringContest: false }));
-    expect(screen.queryByRole("tab", { name: "排行榜" })).not.toBeInTheDocument();
-  });
 
   it("lets a classroom student start without a join step", () => {
     // No attempt record yet: the backend reports not_started for candidates,
@@ -305,8 +290,8 @@ describe("StudentContestDashboard", () => {
       }),
     );
 
-    expect(screen.getByRole("main", { name: "學生競賽首頁" })).toBeInTheDocument();
-    expect(screen.getByText("總時長")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "學生競賽首頁" })).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "考試時間進度" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /開始作答/ }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: /加入競賽/ })).not.toBeInTheDocument();
   });
@@ -326,37 +311,20 @@ describe("StudentContestDashboard", () => {
     expect(screen.queryByRole("button", { name: /加入競賽/ })).not.toBeInTheDocument();
   });
 
-  it("opens announcements and questions from the student dashboard", async () => {
-    renderDashboard(createContest());
-    await userEvent.click(screen.getByRole("tab", { name: "競賽資訊" }));
-    expect(screen.getByRole("region", { name: "問答內容" })).toHaveTextContent("contest-1");
-    expect(screen.getByRole("tab", { name: "競賽資訊" })).toHaveAttribute("aria-selected", "true");
-  });
-
-  it("shows the exam-taking Q&A even to a staff participant", async () => {
-    const contest = createContest();
-    renderDashboard({
-      ...contest,
-      permissions: { ...contest.permissions!, canManageClarifications: true },
-    });
-    await userEvent.click(screen.getByRole("tab", { name: "競賽資訊" }));
-    expect(screen.getByRole("region", { name: "問答內容" })).toHaveAttribute("data-mode", "participate");
-  });
-
-  it("opens the questions panel from a direct link", () => {
-    render(
-      <MemoryRouter initialEntries={["/?tab=clarifications"]}>
-        <StudentContestDashboard contest={createContest()} />
-      </MemoryRouter>,
-    );
-    expect(screen.getByRole("region", { name: "問答內容" })).toHaveTextContent("contest-1");
-    expect(screen.getByRole("tab", { name: "競賽資訊" })).toHaveAttribute("aria-selected", "true");
+  it("shows the exam rules on the overview without extra tabs", () => {
+    renderDashboard(createContest({ rules: "請勿使用手機" }));
+    expect(screen.getByRole("heading", { name: "應試規則" })).toBeInTheDocument();
+    expect(screen.getByText("請勿使用手機")).toBeInTheDocument();
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
   });
 
   it("does not show answer records before the participant starts", () => {
     renderDashboard(createContest());
 
-    expect(screen.getByText("總時長")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "考試時間進度" })).toBeInTheDocument();
+    // Nothing on the overview reveals how many questions the paper has before starting.
+    expect(screen.queryByRole("img", { name: /已通過|已作答/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/\d+ 題/)).not.toBeInTheDocument();
     expect(screen.getByText("尚無作答紀錄。")).toBeInTheDocument();
     expect(screen.queryByText("Two Sum")).not.toBeInTheDocument();
   });
@@ -381,9 +349,10 @@ describe("StudentContestDashboard", () => {
       }),
     );
 
-    expect(screen.getByText("總時長")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "考試時間進度" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /前往作答區/ })).toBeInTheDocument();
-    expect(screen.getByText("100%")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "已通過 100%" })).toBeInTheDocument();
+    expect(screen.getByText("1 / 1 題")).toBeInTheDocument();
     expect(screen.queryByText("已完成")).not.toBeInTheDocument();
     expect(screen.queryByText("已嘗試")).not.toBeInTheDocument();
   });
@@ -510,13 +479,13 @@ describe("StudentContestDashboard", () => {
     );
 
     expect(await screen.findByText("目前作答狀況")).toBeInTheDocument();
-    expect(await screen.findByText("50%")).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "已作答 50%" })).toBeInTheDocument();
     expect(screen.queryByText("已完成")).not.toBeInTheDocument();
     expect(screen.queryByText("已嘗試")).not.toBeInTheDocument();
-    expect(screen.getByText("已作答")).toBeInTheDocument();
-    expect(screen.getByText("未作答")).toBeInTheDocument();
+    const records = within(screen.getByRole("region", { name: "作答紀錄" }));
+    expect(records.getByText("已作答")).toBeInTheDocument();
+    expect(records.getByText("未作答")).toBeInTheDocument();
     expect(screen.queryByText("draft answer")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: "作答紀錄" }));
     fireEvent.click(screen.getAllByRole("button", { name: /展開第/ })[0]);
     expect(screen.getByText("draft answer")).toBeInTheDocument();
     expect(screen.getByText("第 1(a) 題")).toBeInTheDocument();
@@ -557,7 +526,7 @@ describe("StudentContestDashboard", () => {
     expect(screen.queryByText("未作答")).not.toBeInTheDocument();
   });
 
-  it("renders post-exam answer report and score distribution", async () => {
+  it("renders the post-exam report with the class standing", async () => {
     renderDashboard(
       createContest({
         contestType: "paper_exam",
@@ -573,9 +542,10 @@ describe("StudentContestDashboard", () => {
     expect(screen.queryByText("成績單與分數分佈")).not.toBeInTheDocument();
     expect(screen.queryByText("作答狀態")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /下載成績單/ })).toBeInTheDocument();
-    expect(await screen.findByText("成績分布")).toBeInTheDocument();
-    expect(await screen.findByText("平均 75.00 / 100.00")).toBeInTheDocument();
-    expect(screen.getByTestId("score-distribution-chart")).toBeInTheDocument();
+    // The class standing now lives on the overview next to the student's own results.
+    expect(await screen.findByRole("heading", { name: "班級表現" })).toBeInTheDocument();
+    expect(screen.getByText("班平均")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "成績分布" })).toBeInTheDocument();
     expect(getExamDashboardSummary).toHaveBeenCalledWith("contest-1");
   });
 
@@ -715,7 +685,7 @@ describe("StudentContestDashboard", () => {
           answer: { text: "answer" },
           createdAt: "2000-05-05T10:10:00.000Z",
           updatedAt: "2000-05-05T10:10:00.000Z",
-          isCorrect: null,
+          isCorrect: true, // manual grading marks any credited answer correct
           score: 5,
           effectiveScore: 8,
           effectiveMaxScore: 12,
@@ -741,12 +711,14 @@ describe("StudentContestDashboard", () => {
     );
 
     expect(await screen.findAllByText("8.00 / 12.00")).not.toHaveLength(0);
+    // A partly credited answer is not full marks, whatever isCorrect says.
+    expect(screen.getByText("第 1 題，8 / 12 分").closest("li")).toHaveAttribute("data-state", "partial");
     expect(screen.queryByText("Good")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: "作答紀錄" }));
     fireEvent.click(screen.getAllByRole("button", { name: /展開第/ })[0]);
     expect(screen.queryByText("批改者：teacher")).not.toBeInTheDocument();
     expect(screen.queryByText(/5\.00 \/ 10\.00/)).not.toBeInTheDocument();
-    expect(screen.getByText("考試成績")).toBeInTheDocument();
+    // The published score is marked in red pen next to the title, after score policies.
+    expect(screen.getByRole("img", { name: "考試成績 8 / 12" })).toBeInTheDocument();
     expect(screen.getByText("Good")).toBeInTheDocument();
     expect(screen.getByText("Current prompt")).toBeInTheDocument();
     expect(screen.getByText("作答紀錄與成績")).toBeInTheDocument();

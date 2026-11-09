@@ -1145,6 +1145,23 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
         return getattr(profile, 'display_name', '') or ""
 
 
+class ExamResultSerializer(ExamAnswerDetailSerializer):
+    """A student's own published result row: their answer and its grading.
+
+    No explanation or answer key, and no participant fields (it is always the
+    requester's own row).
+    """
+
+    class Meta(ExamAnswerDetailSerializer.Meta):
+        fields = [
+            'id', 'question_id', 'question_prompt', 'question_type', 'max_score',
+            'answer', 'is_correct', 'score', 'feedback',
+            'graded_by_username', 'graded_at',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = fields
+
+
 class ExamAnswerGradingSerializer(serializers.ModelSerializer):
     """Slim serializer for grading screens.
 

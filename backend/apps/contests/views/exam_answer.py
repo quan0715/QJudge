@@ -21,21 +21,25 @@ from ..models import (
     ExamBatchGradeWrite,
     ExamStatus,
     ExamQuestionAnswerFormat,
-    ExamQuestionType,
 )
 from ..serializers import (
     ExamAnswerSerializer,
     ExamAnswerDetailSerializer,
     ExamAnswerGradingSerializer,
+    ExamResultSerializer,
     ExamAnswerSubmitSerializer,
     ExamAnswerGradeSerializer,
 )
 from ..services.coding_result_summary import build_coding_dashboard_summary
 from ..services.exam_scoring import ExamScoringService
+from ..services.question_kinds import OBJECTIVE_QUESTION_TYPES, SUBJECTIVE_QUESTION_TYPES, parse_kind_filter
 from ..services.paper_question_labels import build_paper_question_labels
 from ..permissions import can_manage_contest
 from apps.core.api.envelope import envelope
-from ..services.open_answer_document import validate_open_answer_document
+from ..services.open_answer_document import (
+    serialize_open_answer_document,
+    validate_open_answer_document,
+)
 from .exam_validation_response import (
     build_device_conflict_response_for_view,
     validate_exam_operation_for_view,
@@ -72,102 +76,54 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
     def _attempted_participants_qs(self, contest):
         return attempted_participants(contest).select_related('user')
 
-    def _can_view_dashboard_summary(self, user, contest):
-        if can_manage_contest(user, contest):
-            return True
-        if not contest.results_published:
-            return False
-        return ContestParticipant.objects.filter(
-            contest=contest,
-            user=user,
-        ).exists()
-
     @staticmethod
     def _participant_display_name(participant):
         profile = getattr(participant.user, 'profile', None)
         return getattr(profile, 'display_name', '') or ''
 
     @staticmethod
-    def _build_question_score_bands(scores, max_score):
-        if not scores:
-            return []
-
+    def _build_question_score_bands(scores):
+        """How many students got each distinct score, lowest first."""
         counts = {}
         for score in scores:
-            decimal_score = Decimal(str(score or 0)).quantize(
-                Decimal('0.01'),
-                rounding=ROUND_HALF_UP,
-            ).normalize()
-            label = format(decimal_score, 'f').rstrip('0').rstrip('.')
-            if '.' in label:
-                label = label.rstrip('0').rstrip('.')
-            if label == '':
-                label = '0'
-            counts[label] = counts.get(label, 0) + 1
-
-        def _score_sort_key(label):
-            return Decimal(label)
-
+            rounded = Decimal(str(score)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            counts[rounded] = counts.get(rounded, 0) + 1
         return [
-            {'label': label, 'count': counts[label]}
-            for label in sorted(counts.keys(), key=_score_sort_key)
+            {'label': format(value.normalize(), 'f'), 'count': counts[value]}
+            for value in sorted(counts)
         ]
 
     @staticmethod
-    def _extract_selected_values(answer):
-        if not isinstance(answer, dict):
-            return []
-        selected = answer.get('selected')
+    def _selected_indices(answer):
+        """Option indices a choice answer picked; answers store indices, as auto-grading compares."""
+        selected = answer.get('selected') if isinstance(answer, dict) else None
         if selected is None:
-            return []
-        if isinstance(selected, list):
-            return selected
-        return [selected]
-
-    @classmethod
-    def _matches_option(cls, selected_values, option_value, option_index):
-        option_letter = chr(65 + option_index)
-        normalized = {str(option_value), str(option_index), option_letter}
-        return any(str(value) in normalized for value in selected_values)
+            return set()
+        return set(selected) if isinstance(selected, list) else {selected}
 
     @classmethod
     def _build_option_distribution(cls, question, answers, participants_by_id):
-        options = question.options or []
-        correct_answer = question.correct_answer
+        correct = question.correct_answer
+        correct_indices = set(correct) if isinstance(correct, list) else ({correct} if correct is not None else set())
+        picks = [(answer, cls._selected_indices(answer.get('answer'))) for answer in answers]
         total = len(answers) or 1
         distribution = []
-
-        for index, option in enumerate(options):
-            count = 0
-            participants = []
-            for answer in answers:
-                selected_values = cls._extract_selected_values(answer.get('answer'))
-                if cls._matches_option(selected_values, option, index):
-                    count += 1
-                    participant = participants_by_id.get(answer['participant_id'])
-                    if participant is not None:
-                        participants.append({
-                            'participant_id': participant.id,
-                            'username': participant.user.username,
-                            'display_name': cls._participant_display_name(participant),
-                        })
-
-            if isinstance(correct_answer, list):
-                correct_values = correct_answer
-            elif correct_answer is None:
-                correct_values = []
-            else:
-                correct_values = [correct_answer]
-
-            is_correct = cls._matches_option(correct_values, option, index)
+        for index, option in enumerate(question.options or []):
+            chosen_by = [participants_by_id[answer['participant_id']] for answer, indices in picks if index in indices]
             distribution.append({
                 'label': f'{chr(65 + index)}. {option}',
-                'count': count,
-                'percent': round((count / total) * 100),
-                'is_correct': is_correct,
-                'participants': participants,
+                'count': len(chosen_by),
+                'percent': round((len(chosen_by) / total) * 100),
+                'is_correct': index in correct_indices,
+                'participants': [
+                    {
+                        'participant_id': participant.id,
+                        'username': participant.user.username,
+                        'display_name': cls._participant_display_name(participant),
+                    }
+                    for participant in chosen_by
+                ],
             })
-
         return distribution
 
     # ── Student endpoints ──
@@ -214,7 +170,9 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
-            if question.answer_format == ExamQuestionAnswerFormat.OPEN_DOCUMENT:
+            if question.answer_format == ExamQuestionAnswerFormat.OPEN_DOCUMENT or "document" in answer:
+                if question.question_type not in SUBJECTIVE_QUESTION_TYPES:
+                    raise ValidationError({'answer': ['document is only supported for subjective questions']})
                 document = answer.get('document')
                 validate_open_answer_document(document)
                 serialized = json.dumps(document, ensure_ascii=False)
@@ -223,6 +181,11 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
                         {'answer': ['open answer document exceeds 32 KB']},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
+                # Reports, dashboards and grading tools read the text projection.
+                answer = {
+                    'document': document,
+                    'text': serialize_open_answer_document(document).plain_text,
+                }
 
             answer_obj, created = ExamAnswer.objects.update_or_create(
                 participant=participant,
@@ -303,10 +266,10 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
             item['question_id']: item['score'] for item in breakdown.items
         }
 
-        rows = ExamAnswerDetailSerializer(answers, many=True).data
+        rows = ExamResultSerializer(answers, many=True).data
         for answer, row in zip(answers, rows):
             row['effective_score'] = effective_scores.get(answer.question_id)
-            row['effective_max_score'] = float(scoring._round_score(
+            row['effective_max_score'] = float(scoring.round_score(
                 effective_max.get(answer.question_id, answer.question.score)
             ))
         return envelope(rows, meta={
@@ -372,34 +335,6 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
 
         return Response(ExamAnswerDetailSerializer(answers, many=True).data)
 
-    # Aliases consumed by the `?kind=` filter on dashboard-summary; shared with
-    # ContestExamQuestionViewSet so the two endpoints agree on aliases.
-    _DASHBOARD_KIND_ALIAS = {
-        'subjective': {ExamQuestionType.SHORT_ANSWER, ExamQuestionType.ESSAY},
-        'objective': {
-            ExamQuestionType.TRUE_FALSE,
-            ExamQuestionType.SINGLE_CHOICE,
-            ExamQuestionType.MULTIPLE_CHOICE,
-        },
-    }
-
-    @classmethod
-    def _parse_dashboard_kind(cls, raw):
-        """Translate ``?kind=<alias|csv>`` to a set of enum values or ``None``."""
-        if not raw:
-            return None
-        tokens = {t.strip() for t in raw.split(',') if t.strip()}
-        if not tokens:
-            return None
-        all_values = set(ExamQuestionType.values)
-        kinds = set()
-        for tok in tokens:
-            if tok in cls._DASHBOARD_KIND_ALIAS:
-                kinds |= cls._DASHBOARD_KIND_ALIAS[tok]
-            elif tok in all_values:
-                kinds.add(tok)
-        return kinds
-
     @action(detail=False, methods=['get'], url_path='dashboard-summary')
     def dashboard_summary(self, request, contest_pk=None):
         """Contest result dashboard summary.
@@ -411,13 +346,17 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
         view it anytime; participants can view it after results are published.
         """
         contest = self._get_contest(contest_pk)
-        if not self._can_view_dashboard_summary(request.user, contest):
+        is_staff = can_manage_contest(request.user, contest)
+        if not is_staff and not (
+            contest.results_published
+            and ContestParticipant.objects.filter(contest=contest, user=request.user).exists()
+        ):
             raise PermissionDenied('Results dashboard summary is not available.')
 
         if contest.contest_type == 'coding':
             return Response(build_coding_dashboard_summary(contest, request.user))
 
-        kind_filter = self._parse_dashboard_kind(request.query_params.get('kind'))
+        kind_filter = parse_kind_filter(request.query_params.get('kind'))
 
         # Use consolidated scoring service
         scoring = ExamScoringService(contest)
@@ -451,8 +390,9 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
         # Distribution
         distribution = scoring.get_score_distribution(total_scores)
 
+        # Students get the class standing only; per-question statistics are for staff.
         question_summaries = []
-        for q in questions:
+        for q in questions if is_staff else []:
             if kind_filter is not None and q.question_type not in kind_filter:
                 continue
             qid_str = str(q.id)
@@ -479,14 +419,10 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
                 'score_rate': score_rate,
                 'zero_rate': zero_rate,
                 'full_rate': full_rate,
-                'status': 'grading' if q.question_type in {ExamQuestionType.SHORT_ANSWER, ExamQuestionType.ESSAY} and graded_count < answer_count else 'stable',
+                'status': 'grading' if q.question_type in SUBJECTIVE_QUESTION_TYPES and graded_count < answer_count else 'stable',
             }
 
-            if q.question_type in {
-                ExamQuestionType.SINGLE_CHOICE,
-                ExamQuestionType.MULTIPLE_CHOICE,
-                ExamQuestionType.TRUE_FALSE,
-            }:
+            if q.question_type in OBJECTIVE_QUESTION_TYPES:
                 correct_rate = round((stats.correct_count / answer_count) * 100) if answer_count else 0
                 summary['objective_stats'] = {
                     'correct_rate': correct_rate,
@@ -569,7 +505,7 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
         payload = {
             'question_id': str(question.id),
             'kind': question.question_type,
-            'score_bands': self._build_question_score_bands(graded_scores, question.score),
+            'score_bands': self._build_question_score_bands(graded_scores),
             'responses': [
                 {
                     'exam_answer_id': answer['id'],
@@ -587,11 +523,7 @@ class ExamAnswerViewSet(ExamGradingUnitMixin, viewsets.GenericViewSet):
             ],
         }
 
-        if question.question_type in {
-            ExamQuestionType.SINGLE_CHOICE,
-            ExamQuestionType.MULTIPLE_CHOICE,
-            ExamQuestionType.TRUE_FALSE,
-        }:
+        if question.question_type in OBJECTIVE_QUESTION_TYPES:
             payload['option_distribution'] = self._build_option_distribution(
                 question,
                 answers,

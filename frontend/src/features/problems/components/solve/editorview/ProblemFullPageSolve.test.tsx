@@ -132,10 +132,10 @@ describe("ProblemFullPageSolve", () => {
     judgeAs("AC");
     await waitFor(() => expect(onJudged).toHaveBeenCalledTimes(1), { timeout: 3000 });
     act(() => { onJudged.mock.calls[0][0].show(); });
-    expect(screen.getByText("Accepted")).toBeInTheDocument();
+    expect(screen.getByText("通過")).toBeInTheDocument();
   });
 
-  it.each([["收合"], ["編輯測資"]])("brings back the result the student left with %s when its notification is opened", async (leave) => {
+  it.each([["收合"], ["測資"]])("brings back the result the student left with %s when its notification is opened", async (leave) => {
     judgeAs("pending");
     const onJudged = vi.fn();
     renderSolve("p1", onJudged);
@@ -143,8 +143,8 @@ describe("ProblemFullPageSolve", () => {
     fireEvent.click(screen.getByRole("button", { name: leave }));
     judgeAs("AC");
     await waitFor(() => expect(onJudged).toHaveBeenCalledTimes(1), { timeout: 3000 });
-    expect(screen.queryByText("Accepted")).not.toBeInTheDocument();
+    expect(screen.queryByText("通過")).not.toBeInTheDocument();
     act(() => { onJudged.mock.calls[0][0].show(); });
-    expect(screen.getByText("Accepted")).toBeInTheDocument();
+    expect(screen.getByText("通過")).toBeInTheDocument();
   });
 });

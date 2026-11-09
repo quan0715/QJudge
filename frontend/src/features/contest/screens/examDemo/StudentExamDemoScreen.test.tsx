@@ -148,6 +148,6 @@ describe("StudentExamDemoScreen", () => {
     renderScreen();
     expect(await screen.findByText("Shared reading passage")).toBeInTheDocument();
     expect(screen.getByText("1–2. · Reading")).toBeInTheDocument();
-    expect(screen.getByText("1.")).toBeInTheDocument();
+    expect(screen.getByTestId("exam-question-card-a")).toBeInTheDocument();
   });
 });

@@ -350,7 +350,8 @@ export function WorkspaceTopNav({ showSidebarControl, previewMode = false }: Wor
   );
 }
 
-function RuntimeNavExtras() {
+/** `showRefresh` is off when the page supplies its own, more complete refresh action. */
+export function RuntimeNavExtras({ showRefresh = true }: { showRefresh?: boolean } = {}) {
   const { t } = useTranslation("contest");
   const [monitoringOpen, setMonitoringOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -422,7 +423,7 @@ function RuntimeNavExtras() {
           }
         />
       </div>
-      <IconButton
+      {showRefresh && <IconButton
         kind="ghost"
         size="lg"
         align="bottom"
@@ -433,7 +434,7 @@ function RuntimeNavExtras() {
         className={refreshing ? refreshStyles.refreshing : undefined}
       >
         <Renew size={20} />
-      </IconButton>
+      </IconButton>}
       <ExamModeMonitorModal
         open={monitoringOpen}
         onRequestClose={() => setMonitoringOpen(false)}

@@ -53,11 +53,11 @@ export async function gotoContestProblemEditor(page: Page, contestName: string):
     `/classrooms/${classroomId}/contest/${contestId}/admin?panel=problem_editor`,
     { waitUntil: "domcontentloaded" },
   );
-  await expect(page).toHaveURL(/panel=problem_editor/);
+  await expect(page).toHaveURL(/panel=(problem_editor|grading-workbench)/);
 }
 
 /**
- * 紙本競賽題目編輯：等候 WorkTree 寫入 data-question-id（避免 domcontentloaded 後 API 尚未回傳）。
+ * 舊紙本書籤會轉至工作台；等題目列表載入後才操作。
  */
 export async function gotoPaperContestProblemEditor(
   page: Page,
@@ -65,9 +65,10 @@ export async function gotoPaperContestProblemEditor(
   minQuestions = 2,
 ): Promise<void> {
   await gotoContestProblemEditor(page, contestName);
-  await expect(page).toHaveURL(/panel=problem_editor/, { timeout: 60000 });
+  await expect(page).toHaveURL(/panel=grading-workbench/, { timeout: 60000 });
+  await expect(page).toHaveURL(/workbench_mode=edit/);
   await expect(async () => {
-    expect(await page.locator("[data-question-id]").count()).toBeGreaterThanOrEqual(minQuestions);
+    expect(await page.locator("[data-row-key]").count()).toBeGreaterThanOrEqual(minQuestions);
   }).toPass({ timeout: 90000 });
 }
 
@@ -149,7 +150,8 @@ export async function waitCodingEditorShell(page: Page): Promise<void> {
 
 /** 等候側欄至少 N 筆題目（接在 draft 長流程後載入較慢時，先確認 URL 再等 toolbar）。 */
 export async function waitCodingSidebarMinProblems(page: Page, min: number): Promise<void> {
-  await expect(page).toHaveURL(/panel=problem_editor/, { timeout: 60000 });
+  await expect(page).toHaveURL(/panel=grading-workbench/, { timeout: 60000 });
+  await expect(page).toHaveURL(/workbench_mode=edit/);
   await waitCodingEditorShell(page);
   await expect(async () => {
     expect(await page.locator("[data-problem-id]").count()).toBeGreaterThanOrEqual(min);

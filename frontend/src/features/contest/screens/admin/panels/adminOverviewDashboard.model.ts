@@ -1,3 +1,4 @@
+import i18n from "i18next";
 import type {
   ContestDetail,
   ContestOverviewMetrics,
@@ -55,7 +56,7 @@ export interface TeacherAttentionRow {
   statusLabel: string;
   eventLabel: string;
   timeLabel: string;
-  panelTarget: "participants" | "logs" | "proctoring";
+  panelTarget: "participants" | "logs";
 }
 
 export interface DistributionItem {
@@ -153,7 +154,7 @@ const TIME_FORMATTER = new Intl.DateTimeFormat("zh-Hant-TW", {
   hour12: false,
 });
 
-const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("zh-Hant-TW", {
+const DATE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
   timeZone: DISPLAY_TIME_ZONE,
   year: "numeric",
   month: "2-digit",
@@ -161,7 +162,12 @@ const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("zh-Hant-TW", {
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
-});
+};
+
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("zh-Hant-TW", DATE_TIME_OPTIONS);
+
+const formatPreparationDateTime = (value: string) =>
+  new Intl.DateTimeFormat(i18n.language || "zh-Hant-TW", DATE_TIME_OPTIONS).format(new Date(value));
 
 const partsToMap = (parts: Intl.DateTimeFormatPart[]) => {
   const map: Record<string, string> = {};
@@ -837,8 +843,8 @@ export const buildAdminPreparationOverview = ({
       title: tr("adminOverview.preparation.schedule.title", "考試時間"),
       description: scheduled
         ? tr("adminOverview.preparation.schedule.done", "{{start}} - {{end}}", {
-            start: DATE_TIME_FORMATTER.format(new Date(contest.startTime)),
-            end: DATE_TIME_FORMATTER.format(new Date(contest.endTime)),
+            start: formatPreparationDateTime(contest.startTime),
+            end: formatPreparationDateTime(contest.endTime),
           })
         : tr(
             "adminOverview.preparation.schedule.missing",

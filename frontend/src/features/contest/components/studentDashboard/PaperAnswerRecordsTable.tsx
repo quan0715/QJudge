@@ -18,9 +18,14 @@ export interface PaperAnswerRecordRow {
 interface PaperAnswerRecordsTableProps {
   rows: PaperAnswerRecordRow[];
   showGrading: boolean;
+  hint?: string;
 }
 
-export default function PaperAnswerRecordsTable({ rows, showGrading }: PaperAnswerRecordsTableProps) {
+export default function PaperAnswerRecordsTable({
+  rows,
+  showGrading,
+  hint = "展開題目查看原作答、評語與申訴紀錄。",
+}: PaperAnswerRecordsTableProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const tableId = useId();
 
@@ -33,7 +38,7 @@ export default function PaperAnswerRecordsTable({ rows, showGrading }: PaperAnsw
 
   return (
     <div className={styles.root}>
-      <p className={styles.hint}>展開題目查看原作答、評語與申訴紀錄。</p>
+      <p className={styles.hint}>{hint}</p>
       <Table aria-label="各題作答紀錄" size="lg" className={styles.table}>
         <TableHead>
           <TableRow>
@@ -54,14 +59,16 @@ export default function PaperAnswerRecordsTable({ rows, showGrading }: PaperAnsw
                   aria-controls={detailId}
                   expandHeader={`${tableId}-expand`}
                   isExpanded={open}
+                  className={styles.row}
                   onExpand={() => toggleRow(row.id)}
                 >
-                  <TableCell>
+                  {/* Every cell toggles too, so the whole row expands on click. */}
+                  <TableCell onClick={() => toggleRow(row.id)}>
                     <span className={styles.question}>第 {row.label} 題</span>
                     <span className={styles.type}>{row.typeLabel}</span>
                   </TableCell>
-                  <TableCell className={styles.score}>{showGrading ? row.score : "未公布"}</TableCell>
-                  <TableCell><Tag type={row.tone} className={styles.status}>{row.status}</Tag></TableCell>
+                  <TableCell className={styles.score} onClick={() => toggleRow(row.id)}>{showGrading ? row.score : "未公布"}</TableCell>
+                  <TableCell onClick={() => toggleRow(row.id)}><Tag type={row.tone} className={styles.status}>{row.status}</Tag></TableCell>
                 </TableExpandRow>
                 {open && (
                   <TableRow id={detailId}>

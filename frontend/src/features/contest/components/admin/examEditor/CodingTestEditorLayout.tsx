@@ -37,6 +37,7 @@ import styles from "./ExamEditorLayout.module.scss";
 interface CodingTestEditorLayoutProps {
   contestId: string;
   contest: ContestDetail;
+  header: React.ReactNode;
 }
 
 const useCompactScreen = (query = "(max-width: 900px)") => {
@@ -89,6 +90,7 @@ const resolveInsertedContestProblemId = (
 const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   contestId,
   contest,
+  header,
 }) => {
   const { t } = useTranslation("contest");
   const { showToast } = useToast();
@@ -444,6 +446,8 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
       <AdminSplitLayout
         ref={editorPaneRef}
         toolbar={
+          <div className={styles.workbenchToolbar}>
+          {header}
           <PanelToolbar
             leftActions={(
               <Button
@@ -460,7 +464,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
                 onClick={() => setSidebarExpanded((prev) => !prev)}
               />
             )}
-            title={t("adminLayout.nav.problemManagement", "題目管理")}
             status={(
               <div className={styles.toolbarStatusGroup}>
                 <GlobalSaveStatus status={listSave.status} />
@@ -484,6 +487,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
               />
             }
           />
+          </div>
         }
         sidebar={(
           <CodingProblemListPanel

@@ -114,6 +114,14 @@ describe("ExamQuestionEditCard", () => {
     expect(optionPreview).toHaveAttribute("data-enable-math", "true");
   });
 
+  it.each(["short_answer", "essay"] as const)("hides answer format selection for %s and preserves legacy reference text", (questionType) => {
+    renderWithProviders(<ExamQuestionEditCard question={createQuestion({questionType, options: [], correctAnswer: "existing reference", explanation: "existing explanation"})} index={0} onAutoSave={vi.fn()} onDelete={vi.fn()} onDuplicate={vi.fn()}/>);
+    fireEvent.click(screen.getByTestId("exam-card-q1"));
+    expect(document.getElementById("eqc-answer-format-q1")).toBeNull();
+    expect(screen.getByDisplayValue("existing reference")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("existing explanation")).toBeInTheDocument();
+  });
+
   it("renders subjective reference answer and explanation through markdown math renderer", () => {
     renderWithProviders(
       <ExamQuestionEditCard

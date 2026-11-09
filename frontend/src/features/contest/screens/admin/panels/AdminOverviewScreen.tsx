@@ -5,13 +5,7 @@ import refreshStyles from "@/shared/ui/RefreshAnimation.module.scss";
 import ContestClarifications from "@/features/contest/components/ContestClarifications";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@carbon/react";
-import {
-  Download,
-  Launch,
-  QrCode,
-  Renew,
-  Scan,
-} from "@carbon/icons-react";
+import { Download, Launch, QrCode, Renew } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
@@ -22,28 +16,15 @@ import AdminQuestionStatsGallery from "@/features/contest/components/admin/stati
 import { useContestResultDashboard } from "@/features/contest/components/admin/statistics/useContestResultDashboard";
 import ContestSubmissionListScreen from "@/features/contest/screens/ContestSubmissionListScreen";
 import AdminStandingsScreen from "@/features/contest/screens/admin/panels/AdminStandingsScreen";
-import {
-  useAdminPanelRefresh,
-  useContest,
-  useContestAdmin,
-} from "@/features/contest/contexts";
+import { useAdminPanelRefresh, useContest, useContestAdmin } from "@/features/contest/contexts";
 import { getContestState } from "@/core/entities/contest.entity";
-import type {
-  AdminPanelId,
-  AdminPanelProps,
-  ContestSettingsSectionId,
-} from "@/features/contest/modules/types";
+import type { AdminPanelId, AdminPanelProps, ContestSettingsSectionId } from "@/features/contest/modules/types";
 import { useGradingData } from "@/features/contest/screens/settings/grading";
 import { updateContest } from "@/infrastructure/api/repositories";
 import { exportContestResults } from "@/infrastructure/api/repositories/contestExports.repository";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
-import {
-  buildAdminOverviewDashboard,
-  buildAdminPreparationOverview,
-  type DashboardText,
-  type PreparationItemKey,
-} from "./adminOverviewDashboard.model";
+import { buildAdminOverviewDashboard, buildAdminPreparationOverview, type DashboardText, type PreparationItemKey } from "./adminOverviewDashboard.model";
 import styles from "./AdminOverviewScreen.module.scss";
 import { useExamPublishWarning } from "@/features/contest/hooks/useExamPublishWarning";
 
@@ -84,7 +65,6 @@ export default function AdminOverviewScreen({
   const [publishingResults, setPublishingResults] = useState(false);
   const [publishingContest, setPublishingContest] = useState(false);
   const [resultRefreshKey, setResultRefreshKey] = useState(0);
-  const [studentQrScannerOpen, setStudentQrScannerOpen] = useState(false);
   const [announcementOpen, setAnnouncementOpen] = useState(false);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
 
@@ -95,13 +75,6 @@ export default function AdminOverviewScreen({
     return () => window.clearInterval(intervalId);
   }, []);
 
-  const contestInProgress = useMemo(() => {
-    if (!contest || contest.status !== "published") return false;
-    const startMs = new Date(contest.startTime).getTime();
-    const endMs = new Date(contest.endTime).getTime();
-    if (Number.isNaN(startMs) || Number.isNaN(endMs)) return false;
-    return currentTimeMs >= startMs && currentTimeMs < endMs;
-  }, [contest, currentTimeMs]);
   const isPreparationPhase = useMemo(() => {
     if (!contest) return false;
     if (contest.status === "draft") return true;
@@ -430,18 +403,6 @@ export default function AdminOverviewScreen({
               disabled={!contestHomePath}
               onClick={openContestHome}
             />
-            {!isPreparationPhase ? (
-              <Button
-                kind="ghost"
-                hasIconOnly
-                renderIcon={Scan}
-                iconDescription={t(
-                  "adminOverview.screen.actions.studentQrScan",
-                  "掃描學生 QR",
-                )}
-                onClick={() => setStudentQrScannerOpen(true)}
-              />
-            ) : null}
             <Button
               kind="ghost"
               hasIconOnly
@@ -508,13 +469,8 @@ export default function AdminOverviewScreen({
               data={dashboardData}
               adminLoading={adminInitialLoading}
               gradingLoading={gradingLoading}
-              contestId={contest.id}
               antiCheatEnabled={contest.cheatDetectionEnabled}
-              contestInProgress={contestInProgress}
-              onOpenPanel={openPanel}
               participants={participants}
-              studentQrScannerOpen={studentQrScannerOpen}
-              onStudentQrScannerOpenChange={setStudentQrScannerOpen}
               onOpenAnnouncement={
                 contest.permissions?.canManageClarifications
                   ? () => setAnnouncementOpen(true)
@@ -554,7 +510,7 @@ export default function AdminOverviewScreen({
               }
               clarificationsContent={
                 <>
-                {contest.contestType === "paper_exam" && <GradeAppealsPanel contestId={contest.id} />}
+                {contest.contestType === "paper_exam" && <GradeAppealsPanel key={contest.id} contestId={contest.id} refreshKey={resultRefreshKey} />}
                 <ContestClarifications
                   contestId={contest.id}
                   mode="manage"
