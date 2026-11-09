@@ -11,7 +11,8 @@ RUN for i in 1 2 3 4 5; do \
 
 # Install runtime dependencies from the single project manifest.
 COPY pyproject.toml .
-RUN pip install --no-cache-dir .
+RUN python -m pip install --no-cache-dir --upgrade "pip>=26.3,<27" "setuptools>=84.1,<85" && \
+    python -m pip install --no-cache-dir .
 
 # Copy application code
 COPY . .
