@@ -1,0 +1,15 @@
+<table class="problem-result-table" aria-label="{{ title }}">
+  <thead><tr>
+    <th scope="col">{{ headers.problem }}</th>
+    <th scope="col">{{ headers.score }}</th>
+    <th scope="col">{{ headers.ac }}</th>
+    <th scope="col">{{ headers.non_ac }}</th>
+    <th scope="col">{{ headers.result }}</th>
+  </tr></thead>
+  <tbody>{% for item in items %}<tr>
+    <th scope="row">{{ item.label }}</th>
+    <td>{{ item.score }} / {{ item.max_score }}</td>
+    <td>{{ item.ac_count }}</td><td>{{ item.wa_count }}</td>
+    <td class="problem-result-status result-{{ item.status_tone }}">{{ item.status_icon }}</td>
+  </tr>{% endfor %}</tbody>
+</table>

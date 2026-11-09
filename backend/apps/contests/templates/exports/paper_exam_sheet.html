@@ -33,6 +33,30 @@
     {% if not questions %}
     <p class="empty-notice">{{ labels.no_questions }}</p>
     {% else %}
+    {% if include_answers %}
+    <section class="answer-key-section">
+      <h3>{{ labels.answer_key }}</h3>
+      <p class="answer-key-note">{{ labels.answer_key_note }}</p>
+      <table class="answer-key-table">
+        <thead>
+          <tr>
+            <th>{{ labels.question_no }}</th>
+            <th>{{ labels.answer_col }}</th>
+            <th>{{ labels.score_col }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in answer_key %}
+          <tr>
+            <td>{{ row.number }}</td>
+            <td>{{ row.answer_text }}</td>
+            <td>{{ row.score }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endif %}
     <section class="question-list">
       {% for q in questions %}
       {% if q.group_heading %}<section class="question-group-block">{% endif %}
@@ -76,6 +100,7 @@
           <div class="answer-content">—</div>
           {% endif %}
         </div>
+        {% if q.explanation_html %}<div class="answer-box"><div class="answer-label">{{ labels.explanation }}</div><div class="answer-content markdown-content">{{ q.explanation_html|safe }}</div></div>{% endif %}
         {% elif q.show_choice_answer_bar %}
         <div class="choice-answer-bar">
           <div class="answer-label">{{ labels.answer }}（{{ labels.choice_marking_hint }}）</div>
@@ -99,30 +124,7 @@
       {% endfor %}
     </section>
 
-    {% if include_answers %}
-    <section class="answer-key-section">
-      <h3>{{ labels.answer_key }}</h3>
-      <p class="answer-key-note">{{ labels.answer_key_note }}</p>
-      <table class="answer-key-table">
-        <thead>
-          <tr>
-            <th>{{ labels.question_no }}</th>
-            <th>{{ labels.answer_col }}</th>
-            <th>{{ labels.score_col }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in answer_key %}
-          <tr>
-            <td>{{ row.number }}</td>
-            <td>{{ row.answer_text }}</td>
-            <td>{{ row.score }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </section>
-    {% endif %}
+
     {% endif %}
   </body>
 </html>

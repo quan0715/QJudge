@@ -1,0 +1,41 @@
+[
+  {
+    "document": "coding-student",
+    "pages": 15,
+    "outOfPageWords": 0
+  },
+  {
+    "document": "paper-proof",
+    "pages": 7,
+    "outOfPageWords": 0
+  },
+  {
+    "document": "paper-student",
+    "pages": 7,
+    "outOfPageWords": 0
+  },
+  {
+    "document": "teacher-coding-questions",
+    "pages": 44,
+    "outOfPageWords": 0
+  },
+  {
+    "document": "teacher-paper-answers",
+    "pages": 11,
+    "outOfPageWords": 0,
+    "answerExplanationLabelsAlignedWithContent": 40
+  },
+  {
+    "document": "teacher-paper-questions",
+    "pages": 6,
+    "outOfPageWords": 0
+  },
+  {
+    "document": "coding-result-table-long-synthetic",
+    "pages": 3,
+    "headerOnEveryPage": true,
+    "fixture": true,
+    "distinctStatusColors": 4,
+    "outOfPageWords": 0
+  }
+]

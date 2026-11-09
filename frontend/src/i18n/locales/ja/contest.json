@@ -2393,7 +2393,7 @@
       "overview": "概要",
       "questions": "問題",
       "announcements": "お知らせ",
-      "review": "解答チェック",
+      "review": "解答内容",
       "standings": "順位表"
     },
     "questionList": {
@@ -2444,7 +2444,7 @@
       "empty": "お知らせはありません"
     },
     "review": {
-      "title": "解答チェック",
+      "title": "解答内容",
       "codingSummary": "{{total}} 問中 {{answered}} 問正解。問題を展開すると提出履歴と結果を確認できます。",
       "paperSummary": "{{total}} 問中 {{answered}} 問解答済み。サーバーへの保存を示すものではありません。",
       "emptyTitle": "まだ解答を始めていません",
@@ -2455,11 +2455,13 @@
       "resume": "解答を続ける",
       "resumeLabel": "解答を続ける：{{title}}",
       "noSubmissions": "提出履歴はありません。テストまたは提出後に結果が表示されます。",
-      "recordsDescription": "解答記録、得点、採点コメントがここに表示されます。"
+      "recordsDescription": "解答記録、得点、採点コメントがここに表示されます。",
+      "published": "成績公開済み",
+      "unpublished": "成績未公開"
     },
     "standings": {
       "title": "順位表",
-      "description": "正解数と得点で並び、採点後に更新されます。",
+      "description": "得点、正解数、ペナルティ時間の順に並びます。",
       "refresh": "更新",
       "refreshing": "更新中",
       "loading": "順位表を読み込み中",

@@ -137,10 +137,10 @@ class StudentReportRenderer(BaseRenderer):
 
         context = {
             'cards': [
-                {'label': self.get_label('total_score'), 'value': total_score, 'max_value': max_score},
+                {'label': ('得分' if self.is_chinese else 'Score'), 'value': total_score, 'max_value': max_score},
                 {'label': self.get_label('solved'), 'value': solved, 'max_value': total_problems},
                 {'label': rank_label, 'value': f'#{rank}', 'max_value': total_participants},
-                {'label': self.get_label('submissions'), 'value': effective_ac_count, 'max_value': effective_submissions, 'sub_text': f'AC {ac_rate:.0f}%'},
+                {'label': self.get_label('submissions'), 'value': effective_ac_count, 'max_value': effective_submissions, 'sub_text': ('首次通過前的有效提交 · ' if self.is_chinese else 'Attempts through first AC · ') + f'AC {ac_rate:.0f}%'},
             ]
         }
 
@@ -173,6 +173,7 @@ class StudentReportRenderer(BaseRenderer):
                 'label': name,
                 'color': color,
                 'chart_svg': donut_svg,
+                'percentage': percentage,
                 'details': [
                     {'label': self.get_label('problems_label'), 'value': f'{solved}/{total}'},
                     {'label': self.get_label('score_label'), 'value': f'{user_score}/{max_score}'},
@@ -235,20 +236,16 @@ class StudentReportRenderer(BaseRenderer):
             # Status-based colors
             if status == 'AC':
                 status_icon = '✓'
-                row_bg = '#defbe6'
-                label_bg = '#24a148'
+                status_tone = 'success'
             elif score > 0 and score < max_score:
                 status_icon = '◐'
-                row_bg = '#fcf4d6'
-                label_bg = '#f1c21b'
+                status_tone = 'warning'
             elif ac_count > 0 or wa_count > 0:
                 status_icon = '✗'
-                row_bg = '#fff1f1'
-                label_bg = '#da1e28'
+                status_tone = 'danger'
             else:
                 status_icon = '—'
-                row_bg = '#f4f4f4'
-                label_bg = '#8d8d8d'
+                status_tone = 'neutral'
 
             grid_items.append({
                 'label': problem.label,
@@ -257,14 +254,19 @@ class StudentReportRenderer(BaseRenderer):
                 'ac_count': ac_count,
                 'wa_count': wa_count,
                 'status_icon': status_icon,
-                'row_bg': row_bg,
-                'label_bg': label_bg,
+                'status_tone': status_tone,
             })
 
         # Split into 2 columns
         mid = (len(grid_items) + 1) // 2
         context = {
             'title': self.get_label('problem_status'),
+            'headers': {
+                'problem': '題號' if self.is_chinese else 'Problem',
+                'score': '得分 / 配分' if self.is_chinese else 'Score / max',
+                'ac': 'AC', 'non_ac': '非 AC' if self.is_chinese else 'Non-AC',
+                'result': '結果' if self.is_chinese else 'Result',
+            },
             'column1': grid_items[:mid],
             'column2': grid_items[mid:],
         }
@@ -278,7 +280,7 @@ class StudentReportRenderer(BaseRenderer):
 
         context = {
             'scatter_title': self.get_label('submission_timeline'),
-            'cumulative_title': self.get_label('cumulative_solved'),
+            'cumulative_title': self.get_label('cumulative_score'),
             'scatter_svg': self._generate_scatter_chart_svg(submissions, contest_problems),
             'cumulative_svg': self._generate_cumulative_chart_svg(submissions),
         }
@@ -458,92 +460,44 @@ class StudentReportRenderer(BaseRenderer):
         return render_to_string('exports/components/scatter_chart.svg', context)
 
     def _generate_cumulative_chart_svg(self, submissions: List[SubmissionDTO]) -> str:
-        """Generate SVG line chart showing cumulative solved problems over time."""
+        """Single-axis best-score staircase, using the standings scoring rules."""
         if not submissions:
             return self._empty_chart_svg(self.get_label('no_submissions'))
-
         scale = self.scale
-        width = 700 * scale
-        height = 220 * scale
-        padding_left = 50 * scale
-        padding_right = 50 * scale
-        padding_top = 20 * scale
-        padding_bottom = 60 * scale
-        chart_width = width - padding_left - padding_right
-        chart_height = height - padding_top - padding_bottom
-        chart_bottom = height - padding_bottom
-
-        # Get problem scores and calculate cumulative AC
-        contest_problems = self.data_service.get_contest_problems()
-        problem_scores = {cp.problem_id: cp.max_score for cp in contest_problems}
-        start_time = self.contest.start_time or self.contest.created_at
-        end_time = self.contest.end_time or timezone.now()
-        time_range = (end_time - start_time).total_seconds() or 3600
-
-        ac_problems = set()
-        cumulative_score = 0
-        solved_points = [(0, 0)]
-        score_points = [(0, 0)]
-
-        for sub in submissions:
-            if sub.status == 'AC' and sub.problem_id not in ac_problems:
-                ac_problems.add(sub.problem_id)
-                cumulative_score += problem_scores.get(sub.problem_id, 0)
-                ratio = min((sub.created_at - start_time).total_seconds() / time_range, 1.0)
-                solved_points.append((ratio, len(ac_problems)))
-                score_points.append((ratio, cumulative_score))
-
-        solved_points.append((1.0, len(ac_problems)))
-        score_points.append((1.0, cumulative_score))
-        max_solved = max(p[1] for p in solved_points) or 1
-        max_score = max(p[1] for p in score_points) or 1
-
-        # Build grid lines and labels
-        h_grid_lines = [{'y': padding_top + (chart_height * i / 4)} for i in range(5)]
-
-        time_markers = []
-        for i in range(5):
-            x = padding_left + (i / 4) * chart_width
-            time_minutes = int((time_range / 60) * (i / 4))
-            time_markers.append({
-                'x': x,
-                'label': f"{time_minutes // 60}:{time_minutes % 60:02d}",
-                'label_y': chart_bottom + 15 * scale,
-            })
-
-        left_labels = [{'x': padding_left - 8 * scale, 'y': padding_top + (chart_height * i / 4) + 4 * scale, 'value': int(max_solved * (4 - i) / 4)} for i in range(5)]
-        right_labels = [{'x': width - padding_right + 8 * scale, 'y': padding_top + (chart_height * i / 4) + 4 * scale, 'value': int(max_score * (4 - i) / 4)} for i in range(5)]
-
-        # Generate paths
-        def make_path_points(points, max_val):
-            return [f"{padding_left + r * chart_width},{chart_bottom - (v / max_val) * chart_height}" for r, v in points]
-
-        solved_pts = make_path_points(solved_points, max_solved)
-        score_pts = make_path_points(score_points, max_score)
-
-        context = {
-            'width': width, 'height': height,
-            'padding_left': padding_left, 'padding_top': padding_top,
-            'chart_right': width - padding_right, 'chart_bottom': chart_bottom,
-            'font_size_small': 10 * scale,
-            'h_grid_lines': h_grid_lines, 'time_markers': time_markers,
-            'left_labels': left_labels, 'right_labels': right_labels,
-            'x_axis_label': self.get_label('time_axis_label'),
-            'x_axis_label_x': padding_left + chart_width / 2,
-            'x_axis_label_y': height - 5 * scale,
-            'solved_area_path': f"M{padding_left},{chart_bottom} L" + " L".join(solved_pts) + f" L{width - padding_right},{chart_bottom} Z" if len(solved_pts) > 1 else '',
-            'solved_line_path': "M" + " L".join(solved_pts) if len(solved_pts) > 1 else '',
-            'score_area_path': f"M{padding_left},{chart_bottom} L" + " L".join(score_pts) + f" L{width - padding_right},{chart_bottom} Z" if len(score_pts) > 1 else '',
-            'score_line_path': "M" + " L".join(score_pts) if len(score_pts) > 1 else '',
-            'line_width': 2 * scale, 'line_width_thick': 2.5 * scale,
-            'legend_y': height - 38 * scale, 'legend_text_y': height - 35 * scale,
-            'legend_rect_width': 12 * scale, 'legend_rect_height': 3 * scale,
-            'legend_solved_x': padding_left, 'legend_solved_text_x': padding_left + 16 * scale,
-            'legend_score_x': padding_left + 80 * scale, 'legend_score_text_x': padding_left + 96 * scale,
-            'solved_label': self.get_label('solved'),
-            'score_label': self.get_label('cumulative_score'),
-        }
-        return render_to_string('exports/components/cumulative_chart.svg', context)
+        width, height = 700 * scale, 240 * scale
+        left, right, top, bottom = 50 * scale, 670 * scale, 20 * scale, 190 * scale
+        problem_scores = {cp.problem_id: cp.max_score for cp in self.data_service.get_contest_problems()}
+        start = self.contest.start_time or self.contest.created_at
+        end = self.contest.end_time or timezone.now()
+        duration = max((end - start).total_seconds(), 1)
+        best, accepted = {}, set()
+        points = [(0, 0)]
+        total = 0
+        for sub in sorted(submissions, key=lambda s: s.created_at):
+            pid = sub.problem_id
+            if pid not in problem_scores or pid in accepted or sub.status in ('SE', 'pending', 'judging'):
+                continue
+            value = problem_scores[pid] if sub.status == 'AC' else (sub.score or 0)
+            if sub.status == 'AC':
+                accepted.add(pid)
+            previous = best.get(pid, 0)
+            if value > previous or sub.status == 'AC':
+                ratio = max(0, min((sub.created_at - start).total_seconds() / duration, 1))
+                points.append((ratio, total))
+                total += value - previous
+                best[pid] = value
+                points.append((ratio, total))
+        points.append((1, total))
+        maximum = max(sum(problem_scores.values()), max(value for _, value in points), 1)
+        path = 'M' + ' L'.join(f'{left + x * (right-left)},{bottom - value / maximum * (bottom-top)}' for x, value in points)
+        return render_to_string('exports/components/cumulative_chart.svg', {
+            'width': width, 'height': height, 'left': left, 'right': right, 'top': top, 'bottom': bottom,
+            'path': path, 'final_score': total, 'solved': len(accepted), 'font_size': 11 * scale,
+            'grid': [{'y': top + (bottom-top)*i/4, 'value': round(maximum*(4-i)/4), 'label_x': left-8*scale} for i in range(5)],
+            'ticks': [{'x': left+(right-left)*i/4, 'y': bottom+18*scale, 'value': f'{int(duration*i/240)//60}:{int(duration*i/240)%60:02d}'} for i in range(5)],
+            'axis_y': height-5*scale, 'axis_x': (left+right)/2,
+            'score_label': self.get_label('cumulative_score'), 'time_label': self.get_label('time_axis_label'),
+        })
 
     def _empty_chart_svg(self, message: str) -> str:
         """Generate placeholder SVG when no data available."""

@@ -2393,7 +2393,7 @@
       "overview": "개요",
       "questions": "문제",
       "announcements": "공지",
-      "review": "답안 점검",
+      "review": "답안 내용",
       "standings": "순위표"
     },
     "questionList": {
@@ -2444,7 +2444,7 @@
       "empty": "공지가 없습니다"
     },
     "review": {
-      "title": "답안 점검",
+      "title": "답안 내용",
       "codingSummary": "{{total}}문제 중 {{answered}}문제 정답. 문제를 펼치면 제출 기록과 결과를 볼 수 있습니다.",
       "paperSummary": "{{total}}문제 중 {{answered}}문제 답변. 서버 저장 여부를 뜻하지 않습니다.",
       "emptyTitle": "아직 답안 작성 전입니다",
@@ -2455,11 +2455,13 @@
       "resume": "계속 풀기",
       "resumeLabel": "계속 풀기: {{title}}",
       "noSubmissions": "제출 기록이 없습니다. 테스트나 제출 후 결과가 표시됩니다.",
-      "recordsDescription": "답안 기록, 점수, 채점 피드백이 여기에 표시됩니다."
+      "recordsDescription": "답안 기록, 점수, 채점 피드백이 여기에 표시됩니다.",
+      "published": "성적 공개",
+      "unpublished": "성적 미공개"
     },
     "standings": {
       "title": "순위표",
-      "description": "정답 수와 점수로 정렬되며 채점 후 갱신됩니다.",
+      "description": "점수, 통과 문제 수, 페널티 시간 순으로 정렬합니다.",
       "refresh": "새로고침",
       "refreshing": "새로고침 중",
       "loading": "순위표 불러오는 중",

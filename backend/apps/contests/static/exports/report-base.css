@@ -403,3 +403,24 @@ aside.success {
 .page-break {
   page-break-after: always;
 }
+
+/* Exam document hierarchy. Dividers separate content without nesting cards. */
+@page {
+  @top-left { content: string(exam-name); font-size: 9px; color: #555c66; }
+  @bottom-center { content: counter(page) " / " counter(pages); font-size: 9px; color: #555c66; }
+}
+h1 { string-set: exam-name content(); font-size: 24px; font-weight: 600; border-bottom: 1px solid #e4e6ea; color: #1d2127; }
+h2 { font-size: 17px; } h3 { font-size: 14px; }
+pre, .highlight { background: transparent; border: 0; border-radius: 0; }
+pre { overflow-wrap: anywhere; white-space: pre-wrap; }
+img, svg { max-width: 100%; }
+thead { display: table-header-group; }
+tr { break-inside: avoid; }
+.container-card { border: 0; border-radius: 0; break-inside: auto; page-break-inside: auto; margin-bottom: 24px; }
+.container-card-header { background: transparent; border-bottom: 1px solid #e4e6ea; padding: 12px 0; }
+.container-card-body { background: transparent; padding: 12px 0; }
+.sample-case { border: 0; border-radius: 0; border-top: 1px solid #e4e6ea; }
+.sample-case-header { background: transparent; padding: 8px 0; }
+.sample-case-column { padding: 12px; }
+.problem-header { border-left: 0; border-bottom: 1px solid #e4e6ea; padding-left: 0; }
+.problem-body { padding-left: 0; }

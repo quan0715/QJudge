@@ -828,6 +828,10 @@ export default function StudentContestDashboard({
   // Records and results live on the workspace review page; standalone renders keep them inline.
   const recordsSection = (
     <section className={styles.records} aria-label={t("studentDashboard.tabs.records", "作答紀錄")}>
+      {reviewSlot && <dl className={styles.recordSummary}>
+        <div><dt>{t("workspace.report.title", "作答情況")}</dt><dd>{resultItems.filter(item => item.answered).length} / {resultItems.length}</dd></div>
+        <div><dt>{t("workspace.standings.score", "分數")}</dt><dd>{contest.resultsPublished ? scoreDisplay : t("workspace.review.unpublished", "成績未公布")}</dd></div>
+      </dl>}
       {!reviewSlot && <BlockHeader
         titleAs="h3"
         title={
@@ -842,9 +846,15 @@ export default function StudentContestDashboard({
     </section>
   );
 
+  // Review actions remain owned here while the overview is hidden by the shell.
+  // Keep their dialogs in the visible review slot with the same Carbon theme.
+  const renderReviewDialog = (dialog: ReactNode) => reviewSlot?.target
+    ? createPortal(dialog, reviewSlot.target)
+    : dialog;
+
   return (
     <>
-    {appealEnabled && appealTarget && <GradeAppealDialog key={appealTarget.answerId} contestId={contest.id} answerId={appealTarget.answerId} appealId={appealTarget.appealId} questionPrompt={appealTarget.prompt} questionLabel={appealTarget.label} managing={false} onClose={() => { setAppealTarget(null); setPaperReloadKey(k => k + 1); }} onChanged={() => void refreshAppeals()} />}
+    {appealEnabled && appealTarget && renderReviewDialog(<GradeAppealDialog key={appealTarget.answerId} contestId={contest.id} answerId={appealTarget.answerId} appealId={appealTarget.appealId} questionPrompt={appealTarget.prompt} questionLabel={appealTarget.label} managing={false} onClose={() => { setAppealTarget(null); setPaperReloadKey(k => k + 1); }} onChanged={() => void refreshAppeals()} />)}
     <ExamOverviewLayout
       ariaLabel={t("studentDashboard.ariaLabel", "學生競賽首頁")}
       title={contest.name}
@@ -890,6 +900,7 @@ export default function StudentContestDashboard({
       details={reviewSlot ? undefined : recordsSection}
     />
     {reviewSlot?.target ? createPortal(recordsSection, reviewSlot.target) : null}
+    {reviewSlot?.actionsTarget ? createPortal(renderReportAction(), reviewSlot.actionsTarget) : null}
 
       <MobileActionFooter>
         {buildActionSetItems().map((item) => (
@@ -912,7 +923,7 @@ export default function StudentContestDashboard({
         <HandInCheck tiles={resultTiles} />
       </Modal>
 
-      <Modal
+      {renderReviewDialog(<Modal
         open={showReportModal}
         modalHeading={reportDownloadLabel}
         primaryButtonText={
@@ -962,7 +973,7 @@ export default function StudentContestDashboard({
             />
           ) : null}
         </div>
-      </Modal>
+      </Modal>)}
 
       <Modal
         open={showStudentQrModal}

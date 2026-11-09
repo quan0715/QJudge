@@ -127,7 +127,7 @@ export default function PaperQuestionReportCard({
           explanation={showGrading ? explanation : null}
           referenceAnswerDocument={showGrading ? referenceAnswerDocument : null}
           explanationDocument={showGrading ? explanationDocument : null}
-          showCorrectness={showGrading}
+          showCorrectness={showGrading && correctAnswer != null}
         />
         </div>
         {showGrading && feedback?.trim() ? (

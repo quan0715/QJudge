@@ -2784,7 +2784,7 @@
       "overview": "Overview",
       "questions": "Questions",
       "announcements": "Announcements",
-      "review": "Review answers",
+      "review": "Answer content",
       "standings": "Standings"
     },
     "questionList": {
@@ -2838,7 +2838,7 @@
       "empty": "No announcements yet"
     },
     "review": {
-      "title": "Review answers",
+      "title": "Answer content",
       "codingSummary": "{{answered}} of {{total}} accepted. Expand a problem to see its submissions and results.",
       "paperSummary": "{{answered}} of {{total}} answered. Answered does not mean saved on the server.",
       "emptyTitle": "Not answering yet",
@@ -2850,11 +2850,13 @@
       "resume": "Continue",
       "resumeLabel": "Continue: {{title}}",
       "noSubmissions": "No submissions yet. Results appear here after you test or submit.",
-      "recordsDescription": "Your answer records, scores and feedback appear here."
+      "recordsDescription": "Your answer records, scores and feedback appear here.",
+      "published": "Results published",
+      "unpublished": "Results unpublished"
     },
     "standings": {
       "title": "Standings",
-      "description": "Ranked by problems solved and score; updated after judging.",
+      "description": "Ranked by score, solved problems, then penalty time.",
       "refresh": "Refresh",
       "refreshing": "Refreshing",
       "loading": "Loading standings",
