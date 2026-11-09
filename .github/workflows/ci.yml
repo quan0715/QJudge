@@ -47,7 +47,7 @@ jobs:
   # ============================================
   static-checks:
     name: Static Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
@@ -99,7 +99,7 @@ jobs:
   # ============================================
   frontend-unit:
     name: Frontend Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     steps:
@@ -148,7 +148,7 @@ jobs:
   # ============================================
   integration-tests:
     name: Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
       contents: read
@@ -222,7 +222,7 @@ jobs:
   # ============================================
   backend-unit:
     name: Backend Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     services:
@@ -296,7 +296,7 @@ jobs:
 
   mcp-server-unit:
     name: MCP Server Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     steps:
@@ -320,7 +320,7 @@ jobs:
 
   ai-service-unit:
     name: AI Service Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
       postgres:
@@ -365,7 +365,7 @@ jobs:
 
   integrity-service-unit:
     name: Integrity Service Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -395,7 +395,7 @@ jobs:
   # ============================================
   judge:
     name: Judge Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
       contents: read

@@ -37,7 +37,7 @@ jobs:
   e2e-auth:
     name: "E2E: Auth & Pending Actions"
     if: github.event_name != 'workflow_dispatch' || inputs.group == 'all' || inputs.group == 'auth'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
       contents: read
@@ -79,7 +79,7 @@ jobs:
   e2e-exam:
     name: "E2E: Exam"
     if: github.event_name != 'workflow_dispatch' || inputs.group == 'all' || inputs.group == 'exam'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
       contents: read
@@ -121,7 +121,7 @@ jobs:
   e2e-contest:
     name: "E2E: Contest"
     if: github.event_name != 'workflow_dispatch' || inputs.group == 'all' || inputs.group == 'contest'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
       contents: read
