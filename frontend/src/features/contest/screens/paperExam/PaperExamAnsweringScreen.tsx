@@ -163,13 +163,21 @@ const PaperExamAnsweringScreen: React.FC = () => {
   );
 
   const handleActiveIndexChange = useCallback(
-    (prevIndex: number) => {
+    (prevIndex: number, nextIndex: number) => {
       const prevItem = items[prevIndex];
       if (prevItem?.kind === "question") {
         void saveIfDirty(prevItem.data.id);
       }
+      const nextItem = items[nextIndex];
+      if (nextItem?.kind === "question" && searchParams.get("q") !== nextItem.data.id) {
+        setSearchParams((params) => {
+          const next = new URLSearchParams(params);
+          next.set("q", nextItem.data.id);
+          return next;
+        }, { replace: true });
+      }
     },
-    [items, saveIfDirty],
+    [items, saveIfDirty, searchParams, setSearchParams],
   );
 
   const hasLoggedExamEntryRef = useRef(false);
