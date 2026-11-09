@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/var/cache/apt/archives,sharing=locked \
 ARG DJANGO_ENV=production
 COPY requirements/base.txt requirements/prod.txt requirements/dev.txt ./requirements/
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --upgrade pip && \
+    python -m pip install --upgrade "pip>=26.3,<27" "setuptools>=84.1,<85" && \
     if [ "$DJANGO_ENV" = "development" ]; then \
         pip install -r requirements/dev.txt; \
     else \
