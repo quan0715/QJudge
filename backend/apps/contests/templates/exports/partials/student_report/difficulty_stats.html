@@ -1,21 +1,3 @@
-<div class="container-card">
-  <div class="container-card-header">{{ title }}</div>
-  <div class="container-card-body">
-    <div class="donut-container">
-      {% for item in items %}
-      <div class="donut-item">
-        <div class="donut-label">{{ item.label }}</div>
-        <div class="donut-chart">{{ item.chart_svg|safe }}</div>
-        <div class="donut-details">
-          {% for detail in item.details %}
-          <div class="donut-detail-row">
-            <span class="donut-detail-label">{{ detail.label }}:</span>
-            <span class="donut-detail-value">{{ detail.value }}</span>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</div>
+<section class="difficulty-section"><h2>{{ title }}</h2><div class="difficulty-row">
+{% for item in items %}<div class="difficulty-item"><h3>{{ item.label }}</h3><div class="difficulty-track"><div style="width: {{ item.percentage }}%"></div></div>{% for detail in item.details %}<p>{{ detail.label }} <strong>{{ detail.value }}</strong></p>{% endfor %}</div>{% endfor %}
+</div></section>

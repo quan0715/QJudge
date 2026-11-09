@@ -358,3 +358,30 @@
   color: #8d8d8d;
   font-size: 14px;
 }
+
+/* Flat exam report: numeric columns use dividers; code flows over pages. */
+.container-card { border: 0; border-radius: 0; overflow: visible; margin-bottom: 24px; }
+.container-card-header { background: transparent; padding: 12px 0; border-bottom: 1px solid #e4e6ea; }
+.container-card-body { padding: 12px 0; }
+.score-cards { border-block: 1px solid #e4e6ea; border-spacing: 0; margin: 20px 0 28px; }
+.score-card { background: transparent; border-radius: 0; padding: 14px; text-align: left; border-right: 1px solid #e4e6ea; }
+.score-card:last-child { border-right: 0; }
+.score-card-value { font-size: 24px; }
+.score-card:first-child .score-card-value { color: #d42b2b; font-family: Georgia, serif; font-style: italic; }
+.score-card-sub { color: #555c66; font-weight: 400; font-size: 10px; }
+.difficulty-row { display: table; width: 100%; table-layout: fixed; }
+.difficulty-item { display: table-cell; padding: 0 16px; border-right: 1px solid #e4e6ea; }
+.difficulty-item:first-child { padding-left: 0; }
+.difficulty-item:last-child { border: 0; }
+.difficulty-item p { margin: 6px 0; font-size: 12px; }
+.difficulty-track { height: 3px; background: #e4e6ea; }
+.difficulty-track > div { height: 3px; background: #555c66; }
+.problem-detail-card { border: 0; border-radius: 0; margin: 20px 0; break-inside: auto; }
+.problem-detail-header { background: transparent; border-bottom: 1px solid #e4e6ea; padding: 12px 0; break-after: avoid; }
+.problem-detail-body { padding: 12px 0; }
+.problem-label { background: transparent; color: #1d2127; }
+.highlight { background: transparent; border: 0; padding: 0; }
+
+.problem-grid-row { background: transparent; border-radius: 0; border-bottom: 1px solid #e4e6ea; }
+.problem-grid-label { background: transparent; color: #1d2127; }
+.problem-grid-stats .stat-ac, .problem-grid-stats .stat-wa { color: #555c66; }

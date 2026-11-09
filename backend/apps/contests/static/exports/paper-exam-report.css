@@ -454,3 +454,10 @@
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+
+/* Keep earned scores neutral; only the total has the teacher's red pen. */
+.question-earned { color: #1d2127; font-weight: 600; }
+.score-value { color: #d42b2b; font-family: Georgia, serif; font-size: 26px; font-style: italic; }
+.answer-block, .feedback-block { display: table; width: 100%; background: transparent; border: 0; border-top: 1px solid #e4e6ea; padding: 12px 0; }
+.answer-block-label, .feedback-label { display: table-cell; width: 82px; padding-right: 16px; vertical-align: top; color: #555c66; }
+.answer-block-content, .feedback-content { display: table-cell; vertical-align: top; overflow-wrap: anywhere; }

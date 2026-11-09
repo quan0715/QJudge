@@ -1,0 +1,17 @@
+.summary { display: flex; flex-wrap: wrap; margin: 0 0 24px; padding: 20px 0; border-block: 1px solid var(--ex-border); }
+.summary > div { padding: 0 28px; border-inline-start: 1px solid var(--ex-border); }
+.summary > div:first-child { padding-inline-start: 0; border: 0; }
+.summary dt { color: var(--ex-text-secondary); font-size: 12px; }
+.summary dd { margin: 6px 0 0; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; max-width: 100%; }
+.scroll:focus-visible { outline: 2px solid var(--ex-focus); outline-offset: -2px; }
+.table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.table th, .table td { padding: 12px 10px; border-bottom: 1px solid var(--ex-border); text-align: center; white-space: nowrap; }
+.table thead th { color: var(--ex-text-secondary); font-size: 12px; font-weight: 400; }
+.table tbody th { text-align: start; font-weight: 400; }
+.table tr[aria-current="true"] { background: var(--ex-surface-muted); }
+.cell { display: inline-flex; min-width: 48px; min-height: 34px; padding: 4px 8px; flex-direction: column; align-items: center; justify-content: center; border-radius: 6px; }
+.cell small { font-size: 10px; }
+.cell[data-tone="success"] { background: var(--ex-success-soft); color: var(--ex-success); }
+.cell[data-tone="warning"] { background: var(--ex-warning-soft); color: var(--ex-warning); }
+.cell[data-tone="danger"] { background: var(--ex-danger-soft); color: var(--ex-danger); }

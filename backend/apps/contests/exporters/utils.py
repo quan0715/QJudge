@@ -142,6 +142,7 @@ def highlight_code(code: str, language: str = 'cpp') -> str:
         # Custom Carbon-style formatter - use inline line numbers for compact display
         formatter = HtmlFormatter(
             style='default',
+            nobackground=True,
             noclasses=True,
             linenos='inline',  # Inline line numbers instead of table
             linenostart=1,
@@ -208,3 +209,24 @@ def render_pdf(html: str) -> BytesIO:
 def scale_css_pixels(css: str, scale: float) -> str:
     """Scale pixel values while retaining the other CSS units."""
     return re.sub(r'(\d+(?:\.\d+)?)px', lambda match: f"{float(match[1]) * scale}px", css)
+
+
+def render_open_answer_document(document: dict) -> str:
+    """Print validated document paragraphs without interpreting text as Markdown.
+
+    The PDF renderer preserves formula source as code, matching the existing
+    Markdown PDF fallback (browser-side KaTeX is not available in WeasyPrint).
+    """
+    from html import escape
+    from apps.contests.services.open_answer_document import validate_open_answer_document
+    validated = validate_open_answer_document(document)
+    paragraphs = []
+    for node in validated['nodes']:
+        parts = []
+        for child in node['children']:
+            if child['type'] == 'math':
+                parts.append('<code class="formula-source">' + escape(child['latex']) + '</code>')
+            else:
+                parts.append(escape(child.get('text', '')).replace('\n', '<br>'))
+        paragraphs.append('<p>' + ''.join(parts) + '</p>')
+    return ''.join(paragraphs)

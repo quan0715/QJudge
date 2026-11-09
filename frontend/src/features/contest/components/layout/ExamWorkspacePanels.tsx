@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from "react";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
+import StudentStandingsTable from "../exam/StudentStandingsTable";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -40,11 +42,11 @@ export function ExamWorkspacePanels({ page, onQuestion, onResume, hasRecords = f
 
 /* ---------- shared page parts ---------- */
 
-function PageHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
+function PageHeader({ title, description, actions, status }: { title: string; description?: ReactNode; actions?: ReactNode; status?: ReactNode }) {
   return (
     <header className={styles.pageHeader}>
       <div>
-        <h2 className={styles.pageTitle}>{title}</h2>
+        <div className={styles.pageTitleRow}><h2 className={styles.pageTitle}>{title}</h2>{status}</div>
         {description && <p className={styles.pageDescription}>{description}</p>}
       </div>
       {actions && <div className={styles.pageActions}>{actions}</div>}
@@ -173,7 +175,8 @@ function ReviewPanel({ contest, onQuestion, hasRecords, recordsRef }: ReviewPane
   return (
     <>
       <PageHeader
-        title={t("workspace.review.title", "作答檢查")}
+        title={t("workspace.review.title", "作答內容")}
+        status={<StatusPill tone={contest.resultsPublished ? "success" : "neutral"}>{contest.resultsPublished ? t("workspace.review.published", "成績已公布") : t("workspace.review.unpublished", "成績未公布")}</StatusPill>}
         description={items.length ? summary : hasRecords ? t("workspace.review.recordsDescription", "作答紀錄、成績與批改回饋會顯示在這裡。") : undefined}
       />
       {!items.length ? (hasRecords ? null :
@@ -254,6 +257,7 @@ function ReviewPanel({ contest, onQuestion, hasRecords, recordsRef }: ReviewPane
 /* ---------- standings ---------- */
 
 function StandingsPanel({ contest }: { contest: ContestDetail }) {
+  const { user } = useAuth();
   const { t } = useTranslation("contest");
   const standings = useQuery({
     queryKey: ["examWorkspaceStandings", contest.id],
@@ -276,28 +280,7 @@ function StandingsPanel({ contest }: { contest: ContestDetail }) {
       ) : !rows.length ? (
         <PageState kind="empty" title={t("workspace.standings.empty", "目前沒有排名資料")} description={t("workspace.standings.emptyDescription", "有人通過評測後就會出現在這裡。")} />
       ) : (
-        <div className={styles.tableFrame}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th scope="col">{t("workspace.standings.rank", "名次")}</th>
-                <th scope="col">{t("workspace.standings.student", "學生")}</th>
-                <th scope="col" data-numeric>{t("workspace.standings.solved", "通過")}</th>
-                <th scope="col" data-numeric>{t("workspace.standings.score", "分數")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.userId}>
-                  <td><span className={styles.rank} data-top={row.rank <= 3}>{row.rank}</span></td>
-                  <td>{row.displayName}</td>
-                  <td data-numeric>{row.solvedCount}</td>
-                  <td data-numeric>{formatScore(row.totalScore)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <StudentStandingsTable data={standings.data!} currentUserId={user ? String(user.id) : undefined} />
       )}
     </>
   );

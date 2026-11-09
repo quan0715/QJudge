@@ -449,3 +449,13 @@ def test_group_header_precedes_children_once(paper_exam_contest, include_answers
     assert html.count('class="question-item grouped-question"') == 3
     assert ">3.</span>" in html
     assert html.count("Second group") == 1
+
+
+@pytest.mark.django_db
+def test_only_teacher_answer_sheet_contains_explanation(paper_exam_contest):
+    ExamQuestion.objects.create(contest=paper_exam_contest, order=0, question_type="essay", prompt="說明概念", score=10, correct_answer="參考作答", explanation="僅教師可見的完整詳解")
+    answer_html = PaperExamSheetRenderer(paper_exam_contest, include_answers=True).render_html()
+    question_html = PaperExamSheetRenderer(paper_exam_contest, include_answers=False).render_html()
+    assert "僅教師可見的完整詳解" in answer_html
+    assert "僅教師可見的完整詳解" not in question_html
+    assert "參考作答" not in question_html

@@ -2784,7 +2784,7 @@
       "overview": "考試概覽",
       "questions": "題目",
       "announcements": "公告",
-      "review": "作答檢查",
+      "review": "作答內容",
       "standings": "排行榜"
     },
     "questionList": {
@@ -2835,7 +2835,7 @@
       "empty": "目前沒有公告"
     },
     "review": {
-      "title": "作答檢查",
+      "title": "作答內容",
       "codingSummary": "已通過 {{answered}} / {{total}} 題。展開題目可查看歷次提交與評測結果。",
       "paperSummary": "已作答 {{answered}} / {{total}} 題。作答狀態不代表伺服器已儲存。",
       "emptyTitle": "尚未進入作答",
@@ -2846,11 +2846,13 @@
       "resume": "繼續作答",
       "resumeLabel": "繼續作答：{{title}}",
       "noSubmissions": "尚無提交紀錄。測試或繳交後，評測結果會顯示在這裡。",
-      "recordsDescription": "作答紀錄、成績與批改回饋會顯示在這裡。"
+      "recordsDescription": "作答紀錄、成績與批改回饋會顯示在這裡。",
+      "published": "成績已公布",
+      "unpublished": "成績未公布"
     },
     "standings": {
       "title": "排行榜",
-      "description": "依通過題數與分數排序，評測完成後更新。",
+      "description": "依總分、通過題數與罰時排序，評測完成後更新。",
       "refresh": "更新",
       "refreshing": "更新中",
       "loading": "載入排行榜",

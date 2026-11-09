@@ -1,0 +1,56 @@
+[
+  {
+    "mode": "desktop",
+    "name": "paper",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "mode": "desktop",
+    "name": "unpublished",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "mode": "desktop",
+    "name": "coding",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "mode": "phone",
+    "name": "paper",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "mode": "phone",
+    "name": "unpublished",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "mode": "phone",
+    "name": "coding",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "mode": "dark",
+    "name": "paper",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "mode": "dark",
+    "name": "unpublished",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "mode": "dark",
+    "name": "coding",
+    "overflow": false,
+    "errors": []
+  }
+]

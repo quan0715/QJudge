@@ -243,3 +243,17 @@ p, li {
 .answer-key-table th:last-child {
   text-align: right;
 }
+
+/* Align teacher downloads with the exam document hierarchy. */
+@page { @bottom-center { content: counter(page) " / " counter(pages); } }
+body { font-size: 14px; line-height: 1.6; }
+.paper-header { text-align: left; margin-bottom: 20px; }
+.paper-title { font-size: 24px; }
+.question-item { break-inside: avoid; page-break-inside: avoid; padding-top: 16px; border-top: 1px solid #e4e6ea; }
+.question-group-block { break-inside: auto; }
+.question-group-heading { break-after: avoid; }
+.question-headline { break-after: avoid; }
+.answer-box { display: table; width: 100%; background: transparent; border: 0; padding: 12px 0; border-top: 1px solid #e4e6ea; }
+.answer-box > .answer-label { display: table-cell; width: 72px; vertical-align: top; padding-right: 16px; color: #555c66; }
+.answer-box > .answer-content { display: table-cell; overflow-wrap: anywhere; }
+.answer-key-section { break-before: auto; page-break-before: auto; break-after: page; }

@@ -18,7 +18,7 @@ from django.template.loader import render_to_string
 from apps.contests.models import ExamQuestion
 
 from .base import BaseRenderer
-from ..utils import render_pdf, inline_markdown, render_markdown
+from ..utils import render_pdf, inline_markdown, render_markdown, render_open_answer_document
 
 
 class PaperExamSheetRenderer(BaseRenderer):
@@ -45,6 +45,7 @@ class PaperExamSheetRenderer(BaseRenderer):
     def render_html(self) -> str:
         from apps.contests.services.exam_scoring import ExamScoringService
         from apps.contests.services.paper_question_labels import build_paper_question_labels
+        from apps.contests.services.open_answer_document import serialize_open_answer_document
         questions = list(
             ExamQuestion.objects.filter(contest=self.contest).select_related("group").order_by("order", "id")
         )
@@ -72,8 +73,13 @@ class PaperExamSheetRenderer(BaseRenderer):
                     "score": self._fmt_score(sum(child.score for child in questions[idx - 1:last])),
                     "stem_html": render_markdown(q.group.shared_stem_markdown, soft_breaks=False),
                 }
-            answer_text_raw = self._format_answer(q)
+            answer_text_raw = (serialize_open_answer_document(q.reference_answer_document).plain_text
+                               if q.reference_answer_document else self._format_answer(q))
             answer_text = self._clean_answer_markdown(answer_text_raw)
+            answer_html = (render_open_answer_document(q.reference_answer_document)
+                           if q.reference_answer_document else render_markdown(answer_text, soft_breaks=False))
+            explanation_html = (render_open_answer_document(q.explanation_document)
+                                if q.explanation_document else render_markdown(q.explanation, soft_breaks=False))
             answer_ui = self._build_answer_ui(q)
             question_rows.append(
                 {
@@ -86,8 +92,9 @@ class PaperExamSheetRenderer(BaseRenderer):
                     "group_heading": group_heading,
                     "group_end": bool(q.group_id) and (idx == len(questions) or questions[idx].group_id != q.group_id),
                     "options": self._get_options(q),
+                    "explanation_html": explanation_html if self.include_answers else "",
                     "answer_text": answer_text,
-                    "answer_html": render_markdown(answer_text, soft_breaks=False) if answer_text else "",
+                    "answer_html": answer_html if self.include_answers else "",
                     **answer_ui,
                 }
             )
@@ -120,6 +127,7 @@ class PaperExamSheetRenderer(BaseRenderer):
                 "no_questions": self.get_label("no_questions"),
                 "points_unit": self.get_label("points_unit"),
                 "answer": self.get_label("answer"),
+                "explanation": self.get_label("explanation", "詳解"),
                 "question_no": self.get_label("question_no"),
                 "score_col": self.get_label("score_col"),
                 "answer_col": self.get_label("answer_col"),

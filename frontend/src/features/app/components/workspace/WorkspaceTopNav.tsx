@@ -417,7 +417,9 @@ export function RuntimeNavExtras({ showRefresh = true }: { showRefresh?: boolean
         <TimeDisplay
           variant="header"
           value={
-            isCountdownToStart
+            contest.examStatus === "submitted" || (Date.parse(contest.endTime) <= Date.now() + (contest.serverTimeOffsetMs ?? 0))
+              ? t("workspace.schedule.ended", "已結束")
+              : isCountdownToStart
               ? t("answering.runtimeNav.startsIn", "{{time}} 後開始", { time: timeLeft })
               : timeLeft
           }

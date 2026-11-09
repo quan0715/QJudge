@@ -39,3 +39,9 @@
   white-space: normal;
   border-bottom: 1px solid var(--cds-border-subtle);
 }
+
+.document { min-width: 0; }
+.questionSection { padding-block: layout.$spacing-07; border-bottom: 1px solid var(--cds-border-subtle-01); }
+.questionHeader { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: layout.$spacing-04; margin-bottom: layout.$spacing-05; }
+.questionHeader h3 { @include type.type-style("heading-compact-02"); margin: 0; }
+.questionResult { display: flex; align-items: center; gap: layout.$spacing-04; }

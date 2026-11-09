@@ -723,7 +723,7 @@ export default function StudentContestDashboard({
     );
 
     return (
-      <PaperAnswerRecordsTable key={contest.id} showGrading={contest.resultsPublished} rows={paperData.questions.map((question, index) => {
+      <PaperAnswerRecordsTable layout={reviewSlot ? "document" : "table"} key={contest.id} showGrading={contest.resultsPublished} rows={paperData.questions.map((question, index) => {
           const result = resultMap.get(String(question.id));
           const answer = answerMap.get(String(question.id));
           const marked = markedQuestionIds.has(String(question.id));
@@ -828,6 +828,11 @@ export default function StudentContestDashboard({
   // Records and results live on the workspace review page; standalone renders keep them inline.
   const recordsSection = (
     <section className={styles.records} aria-label={t("studentDashboard.tabs.records", "作答紀錄")}>
+      {reviewSlot && <div className={styles.recordActions}>{renderReportAction()}</div>}
+      {reviewSlot && <dl className={styles.recordSummary}>
+        <div><dt>{t("workspace.report.title", "作答情況")}</dt><dd>{resultItems.filter(item => item.answered).length} / {resultItems.length}</dd></div>
+        <div><dt>{t("workspace.standings.score", "分數")}</dt><dd>{contest.resultsPublished ? scoreDisplay : t("workspace.review.unpublished", "成績未公布")}</dd></div>
+      </dl>}
       {!reviewSlot && <BlockHeader
         titleAs="h3"
         title={
