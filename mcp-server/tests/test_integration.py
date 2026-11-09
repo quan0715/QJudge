@@ -404,11 +404,10 @@ class TestMCPProtocol:
     }
 
     def test_list_tools(self):
-        from mcp.shared.memory import create_connected_server_and_client_session
+        from mcp.client import Client
 
         async def _test():
-            async with create_connected_server_and_client_session(server.mcp) as client:
-                await client.initialize()
+            async with Client(server.mcp) as client:
                 result = await client.list_tools()
                 tool_names = {t.name for t in result.tools}
                 return tool_names
@@ -417,11 +416,10 @@ class TestMCPProtocol:
         assert names == self.EXPECTED_TOOLS, f"Unexpected or missing tools: {names ^ self.EXPECTED_TOOLS}"
 
     def test_tool_schemas_have_required_fields(self):
-        from mcp.shared.memory import create_connected_server_and_client_session
+        from mcp.client import Client
 
         async def _test():
-            async with create_connected_server_and_client_session(server.mcp) as client:
-                await client.initialize()
+            async with Client(server.mcp) as client:
                 result = await client.list_tools()
                 return result.tools
 
@@ -431,7 +429,7 @@ class TestMCPProtocol:
         for tool in tools:
             if tool.name not in self.EXPECTED_TOOLS:
                 continue
-            schema = tool.inputSchema
+            schema = tool.input_schema
             assert "properties" in schema, f"{tool.name} missing properties in schema"
             if tool.name in action_tools:
                 assert "action" in schema["properties"], f"{tool.name} missing 'action' param"
@@ -440,13 +438,12 @@ class TestMCPProtocol:
                 assert "problem_id" in schema["properties"], f"{tool.name} missing 'problem_id' param"
 
     def test_call_tool_with_invalid_action_returns_error(self):
-        from mcp.shared.memory import create_connected_server_and_client_session
+        from mcp.client import Client
 
         async def _test():
-            async with create_connected_server_and_client_session(
+            async with Client(
                 server.mcp, raise_exceptions=True
             ) as client:
-                await client.initialize()
                 result = await client.call_tool(
                     "qjudge_browse",
                     arguments={"action": "nonexistent_action"},
@@ -454,14 +451,13 @@ class TestMCPProtocol:
                 return result
 
         result = run(_test())
-        assert result.isError, "Expected the schema to reject an unknown action"
+        assert result.is_error, "Expected the schema to reject an unknown action"
 
     def test_call_tool_discover_list_classrooms(self, teacher_token):
-        from mcp.shared.memory import create_connected_server_and_client_session
+        from mcp.client import Client
 
         async def _test():
-            async with create_connected_server_and_client_session(server.mcp) as client:
-                await client.initialize()
+            async with Client(server.mcp) as client:
                 result = await client.call_tool(
                     "qjudge_browse",
                     arguments={"action": "list_classrooms"},

@@ -13,7 +13,7 @@ worker = [
   "fastapi>=0.109,<1.0",
   "uvicorn[standard]>=0.27,<1.0",
   "httpx>=0.26,<1.0",
-  "cryptography>=42,<46",
+  "cryptography>=50.0.2,<51",
 ]
 test = [
   "pytest>=8,<9",

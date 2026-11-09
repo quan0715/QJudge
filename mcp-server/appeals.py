@@ -8,7 +8,7 @@ not put full question stems or answer serializers on the tool result.
 from typing import Any, Literal
 from urllib.parse import quote
 
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.mcpserver import Context, MCPServer
 from mcp.types import ToolAnnotations
 
 _MAX_CONTENT_LENGTH = 5000
@@ -284,7 +284,7 @@ async def qjudge_appeals(
     return _project_send(raw)
 
 
-def register_appeal_tool(mcp: FastMCP) -> Any:
+def register_appeal_tool(mcp: MCPServer) -> Any:
     """Register the appeal comment tool and return the raw function."""
     mcp.tool(
         annotations=ToolAnnotations(

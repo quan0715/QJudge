@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Awaitable
 from contextlib import AsyncExitStack
 from typing import Any
 
-import httpx
+import httpx2
 from langchain_core.tools import BaseTool, StructuredTool
-from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
-from mcp.types import CallToolResult, Tool
+from mcp import ClientSession, MCPError
+from mcp.client.streamable_http import streamable_http_client
+from mcp.types import REQUEST_TIMEOUT, CallToolResult, PaginatedRequestParams, Tool
 
 from config import get_settings
 from domain.ports import (
@@ -53,6 +54,25 @@ class MCPToolProvider:
         self._tool_policy = tool_policy or {}
         self._stack: AsyncExitStack | None = None
         self._session: ClientSession | None = None
+        self._http_auth_error: httpx2.HTTPStatusError | None = None
+
+    async def _capture_auth_rejection(self, response: httpx2.Response) -> None:
+        # The SDK maps non-2xx responses to generic JSON-RPC errors. Record the
+        # auth status without raising inside its background transport task.
+        if response.status_code in {401, 403}:
+            self._http_auth_error = httpx2.HTTPStatusError(
+                "MCP rejected the delegated credential",
+                request=response.request,
+                response=response,
+            )
+
+    async def _request(self, operation: Awaitable[Any], *, timeout: float) -> Any:
+        try:
+            return await asyncio.wait_for(operation, timeout=timeout)
+        except Exception as exc:
+            if self._http_auth_error is not None:
+                raise self._http_auth_error from exc
+            raise
 
     async def __aenter__(self) -> "MCPToolProvider":
         await self._connect()
@@ -64,16 +84,26 @@ class MCPToolProvider:
         return self
 
     async def _connect(self) -> None:
+        # Concurrent tool calls share one bearer credential. Keep a rejection
+        # latched until reconnecting so another call cannot erase its status.
+        self._http_auth_error = None
         stack = AsyncExitStack()
         headers: dict[str, str] = {}
         if self._authorization_header:
             headers["Authorization"] = self._authorization_header
 
         try:
-            read_stream, write_stream, _ = await stack.enter_async_context(
-                streamablehttp_client(
+            http_client = await stack.enter_async_context(
+                httpx2.AsyncClient(
+                    headers=headers,
+                    timeout=httpx2.Timeout(30, read=300),
+                    event_hooks={"response": [self._capture_auth_rejection]},
+                )
+            )
+            read_stream, write_stream = await stack.enter_async_context(
+                streamable_http_client(
                     self._server_url,
-                    headers=headers or None,
+                    http_client=http_client,
                 )
             )
             session = ClientSession(read_stream, write_stream)
@@ -88,7 +118,7 @@ class MCPToolProvider:
     async def _initialize(self) -> None:
         settings = get_settings()
         session = self._require_session()
-        await asyncio.wait_for(
+        await self._request(
             session.initialize(),
             timeout=max(0.5, settings.mcp_initialize_timeout_seconds),
         )
@@ -145,8 +175,8 @@ class MCPToolProvider:
         while True:
             if pages_read >= _MAX_TOOL_DISCOVERY_PAGES:
                 raise ValueError("MCP tool discovery exceeded the page limit")
-            result = await asyncio.wait_for(
-                session.list_tools(cursor=cursor),
+            result = await self._request(
+                session.list_tools(params=PaginatedRequestParams(cursor=cursor)),
                 timeout=max(0.5, settings.mcp_list_tools_timeout_seconds),
             )
             pages_read += 1
@@ -155,7 +185,7 @@ class MCPToolProvider:
             if len(tools) + len(result.tools) > _MAX_TOOL_DISCOVERY_TOOLS:
                 raise ValueError("MCP tool discovery exceeded the tool limit")
             tools.extend(result.tools)
-            next_cursor = result.nextCursor
+            next_cursor = result.next_cursor
             if not next_cursor:
                 break
             if next_cursor in seen_cursors:
@@ -167,7 +197,7 @@ class MCPToolProvider:
 
     def _build_langchain_tool(self, tool_def: Tool) -> BaseTool:
         description = tool_def.description or f"MCP tool: {tool_def.name}"
-        args_schema = tool_def.inputSchema or {"type": "object", "properties": {}}
+        args_schema = tool_def.input_schema or {"type": "object", "properties": {}}
 
         async def _invoke(**kwargs: Any) -> Any:
             policy_error = self._policy_error(tool_def.name, kwargs or {})
@@ -196,7 +226,7 @@ class MCPToolProvider:
                 }
 
             formatted = _format_tool_result(result)
-            if result.isError:
+            if result.is_error:
                 logger.warning(
                     "mcp_tool %s unsuccessful args=%s payload=%s",
                     tool_def.name,
@@ -244,7 +274,7 @@ class MCPToolProvider:
     ) -> CallToolResult:
         settings = get_settings()
         session = self._require_session()
-        return await asyncio.wait_for(
+        return await self._request(
             session.call_tool(tool_name, arguments=arguments),
             timeout=max(0.5, settings.mcp_call_tool_timeout_seconds),
         )
@@ -258,12 +288,12 @@ class MCPToolProvider:
 def _format_tool_result(result: CallToolResult) -> Any:
     """Normalise MCP tool results into a compact JSON-serialisable shape."""
     payload: Any
-    if result.structuredContent is not None:
-        payload = result.structuredContent
+    if result.structured_content is not None:
+        payload = result.structured_content
     else:
         payload = _flatten_content_blocks(result.content)
 
-    if result.isError:
+    if result.is_error:
         # Some MCP transports return an empty string for bare ToolError.
         if payload in ("", None, []):
             payload = "MCP tool failed with empty error message"
@@ -290,7 +320,7 @@ def _flatten_content_blocks(blocks: list[Any]) -> Any:
             continue
 
         if hasattr(block, "model_dump"):
-            serialised_blocks.append(block.model_dump(exclude_none=True))
+            serialised_blocks.append(block.model_dump(exclude_none=True, by_alias=True))
             continue
 
         if isinstance(block, dict):
@@ -308,7 +338,7 @@ def _flatten_content_blocks(blocks: list[Any]) -> Any:
 
 def _validate_tool_page(result: Any) -> None:
     tools = getattr(result, "tools", None)
-    cursor = getattr(result, "nextCursor", None)
+    cursor = getattr(result, "next_cursor", None)
     if not isinstance(tools, list):
         raise ValueError("MCP list_tools response has no tool list")
     if cursor is not None and not isinstance(cursor, str):
@@ -316,7 +346,7 @@ def _validate_tool_page(result: Any) -> None:
     for tool in tools:
         if not isinstance(getattr(tool, "name", None), str) or not tool.name:
             raise ValueError("MCP tool name is malformed")
-        if not isinstance(getattr(tool, "inputSchema", None), dict):
+        if not isinstance(getattr(tool, "input_schema", None), dict):
             raise ValueError(f"MCP tool {tool.name} has a malformed input schema")
 
 
@@ -330,7 +360,7 @@ def _walk_exceptions(exc: BaseException):
 def _is_auth_error(exc: BaseException) -> bool:
     return any(
         (
-            isinstance(item, httpx.HTTPStatusError)
+            isinstance(item, httpx2.HTTPStatusError)
             and item.response.status_code in {401, 403}
         )
         or any(
@@ -349,9 +379,10 @@ def _is_connectivity_error(exc: BaseException) -> bool:
                 asyncio.TimeoutError,
                 ConnectionError,
                 OSError,
-                httpx.TransportError,
+                httpx2.TransportError,
             ),
         )
+        or (isinstance(item, MCPError) and item.code == REQUEST_TIMEOUT)
         for item in _walk_exceptions(exc)
     )
 

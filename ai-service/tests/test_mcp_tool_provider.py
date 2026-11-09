@@ -3,34 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
-import sys
-import types
 from types import SimpleNamespace
 
-import httpx
+import httpx2
 import pytest
+from mcp import MCPError
+from mcp.types import REQUEST_TIMEOUT, CallToolResult, ImageContent
 
 os.environ.setdefault("DEEPSEEK_API_KEY", "test-deepseek-key")
-
-_deepseek_stub = types.ModuleType("langchain_deepseek")
-_openai_stub = types.ModuleType("langchain_openai")
-
-
-class _ChatDeepSeekStub:  # pragma: no cover - import stub only
-    pass
-
-
-_deepseek_stub.ChatDeepSeek = _ChatDeepSeekStub
-sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
-
-
-class _ChatOpenAIStub:  # pragma: no cover - import stub only
-    pass
-
-
-_openai_stub.ChatOpenAI = _ChatOpenAIStub
-sys.modules.setdefault("langchain_openai", _openai_stub)
 
 from application.credential_service import (  # noqa: E402
     McpAuthFailed,
@@ -46,13 +28,21 @@ from infrastructure.mcp.provider import (  # noqa: E402
 
 def test_format_tool_result_empty_error_payload_has_fallback_message():
     result = SimpleNamespace(
-        structuredContent=None,
+        structured_content=None,
         content=[],
-        isError=True,
+        is_error=True,
     )
     formatted = _format_tool_result(result)
     assert formatted["is_error"] is True
     assert formatted["content"] == "MCP tool failed with empty error message"
+
+
+def test_format_image_result_preserves_mcp_wire_field_names():
+    result = CallToolResult(content=[ImageContent(type="image", data="aW1hZ2U=", mime_type="image/png")])
+
+    assert _format_tool_result(result) == [{
+        "type": "image", "data": "aW1hZ2U=", "mimeType": "image/png",
+    }]
 
 
 def test_invoke_returns_structured_transport_error(monkeypatch):
@@ -60,7 +50,7 @@ def test_invoke_returns_structured_transport_error(monkeypatch):
     tool_def = SimpleNamespace(
         name="qjudge_code_runner",
         description="run code",
-        inputSchema={"type": "object", "properties": {}},
+        input_schema={"type": "object", "properties": {}},
     )
 
     async def _raise_transport_error(*args, **kwargs):
@@ -90,7 +80,7 @@ def test_tool_policy_blocks_denied_qjudge_grading_action(monkeypatch):
     tool_def = SimpleNamespace(
         name="qjudge_grading",
         description="grading",
-        inputSchema={"type": "object", "properties": {}},
+        input_schema={"type": "object", "properties": {}},
     )
 
     async def _should_not_call(*args, **kwargs):
@@ -142,8 +132,8 @@ class _ProbeSession(_AsyncContext):
         if self.initialize_error is not None:
             raise self.initialize_error
 
-    async def list_tools(self, cursor=None):
-        self.cursors.append(cursor)
+    async def list_tools(self, *, params=None):
+        self.cursors.append(params.cursor if params is not None else None)
         page = self.pages.pop(0)
         if isinstance(page, Exception):
             raise page
@@ -154,10 +144,10 @@ def _install_probe_transport(monkeypatch, session, *, connect_error=None):
     import infrastructure.mcp.provider as module
 
     transport = _AsyncContext(
-        (object(), object(), None),
+        (object(), object()),
         error=connect_error,
     )
-    monkeypatch.setattr(module, "streamablehttp_client", lambda *a, **kw: transport)
+    monkeypatch.setattr(module, "streamable_http_client", lambda *a, **kw: transport)
     monkeypatch.setattr(module, "ClientSession", lambda *a, **kw: session)
     return transport
 
@@ -168,18 +158,18 @@ def test_probe_initializes_and_reads_every_tool_page(monkeypatch):
             SimpleNamespace(
                 tools=[
                     SimpleNamespace(
-                        name="first", inputSchema={"type": "object"}
+                        name="first", input_schema={"type": "object"}
                     )
                 ],
-                nextCursor="next-page",
+                next_cursor="next-page",
             ),
             SimpleNamespace(
                 tools=[
                     SimpleNamespace(
-                        name="second", inputSchema={"type": "object"}
+                        name="second", input_schema={"type": "object"}
                     )
                 ],
-                nextCursor=None,
+                next_cursor=None,
             ),
         ]
     )
@@ -238,8 +228,8 @@ def test_probe_maps_malformed_tools_to_discovery_error(monkeypatch):
     session = _ProbeSession(
         [
             SimpleNamespace(
-                tools=[SimpleNamespace(name="", inputSchema=[])],
-                nextCursor=None,
+                tools=[SimpleNamespace(name="", input_schema=[])],
+                next_cursor=None,
             )
         ]
     )
@@ -253,7 +243,7 @@ def test_probe_maps_malformed_tools_to_discovery_error(monkeypatch):
 
 
 def test_probe_rejects_repeated_pagination_cursor_and_closes(monkeypatch):
-    repeated_page = SimpleNamespace(tools=[], nextCursor="same-cursor")
+    repeated_page = SimpleNamespace(tools=[], next_cursor="same-cursor")
     session = _ProbeSession([repeated_page, repeated_page])
     transport = _install_probe_transport(monkeypatch, session)
     provider = MCPToolProvider(server_url="http://example.invalid/mcp")
@@ -273,8 +263,8 @@ def test_probe_rejects_discovery_that_exceeds_page_bound(monkeypatch):
     monkeypatch.setattr(module, "_MAX_TOOL_DISCOVERY_PAGES", 2)
     session = _ProbeSession(
         [
-            SimpleNamespace(tools=[], nextCursor="page-2"),
-            SimpleNamespace(tools=[], nextCursor="page-3"),
+            SimpleNamespace(tools=[], next_cursor="page-2"),
+            SimpleNamespace(tools=[], next_cursor="page-3"),
         ]
     )
     transport = _install_probe_transport(monkeypatch, session)
@@ -289,10 +279,10 @@ def test_probe_rejects_discovery_that_exceeds_page_bound(monkeypatch):
     assert transport.closed is True
 
 
-def _http_status_error(status_code: int) -> httpx.HTTPStatusError:
-    request = httpx.Request("POST", "http://example.invalid/mcp")
-    response = httpx.Response(status_code, request=request)
-    return httpx.HTTPStatusError(
+def _http_status_error(status_code: int) -> httpx2.HTTPStatusError:
+    request = httpx2.Request("POST", "http://example.invalid/mcp")
+    response = httpx2.Response(status_code, request=request)
+    return httpx2.HTTPStatusError(
         "delegated credential rejected",
         request=request,
         response=response,
@@ -312,7 +302,7 @@ def test_probe_maps_http_auth_failures_at_each_boundary(
     pages = (
         [auth_error]
         if boundary == "discovery"
-        else [SimpleNamespace(tools=[], nextCursor=None)]
+        else [SimpleNamespace(tools=[], next_cursor=None)]
     )
     session = _ProbeSession(pages, initialize_error=initialize_error)
     transport = _install_probe_transport(
@@ -329,3 +319,158 @@ def test_probe_maps_http_auth_failures_at_each_boundary(
     if boundary != "connection":
         assert session.closed is True
         assert transport.closed is True
+
+
+def _install_http_transport(monkeypatch, handler):
+    """Keep the MCP protocol and HTTP client real; replace only the network."""
+    import infrastructure.mcp.provider as module
+
+    client_type = httpx2.AsyncClient
+    clients = []
+
+    def create_client(**kwargs):
+        client = client_type(transport=httpx2.MockTransport(handler), **kwargs)
+        clients.append(client)
+        return client
+
+    monkeypatch.setattr(module.httpx2, "AsyncClient", create_client)
+    return clients
+
+
+def _protocol_response(request, payload):
+    if payload["method"] == "initialize":
+        result = {
+            "protocolVersion": "2025-11-25",
+            "capabilities": {"tools": {}},
+            "serverInfo": {"name": "test-mcp", "version": "1"},
+        }
+    elif payload["method"] == "tools/list":
+        result = {"tools": []}
+    else:
+        return httpx2.Response(202)
+    return httpx2.Response(200, json={"jsonrpc": "2.0", "id": payload["id"], "result": result})
+
+
+def test_real_transport_preserves_authorization_and_closes_http_client(monkeypatch):
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return _protocol_response(request, json.loads(request.content))
+
+    clients = _install_http_transport(monkeypatch, handler)
+    provider = MCPToolProvider(
+        server_url="https://example.invalid/mcp",
+        authorization_header="Bearer delegated-credential",
+    )
+
+    asyncio.run(provider.probe())
+
+    assert requests
+    assert all(request.headers["authorization"] == "Bearer delegated-credential" for request in requests)
+    assert clients[0].timeout.connect == 30
+    assert clients[0].timeout.read == 300
+    assert clients[0].is_closed
+
+
+@pytest.mark.parametrize("status_code", [401, 403])
+@pytest.mark.parametrize("method", ["initialize", "tools/list"])
+def test_real_transport_classifies_auth_rejection_before_sdk_discards_status(
+    monkeypatch, status_code, method,
+):
+    def handler(request):
+        payload = json.loads(request.content)
+        if payload["method"] == method:
+            return httpx2.Response(status_code, json={"error": "credential rejected"})
+        return _protocol_response(request, payload)
+
+    clients = _install_http_transport(monkeypatch, handler)
+    provider = MCPToolProvider(server_url="https://example.invalid/mcp")
+
+    with pytest.raises(McpAuthFailed):
+        asyncio.run(provider.probe())
+
+    assert clients[0].is_closed
+
+
+async def test_concurrent_success_cannot_clear_another_requests_auth_rejection(monkeypatch):
+    auth_body_started = asyncio.Event()
+    release_auth_body = asyncio.Event()
+
+    class PausedAuthBody(httpx2.AsyncByteStream):
+        async def __aiter__(self):
+            auth_body_started.set()
+            await release_auth_body.wait()
+            yield b'{"error":"credential rejected"}'
+
+    def handler(request):
+        payload = json.loads(request.content)
+        if payload["method"] != "tools/call":
+            return _protocol_response(request, payload)
+        if payload["params"]["name"] == "rejected":
+            return httpx2.Response(
+                401, headers={"content-type": "application/json"}, stream=PausedAuthBody(),
+            )
+        return httpx2.Response(200, json={
+            "jsonrpc": "2.0", "id": payload["id"],
+            "result": {"content": [{"type": "text", "text": "completed"}]},
+        })
+
+    clients = _install_http_transport(monkeypatch, handler)
+    provider = MCPToolProvider(server_url="https://example.invalid/mcp")
+
+    async with provider:
+        rejected = asyncio.create_task(provider._call_tool("rejected", {}))
+        try:
+            await asyncio.wait_for(auth_body_started.wait(), timeout=2)
+            success = await provider._call_tool("accepted", {})
+            assert success.content[0].text == "completed"
+        finally:
+            release_auth_body.set()
+        with pytest.raises(httpx2.HTTPStatusError) as raised:
+            await rejected
+        assert raised.value.response.status_code == 401
+
+    assert clients[0].is_closed
+
+
+def test_reconnecting_clears_previous_connections_auth_rejection(monkeypatch):
+    initializes = 0
+
+    def handler(request):
+        nonlocal initializes
+        payload = json.loads(request.content)
+        if payload["method"] == "initialize":
+            initializes += 1
+            if initializes == 1:
+                return httpx2.Response(401, json={"error": "credential rejected"})
+            return httpx2.Response(200, json={
+                "jsonrpc": "2.0", "id": payload["id"],
+                "error": {"code": -32603, "message": "Handshake failed"},
+            })
+        return _protocol_response(request, payload)
+
+    clients = _install_http_transport(monkeypatch, handler)
+    provider = MCPToolProvider(server_url="https://example.invalid/mcp")
+
+    with pytest.raises(McpAuthFailed):
+        asyncio.run(provider.probe())
+    with pytest.raises(McpProtocolError):
+        asyncio.run(provider.probe())
+
+    assert initializes == 2
+    assert all(client.is_closed for client in clients)
+
+
+@pytest.mark.parametrize("boundary", ["initialize", "discovery"])
+def test_probe_classifies_sdk_request_timeout_as_unavailable(monkeypatch, boundary):
+    timeout = MCPError(REQUEST_TIMEOUT, "Request timed out")
+    session = _ProbeSession(
+        [timeout] if boundary == "discovery" else [],
+        initialize_error=timeout if boundary == "initialize" else None,
+    )
+    _install_probe_transport(monkeypatch, session)
+    provider = MCPToolProvider(server_url="https://example.invalid/mcp")
+
+    with pytest.raises(McpUnavailable):
+        asyncio.run(provider.probe())
