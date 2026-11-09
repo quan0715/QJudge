@@ -135,18 +135,23 @@ describe("MinimalLiveStage", () => {
       { userId: "8", identity: "screen-and-camera", sources: ["screen_share"] },
     ] });
     view.rerender(<MinimalLiveStage {...props} discoveryRefreshKey={1} />);
-    await waitFor(() => expect(tile.querySelectorAll("video")).toHaveLength(1));
-    expect(transport.bindTargetVideo).toHaveBeenCalledWith("screen-and-camera", "webcam", null);
-    expect(transport.selectTargets).toHaveBeenLastCalledWith([
-      { identity: "screen-and-camera", sources: ["screen_share"] },
-    ]);
+    // The DOM commit can precede the grid's passive subscription effect.
+    await waitFor(() => {
+      expect(tile.querySelectorAll("video")).toHaveLength(1);
+      expect(transport.bindTargetVideo).toHaveBeenCalledWith("screen-and-camera", "webcam", null);
+      expect(transport.selectTargets).toHaveBeenLastCalledWith([
+        { identity: "screen-and-camera", sources: ["screen_share"] },
+      ]);
+    });
 
     mocks.getTargets.mockResolvedValue({ stale: false, observedAt: null, targets: [] });
     view.rerender(<MinimalLiveStage {...props} discoveryRefreshKey={2} />);
-    await waitFor(() => expect(view.queryAllByRole("button", { name: /^放大/ })).toHaveLength(0));
-    expect(transport.selectTargets).toHaveBeenLastCalledWith([]);
-    expect(transport.bindTargetVideo).toHaveBeenCalledWith("screen-and-camera", "webcam", null);
-    expect(view.getByText("第 1／1 頁・0 人")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(view.queryAllByRole("button", { name: /^放大/ })).toHaveLength(0);
+      expect(transport.selectTargets).toHaveBeenLastCalledWith([]);
+      expect(transport.bindTargetVideo).toHaveBeenCalledWith("screen-and-camera", "webcam", null);
+      expect(view.getByText("第 1／1 頁・0 人")).toBeInTheDocument();
+    });
   });
 
   it("shows a screen grid, focuses a student and returns without reconnecting", async () => {
