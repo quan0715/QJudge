@@ -310,13 +310,13 @@ def test_help_and_schema_expose_read_and_send_actions():
 
     tools = {tool.name: tool for tool in run(server.mcp.list_tools())}
     tool = tools["qjudge_appeals"]
-    assert set(tool.inputSchema["properties"]["action"]["enum"]) == {"list", "get", "send"}
-    assert set(tool.inputSchema["required"]) == {"action", "contest_id"}
+    assert set(tool.input_schema["properties"]["action"]["enum"]) == {"list", "get", "send"}
+    assert set(tool.input_schema["required"]) == {"action", "contest_id"}
     annotations = tool.annotations
-    assert annotations.readOnlyHint is False
-    assert annotations.destructiveHint is False
-    assert annotations.idempotentHint is False
-    assert annotations.openWorldHint is True
+    assert annotations.read_only_hint is False
+    assert annotations.destructive_hint is False
+    assert annotations.idempotent_hint is False
+    assert annotations.open_world_hint is True
 
 
 @pytest.mark.parametrize(

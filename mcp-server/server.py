@@ -21,7 +21,7 @@ from config import (
 from jwt import PyJWKClient
 from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.mcpserver import Context, MCPServer
 from mcp.types import ToolAnnotations
 from appeals import register_appeal_tool
 from pydantic import StrictInt
@@ -196,7 +196,7 @@ async def django_api(
     """Call Django API with OAuth token passthrough.
 
     Never raises httpx errors — returns ``_error(...)`` so MCP does not wrap a bare
-    exception with an empty ``str(e)`` (FastMCP: "Error executing tool ...: ").
+    exception with an empty ``str(e)`` (MCPServer: "Error executing tool ...: ").
     """
     headers: dict[str, str] = {"X-Forwarded-Proto": DJANGO_FORWARDED_PROTO}
     transport_request = getattr(ctx.request_context, "request", None)
@@ -289,9 +289,9 @@ def _require_uuid(
 
 
 def _items(rows: list[Any]) -> dict[str, Any]:
-    """Wrap a list in a FastMCP-friendly ``{"count": N, "items": [...]}`` envelope.
+    """Wrap a list in a MCPServer-friendly ``{"count": N, "items": [...]}`` envelope.
 
-    FastMCP auto-generates structured content only for object-like returns
+    MCPServer auto-generates structured content only for object-like returns
     (dict / dataclass / Pydantic); bare lists are serialized as separate
     TextContent blocks per item, which makes the LLM see "streaming JSON
     objects" instead of a proper JSON array. Wrapping keeps the wire shape
@@ -434,7 +434,7 @@ def _compact_answers_for_grading(raw: Any) -> Any:
     """Minimal projection for the open-ended grading SOP.
 
     Returns a dict ``{"count": N, "items": [...]}`` rather than a bare list,
-    so FastMCP treats it as structured content (single JSON object block)
+    so MCPServer treats it as structured content (single JSON object block)
     instead of splitting the list across multiple TextContent blocks.
     Each row's keys already match the final answers.csv columns — the
     agent pipes ``result["items"]`` straight into
@@ -578,7 +578,7 @@ def _has_index_string(answer: Any) -> bool:
 def _coerce_objective_answer(question_type: str | None, answer: Any) -> Any:
     """Turn index strings such as ``"1"`` or ``["0", "2"]`` into ints for objective questions.
 
-    Some MCP clients send scalar arguments as strings and FastMCP only JSON-decodes
+    Some MCP clients send scalar arguments as strings and MCPServer only JSON-decodes
     lists/objects, so ``"1"`` would otherwise reach Django, which accepts only ints.
     Subjective answers stay strings.
     """
@@ -735,18 +735,16 @@ _TOOL_HELP = {
 }
 
 
-mcp = FastMCP(
+mcp = MCPServer(
     "QJudge",
-    host=MCP_HOST,
-    port=MCP_PORT,
-    stateless_http=True,
-    json_response=True,
     auth=AuthSettings(
         issuer_url=OAUTH_ISSUER_URL,
         resource_server_url=MCP_PUBLIC_URL,
         # Also published as the resource metadata's scopes_supported, so MCP
         # clients request only "mcp" instead of every scope the issuer offers.
         required_scopes=["mcp"],
+        # QJudgeTokenVerifier validates the signed JWT's qjudge-mcp audience.
+        validate_token_resource=False,
     ),
     token_verifier=QJudgeTokenVerifier(),
 )
@@ -1738,7 +1736,7 @@ async def qjudge_code_runner(
         "code": code,
     }
     # Judge runs can exceed the default 30s client timeout; avoid httpx ReadTimeout
-    # surfacing as an empty FastMCP ToolError ("Error executing tool ...: ").
+    # surfacing as an empty MCPServer ToolError ("Error executing tool ...: ").
     return await django_api(
         "POST",
         f"/api/v1/management/problems/{problem_id}/test_run/",
@@ -1751,12 +1749,16 @@ async def qjudge_code_runner(
 qjudge_appeals = register_appeal_tool(mcp)
 
 
-if __name__ == "__main__":
-    app = mcp.streamable_http_app()
+def create_app():
+    app = mcp.streamable_http_app(
+        host=MCP_HOST,
+        stateless_http=True,
+        json_response=True,
+    )
     mcp_route = next(
         route
         for route in app.routes
-        if isinstance(route, Route) and route.path == mcp.settings.streamable_http_path
+        if isinstance(route, Route) and route.path == "/mcp"
     )
     app.routes.insert(
         0,
@@ -1768,9 +1770,13 @@ if __name__ == "__main__":
             include_in_schema=False,
         ),
     )
+    return app
+
+
+if __name__ == "__main__":
     uvicorn.run(
-        app,
-        host=mcp.settings.host,
-        port=mcp.settings.port,
+        create_app(),
+        host=MCP_HOST,
+        port=MCP_PORT,
         log_level=mcp.settings.log_level.lower(),
     )

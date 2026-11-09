@@ -4,28 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import sys
-import types
 from unittest.mock import MagicMock
-
-_deepseek_stub = types.ModuleType("langchain_deepseek")
-_openai_stub = types.ModuleType("langchain_openai")
-
-
-class _ChatDeepSeekStub:  # pragma: no cover - import stub only
-    pass
-
-
-_deepseek_stub.ChatDeepSeek = _ChatDeepSeekStub
-
-
-class _ChatOpenAIStub:  # pragma: no cover - import stub only
-    pass
-
-
-_openai_stub.ChatOpenAI = _ChatOpenAIStub
-sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
-sys.modules.setdefault("langchain_openai", _openai_stub)
 
 from deepagents.backends.composite import CompositeBackend
 
@@ -127,9 +106,7 @@ def test_build_agent_passes_default_skill_and_memory_paths(monkeypatch):
     assert capture.kwargs["model"] == "model:deepseek-flash"
     assert capture.kwargs["skills"] == ["/app/.deepagents/skills/"]
     assert capture.kwargs["memory"] == ["/app/.deepagents/AGENTS.md"]
-    backend_factory = capture.kwargs["backend"]
-    assert callable(backend_factory)
-    assert isinstance(backend_factory(MagicMock()), CompositeBackend)
+    assert isinstance(capture.kwargs["backend"], CompositeBackend)
     permissions = capture.kwargs["permissions"]
     assert len(permissions) == 1
     assert permissions[0].operations == ["write"]

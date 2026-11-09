@@ -14,17 +14,18 @@ dependencies = [
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
     "httpx>=0.26.0",
-    # Keep this stack pinned. 0.5.2 is the first DeepAgents release with
-    # filesystem permissions, used to protect the mounted skills/memory tree.
-    "deepagents==0.5.2",
-    "langchain==1.3.14",
-    "langchain-core==1.5.3",
-    "langgraph==1.2.10",
-    "langgraph-prebuilt==1.1.0",
-    "langgraph-checkpoint-postgres==3.0.4",
-    "langchain-deepseek==1.0.1",
-    "langchain-openai==1.1.5",
-    "mcp>=1.9.0,<2.0",
+    "httpx2>=2.16,<3.0",
+    # Keep the tested agent stack pinned, including filesystem permissions
+    # that protect the mounted skills/memory tree.
+    "deepagents==0.7.34",
+    "langchain==1.4.9",
+    "langchain-core==1.7.6",
+    "langgraph==1.2.20",
+    "langgraph-prebuilt==1.1.1",
+    "langgraph-checkpoint-postgres==3.2.0",
+    "langchain-deepseek==1.1.1",
+    "langchain-openai==1.7.4",
+    "mcp>=2.3.0,<3.0",
     "sqlalchemy[asyncio]>=2.0,<3.0",
     "alembic>=1.18,<2.0",
     "psycopg[binary,pool]>=3.1,<4.0",
@@ -35,11 +36,10 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pyyaml>=6.0.0",
     "PyJWT[crypto]>=2.9,<3.0",
-    "redis[hiredis]>=5.0,<6.0",
+    "redis[hiredis]>=8.1,<9.0",
     "celery[redis]>=5.4,<6.0",
-    # Kombu 5.7 requires redis-py >=6.1; keep the Redis 5 stack compatible.
-    "kombu>=5.3,<5.7",
-    "cryptography>=43,<46",
+    "kombu[redis]>=5.7,<5.8",
+    "cryptography>=50.0.2,<51",
     "boto3>=1.34,<2.0",
 ]
 
