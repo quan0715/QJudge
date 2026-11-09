@@ -1503,6 +1503,7 @@ def test_tool_schemas_enumerate_supported_actions():
         "qjudge_exam": {"get", "create", "update", "delete", "import_from_bank", "batch_create"},
         "qjudge_grading": {"list_answers", "question_detail", "dashboard", "grade", "batch_grade", "ungrade"},
         "qjudge_coding_problems": {"get", "create", "update", "delete"},
+        "qjudge_appeals": {"list", "get", "send"},
     }
     for name, actions in expected.items():
         assert set(tools[name].inputSchema["properties"]["action"]["enum"]) == actions

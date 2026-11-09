@@ -400,6 +400,7 @@ class TestMCPProtocol:
         "qjudge_grading",
         "qjudge_coding_problems",
         "qjudge_code_runner",
+        "qjudge_appeals",
     }
 
     def test_list_tools(self):

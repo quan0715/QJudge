@@ -1,7 +1,7 @@
 # QJudge MCP Tools Reference
 
 > **Last updated:** 2026-10-03
-> **Source of truth:** `mcp-server/server.py`（參數與路由行為以此為準）
+> **Source of truth:** `mcp-server/server.py` 與 `mcp-server/appeals.py`（參數與路由行為以此為準）
 
 `qjudge_browse` → `get_help` 回傳的 JSON（`_TOOL_HELP`）與本文件對齊：**`tools`** 為各工具一句話摘要；**`coding_tools_how_to_choose`**、**`coding_problem_example`** / **`exam_question_example`**、**`common_mistakes`** 與下方「Common Mistakes」表意義相同。完整 **Parameters / Actions** 以本文件各節為準。
 
@@ -9,7 +9,7 @@
 
 ## Overview
 
-QJudge MCP Server 提供 **6 個工具**（`qjudge_bank` 已自 MCP 移除），每個工具有明確的職責邊界。
+QJudge MCP Server 提供 **7 個工具**（`qjudge_bank` 已自 MCP 移除），每個工具有明確的職責邊界。
 
 | Tool | Purpose | Do NOT use for |
 |---|---|---|
@@ -18,7 +18,8 @@ QJudge MCP Server 提供 **6 個工具**（`qjudge_bank` 已自 MCP 移除），
 | `qjudge_exam` | 競賽筆試題單題 CRUD / 批次 / 匯入 | coding contests, list/reorder 場內題目 |
 | `qjudge_coding_problems` | 競賽程式題單題 CRUD | code execution, paper_exam, list 場內題目 |
 | `qjudge_code_runner` | 程式碼執行驗證 | 題目 CRUD |
-| `qjudge_grading` | 改卷 | 題目 CRUD |
+| `qjudge_grading` | 改卷 | 題目 CRUD、申訴留言 |
+| `qjudge_appeals` | 讀取與送出筆試成績申訴留言 | 改分、結案、重開、題目 CRUD |
 
 ---
 
@@ -38,9 +39,11 @@ its existing values non-destructive.
 | `qjudge_grading` | `openWorldHint` | `true` | True: the tool retrieves student answers and reads or changes grading records through the independently administered QJudge API. Grades and feedback are shared service data outside ChatGPT. |
 | `qjudge_coding_problems` | `openWorldHint` | `true` | True: the tool reads and changes contest coding problems, test cases, and language settings through the independently administered QJudge API. These records exist outside ChatGPT. |
 | `qjudge_code_runner` | `openWorldHint` | `true` | True: the tool sends source code to the independently administered QJudge API for execution by its judge infrastructure and returns execution results. Public-sample-only execution still interacts with an external service. |
+| `qjudge_appeals` | `destructiveHint` | `false` | False: send appends one comment. It does not overwrite scores, feedback, earlier comments, or the ticket status. |
+| `qjudge_appeals` | `openWorldHint` | `true` | True: list, get, and send read or post appeal comments through the independently administered QJudge API. Comments are shared with the other party on that service. |
 
-All six tools expose actions that interact with the external QJudge service, so
-all six declare `openWorldHint: true`. This annotation is independent of
+All seven tools expose actions that interact with the external QJudge service, so
+all seven declare `openWorldHint: true`. This annotation is independent of
 `readOnlyHint`: external reads are still open-world interactions. It does not
 grant additional permissions or change the API routes.
 
@@ -373,6 +376,38 @@ MCP 僅暴露 **get / create / update / delete**；後端另有匯入題庫、�
 
 回傳 `graded_count`、`error_count`；有失敗項目時 `status` 為 `"partial"`，並以 `errors` 列出失敗的那幾筆（含原因），可只重送這些。
 
+## qjudge_appeals
+
+**筆試成績申訴留言**。只讀取與追加留言，不改分數、不結案、不重開。只能用於 `contest_type: "paper_exam"`。
+
+`list` 不含留言正文，題幹最多 120 字。`get` 回傳全部留言；題幹預設最多 240 字，`include_prompt=true` 才回完整題幹，`include_answer=true` 才帶原作答與評語。`send` 成功只回剛剛追加的那一則。
+
+後端成功回應是 `{data, meta}`。這個工具會拆掉 envelope，並保留 `django_api` 已標成 `error: true` 的 403／404／409／400，不會把錯誤收成空清單。
+
+### Parameters
+
+| Param | Type | Used by |
+|---|---|---|
+| `action` | `list` / `get` / `send` | all |
+| `contest_id` | string(UUID) | all |
+| `appeal_id` | int? | get, send。list/get 回傳的整數，不是 contest UUID |
+| `content` | string? | send。去掉前後空白後 1–5000 字 |
+| `status` | `open` / `closed`? | list。MCP 取回清單後過濾 |
+| `question_id` | string? | list |
+| `exam_answer_id` | int? | list |
+| `include_answer` | bool | get，預設 false |
+| `include_prompt` | bool | get，預設 false |
+
+### Actions
+
+| Action | Required | Notes |
+|---|---|---|
+| `list` | contest_id | 摘要。學生只看自己的申訴，考試管理者看該場全部 |
+| `get` | contest_id, appeal_id | 留言依時間排序，正文不截斷 |
+| `send` | contest_id, appeal_id, content | 追加一則。已結案回 409，不會因此重開。會通知對方 |
+
+送出前先 `get`。留言只討論原答案，不要補上新的解法。改分仍用 `qjudge_grading`。
+
 ## Common Mistakes
 
 | 錯誤 | 正確做法 |
@@ -390,3 +425,6 @@ MCP 僅暴露 **get / create / update / delete**；後端另有匯入題庫、�
 | 以為 `qjudge_code_runner` 可選跑部分測資或帶自訂測資 | 後端只跑公開範例測資，不跑隱藏測資；參數僅 `language` + `code` |
 | `language: "javascript"` 於 code_runner | 此 endpoint 僅支援 `cpp` / `c` / `python` / `java` |
 | exam 欄位傳給 coding 題 | coding 題用 description/test_cases；筆試欄位用 `qjudge_exam`（`paper_exam`） |
+| 用 `qjudge_grading` 讀或送申訴留言 | 用 `qjudge_appeals`。`send` 不改分數 |
+| 把 contest UUID 當成 `appeal_id` | `appeal_id` 是 list/get 的正整數 |
+| 對已結案申訴再 `send` | 先 `get`。已結案回 409，`send` 不會重開 |

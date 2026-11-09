@@ -5,6 +5,7 @@ from __future__ import annotations
 
 WRITE_ACTIONS: dict[str, set[str]] = {
     "qjudge_grading": {"grade", "batch_grade", "ungrade"},
+    "qjudge_appeals": {"send"},
     "qjudge_contest_manager": {"reorder"},
     "qjudge_coding_problems": {
         "create",

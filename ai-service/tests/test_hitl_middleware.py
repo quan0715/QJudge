@@ -22,6 +22,7 @@ from infrastructure.agent.hitl_middleware import ActionAwareHITLMiddleware  # no
 
 WRITE_ACTIONS = {
     "qjudge_grading": {"grade", "batch_grade", "ungrade"},
+    "qjudge_appeals": {"send"},
     "qjudge_contest_manager": {"reorder"},
     "qjudge_coding_problems": {"create", "update", "delete"},
     "qjudge_exam": {
@@ -241,6 +242,18 @@ class TestEmptyStates:
             result = mw.after_model(state, runtime)
         assert result is None
         fake_interrupt.assert_not_called()
+
+
+def test_appeal_send_requires_approval_and_reads_do_not():
+    from infrastructure.agent.approval_policy import WRITE_ACTIONS as policy
+
+    mw = ActionAwareHITLMiddleware(
+        write_actions=policy,
+        allowed_decisions=["approve", "reject"],
+    )
+    assert mw._needs_interrupt(_tool_call("qjudge_appeals", {"action": "send", "content": "請複核原答案"}))
+    assert not mw._needs_interrupt(_tool_call("qjudge_appeals", {"action": "list"}))
+    assert not mw._needs_interrupt(_tool_call("qjudge_appeals", {"action": "get", "appeal_id": 1}))
 
 
 @pytest.mark.asyncio
