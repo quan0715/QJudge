@@ -6,7 +6,12 @@ import asyncio
 import logging
 import os
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
-from contextlib import AbstractAsyncContextManager, aclosing, asynccontextmanager, nullcontext
+from contextlib import (
+    AbstractAsyncContextManager,
+    aclosing,
+    asynccontextmanager,
+    nullcontext,
+)
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from enum import StrEnum
@@ -19,16 +24,20 @@ from deepagents import FilesystemPermission, create_deep_agent
 from deepagents.backends.composite import CompositeBackend
 from deepagents.backends.filesystem import FilesystemBackend
 from deepagents.backends.state import StateBackend
+from deepagents.middleware import summarization as _summarization_module
 from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
 from deepagents.middleware.summarization import SummarizationMiddleware
 from langchain.agents.middleware import ModelRetryMiddleware
 from langchain_core.callbacks import AsyncCallbackHandler
+from langchain_core.messages import AnyMessage
 from langchain_core.tracers.context import register_configure_hook
 from langgraph.types import Command
 
 from application.artifacts import ArtifactService
-from infrastructure.checkpoints.langgraph_store import LangGraphCheckpointStore
-from infrastructure.agent.event_coalescer import coalesce_text_events
+from domain.model_catalog import ModelConfigInvalid, ModelNotAvailable
+from infrastructure.agent.approval_policy import WRITE_ACTIONS
+from infrastructure.agent.ask_user_tool import build_ask_user_tool
+from infrastructure.agent.checkpoint_recovery_manager import CheckpointRecoveryManager
 from infrastructure.agent.event_adapter import (
     AgentMessageDelta,
     AwaitingApproval,
@@ -36,35 +45,33 @@ from infrastructure.agent.event_adapter import (
     RunCompleted,
     RunFailed,
     RunStarted,
-    SummarizationEnded,
     SubagentEventTracker,
+    SummarizationEnded,
     SummarizationStarted,
     UsageReport,
     adapt_langgraph_event,
     to_sse_dict,
 )
-from infrastructure.agent.ask_user_tool import build_ask_user_tool
-from infrastructure.agent.next_turn_tool import build_suggest_next_actions_tool
+from infrastructure.agent.event_coalescer import coalesce_text_events
+from infrastructure.agent.hitl_middleware import (
+    ActionAwareHITLMiddleware,
+    SubagentWriteGuardMiddleware,
+)
 from infrastructure.agent.interrupt_state_adapter import (
     extract_approval_payload,
     extract_interrupt_type,
     extract_question_payload,
 )
-from infrastructure.agent.hitl_middleware import (
-    ActionAwareHITLMiddleware,
-    SubagentWriteGuardMiddleware,
-)
 from infrastructure.agent.model_factory import (
-    ModelFactory,
     SUMMARIZATION_TRIGGER_FRACTION,
+    ModelFactory,
 )
-from domain.model_catalog import ModelConfigInvalid, ModelNotAvailable
-from infrastructure.agent.approval_policy import WRITE_ACTIONS
-from infrastructure.agent.checkpoint_recovery_manager import CheckpointRecoveryManager
+from infrastructure.agent.next_turn_tool import build_suggest_next_actions_tool
 from infrastructure.agent.recursion_failure_handler import RecursionFailureHandler
 from infrastructure.agent.tool_error_middleware import ToolErrorFeedbackMiddleware
 from infrastructure.agent.usage_accumulator import UsageAccumulator
 from infrastructure.artifacts.tools import build_artifact_tools
+from infrastructure.checkpoints.langgraph_store import LangGraphCheckpointStore
 from infrastructure.mcp.provider import MCPToolProvider
 
 logger = logging.getLogger(__name__)
@@ -225,7 +232,7 @@ _SUMMARIZATION_EVENT_QUEUE: ContextVar[asyncio.Queue | None] = ContextVar(
 )
 
 
-def _qjudge_backend_factory(rt: Any) -> CompositeBackend:
+def _create_qjudge_backend() -> CompositeBackend:
     """Scratch/temp in agent state; skills + AGENTS.md read from mounted `/app/.deepagents/`.
 
     Pure `StateBackend` lists skills from empty in-memory `files` — SkillsMiddleware then
@@ -393,7 +400,6 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
 # The factory body is `return SummarizationMiddleware(...)` where
 # `SummarizationMiddleware` resolves against the `summarization` module's
 # own scope. Patching THAT binding is what actually swaps the class.
-from deepagents.middleware import summarization as _summarization_module
 _summarization_module.SummarizationMiddleware = _SafeSummarizationMiddleware
 
 
@@ -521,7 +527,7 @@ class _DeepAgentRuntime:
             "model": model,
             "tools": tools,
             "system_prompt": prompt,
-            "backend": _qjudge_backend_factory,
+            "backend": _create_qjudge_backend(),
             "skills": skills,
             "memory": memory,
             # Skills and AGENTS.md are mounted content. The agent may read them,
