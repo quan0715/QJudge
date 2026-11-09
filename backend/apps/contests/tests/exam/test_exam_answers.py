@@ -344,7 +344,8 @@ class ExamAnswerResultsTests(ExamAnswerTestBase):
         rows = resp.data['data']
         self.assertEqual(len(rows), 1)
         self.assertEqual(float(rows[0]['score']), 5.0)
-        self.assertEqual(rows[0]['question_explanation'], 'Single-choice explanation')
+        # Students get their answer and grading, never the teacher's explanation.
+        self.assertNotIn('question_explanation', rows[0])
 
     def test_results_apply_score_policies_like_the_pdf_report(self):
         self.q_multi.score_policy = ExamQuestionScorePolicy.REDISTRIBUTE
@@ -374,27 +375,6 @@ class ExamAnswerResultsTests(ExamAnswerTestBase):
         # full-marks essay; identical to the PDF report's breakdown.
         self.assertEqual(resp.data['meta']['total_score'], 35.0)
         self.assertEqual(resp.data['meta']['max_total_score'], 35.0)
-
-    def test_results_never_carry_the_question_explanation(self):
-        self.client.force_authenticate(user=self.student)
-        submit_url = reverse(
-            'contests:contest-exam-answers-submit-answer',
-            kwargs={'contest_pk': self.contest.id},
-        )
-        submit_resp = self.client.post(submit_url, {
-            'question_id': self.q_essay.id,
-            'answer': {'text': 'My essay answer'},
-        }, format='json')
-        self.assertEqual(submit_resp.status_code, status.HTTP_201_CREATED)
-
-        self.contest.results_published = True
-        self.contest.save(update_fields=['results_published'])
-
-        resp = self.client.get(self._url())
-
-        self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        # Students get their answer and grading, never the teacher's explanation.
-        self.assertNotIn('question_explanation', resp.data['data'][0])
 
     def test_teacher_can_view_before_publish(self):
         self.client.force_authenticate(user=self.teacher)
