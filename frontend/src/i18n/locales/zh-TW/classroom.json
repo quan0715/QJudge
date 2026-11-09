@@ -56,6 +56,7 @@
     "createFailed": "建立公告失敗",
     "delete": "刪除公告",
     "modal": {
+      "emailNotice": "發布後會寄送公告信給班級學生、助教與發布者本人。編輯公告不會再次寄信。",
       "form": {
         "content": "內容",
         "contentPlaceholder": "輸入公告內容，支援 Markdown 語法...",
