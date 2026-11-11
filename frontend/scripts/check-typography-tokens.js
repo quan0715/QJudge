@@ -26,7 +26,7 @@ const ROOT = path.join(__dirname, "..");
 // hardcoded font-size here would silently break the contract for every
 // caller. Feature-level SCSS files retain their own legacy styles.
 const TARGET_DIRS = [
-  "src/shared/components/dashboard",
+  "src/shared/ui/dashboard",
 ];
 
 const colors = {

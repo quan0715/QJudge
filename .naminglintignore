@@ -1,11 +1,3 @@
-features/problems/components/common/TestCaseTypes.ts
 features/problems/hooks/solverAdapters.ts
 features/problems/hooks/solverStorage.ts
-features/problems/screens/problems/section/LoadingIndicator.tsx
-features/problems/screens/problemsIdEdit/components/ProblemEditExportModal.tsx
-features/problems/screens/problemsIdEdit/components/ProblemEditHeader.tsx
-features/problems/screens/problemsIdEdit/components/ProblemEditPreviewModal.tsx
-features/problems/screens/problemsIdEdit/components/ProblemEditSections.tsx
-features/problems/screens/problemsIdEdit/components/ProblemEditState.tsx
-features/problems/screens/problemsIdEdit/contexts/ProblemEditUIContext.tsx
 infrastructure/api/__tests__

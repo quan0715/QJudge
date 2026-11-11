@@ -14,7 +14,7 @@ import {
   DashboardBlock,
   DashboardContainer,
   MetricBlock,
-} from "@/shared/components/dashboard";
+} from "@/shared/ui/dashboard";
 import styles from "./AdminPreparationCommandCenter.module.scss";
 
 type ConfigurablePreparationItemKey = Exclude<PreparationItemKey, "review">;

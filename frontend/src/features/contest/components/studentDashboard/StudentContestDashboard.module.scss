@@ -1,6 +1,6 @@
 @use "@carbon/layout";
 // 此 module 只保留 student dashboard 內部 list / chart / tab content 的局部樣式。
-// 頁面層級 layout、title、metric、time 已改用 @/shared/components/dashboard 元件。
+// 頁面層級 layout、title、metric、time 已改用 @/shared/ui/dashboard 元件。
 
 .headerDescription {
   margin-top: layout.$spacing-02;

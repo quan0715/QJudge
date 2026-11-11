@@ -20,7 +20,7 @@ import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { useClarifications } from "@/features/contest/hooks/useClarifications";
 
 import { TrashCan } from "@carbon/icons-react";
-import { BlockHeader } from "@/shared/components/dashboard";
+import { BlockHeader } from "@/shared/ui/dashboard";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { formatDate } from "@/shared/utils/format";
 import styles from "./ContestClarifications.module.scss";

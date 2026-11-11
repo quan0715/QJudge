@@ -1,1 +1,0 @@
-export { questionBankDetailRoute } from "./routes";

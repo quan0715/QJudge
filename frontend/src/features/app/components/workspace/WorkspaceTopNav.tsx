@@ -30,7 +30,7 @@ import { useOptionalContest } from "@/features/contest/contexts";
 import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { ExamModeMonitorModal } from "@/features/contest/components/modals/ExamModeMonitorModal";
 import { useExamMonitoringStatus } from "@/features/contest/contexts/ExamMonitoringStatusContext";
-import { TimeDisplay } from "@/shared/components/dashboard";
+import { TimeDisplay } from "@/shared/ui/dashboard";
 import { usePublishPageContext } from "@/shared/contexts/PageContextProvider";
 import styles from "./WorkspaceTopNav.module.scss";
 import refreshStyles from "@/shared/ui/RefreshAnimation.module.scss";
