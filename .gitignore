@@ -191,8 +191,8 @@ secrets/
 # Local-only credentials for the isolated Resident test stack.
 .tmp/integrity-test-secrets/
 
-# Local agent scratch reports
-.superpowers/
+# Local-only superpowers specs and plans
+**/docs/superpowers/
 # Local qjudge-paper-cli output (default --output-dir)
 reports/
 

@@ -12,7 +12,7 @@ import type {
   StandingRow,
 } from "@/features/contest/components/ContestScoreboard";
 import { getContestStandings } from "@/infrastructure/api/repositories/contest.repository";
-import { BlockHeader, type BlockHeaderProps } from "@/shared/components/dashboard";
+import { BlockHeader, type BlockHeaderProps } from "@/shared/ui/dashboard";
 import styles from "./ContestStandingsScreen.module.scss";
 
 interface ContestStandingsPageProps {

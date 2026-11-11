@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import pytest
 
-from apps.contests.services import integrity_evidence as service
+from apps.contests.services import integrity_evidence_purge as service
 
 
 def archive(*, change=None):

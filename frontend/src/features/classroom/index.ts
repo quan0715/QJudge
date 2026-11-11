@@ -1,1 +1,0 @@
-export { classroomDetailRoute } from "./routes";

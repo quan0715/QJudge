@@ -16,7 +16,7 @@ import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import {
   DashboardContainer,
   KPIBlock,
-} from "@/shared/components/dashboard";
+} from "@/shared/ui/dashboard";
 import styles from "./AdminInsightRail.module.scss";
 
 interface AdminInsightRailProps {

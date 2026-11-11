@@ -32,6 +32,8 @@ from apps.contests.services.anti_cheat_session import (
 )
 from apps.contests.services import (
     integrity_evidence as integrity_evidence_service,
+    integrity_evidence_purge,
+    integrity_evidence_status,
 )
 from apps.contests.services.integrity_evidence import (
     IntegrityEvidenceRejected,
@@ -2018,14 +2020,14 @@ def test_bulk_manager_evidence_status_uses_bounded_queries(
         .order_by("id")
     )
     loaded_slices = []
-    original_summary = integrity_evidence_service._evidence_summary_from_loaded
+    original_summary = integrity_evidence_status._evidence_summary_from_loaded
 
     def record_loaded_slice(run, windows, chunks):
         loaded_slices.append((len(windows), len(chunks)))
         return original_summary(run, windows, chunks)
 
     monkeypatch.setattr(
-        integrity_evidence_service,
+        integrity_evidence_status,
         "_evidence_summary_from_loaded",
         record_loaded_slice,
     )
@@ -2424,7 +2426,7 @@ def test_archive_chain_enforces_generation_budget_before_loading(
     monkeypatch,
 ):
     monkeypatch.setattr(
-        integrity_evidence_service,
+        integrity_evidence_purge,
         "_MAX_ARCHIVE_GENERATIONS",
         1,
     )
@@ -2450,7 +2452,7 @@ def test_archive_chain_enforces_cumulative_key_budget_while_loading(
     monkeypatch,
 ):
     monkeypatch.setattr(
-        integrity_evidence_service,
+        integrity_evidence_purge,
         "_MAX_PURGE_KEYS",
         2,
     )

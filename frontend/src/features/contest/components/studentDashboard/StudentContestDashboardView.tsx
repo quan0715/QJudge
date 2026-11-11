@@ -60,7 +60,7 @@ import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { usePageHeaderActions } from "@/features/app/contexts/PageHeaderActionsContext";
 import {
   BlockHeader,
-} from "@/shared/components/dashboard";
+} from "@/shared/ui/dashboard";
 import { buildStudentLocatorQrValue } from "@/features/contest/attendance/attendanceQr";
 import { isContestParticipant } from "@/features/contest/domain/contestRuntimePolicy";
 import PaperQuestionReportCard from "@/features/contest/components/exam/PaperQuestionReportCard";
