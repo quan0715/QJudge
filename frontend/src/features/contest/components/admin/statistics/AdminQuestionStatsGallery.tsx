@@ -23,7 +23,7 @@ import {
 } from "@/features/contest/components/admin/statistics/contestResultDashboard.mock";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
 import { resolveExamQuestionTypeFromRaw } from "@/shared/ui/questionVisual";
-import { BlockHeader } from "@/shared/components/dashboard";
+import { BlockHeader } from "@/shared/ui/dashboard";
 import styles from "./AdminQuestionStatsGallery.module.scss";
 
 interface AdminQuestionStatsGalleryProps {

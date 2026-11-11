@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { ProgressBar } from "@carbon/react";
 import { useTranslation } from "react-i18next";
-import { TimeDisplay } from "@/shared/components/dashboard";
+import { TimeDisplay } from "@/shared/ui/dashboard";
 import { useInterval } from "@/shared/hooks/useInterval";
 import { formatContestCompactDuration } from "@/features/contest/utils/contestTimeFormat";
 import styles from "./CountdownProgress.module.scss";

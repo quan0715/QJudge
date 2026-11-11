@@ -10,9 +10,6 @@
         "button"
       ],
       "paths": [
-        "features/ai-tasks/shell/InitPromptEditor.tsx",
-        "features/ai-tasks/shell/TaskDetailPanel.tsx",
-        "features/ai-tasks/shell/TaskMainTabs.tsx",
         "features/app/components/SideMenu.tsx",
         "features/app/components/SideMenuContestRuntimeSection.tsx",
         "features/app/components/UserMenu.tsx",
@@ -34,7 +31,6 @@
         "features/docs/components/DocSidebar.tsx",
         "features/docs/components/DocsSearchDropdown.tsx",
         "shared/ai/ModelSelect.tsx",
-        "shared/components/scrollSpy/ScrollSpyNav.tsx",
         "shared/ui/list/ListPanel.tsx",
         "shared/ui/navigation/TextModeSwitcher.tsx",
         "shared/ui/solver/editor/LanguageSelector.tsx"
@@ -62,8 +58,6 @@
         "features/contest/components/admin/EventIncidentCard.tsx",
         "features/contest/components/admin/examEditor/CodingProblemPreviewCard.tsx",
         "features/contest/components/admin/examEditor/CodingProblemTabbedEditor.tsx",
-        "features/contest/components/admin/examEditor/ExamGroupEditCard.tsx",
-        "features/contest/components/admin/examEditor/ExamQuestionEditCard.tsx",
         "features/contest/components/admin/statistics/AdminQuestionStatsGallery.tsx",
         "features/contest/components/participants/ParticipantCardGallery.tsx",
         "features/contest/components/participants/ParticipantRail.tsx",
@@ -73,7 +67,6 @@
         "features/question-banks/components/QuestionBankProblemManagementPanel.tsx",
         "features/question-banks/components/QuestionBankSettingsGeneralPanel.tsx",
         "shared/ui/dataCard/ActionWidgetCard.tsx",
-        "shared/ui/discussion/ProblemDiscussionThread.tsx",
         "shared/ui/scheduleCard/ScheduleCard.tsx"
       ],
       "reason": "These are semantic native buttons whose full visual surface is the selection target and whose nested layout is owned by the feature; they retain native keyboard and form safety semantics.",

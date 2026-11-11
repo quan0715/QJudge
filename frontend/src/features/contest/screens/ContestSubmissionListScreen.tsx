@@ -25,7 +25,7 @@ import { SubmissionDetailModal } from "@/features/submissions/components";
 import { SubmissionStatusBadge } from "@/shared/ui/tag";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
 import ContainerCard from "@/shared/layout/ContainerCard";
-import { BlockHeader } from "@/shared/components/dashboard";
+import { BlockHeader } from "@/shared/ui/dashboard";
 import styles from "./ContestSubmissionListScreen.module.scss";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useContestSubmissions } from "@/features/contest/hooks/useContestSubmissions";

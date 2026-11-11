@@ -3,7 +3,7 @@ import { Accordion, AccordionItem, InlineNotification, SkeletonText, Tag } from 
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useGradeAppeals } from "../hooks/useGradeAppeals";
-import { BlockHeader } from "@/shared/components/dashboard";
+import { BlockHeader } from "@/shared/ui/dashboard";
 import { formatDate } from "@/shared/utils/format";
 import { Avatar } from "@/shared/ui/avatar";
 import GradeAppealDialog from "./GradeAppealDialog";

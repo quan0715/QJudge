@@ -16,7 +16,7 @@ import { CountdownProgress } from "@/features/contest/components/CountdownProgre
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import type { AdminOverviewDashboardData } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
 
-import { BlockHeader, DashboardBlock, DashboardContainer, DashboardTabBar, DashboardTabPanel, DashboardTabs, DashboardToolbar, MetricBlock } from "@/shared/components/dashboard";
+import { BlockHeader, DashboardBlock, DashboardContainer, DashboardTabBar, DashboardTabPanel, DashboardTabs, DashboardToolbar, MetricBlock } from "@/shared/ui/dashboard";
 import styles from "./AdminOverviewCommandCenter.module.scss";
 
 interface AdminOverviewCommandCenterProps {

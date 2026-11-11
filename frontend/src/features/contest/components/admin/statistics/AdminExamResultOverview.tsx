@@ -6,7 +6,7 @@ import { SkeletonPlaceholder, SkeletonText } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { formatScore } from "@/features/contest/utils/scoreFormat";
-import { MetricBlock } from "@/shared/components/dashboard";
+import { MetricBlock } from "@/shared/ui/dashboard";
 import type { DashboardMockData } from "./contestResultDashboard.mock";
 import styles from "./AdminExamResultOverview.module.scss";
 
