@@ -4,7 +4,7 @@ import { formatDate, getLanguageLabel } from "./format";
 describe("Format Utilities", () => {
   describe("formatDate", () => {
     it("should format ISO date string to zh-TW locale", () => {
-      const dateString = "2024-01-15T10:30:00.000Z";
+      const dateString = new Date(2024, 0, 15, 10, 30).toISOString();
       const result = formatDate(dateString);
 
       // Should contain date parts (actual format depends on locale)
@@ -13,8 +13,12 @@ describe("Format Utilities", () => {
       expect(result).toContain("15");
     });
 
-    it("should handle different date formats", () => {
-      const dateString = "2023-12-25T00:00:00Z";
+    it.each([
+      "2023-12-25T00:00:00",
+      new Date(2023, 11, 25, 0, 0).toISOString(),
+    ])("formats local December 25 from %s", (dateString) => {
+      // formatDate uses the viewer's timezone. Both inputs represent local
+      // midnight; UTC midnight may still be December 24 for the viewer.
       const result = formatDate(dateString);
 
       expect(result).toContain("2023");

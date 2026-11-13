@@ -35,7 +35,7 @@ interface CodingProblemListPanelProps {
   onReorderPointerSessionChange?: (delta: 1 | -1) => void;
 }
 
-/** Row chrome aligned with paper exam `WorkTree` (order + title). */
+/** Coding problem row with its order and title. */
 const ProblemTreeItem: React.FC<{
   problem: ContestProblemSummary;
   index: number;

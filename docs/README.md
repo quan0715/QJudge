@@ -9,6 +9,9 @@
 - [語系維護](i18n.md)：前端語系 key 與公開文件翻譯的檢查方式。
 - [壓力測試](loadtest.md)：隔離壓測環境的建立、執行與清理。
 - [Exam Integrity runbook](operations/exam-integrity-runbook.md)：Integrity Run 的營運檢查與復原。
+- [Resident Integrity 操作](deployment/integrity-resident-dev.md)：常駐監考服務的開發環境更新、就緒檢查與資料保留。
+- [AI 模型設定](../.codex/skills/qjudge-ai-model-registry/SKILL.md)：模型目錄、provider adapter 與部署設定的維護入口。
+- [官網搬遷邊界](website-migration.md)：獨立官網與主系統的程式、路由及部署責任。
 - [身份模組維護與擴充](identity-auth-extension.md)：OAuth 2.0、SSO 登入與外部帳號連結的內部架構與擴充指引。
 
 ## 公開文件
