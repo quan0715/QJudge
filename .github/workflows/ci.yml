@@ -60,6 +60,9 @@ jobs:
       - name: Deploy CLI Tests
         run: python3 -m unittest discover -s deploy/qjudge_cli/tests -t deploy
 
+      - name: Git Hook Tests
+        run: python3 -m unittest discover -s scripts/tests -p test_setup_git_hooks.py
+
       - name: Deploy Compose Lint and Config
         run: |
           deploy/qjudge lint-compose deploy/compose.yml deploy/addons/storage/compose.yml deploy/addons/media/compose.yml deploy/addons/postal/compose.yml deploy/addons/postal/compose.qjudge.yml deploy/agent/compose.yml
