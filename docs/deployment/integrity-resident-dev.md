@@ -30,7 +30,8 @@ Use the existing dev database. In the commands below, `dc` means
 
 1. Apply current migrations with
    `dc exec -T -e DB_HOST=postgres backend python manage.py migrate`.
-   Migration 0099 removes the retired worker fields.
+   Apply the migration graph shipped with the current checkout; the retired
+   worker schema is already absent from the current baseline migrations.
 2. Build the runtime: `dc build integrity-resident`.
 3. For first setup, run `deploy/qjudge secrets --image qjudge/backend:dev`.
    The resident image creates `/run-data` owned by 10001 with mode 0700, and a

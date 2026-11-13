@@ -2897,6 +2897,22 @@
       "marked": "{{count}} marked",
       "note": "You can't change your answers after handing in.",
       "noteSelect": "Select a question number to go back to it. You can't change your answers after handing in."
+    },
+    "tour": {
+      "helpLabel": "Help: guided tour",
+      "next": "Next",
+      "previous": "Previous",
+      "done": "Done",
+      "close": "Close tour",
+      "overview": "View exam information and rules here. Actions to start, resume, or submit the exam appear in the overview as appropriate for its current status.",
+      "questions": "Open the answering workspace and question list here. After the tour, choose the question you want to answer.",
+      "listTitle": "Question list",
+      "list": "Expand or collapse the question list with this button. Use the list to switch questions and check their status; collapse it for more answering space.",
+      "answerTitle": "Answering workspace",
+      "codingAnswer": "Read the problem, then write your code in the editor. After testing, submit your code and check the judging result. Running a test does not submit your solution.",
+      "paperAnswer": "Read the question and select or enter your answer. Check the save status before switching questions, and use Answer review to check your work before submitting the exam.",
+      "review": "Check each question’s answer status and available answer records here. Look for anything you missed before submitting the exam.",
+      "standings": "When the scoreboard is available, view rankings and scores here. The information shown depends on the contest settings."
     }
   }
 }

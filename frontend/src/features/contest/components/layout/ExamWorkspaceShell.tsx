@@ -12,6 +12,7 @@ import { isContestParticipant, shouldLockContestWorkspaceNavigation } from "../.
 import { resolveStudentContestPhase } from "../studentDashboard/studentDashboardState";
 import { ExamQuestionList } from "./ExamQuestionList";
 import { ExamIconButton } from "./ExamIconButton";
+import { ExamHelpButton } from "./ExamHelpButton";
 import { ExamWorkspaceIcon, type ExamWorkspaceIconName } from "./ExamWorkspaceIcon";
 import { ExamWorkspacePanels, type ExamWorkspacePage } from "./ExamWorkspacePanels";
 import styles from "./ExamWorkspaceShell.module.scss";
@@ -105,11 +106,15 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
         )}
       </div>
       {onQuestions && (
-        <ExamIconButton label={collapseLabel} aria-expanded={!listCollapsed} onClick={() => setListCollapsed((value) => !value)}>
+        <ExamIconButton data-exam-tour="list-toggle" label={collapseLabel} aria-expanded={!listCollapsed} onClick={() => setListCollapsed((value) => !value)}>
           <ExamWorkspaceIcon name="sidebar" />
         </ExamIconButton>
       )}
       <h1 className={styles.title}>{contest?.name || t("workspace.header.fallbackTitle", "考試")}</h1>
+      <ExamHelpButton
+        contextKey={`${activePage}:${dashboard}:${contest?.examStatus}:${canAnswer}:${canSeeStandings}`}
+        coding={contest?.contestType === "coding"}
+      />
       {preview ? (
         <div className={styles.headerStatus}>
           <span className={styles.modeChip}>{t("workspace.header.previewMode", "試作答")}</span>
@@ -133,6 +138,7 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
       className={styles.railButton}
       aria-pressed={activePage === id}
       data-page={id}
+      data-exam-tour={id}
       onClick={() => selectPage(id)}
     >
       <ExamWorkspaceIcon name={icon} size={19} />
@@ -160,7 +166,7 @@ export function ExamWorkspaceShell({ children, preview = false, dashboard = fals
   return (
     <ExamReviewSlotContext.Provider value={reviewSlot}>
     <ExamShell header={header} rail={rail} railFooter={accountMenu} navigation={navigation} showNavigation={onQuestions} navigationCollapsed={listCollapsed}>
-      <div className={styles.answerSurface} data-dashboard={dashboard} hidden={!answerVisible}>
+      <div className={styles.answerSurface} data-exam-tour={dashboard ? undefined : "answer"} data-dashboard={dashboard} hidden={!answerVisible}>
         {dashboard ? <div className={styles.pageInner} data-page="overview">{children}</div> : children}
       </div>
       {showPanel && (
