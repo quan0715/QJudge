@@ -1,9 +1,11 @@
 """Verify the installed hook checks the checkout being pushed."""
 
+import os
 import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 
@@ -12,6 +14,8 @@ INSTALLER = Path(__file__).resolve().parents[1] / "setup-git-hooks.sh"
 
 class GitHooksTest(unittest.TestCase):
     def setUp(self):
+        self.git_env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+        self.git_env.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
         self.temp = tempfile.TemporaryDirectory(prefix="qjudge hooks ")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name) / "repo"
@@ -29,7 +33,8 @@ class GitHooksTest(unittest.TestCase):
 
     def run_command(self, *args, cwd=None):
         return subprocess.run(
-            args, cwd=cwd or self.root, text=True, capture_output=True, check=True,
+            args, cwd=cwd or self.root, env=self.git_env,
+            text=True, capture_output=True, check=True,
         ).stdout.strip()
 
     def install_and_run(self, checkout):
@@ -58,6 +63,17 @@ class GitHooksTest(unittest.TestCase):
         self.run_command("git", "config", "core.hooksPath", "custom hooks")
         self.install_and_run(self.root)
         self.assertTrue((self.root / "custom hooks/pre-push").is_file())
+
+    def test_user_global_hooks_are_not_modified(self):
+        hooks = Path(self.temp.name) / "user hooks"
+        hooks.mkdir()
+        hook = hooks / "pre-push"
+        hook.write_text("user-owned hook\n")
+        config = Path(self.temp.name) / "user.gitconfig"
+        config.write_text(f'[core]\n\thooksPath = "{hooks}"\n')
+        with patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(config)}):
+            self.install_and_run(self.root)
+        self.assertEqual(hook.read_text(), "user-owned hook\n")
 
 
 if __name__ == "__main__":
