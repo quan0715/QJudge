@@ -98,12 +98,12 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
     const studentHeaders = await authHeadersWithDevice(student);
     const studentId = await getMyUserId(student);
     const label = `Resident E2E ${Date.now()}-${testInfo.workerIndex}`;
-    const classroom = await json<{ uuid: string }>(await teacher.request.post("/api/v1/classrooms/", {
+    const { data: classroom } = await json<{ data: { uuid: string } }>(await teacher.request.post("/api/v1/classrooms/", {
       headers: teacherHeaders, data: { name: label, description: "Dedicated resident integration fixture" },
     }));
     expect(classroom.uuid).toBeTruthy();
     await addClassroomStudentMembers(teacher, classroom.uuid, [username]);
-    const created = await json<{ contest_id: string }>(await teacher.request.post(`/api/v1/classrooms/${classroom.uuid}/contests/`, {
+    const { data: created } = await json<{ data: { contest_id: string } }>(await teacher.request.post(`/api/v1/classrooms/${classroom.uuid}/contests/`, {
       headers: teacherHeaders,
       data: { name: label, contest_type: "paper_exam", cheat_detection_enabled: true, attendance_check_enabled: false },
     }));

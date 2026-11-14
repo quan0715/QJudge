@@ -48,8 +48,8 @@ test.describe("Classroom join via pending actions", () => {
     expect(resp.ok()).toBeTruthy();
 
     const body = await resp.json();
-    const classroom = body?.data ?? body;
-    inviteCode = String(classroom.invite_code ?? classroom.inviteCode);
+    const classroom = body.data;
+    inviteCode = String(classroom.invite_code);
 
     await page.close();
     await ctx.close();

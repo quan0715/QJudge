@@ -283,13 +283,13 @@ def test_django_api_handles_custom_exception_handler_message_only(monkeypatch):
 def test_qjudge_browse_builds_encoded_query(monkeypatch):
     calls = []
 
-    async def fake_django_api(method, path, ctx, *, json_body=None):
+    async def fake_django_api(method, path, ctx, *, json_body=None, expect_envelope=False):
         calls.append({
             "method": method,
             "path": path,
             "json_body": json_body,
         })
-        return {"items": []}
+        return {"data": [], "meta": {"pagination": {"count": 0, "next": None, "previous": None}}}
 
     monkeypatch.setattr(server, "django_api", fake_django_api)
 
@@ -1914,7 +1914,7 @@ def test_mcp_client_round_trip_preserves_tool_schemas_and_json_envelopes(monkeyp
     from mcp.client import Client
 
     async def fake_django_api(method, path, ctx, **kwargs):
-        return [{"uuid": "classroom-1", "name": "Algorithms"}]
+        return {"data": [{"uuid": "classroom-1", "name": "Algorithms"}], "meta": {"pagination": {"count": 1, "next": None, "previous": None}}}
 
     monkeypatch.setattr(server, "django_api", fake_django_api)
 
@@ -1978,3 +1978,75 @@ def test_exam_tool_validation_rejects_boolean_answers(answer):
             "options": ["a", "b", "c"],
             "correct_answer": answer,
         }, context=DummyContext()))
+
+
+def test_classroom_browse_unwraps_envelope_and_follows_pages(monkeypatch):
+    def handler(request):
+        second = request.url.params.get('page') == '2'
+        return httpx.Response(200, json={
+            'data': [{'uuid': 'room-2' if second else 'room-1', 'name': 'Class'}],
+            'meta': {'pagination': {'count': 2, 'next': None if second else '/?page=2', 'previous': None}},
+        })
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    monkeypatch.setattr(server, '_http_client', lambda: client)
+    result = run(server.qjudge_browse('list_classrooms', DummyContext()))
+    assert result['count'] == 2
+    assert [row['classroom_id'] for row in result['items']] == ['room-1', 'room-2']
+
+
+@pytest.mark.parametrize('payload', [[], {"results": []}, {"data": []}, {"data": [], "meta": {}},
+    {"data": [], "meta": {"pagination": {"count": "oops", "next": None, "previous": []}}},
+    {"data": [], "meta": {"pagination": {"count": -1, "next": None, "previous": None}}},
+    {"data": [], "meta": {"pagination": {"count": True, "next": None, "previous": None}}},
+])
+def test_classroom_browse_reports_malformed_contract_instead_of_empty_results(monkeypatch, payload):
+    client = httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(200, json=payload)))
+    monkeypatch.setattr(server, '_http_client', lambda: client)
+    result = run(server.qjudge_browse('list_classrooms', DummyContext()))
+    assert result['error'] is True
+    assert 'contract' in result['detail'].lower()
+
+
+def test_classroom_detail_and_contest_creation_keep_tool_payloads(monkeypatch):
+    room_id = '11111111-1111-1111-1111-111111111111'
+    writes = []
+    def handler(request):
+        if request.method == 'POST':
+            writes.append(request)
+            return httpx.Response(201, json={'data': {'contest_id': 'exam-1'}, 'meta': {}})
+        return httpx.Response(200, json={'data': {'uuid': room_id, 'name': 'Class'}, 'meta': {}})
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    monkeypatch.setattr(server, '_http_client', lambda: client)
+    assert run(server.qjudge_browse('get_classroom', DummyContext(), classroom_id=room_id))['classroom_id'] == room_id
+    created = run(server.qjudge_contest_manager('create', DummyContext(), classroom_id=room_id, name='Exam', contest_type='paper_exam'))
+    assert created == {'contest_id': 'exam-1'}
+    assert len(writes) == 1
+
+
+@pytest.mark.parametrize('status,payload', [
+    (200, {'success': False, 'error': {'code': 'LEGACY', 'message': 'legacy'}}),
+    (403, {'success': False, 'error': {'code': 'LEGACY', 'message': 'legacy'}}),
+    (403, {'errors': [{'code': 'denied', 'message': 'Denied'}], 'meta': {}}),
+])
+def test_classroom_rejects_legacy_and_malformed_error_bodies(monkeypatch, status, payload):
+    client = httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(status, json=payload)))
+    monkeypatch.setattr(server, '_http_client', lambda: client)
+    result = run(server.qjudge_browse('list_classrooms', DummyContext()))
+    assert result['error'] is True
+    assert result['status'] == 502
+    assert 'contract' in result['detail'].lower()
+
+
+def test_classroom_preserves_canonical_error_status_and_transport_failure(monkeypatch):
+    payload = {'errors': [{'code': 'permission_denied', 'message': 'Denied', 'field': None, 'details': {}}], 'meta': {}}
+    client = httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(403, json=payload)))
+    monkeypatch.setattr(server, '_http_client', lambda: client)
+    result = run(server.qjudge_browse('list_classrooms', DummyContext()))
+    assert result['status'] == 403
+    assert result['errors'] == payload['errors']
+    def disconnected(request):
+        raise httpx.ConnectError('offline', request=request)
+    client = httpx.AsyncClient(transport=httpx.MockTransport(disconnected))
+    result = run(server.qjudge_browse('list_classrooms', DummyContext()))
+    assert result['error'] is True and result['status'] == 502
+    assert 'request failed' in result['detail']

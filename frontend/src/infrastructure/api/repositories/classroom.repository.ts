@@ -1,4 +1,5 @@
-import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
+import { fetchEnvelope, EnvelopeError } from "@/infrastructure/api/envelope";
+import { httpClient } from "@/infrastructure/api/http.client";
 import type {
   BoundContest,
   Classroom,
@@ -26,24 +27,36 @@ import type {
 // ============================================================================
 
 export const getClassrooms = async (scope?: string): Promise<Classroom[]> => {
-  const query = scope ? `?scope=${scope}` : "";
-  const data = await requestJson<{ results?: ClassroomDto[] } | ClassroomDto[]>(
-    httpClient.get(`/api/v1/classrooms/${query}`),
-    "Failed to fetch classrooms"
-  );
-  const results = Array.isArray(data) ? data : data.results || [];
-  return results.map(mapClassroomDto);
+  const query = scope ? `?scope=${encodeURIComponent(scope)}` : "";
+  const path = `/api/v1/classrooms/${query}`;
+  const rows: Classroom[] = [];
+  for (let page = 1; page <= 100; page += 1) {
+    const url = page === 1 ? path : `${path}${query ? "&" : "?"}page=${page}`;
+    const { data, meta } = await fetchEnvelope<ClassroomDto[], {
+      pagination: { count: number; next: string | null; previous: string | null };
+    }>(httpClient.get(url), "Failed to fetch classrooms");
+    const pagination = meta.pagination;
+    if (!Array.isArray(data) || !pagination || !Number.isInteger(pagination.count) ||
+      pagination.count < 0 ||
+      !(pagination.next === null || typeof pagination.next === "string") ||
+      !(pagination.previous === null || typeof pagination.previous === "string")) {
+      throw new EnvelopeError(200, [{ code: "envelope_malformed", message: "Invalid classroom list response contract" }]);
+    }
+    rows.push(...data.map(mapClassroomDto));
+    if (pagination.next === null) return rows;
+  }
+  throw new Error("Classroom pagination exceeded 100 pages; refusing incomplete results");
 };
 
 export const getClassroom = async (id: string): Promise<ClassroomDetail | undefined> => {
   const res = await httpClient.get(`/api/v1/classrooms/${id}/`);
   if (!res.ok) return undefined;
-  const data = await res.json() as ClassroomDetailDto;
+  const { data } = await fetchEnvelope<ClassroomDetailDto>(Promise.resolve(res));
   return mapClassroomDetailDto(data);
 };
 
 export const createClassroom = async (data: { name: string; description?: string }): Promise<Classroom> => {
-  const responseData = await requestJson<ClassroomDto>(
+  const { data: responseData } = await fetchEnvelope<ClassroomDto>(
     httpClient.post(`/api/v1/classrooms/`, data),
     "Failed to create classroom"
   );
@@ -51,7 +64,7 @@ export const createClassroom = async (data: { name: string; description?: string
 };
 
 export const updateClassroom = async (id: string, data: { name?: string; description?: string; icon?: string; cover_url?: string }): Promise<Classroom> => {
-  const responseData = await requestJson<ClassroomDto>(
+  const { data: responseData } = await fetchEnvelope<ClassroomDto>(
     httpClient.patch(`/api/v1/classrooms/${id}/`, data),
     "Failed to update classroom"
   );
@@ -59,7 +72,7 @@ export const updateClassroom = async (id: string, data: { name?: string; descrip
 };
 
 export const deleteClassroom = async (id: string): Promise<void> => {
-  await ensureOk(httpClient.delete(`/api/v1/classrooms/${id}/`), "Failed to delete classroom");
+  await fetchEnvelope<null>(httpClient.delete(`/api/v1/classrooms/${id}/`), "Failed to delete classroom");
 };
 
 interface RegenerateInviteCodeResponse {
@@ -77,37 +90,40 @@ interface UpdateMemberRoleResponse {
 }
 
 export const regenerateCode = async (id: string): Promise<RegenerateInviteCodeResponse> => {
-  return requestJson<RegenerateInviteCodeResponse>(
+  const { data } = await fetchEnvelope<RegenerateInviteCodeResponse>(
     httpClient.post(`/api/v1/classrooms/${id}/invite-code/`),
     "Failed to regenerate code"
   );
+  return data;
 };
 
 export const addMembers = async (id: string, usernames: string[]): Promise<AddClassroomMembersResponse> => {
-  return requestJson<AddClassroomMembersResponse>(
+  const { data } = await fetchEnvelope<AddClassroomMembersResponse>(
     httpClient.post(`/api/v1/classrooms/${id}/members/`, { usernames }),
     "Failed to add members"
   );
+  return data;
 };
 
 export const removeMember = async (classroomId: string, userId: number): Promise<void> => {
-  await ensureOk(
+  await fetchEnvelope<null>(
     httpClient.delete(`/api/v1/classrooms/${classroomId}/members/${userId}/`),
     "Failed to remove member"
   );
 };
 
 export const updateMemberRole = async (classroomId: string, userId: number, role: string): Promise<UpdateMemberRoleResponse> => {
-  return requestJson<UpdateMemberRoleResponse>(
+  const { data } = await fetchEnvelope<UpdateMemberRoleResponse>(
     httpClient.patch(`/api/v1/classrooms/${classroomId}/members/${userId}/`, { role }),
     "Failed to update member role"
   );
+  return data;
 };
 
 export const uploadClassroomCover = async (id: string, file: File): Promise<string> => {
   const formData = new FormData();
   formData.append("file", file);
-  const data = await requestJson<{ cover_url: string }>(
+  const { data } = await fetchEnvelope<{ cover_url: string }>(
     httpClient.request(`/api/v1/classrooms/${id}/cover/`, {
       method: "POST",
       body: formData,
@@ -119,7 +135,7 @@ export const uploadClassroomCover = async (id: string, file: File): Promise<stri
 
 // Announcement operations
 export const createAnnouncement = async (classroomId: string, data: { title: string; content: string; is_pinned?: boolean }): Promise<ClassroomAnnouncement> => {
-  const responseData = await requestJson<ClassroomAnnouncementDto>(
+  const { data: responseData } = await fetchEnvelope<ClassroomAnnouncementDto>(
     httpClient.post(`/api/v1/classrooms/${classroomId}/announcements/`, data),
     "Failed to create announcement"
   );
@@ -127,7 +143,7 @@ export const createAnnouncement = async (classroomId: string, data: { title: str
 };
 
 export const updateAnnouncement = async (classroomId: string, announcementId: string, data: { title?: string; content?: string; is_pinned?: boolean }): Promise<ClassroomAnnouncement> => {
-  const responseData = await requestJson<ClassroomAnnouncementDto>(
+  const { data: responseData } = await fetchEnvelope<ClassroomAnnouncementDto>(
     httpClient.patch(`/api/v1/classrooms/${classroomId}/announcements/${announcementId}/`, data),
     "Failed to update announcement"
   );
@@ -135,7 +151,7 @@ export const updateAnnouncement = async (classroomId: string, announcementId: st
 };
 
 export const deleteAnnouncement = async (classroomId: string, announcementId: string): Promise<void> => {
-  await ensureOk(
+  await fetchEnvelope<null>(
     httpClient.delete(`/api/v1/classrooms/${classroomId}/announcements/${announcementId}/`),
     "Failed to delete announcement"
   );
@@ -156,7 +172,7 @@ export const createClassroomContest = async (
     results_published?: boolean;
   },
 ): Promise<BoundContest> => {
-  const responseData = await requestJson<BoundContestDto>(
+  const { data: responseData } = await fetchEnvelope<BoundContestDto>(
     httpClient.post(`/api/v1/classrooms/${id}/contests/`, data),
     "Failed to create classroom contest",
   );
@@ -165,7 +181,7 @@ export const createClassroomContest = async (
 
 // Gradebook operations
 export const getClassroomGradebook = async (classroomId: string): Promise<ClassroomGradebook> => {
-  const data = await requestJson<ClassroomGradebookDto>(
+  const { data } = await fetchEnvelope<ClassroomGradebookDto>(
     httpClient.get(`/api/v1/classrooms/${classroomId}/gradebook/`),
     "Failed to fetch classroom gradebook"
   );

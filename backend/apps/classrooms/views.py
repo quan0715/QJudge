@@ -14,6 +14,8 @@ from django.urls import reverse
 from apps.contests.exporters.utils import sanitize_filename
 from apps.contests.services.export_service import csv_download_response
 from apps.users.permissions import IsTeacherOrAdmin
+from apps.core.api.response_contract import JSONContractMixin
+from .schema import ClassroomSchema
 from apps.core.services import (
     build_markdown_image_object_key,
     inspect_image,
@@ -56,7 +58,15 @@ from .services import (
 )
 
 
-class ClassroomViewSet(viewsets.ModelViewSet):
+class ClassroomViewSet(JSONContractMixin, viewsets.ModelViewSet):
+    schema = ClassroomSchema()
+
+    # Audited JSON actions only. gradebook_export remains a CSV protocol.
+    json_contract_actions = frozenset({
+        'list', 'create', 'retrieve', 'update', 'partial_update', 'destroy',
+        'members', 'member_detail', 'invite_code', 'list_contests', 'gradebook',
+        'announcements', 'announcement_detail', 'cover',
+    })
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = "uuid"
     lookup_url_kwarg = "id"
