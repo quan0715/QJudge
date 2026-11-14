@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import { ExamWorkspaceShell } from "./ExamWorkspaceShell";
 
@@ -12,9 +12,79 @@ vi.mock("@/features/app/components/UserMenu", () => ({ UserMenu: ({ settingsOnly
 vi.mock("./ExamQuestionList", () => ({ ExamQuestionList: ({ collapsed }: { collapsed: boolean }) => <span>{collapsed ? "Q1" : "題目詳細列表"}</span> }));
 vi.mock("./ExamWorkspacePanels", () => ({ ExamWorkspacePanels: ({ page }: { page: string }) => <h2>{page}</h2> }));
 const mount = () => render(<MemoryRouter><ExamWorkspaceShell preview><input aria-label="答案" /></ExamWorkspaceShell></MemoryRouter>);
-afterEach(cleanup);
+beforeEach(() => {
+  Object.assign(state.contest, { contestType: "paper_exam", scoreboardVisibleDuringContest: false, hasJoined: false, examStatus: "not_started", cheatDetectionEnabled: false });
+  // jsdom has no layout; give Driver real-looking target geometry.
+  vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue([new DOMRect(20, 60, 100, 40)] as unknown as DOMRectList);
+  HTMLElement.prototype.scrollIntoView = vi.fn();
+});
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("ExamWorkspaceShell", () => {
+  it("starts help only on request and closes without losing the draft", async () => {
+    mount();
+    const answer = screen.getByRole("textbox", { name: "答案" });
+    fireEvent.change(answer, { target: { value: "保留這份答案" } });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const help = screen.getByRole("button", { name: "Help：操作導覽" });
+    fireEvent.click(help);
+    expect(await screen.findByRole("dialog")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "關閉導覽" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(answer).toHaveValue("保留這份答案");
+    expect(help).toHaveFocus();
+    fireEvent.click(help);
+    expect(await screen.findByRole("dialog")).toBeVisible();
+  });
+  it("finishes visible steps without navigating, submitting, or discarding answers", async () => {
+    mount();
+    const answer = screen.getByRole("textbox", { name: "答案" });
+    fireEvent.change(answer, { target: { value: "尚未交卷" } });
+    fireEvent.click(screen.getByRole("button", { name: "Help：操作導覽" }));
+    await screen.findByRole("dialog");
+    for (const label of ["題目", "題目列表", "作答區域", "作答內容"]) {
+      fireEvent.click(screen.getByRole("button", { name: "下一步" }));
+      expect(screen.getByRole("dialog")).toHaveAccessibleName(label);
+    }
+    fireEvent.click(screen.getByRole("button", { name: "上一步" }));
+    expect(screen.getByRole("dialog")).toHaveAccessibleName("作答區域");
+    fireEvent.click(screen.getByRole("button", { name: "下一步" }));
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(answer).toBeVisible();
+    expect(answer).toHaveValue("尚未交卷");
+  });
+  it("only tours overview and review after submission and cleans up on unmount", async () => {
+    state.contest.hasJoined = true;
+    state.contest.examStatus = "submitted";
+    const { unmount } = render(<MemoryRouter><ExamWorkspaceShell dashboard>概覽內容</ExamWorkspaceShell></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "Help：操作導覽" }));
+    await screen.findByRole("dialog");
+    fireEvent.click(screen.getByRole("button", { name: "下一步" }));
+    expect(screen.getByRole("dialog")).toHaveAccessibleName("作答內容");
+    expect(screen.getByRole("button", { name: "完成" })).toBeVisible();
+    unmount();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.body).not.toHaveClass("driver-active");
+    state.contest.hasJoined = false;
+    state.contest.examStatus = "not_started";
+  });
+  it("includes an available scoreboard and closes when exam permissions change", async () => {
+    state.contest.contestType = "coding";
+    state.contest.scoreboardVisibleDuringContest = true;
+    const { rerender } = mount();
+    fireEvent.click(screen.getByRole("button", { name: "Help：操作導覽" }));
+    await screen.findByRole("dialog");
+    for (let index = 0; index < 5; index += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "下一步" }));
+    }
+    expect(screen.getByRole("dialog")).toHaveAccessibleName("排行榜");
+    expect(screen.getByRole("button", { name: "完成" })).toBeVisible();
+    state.contest.scoreboardVisibleDuringContest = false;
+    rerender(<MemoryRouter><ExamWorkspaceShell preview><input aria-label="答案" /></ExamWorkspaceShell></MemoryRouter>);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.body).not.toHaveClass("driver-active");
+  });
   it("keeps the same answer element and value across workspace pages", () => {
     mount();
     const answer = screen.getByRole("textbox", { name: "答案" });

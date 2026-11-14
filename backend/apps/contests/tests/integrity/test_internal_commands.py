@@ -510,45 +510,6 @@ def test_violation_count_distinguishes_direct_actions_from_incident_opening(
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("initial_count, expected_count", [(5, 3), (1, 0), (0, 0)])
-def test_clipboard_backfill_preserves_original_events_and_other_penalties(
-    participant, submitted_participant, running_integrity_run, initial_count, expected_count,
-):
-    from importlib import import_module
-    from types import SimpleNamespace
-    from django.apps import apps
-    from django.db import connection
-
-    migration = import_module("apps.contests.migrations.0016_correct_clipboard_violation_counts")
-    participant.violation_count = initial_count
-    participant.save(update_fields=["violation_count"])
-    for overrides in ({}, {}, {"action": "audit"}, {"counted_as_violation": False}):
-        ExamEvent.objects.create(
-            contest=participant.contest, user=participant.user,
-            integrity_run=running_integrity_run, event_type="clipboard_action",
-            metadata={"source": "clipboard_detector", "content": "original text", "integrity": {
-                "definition_id": "clipboard", "phase": "triggered", "action": "record",
-                **overrides,
-            }},
-        )
-    # Events from submitted attempts still need correction if originally counted.
-    ExamEvent.objects.create(
-        contest=submitted_participant.contest, user=submitted_participant.user,
-        integrity_run=running_integrity_run, event_type="clipboard_action",
-        metadata={"integrity": {
-            "definition_id": "clipboard", "phase": "triggered", "action": "record",
-        }},
-    )
-    before = list(ExamEvent.objects.order_by("pk").values())
-    migration.correct_counts(apps, SimpleNamespace(connection=connection))
-    participant.refresh_from_db()
-    submitted_participant.refresh_from_db()
-    assert participant.violation_count == expected_count
-    assert submitted_participant.violation_count == 3
-    assert list(ExamEvent.objects.order_by("pk").values()) == before
-
-
-@pytest.mark.django_db
 def test_late_or_submitted_event_is_audit_only(
     internal_client,
     running_integrity_run,

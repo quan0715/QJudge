@@ -60,6 +60,9 @@ jobs:
       - name: Deploy CLI Tests
         run: python3 -m unittest discover -s deploy/qjudge_cli/tests -t deploy
 
+      - name: Git Hook Tests
+        run: python3 -m unittest discover -s scripts/tests -p test_setup_git_hooks.py
+
       - name: Deploy Compose Lint and Config
         run: |
           deploy/qjudge lint-compose deploy/compose.yml deploy/addons/storage/compose.yml deploy/addons/media/compose.yml deploy/addons/postal/compose.yml deploy/addons/postal/compose.qjudge.yml deploy/agent/compose.yml
@@ -253,6 +256,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v7
         with:
@@ -264,9 +269,12 @@ jobs:
         run: pip install -r requirements/dev.txt
         working-directory: backend
 
-      - name: Migrate
-        run: python manage.py migrate --noinput
-        working-directory: backend
+      - name: Verify migration baseline upgrade from previous release
+        run: |
+          previous_checkout="$(mktemp -d)"
+          git archive a7847bda3616 backend | tar -x -C "$previous_checkout"
+          (cd "$previous_checkout/backend" && python manage.py migrate --noinput)
+          PYTHONPATH=backend python ci/verify_migration_baseline.py
 
       - name: Run Tests with Coverage
         run: |

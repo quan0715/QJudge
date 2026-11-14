@@ -6,7 +6,14 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-GIT_HOOKS_DIR="$PROJECT_ROOT/.git/hooks"
+# Inherited hooks directories belong to the user, not this repository. Override
+# only inherited configuration; keep explicit repository/worktree choices.
+HOOKS_SCOPE="$(git -C "$PROJECT_ROOT" config --show-scope --get core.hooksPath | cut -f1 || true)"
+if [[ "$HOOKS_SCOPE" == "global" || "$HOOKS_SCOPE" == "system" ]]; then
+    REPOSITORY_HOOKS_DIR="$(git -C "$PROJECT_ROOT" rev-parse --path-format=absolute --git-common-dir)/hooks"
+    git -C "$PROJECT_ROOT" config --local core.hooksPath "$REPOSITORY_HOOKS_DIR"
+fi
+GIT_HOOKS_DIR="$(git -C "$PROJECT_ROOT" rev-parse --path-format=absolute --git-path hooks)"
 
 echo "🔧 設置 Git Hooks..."
 
@@ -19,8 +26,10 @@ cat > "$GIT_HOOKS_DIR/pre-push" << 'EOF'
 # Git pre-push hook
 # 在 push 前執行檢查腳本
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+set -e
+
+# Hooks are shared by linked worktrees; resolve the checkout being pushed.
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 
 # 執行 pre-push 檢查腳本
 if [ -f "$PROJECT_ROOT/scripts/pre-push-check.sh" ]; then
@@ -37,10 +46,8 @@ chmod +x "$SCRIPT_DIR/pre-push-check.sh"
 echo "✅ Git hooks 設置完成！"
 echo ""
 echo "已安裝的 hooks:"
-echo "  - pre-push: 在 push 前檢查 lint、build、E2E 和 Docker 配置"
+echo "  - pre-push: 在 push 前檢查 lint、typecheck、build 和 Docker 配置"
 echo ""
 echo "使用方式:"
 echo "  正常 push 即會自動執行檢查"
-echo "  跳過 E2E: SKIP_E2E=true git push"
-echo "  跳過 Docker 啟動測試: SKIP_DOCKER_START=true git push"
 echo "  跳過所有檢查: git push --no-verify"

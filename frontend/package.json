@@ -51,6 +51,7 @@
     "@tiptap/extension-placeholder": "3.33.0",
     "@tiptap/react": "3.33.0",
     "@tiptap/starter-kit": "3.33.0",
+    "driver.js": "1.11.0",
     "github-markdown-css": "^5.8.1",
     "github-slugger": "^2.0.0",
     "i18next": "^25.7.2",

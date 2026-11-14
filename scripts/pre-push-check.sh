@@ -1,6 +1,6 @@
 #!/bin/bash
 # Pre-push 檢查腳本
-# 在 push 前確保前端 lint、build、E2E 與 Docker 配置正常
+# 在 push 前確保前端 lint、typecheck、build 與 Docker 配置正常
 
 set -e
 
@@ -97,27 +97,6 @@ fi
 # E2E 測試需啟停 Docker 環境、耗時 4-5 分鐘，不適合放在 pre-push gate。
 # 請在需要時手動執行：cd frontend && npm run test:e2e
 print_warning "已跳過 E2E 檢查（請手動執行 npm run test:e2e）"
-
-# ==================== 6. Docker 環境啟動測試（可選）====================
-# if [ "$SKIP_DOCKER_START" != "true" ]; then
-#     print_step "測試 Docker 環境啟動..."
-    
-#     # 嘗試啟動核心服務（postgres, redis）
-#     if docker compose up -d postgres redis 2>/dev/null || docker-compose up -d postgres redis 2>/dev/null; then
-#         # 等待服務就緒
-#         sleep 5
-        
-#         # 檢查服務健康狀態
-#         if docker compose ps 2>/dev/null | grep -q "healthy\|running" || \
-#            docker-compose ps 2>/dev/null | grep -q "Up"; then
-#             print_success "Docker 核心服務啟動正常"
-#         else
-#             print_warning "Docker 服務可能未完全就緒，但配置有效"
-#         fi
-#     else
-#         print_warning "無法啟動 Docker 服務（可能 Docker 未運行），跳過此檢查"
-#     fi
-# fi
 
 # ==================== 完成 ====================
 END_TIME=$(date +%s)
