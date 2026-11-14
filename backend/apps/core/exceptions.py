@@ -17,10 +17,15 @@ Two error formats coexist during the envelope migration:
 See :mod:`apps.core.api.envelope` for the success-path contract and helpers.
 """
 from django.db import OperationalError
+from django.http import Http404
+from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
 from django.utils import timezone
 from rest_framework.views import exception_handler
 from rest_framework.response import Response
 from rest_framework import status
+
+from apps.core.api.envelope import contract_validation_error_response
 
 
 def _get_request_id(context):
@@ -131,6 +136,16 @@ def custom_exception_handler(exc, context):
 
     if response is not None:
         if envelope_mode:
+            # DRF normalizes these in its handler, but does not replace our exc.
+            if isinstance(exc, Http404):
+                exc = NotFound()
+            elif isinstance(exc, DjangoPermissionDenied):
+                exc = PermissionDenied()
+            if getattr(context.get("request"), "api_contract_enabled", False) and isinstance(getattr(exc, "detail", None), dict):
+                response.data = contract_validation_error_response(
+                    context.get("request"), str(exc), exc.detail,
+                ).data
+                return response
             response.data = _build_envelope_error_payload(
                 exc, request_id=request_id, now=now,
             )

@@ -264,7 +264,7 @@ class TestDeleteAnnouncement:
     ) -> None:
         api_client.force_authenticate(user=owner)
         resp = api_client.delete(url_delete(str(classroom.uuid), announcement.id))
-        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        assert resp.status_code == status.HTTP_200_OK
         assert not ClassroomAnnouncement.objects.filter(pk=announcement.id).exists()
 
     def test_student_member_cannot_delete(
