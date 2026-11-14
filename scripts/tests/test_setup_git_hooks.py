@@ -5,7 +5,6 @@ import shutil
 import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
 from pathlib import Path
 
 
@@ -64,16 +63,32 @@ class GitHooksTest(unittest.TestCase):
         self.install_and_run(self.root)
         self.assertTrue((self.root / "custom hooks/pre-push").is_file())
 
-    def test_user_global_hooks_are_not_modified(self):
+    def assert_global_hooks_preserved(self, checkout):
         hooks = Path(self.temp.name) / "user hooks"
         hooks.mkdir()
         hook = hooks / "pre-push"
         hook.write_text("user-owned hook\n")
         config = Path(self.temp.name) / "user.gitconfig"
         config.write_text(f'[core]\n\thooksPath = "{hooks}"\n')
-        with patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(config)}):
-            self.install_and_run(self.root)
+        self.git_env["GIT_CONFIG_GLOBAL"] = str(config)
+        self.install_and_run(checkout)
         self.assertEqual(hook.read_text(), "user-owned hook\n")
+        self.assertEqual(self.run_command("git", "config", "--global", "--get", "core.hooksPath"), str(hooks))
+        unrelated = Path(self.temp.name) / "unrelated repo"
+        unrelated.mkdir()
+        self.run_command("git", "init", cwd=unrelated)
+        self.assertEqual(Path(self.run_command(
+            "git", "rev-parse", "--path-format=absolute", "--git-path", "hooks/pre-push",
+            cwd=unrelated,
+        )), hook)
+
+    def test_user_global_hooks_are_not_modified(self):
+        self.assert_global_hooks_preserved(self.root)
+
+    def test_global_hooks_are_preserved_from_linked_worktree(self):
+        linked = Path(self.temp.name) / "linked checkout"
+        self.run_command("git", "worktree", "add", "-b", "feature", str(linked))
+        self.assert_global_hooks_preserved(linked)
 
 
 if __name__ == "__main__":
