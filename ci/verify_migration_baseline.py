@@ -56,10 +56,15 @@ def verify_upgrade():
     before_schema = schema_snapshot()
     executor = MigrationExecutor(connection)
     executor.loader.check_consistent_history(connection)
-    targets = [key for key in executor.loader.disk_migrations if key[1].endswith('_current_baseline')]
+    # A target means "stop at this migration", so target only each app's last
+    # baseline; targeting its first file would request rolling back the second.
+    last_baseline = {key[0]: key for key in sorted(executor.loader.disk_migrations)
+                     if key[1].endswith('_current_baseline')}
+    targets = list(last_baseline.values())
     targets += [key for key in executor.loader.graph.leaf_nodes()
                 if not apps.get_app_config(key[0]).name.startswith('apps.')]
-    assert executor.migration_plan(targets) == []
+    plan = executor.migration_plan(targets)
+    assert plan == [], [(m.app_label, m.name, backwards) for m, backwards in plan]
 
     def guard(execute, sql, params, many, context):
         operation = sql.lstrip().split(None, 1)[0].upper()
