@@ -42,7 +42,9 @@ test("opens the existing coding content, test-case and language controls inside 
   await page.goto("/tests/browser/fixtures/workbench-editor.html?coding=1");
   await expect(page.getByRole("heading", { name: "工作台", exact: true })).toBeVisible();
   await expect(page.getByRole("tab", { name: "批改", exact: true })).toHaveCount(0);
-  await page.getByRole("button").filter({ hasText: "A + B" }).last().click();
+  // The rail appears before the asynchronously loaded preview card. Target the
+  // card explicitly: selecting the rail item does not open its editor.
+  await page.getByRole("button", { name: /^題目 A 程式題 .*A \+ B/ }).click();
   await expect(page.getByRole("tab", { name: "基本資訊", exact: true })).toBeVisible();
   await expect(page.getByRole("tab", { name: "題目內容", exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "測資與配分", exact: true }).click();
