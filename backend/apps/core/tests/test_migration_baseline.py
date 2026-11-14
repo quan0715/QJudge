@@ -35,4 +35,3 @@ def test_completed_old_history_is_adopted_without_schema_operations():
     applied = recorder.applied_migrations()
     assert all(key in applied for key in replacements)
     assert MigrationExecutor(connection).migration_plan(loader.graph.leaf_nodes()) == []
-
