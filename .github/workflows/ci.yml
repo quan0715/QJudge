@@ -253,9 +253,12 @@ jobs:
       REDIS_URL: redis://localhost:6379/0
       DJANGO_SETTINGS_MODULE: config.settings.test
       SECRET_KEY: test-secret-key-for-ci
+      MIGRATION_BASELINE_SCHEMA: /tmp/qjudge-previous-schema.json
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v7
         with:
@@ -267,9 +270,12 @@ jobs:
         run: pip install -r requirements/dev.txt
         working-directory: backend
 
-      - name: Migrate
-        run: python manage.py migrate --noinput
-        working-directory: backend
+      - name: Verify migration baseline upgrade from previous release
+        run: |
+          previous_checkout="$(mktemp -d)"
+          git archive a7847bda3616 backend | tar -x -C "$previous_checkout"
+          (cd "$previous_checkout/backend" && python manage.py migrate --noinput)
+          PYTHONPATH=backend python ci/verify_migration_baseline.py
 
       - name: Run Tests with Coverage
         run: |
