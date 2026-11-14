@@ -6,6 +6,13 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+# Inherited hooks directories belong to the user, not this repository. Override
+# only inherited configuration; keep explicit repository/worktree choices.
+HOOKS_SCOPE="$(git -C "$PROJECT_ROOT" config --show-scope --get core.hooksPath | cut -f1 || true)"
+if [[ "$HOOKS_SCOPE" == "global" || "$HOOKS_SCOPE" == "system" ]]; then
+    REPOSITORY_HOOKS_DIR="$(git -C "$PROJECT_ROOT" rev-parse --path-format=absolute --git-common-dir)/hooks"
+    git -C "$PROJECT_ROOT" config --local core.hooksPath "$REPOSITORY_HOOKS_DIR"
+fi
 GIT_HOOKS_DIR="$(git -C "$PROJECT_ROOT" rev-parse --path-format=absolute --git-path hooks)"
 
 echo "🔧 設置 Git Hooks..."
