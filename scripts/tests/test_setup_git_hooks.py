@@ -80,7 +80,7 @@ class GitHooksTest(unittest.TestCase):
         self.assertEqual(Path(self.run_command(
             "git", "rev-parse", "--path-format=absolute", "--git-path", "hooks/pre-push",
             cwd=unrelated,
-        )), hook)
+        )).resolve(), hook.resolve())
 
     def test_user_global_hooks_are_not_modified(self):
         self.assert_global_hooks_preserved(self.root)
