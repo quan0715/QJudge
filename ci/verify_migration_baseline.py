@@ -4,20 +4,20 @@ Run after migrating the previous release into the disposable CI database.
 The normal pytest database is subsequently built from the new baseline.
 """
 import json
-import os
-from pathlib import Path
+from uuid import uuid4
 
 import django
 
 django.setup()
 
 from django.core.management import call_command
-from django.db import connection
+from django.apps import apps
+from django.db import connection, connections
 from django.db.migrations.executor import MigrationExecutor
 
 
-def schema_snapshot():
-    with connection.cursor() as cursor:
+def schema_snapshot(database=connection):
+    with database.cursor() as cursor:
         cursor.execute("""
             SELECT c.relname, a.attname, format_type(a.atttypid, a.atttypmod),
                    a.attnotnull, a.attidentity, pg_get_expr(d.adbin, d.adrelid)
@@ -56,7 +56,10 @@ def verify_upgrade():
     before_schema = schema_snapshot()
     executor = MigrationExecutor(connection)
     executor.loader.check_consistent_history(connection)
-    assert executor.migration_plan(executor.loader.graph.leaf_nodes()) == []
+    targets = [key for key in executor.loader.disk_migrations if key[1].endswith('_current_baseline')]
+    targets += [key for key in executor.loader.graph.leaf_nodes()
+                if not apps.get_app_config(key[0]).name.startswith('apps.')]
+    assert executor.migration_plan(targets) == []
 
     def guard(execute, sql, params, many, context):
         operation = sql.lstrip().split(None, 1)[0].upper()
@@ -65,11 +68,29 @@ def verify_upgrade():
         return execute(sql, params, many, context)
 
     with connection.execute_wrapper(guard):
-        call_command('migrate', interactive=False, verbosity=1)
+        executor.migrate(targets)
     assert schema_snapshot() == before_schema
     assert User.objects.filter(pk=user.pk).values().get() == before_user
-    Path(os.environ['MIGRATION_BASELINE_SCHEMA']).write_text(json.dumps(before_schema))
     print('Existing database: empty plan, no application writes, schema and user unchanged.')
+
+    # Compare only the frozen baseline, not future migrations added after it.
+    # Both databases are disposable CI databases; never run this on a deployment.
+    fresh_name = 'baseline_' + uuid4().hex
+    quoted_name = connection.ops.quote_name(fresh_name)
+    with connection.cursor() as cursor:
+        cursor.execute(f'CREATE DATABASE {quoted_name}')
+    connections.databases['baseline_fresh'] = {**connection.settings_dict, 'NAME': fresh_name}
+    fresh = connections['baseline_fresh']
+    try:
+        MigrationExecutor(fresh).migrate(targets)
+        assert schema_snapshot(fresh) == before_schema
+        print('Fresh baseline: columns, defaults, constraints and indexes match the previous release.')
+    finally:
+        fresh.close()
+        with connection.cursor() as cursor:
+            cursor.execute(f'DROP DATABASE {quoted_name}')
+    # Ordinary subsequent migrations remain supported and run outside the guard.
+    call_command('migrate', interactive=False, verbosity=1)
 
 
 if __name__ == '__main__':

@@ -253,7 +253,6 @@ jobs:
       REDIS_URL: redis://localhost:6379/0
       DJANGO_SETTINGS_MODULE: config.settings.test
       SECRET_KEY: test-secret-key-for-ci
-      MIGRATION_BASELINE_SCHEMA: /tmp/qjudge-previous-schema.json
 
     steps:
       - uses: actions/checkout@v7
