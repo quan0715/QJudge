@@ -96,7 +96,10 @@
 }
 
 .auth-campus-sso-actions {
-  display: grid;
+  // Match MobileActionFooter: never override the mobile desktop-action hide rule.
+  @media (min-width: 673px) {
+    display: grid;
+  }
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: $spacing-03;
   margin-top: $spacing-05;

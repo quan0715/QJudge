@@ -125,3 +125,19 @@ new agent process clears this admission barrier on startup, so requests cannot
 start a worker in the old process just before systemd stops it. If restarting the
 unit fails, inspect its service status; a stuck barrier requires restarting the
 unit after confirming no deployment is active.
+
+## Artifact uploads fail with `XMinioStorageFull`
+
+A reachable bucket does not guarantee writable storage. MinIO rejects uploads
+when its backing filesystem crosses its free-space threshold; changing the
+filename or retrying the same tool call does not free space. Inspect the chained
+provider error in the AI worker log, then check the filesystem backing MinIO's
+`/data` mount with `df -h` and inspect Docker usage with `sudo docker system df`.
+
+If unused build cache is consuming the host filesystem, reclaim only disposable
+cache with `sudo docker builder prune --all --force --filter until=24h`. This does
+not prune application images or data volumes. Recheck free space and verify an
+upload/read using a unique diagnostic key, then remove that diagnostic object.
+Do not delete user artifacts or volumes to make an upload succeed. If capacity
+keeps shrinking, expand storage or plan image retention while preserving the
+current deployment and rollback images.
