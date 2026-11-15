@@ -15,11 +15,13 @@ export function ThinkingIndicator({
       (part.state === "input-streaming" || part.state === "input-ready"),
   );
 
+  if (!executing) return null;
+
   return (
     <div className={styles.indicator} role="status" aria-live="polite" aria-atomic="true">
       <ThinkingPen />
       <span className={styles.label}>
-        {t(executing ? "ui.activityExecuting" : "ui.activityWaiting")}
+        {t("ui.activityExecuting")}
       </span>
     </div>
   );

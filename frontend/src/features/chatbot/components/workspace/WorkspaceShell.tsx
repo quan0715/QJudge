@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@carbon/react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { AppSidebar } from "@/features/app/components/AppSidebar";
@@ -133,7 +132,7 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
   useEffect(() => {
     if (!showLeftMobileOverlay && !showRightMobileSheet) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
+      if (e.key !== "Escape" || e.defaultPrevented) return;
       if (showRightMobileSheet) right.close();
       else if (showLeftMobileOverlay) left.close();
     };
@@ -254,10 +253,7 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
                   }
                 }}
               />
-              <div className={styles.resizeActions} role="group" aria-label="聊天面板寬度">
-                <Button kind="ghost" size="sm" disabled={panelWidth === MIN_PANEL_WIDTH} onClick={() => changeWidth(panelWidth - 16)}>縮小聊天面板</Button>
-                <Button kind="ghost" size="sm" disabled={panelWidth === MAX_PANEL_WIDTH} onClick={() => changeWidth(panelWidth + 16)}>放大聊天面板</Button>
-              </div>
+
               <div className={styles.panelContent}>
                 <QJudgeChatPanel mode="sidebar" onClose={right.close} />
               </div>

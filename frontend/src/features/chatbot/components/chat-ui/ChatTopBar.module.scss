@@ -9,4 +9,4 @@
   min-width: 0;
   flex: 1;
 }
-.sessionSelect { width: 100%; min-width: 0; max-width: 28rem; }
+.sessionSelect { width: auto; min-width: 0; max-width: min(28rem, 100%); }

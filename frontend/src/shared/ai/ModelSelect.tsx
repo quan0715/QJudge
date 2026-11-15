@@ -16,6 +16,7 @@ interface ModelSelectProps {
   models: readonly ModelSelectOption[];
   /** Inline controls blend into toolbars; forms keep the standard field surface. */
   type?: "default" | "inline";
+  size?: "sm" | "md" | "lg";
   selectedModelId: string | null;
   onChange: (modelId: string) => void;
   disabled?: boolean;
@@ -30,6 +31,7 @@ interface ModelSelectProps {
 export function ModelSelect({
   models,
   type = "default",
+  size = "sm",
   selectedModelId,
   onChange,
   disabled = false,
@@ -55,7 +57,7 @@ export function ModelSelect({
         onChange={({ selectedItem }) => { if (selectedItem) onChange(selectedItem.id); }}
         disabled={disabled || models.length === 0}
         direction={menuPlacement}
-        size="sm"
+        size={size}
         className={styles.control}
       />
     </div>

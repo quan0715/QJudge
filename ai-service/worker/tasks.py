@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Coroutine
 from contextlib import asynccontextmanager
-from contextvars import ContextVar
-from typing import Any
+from contextvars import ContextVar, copy_context
+from typing import Any, TypeVar
 from uuid import UUID
 
 import httpx
+from celery.signals import worker_process_shutdown
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -42,6 +43,27 @@ from .runtime import (
 from .scheduler import WorkerScheduler
 
 _BACKEND_TIMEOUT_SECONDS = 30.0
+
+_Result = TypeVar("_Result")
+_worker_runner: asyncio.Runner | None = None
+
+
+def _run_async(coroutine: Coroutine[Any, Any, _Result]) -> _Result:
+    # Celery prefork jobs execute sequentially in each child. LangChain caches
+    # async HTTP pools across jobs, so their loop must live as long as the child.
+    global _worker_runner
+    if _worker_runner is None:
+        _worker_runner = asyncio.Runner()
+    return _worker_runner.run(coroutine, context=copy_context())
+
+
+@worker_process_shutdown.connect
+def _close_worker_loop(**_kwargs: Any) -> None:
+    global _worker_runner
+    if _worker_runner is not None:
+        _worker_runner.close()
+        _worker_runner = None
+
 
 
 class _WorkerArtifactRepository:
@@ -331,7 +353,7 @@ def execute_run(
     credential_lease_key: str | None = None,
     trace_context: dict[str, Any] | None = None,
 ) -> None:
-    asyncio.run(
+    _run_async(
         _execute_run(
             UUID(run_id),
             credential_lease_key,
@@ -342,9 +364,9 @@ def execute_run(
 
 @celery_app.task(name="ai.recover_stale_runs")
 def recover_stale_runs() -> int:
-    return asyncio.run(_recover_stale_runs())
+    return _run_async(_recover_stale_runs())
 
 
 @celery_app.task(name="ai.dispatch_unblocked_sessions")
 def dispatch_unblocked_sessions() -> int:
-    return asyncio.run(_dispatch_unblocked_sessions())
+    return _run_async(_dispatch_unblocked_sessions())

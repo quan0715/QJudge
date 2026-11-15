@@ -1,10 +1,9 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { CopilotError, CopilotPendingAttachment } from "@copilot";
 
 import { ComposerBar } from "./ComposerBar";
-import styles from "./ComposerBar.module.scss";
 
 const baseProps = {
   value: "Retry upload",
@@ -20,12 +19,12 @@ const baseProps = {
 };
 
 describe("ComposerBar run activity", () => {
-  it("keeps activity visible between tool calls, then clears it when the run stops", () => {
+  it("shows activity only during tool execution and preserves the stop action", () => {
     const onStop = vi.fn();
     const props = { ...baseProps, attachments: [], isStreaming: true, onStop };
     const { rerender } = render(<ComposerBar {...props} />);
 
-    expect(screen.getByRole("status")).toHaveTextContent(/activityWaiting|等待下一步回應/i);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /stopGenerating|停止生成/i }));
     expect(onStop).toHaveBeenCalledOnce();
 
@@ -128,7 +127,7 @@ describe("ComposerBar attachment state", () => {
       />,
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Upload offline");
+    expect(screen.getByText("Upload offline").closest('[role="alert"]')).toBeInTheDocument();
     const remove = screen.getByRole("button", {
       name: /removeAttachment|移除附件/i,
     });
@@ -156,67 +155,28 @@ describe("ComposerBar attachment state", () => {
   });
 });
 
-describe("ComposerBar layout state", () => {
-  it("returns to compact layout after a multiline draft is cleared", async () => {
-    const renderComposer = (value: string) => (
-      <ComposerBar {...baseProps} value={value} attachments={[]} />
-    );
-    const { rerender } = render(renderComposer("draft"));
-    const textarea = screen.getByRole("textbox");
-    let scrollHeight = 22;
-    Object.defineProperty(textarea, "scrollHeight", {
-      configurable: true,
-      get: () => scrollHeight,
-    });
-    const wrapper = textarea.parentElement;
-    expect(wrapper).toHaveClass(styles.inputWrapperCompact);
-
-    scrollHeight = 80;
-    rerender(renderComposer("first\nsecond"));
-    await waitFor(() =>
-      expect(wrapper).toHaveClass(styles.inputWrapperExpanded),
-    );
-
-    scrollHeight = 22;
-    rerender(renderComposer(""));
-    expect(wrapper).toHaveClass(styles.inputWrapperCompact);
-    await act(
-      () =>
-        new Promise<void>((resolve) =>
-          window.requestAnimationFrame(() => resolve()),
-        ),
-    );
-    rerender(renderComposer("single line"));
-
-    expect(wrapper).toHaveClass(styles.inputWrapperCompact);
-    expect(wrapper).not.toHaveClass(styles.inputWrapperExpanded);
+describe("ComposerBar fluid input", () => {
+  it("sends with Enter while preserving Shift+Enter and IME composition", () => {
+    const onSend = vi.fn().mockResolvedValue(true);
+    const onValueChange = vi.fn();
+    render(<ComposerBar {...baseProps} attachments={[]} onSend={onSend} onValueChange={onValueChange} />);
+    const input = screen.getByRole("textbox", {name: /輸入訊息|inputAriaLabel/});
+    fireEvent.change(input, {target: {value: "第一行\n第二行"}});
+    expect(onValueChange).toHaveBeenCalledWith("第一行\n第二行");
+    fireEvent.keyDown(input, {key: "Enter", shiftKey: true});
+    fireEvent.compositionStart(input);
+    fireEvent.keyDown(input, {key: "Enter"});
+    expect(onSend).not.toHaveBeenCalled();
+    fireEvent.compositionEnd(input);
+    fireEvent.keyDown(input, {key: "Enter"});
+    expect(onSend).toHaveBeenCalledOnce();
   });
-
-  it("stays compact when a single-line draft arrives before the clear frame", async () => {
-    const renderComposer = (value: string) => (
-      <ComposerBar {...baseProps} value={value} attachments={[]} />
-    );
-    const { rerender } = render(renderComposer("draft"));
-    const textarea = screen.getByRole("textbox");
-    let scrollHeight = 22;
-    Object.defineProperty(textarea, "scrollHeight", {
-      configurable: true,
-      get: () => scrollHeight,
-    });
-    const wrapper = textarea.parentElement;
-
-    scrollHeight = 80;
-    rerender(renderComposer("first\nsecond"));
-    await waitFor(() =>
-      expect(wrapper).toHaveClass(styles.inputWrapperExpanded),
-    );
-
-    scrollHeight = 22;
-    rerender(renderComposer(""));
-    rerender(renderComposer("single line"));
-
-    expect(wrapper).toHaveClass(styles.inputWrapperCompact);
-    expect(wrapper).not.toHaveClass(styles.inputWrapperExpanded);
+  it("respects canSend for keyboard submission as well as the action button", () => {
+    const onSend = vi.fn();
+    render(<ComposerBar {...baseProps} attachments={[]} canSend={false} onSend={onSend} />);
+    fireEvent.keyDown(screen.getByRole("textbox"), {key: "Enter"});
+    expect(screen.getByRole("button", {name: /send|送出/i})).toBeDisabled();
+    expect(onSend).not.toHaveBeenCalled();
   });
 });
 
