@@ -69,6 +69,7 @@
 .panelOpen {
   width: $chat-sidebar-width;
   display: flex;
+  flex-direction: column;
 }
 
 .resizeHandle {
@@ -83,6 +84,11 @@
   border-right: 1px solid var(--cds-border-subtle-01);
   transition: border-color 150ms ease;
   touch-action: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
 
   &:hover,
   &:active {
@@ -99,7 +105,7 @@
 .panelContent {
   flex: 1;
   min-width: 0;
-  height: 100%;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -221,3 +227,5 @@
   .leftPanel { display: none; }
   .panel { display: none; }
 }
+
+.resizeActions { display: flex; flex-shrink: 0; justify-content: flex-end; }

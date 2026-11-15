@@ -8,9 +8,7 @@ import type { ContestStatus } from "@/core/entities/contest.entity";
 import { SectionSaveIndicator } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
 import {
   ActionRow,
-  DESC_STYLE,
   Section,
-  TITLE_STYLE,
   settingsPanelStyles as s,
 } from "@/shared/layout/SettingsPanel";
 import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
@@ -46,8 +44,8 @@ const DangerAction = ({
 }: DangerActionProps) => (
   <div className={s.dangerRow}>
     <div className={s.actionRowContent}>
-      <div style={TITLE_STYLE}>{title}</div>
-      <div style={DESC_STYLE}>{description}</div>
+      <div className={s.rowTitle}>{title}</div>
+      <div className={s.rowDescription}>{description}</div>
     </div>
     <Button
       kind={buttonKind}

@@ -342,15 +342,7 @@ export function ComposerBar({
               disabled={disabled || isStreaming}
               showStreamDot={isStreaming}
               menuPlacement="top"
-              classes={{
-                wrap: styles.modelSelectWrap,
-                button: styles.modelSelectButton,
-                menu: styles.modelMenu,
-                text: styles.modelText,
-                icon: styles.modelIcon,
-                chevron: styles.modelChevron,
-                streamDot: styles.streamDot,
-              }}
+              className={styles.modelControl}
             />
             {isStreaming ? (
               <button

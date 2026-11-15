@@ -1,4 +1,5 @@
 @use "@carbon/layout";
+@use "@carbon/styles/scss/breakpoint";
 // SurfaceSection responsive styles
 
 .container {
@@ -11,14 +12,14 @@
 }
 
 // Mobile responsive
-@media (max-width: 768px) {
+@include breakpoint.breakpoint-down(md) {
   .inner {
     padding: layout.$spacing-03; // Reduce padding on mobile
   }
 }
 
 // Tablet responsive
-@media (min-width: 769px) and (max-width: 1024px) {
+@include breakpoint.breakpoint-between(md, lg) {
   .inner {
     padding: layout.$spacing-04;
   }

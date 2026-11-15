@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@carbon/react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { AppSidebar } from "@/features/app/components/AppSidebar";
@@ -68,6 +69,16 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
 
   const panelRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
+  const [panelWidth, setPanelWidth] = useState(getSavedWidth);
+  const widthRef = useRef(panelWidth);
+  const resizeCleanup = useRef<(() => void) | null>(null);
+  const changeWidth = useCallback((width: number) => {
+    const next = Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, width));
+    widthRef.current = next;
+    setPanelWidth(next);
+    try { localStorage.setItem(STORAGE_KEY, String(next)); } catch { /* storage may be disabled */ }
+  }, []);
+  useEffect(() => () => resizeCleanup.current?.(), []);
   const isLeftCollapsed = !left.isOpen;
 
   // Auto-close the mobile drawer on navigation — otherwise the drawer's
@@ -131,7 +142,10 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
   }, [showLeftMobileOverlay, showRightMobileSheet, left, right]);
 
   const startResize = useCallback(() => {
+    resizeCleanup.current?.();
     dragging.current = true;
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
 
@@ -143,20 +157,19 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
         MAX_PANEL_WIDTH,
         Math.max(MIN_PANEL_WIDTH, shellRect.right - clientX),
       );
-      panelRef.current.style.width = `${newWidth}px`;
+      changeWidth(newWidth);
     };
 
     const onEnd = () => {
       dragging.current = false;
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onEnd);
       document.removeEventListener("touchmove", onTouchMove);
       document.removeEventListener("touchend", onEnd);
-      if (panelRef.current) {
-        try { localStorage.setItem(STORAGE_KEY, String(panelRef.current.offsetWidth)); } catch { /* ignore */ }
-      }
+      document.removeEventListener("touchcancel", onEnd);
+      resizeCleanup.current = null;
     };
 
     const onMouseMove = (ev: MouseEvent) => onMove(ev.clientX);
@@ -165,11 +178,13 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
       onMove(ev.touches[0].clientX);
     };
 
+    resizeCleanup.current = onEnd;
+    document.addEventListener("touchcancel", onEnd);
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onEnd);
     document.addEventListener("touchmove", onTouchMove, { passive: false });
     document.addEventListener("touchend", onEnd);
-  }, []);
+  }, [changeWidth]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -211,7 +226,7 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
         <aside
           ref={panelRef}
           className={`${styles.panel} ${dockRight ? styles.panelOpen : ""}`}
-          style={dockRight ? { width: getSavedWidth() } : undefined}
+          style={dockRight ? { width: panelWidth } : undefined}
         >
           {dockRight && (
             <>
@@ -222,8 +237,27 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
                 role="separator"
                 aria-orientation="vertical"
                 aria-label="調整面板寬度"
+                aria-valuemin={MIN_PANEL_WIDTH}
+                aria-valuemax={MAX_PANEL_WIDTH}
+                aria-valuenow={panelWidth}
                 tabIndex={0}
+                onKeyDown={(event) => {
+                  const widths: Record<string, number> = {
+                    ArrowLeft: widthRef.current + 16,
+                    ArrowRight: widthRef.current - 16,
+                    Home: MIN_PANEL_WIDTH,
+                    End: MAX_PANEL_WIDTH,
+                  };
+                  if (event.key in widths) {
+                    event.preventDefault();
+                    changeWidth(widths[event.key]);
+                  }
+                }}
               />
+              <div className={styles.resizeActions} role="group" aria-label="聊天面板寬度">
+                <Button kind="ghost" size="sm" disabled={panelWidth === MIN_PANEL_WIDTH} onClick={() => changeWidth(panelWidth - 16)}>縮小聊天面板</Button>
+                <Button kind="ghost" size="sm" disabled={panelWidth === MAX_PANEL_WIDTH} onClick={() => changeWidth(panelWidth + 16)}>放大聊天面板</Button>
+              </div>
               <div className={styles.panelContent}>
                 <QJudgeChatPanel mode="sidebar" onClose={right.close} />
               </div>
