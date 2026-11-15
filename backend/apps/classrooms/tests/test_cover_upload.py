@@ -83,7 +83,7 @@ class TestClassroomCoverUpload:
         assert "cover_url" in resp.data
 
         classroom.refresh_from_db()
-        assert classroom.cover_url == resp.data["cover_url"]
+        assert classroom.cover_url == resp.json()["data"]["cover_url"]
 
     def test_upload_cover_requires_auth(
         self, api_client: APIClient, classroom: Classroom
@@ -118,7 +118,7 @@ class TestClassroomCoverUpload:
             format="multipart",
         )
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
-        assert resp.data["success"] is False
+        assert resp.data["errors"][0]["code"] == "invalid"
 
     def test_upload_cover_invalid_format(
         self, api_client: APIClient, owner: User, classroom: Classroom

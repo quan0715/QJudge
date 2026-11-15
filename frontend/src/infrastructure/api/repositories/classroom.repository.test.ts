@@ -24,13 +24,13 @@ describe("updateMemberRole", () => {
     const userId = 54;
 
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ detail: "Member role updated." }), {
+      new Response(JSON.stringify({ data: { detail: "Member role updated." }, meta: {} }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
     );
 
-    await updateMemberRole(classroomId, userId, "ta");
+    expect(await updateMemberRole(classroomId, userId, "ta")).toEqual({ detail: "Member role updated." });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0];
@@ -59,13 +59,13 @@ describe("regenerateCode", () => {
     const classroomId = "924abae8-bf3a-4479-8e38-bfbdfe9ea0fa";
 
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ invite_code: "ABCD1234" }), {
+      new Response(JSON.stringify({ data: { invite_code: "ABCD1234" }, meta: {} }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
     );
 
-    await regenerateCode(classroomId);
+    expect(await regenerateCode(classroomId)).toEqual({ invite_code: "ABCD1234" });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0];
@@ -93,7 +93,7 @@ describe("getClassroomGradebook", () => {
 
     fetchMock.mockResolvedValueOnce(
       new Response(
-        JSON.stringify({
+        JSON.stringify({ data: {
           contests: [
             {
               id: "12",
@@ -118,7 +118,7 @@ describe("getClassroomGradebook", () => {
               scores: { "12": 300, "13": null },
             },
           ],
-        }),
+        }, meta: {} }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       ),
     );
@@ -258,4 +258,44 @@ describe("exportClassroomGradebook", () => {
     await expect(exportClassroomGradebook("any-id")).rejects.toThrow();
     expect(clickSpy).not.toHaveBeenCalled();
   });
+});
+
+describe("classroom wire contract", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("rejects a legacy body rather than showing an empty classroom list", async () => {
+    const { getClassrooms } = await import("./classroom.repository");
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ results: [] })));
+    await expect(getClassrooms()).rejects.toMatchObject({ code: "envelope_malformed" });
+  });
+
+  it("reads the canonical empty list", async () => {
+    const { getClassrooms } = await import("./classroom.repository");
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ data: [], meta: { pagination: { count: 0, next: null, previous: null } } })));
+    expect(await getClassrooms()).toEqual([]);
+  });
+
+  it("reads delete acknowledgement and surfaces canonical permission errors", async () => {
+    const { deleteClassroom } = await import("./classroom.repository");
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ data: null, meta: {} })));
+    await expect(deleteClassroom("room")).resolves.toBeUndefined();
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify({
+      errors: [{ code: "permission_denied", message: "Denied", field: null, details: {} }], meta: {},
+    }), { status: 403 }));
+    await expect(deleteClassroom("room")).rejects.toMatchObject({ status: 403, code: "permission_denied" });
+  });
+});
+
+it("reads all classroom pages using canonical pagination metadata", async () => {
+  const { getClassrooms } = await import("./classroom.repository");
+  vi.stubGlobal("fetch", async (url: string) => {
+    const second = new URL(url, "http://localhost").searchParams.get("page") === "2";
+    return new Response(JSON.stringify({ data: [{ uuid: second ? "c2" : "c1", name: "Class" }],
+      meta: { pagination: { count: 2, next: second ? null : "/api/v1/classrooms/?page=2", previous: second ? "/api/v1/classrooms/" : null } } }));
+  });
+  try {
+    expect((await getClassrooms()).map(row => row.id)).toEqual(["c1", "c2"]);
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

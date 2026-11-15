@@ -40,14 +40,14 @@ test("coding exam: sample run, custom input run, and formal submission use the r
     const classroom = await json(await teacher.post("/api/v1/classrooms/", {
       data: { name: `Coding judge E2E ${testInfo.testId}-${testInfo.retry}-${Date.now()}` },
     }));
-    classroomId = classroom.uuid;
+    classroomId = classroom.data.uuid;
     await json(await teacher.post(`/api/v1/classrooms/${classroomId}/members/`, {
       data: { usernames: [TEST_USERS.student.username], role: "student" },
     }));
     const bound = await json(await teacher.post(`/api/v1/classrooms/${classroomId}/contests/`, {
       data: { name: "Coding submission E2E", contest_type: "coding", cheat_detection_enabled: false },
     }));
-    contestId = bound.contest_id;
+    contestId = bound.data.contest_id;
     expect(contestId).toBeTruthy();
     const problem = await json(await teacher.post(`/api/v1/contests/${contestId}/problems/`, {
       data: {

@@ -2131,8 +2131,79 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedClassroomListList'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ClassroomList'
+                  meta:
+                    type: object
+                    required:
+                    - pagination
+                    properties:
+                      pagination:
+                        type: object
+                        required:
+                        - count
+                        - next
+                        - previous
+                        properties:
+                          count:
+                            type: integer
+                          next:
+                            type: string
+                            nullable: true
+                          previous:
+                            type: string
+                            nullable: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
     post:
       operationId: v1_classrooms_create
       tags:
@@ -2157,8 +2228,60 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomCreateUpdate'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ClassroomDetail'
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
   /api/v1/classrooms/{id}/:
     get:
       operationId: v1_classrooms_retrieve
@@ -2179,8 +2302,60 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ClassroomDetail'
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
     put:
       operationId: v1_classrooms_update
       parameters:
@@ -2212,8 +2387,60 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomCreateUpdate'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ClassroomCreateUpdate'
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
     patch:
       operationId: v1_classrooms_partial_update
       parameters:
@@ -2244,8 +2471,60 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomCreateUpdate'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ClassroomCreateUpdate'
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
     delete:
       operationId: v1_classrooms_destroy
       parameters:
@@ -2261,11 +2540,69 @@ paths:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
-        '204':
-          description: No response body
+        '200':
+          description: Successful command with null data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    nullable: true
+                    enum:
+                    - null
+                  meta:
+                    type: object
+                    additionalProperties: true
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
   /api/v1/classrooms/{id}/announcements/:
     get:
-      operationId: v1_classrooms_announcements_retrieve
+      operationId: v1_classrooms_announcements_list
       parameters:
       - in: path
         name: id
@@ -2273,6 +2610,18 @@ paths:
           type: string
           pattern: ^[0-9a-fA-F-]{36}$
         required: true
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - v1
       security:
@@ -2283,8 +2632,62 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ClassroomAnnouncement'
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
     post:
       operationId: v1_classrooms_announcements_create
       parameters:
@@ -2312,12 +2715,64 @@ paths:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ClassroomAnnouncement'
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
   /api/v1/classrooms/{id}/announcements/{ann_id}/:
     patch:
       operationId: v1_classrooms_announcements_partial_update
@@ -2355,8 +2810,60 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ClassroomAnnouncement'
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
     delete:
       operationId: v1_classrooms_announcements_destroy
       parameters:
@@ -2378,11 +2885,69 @@ paths:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
-        '204':
-          description: No response body
+        '200':
+          description: Successful command with null data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    nullable: true
+                    enum:
+                    - null
+                  meta:
+                    type: object
+                    additionalProperties: true
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
   /api/v1/classrooms/{id}/contests/:
     get:
-      operationId: v1_classrooms_contests_retrieve
+      operationId: v1_classrooms_contests_list
       parameters:
       - in: path
         name: id
@@ -2390,6 +2955,18 @@ paths:
           type: string
           pattern: ^[0-9a-fA-F-]{36}$
         required: true
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - v1
       security:
@@ -2400,8 +2977,62 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BoundContest'
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
     post:
       operationId: v1_classrooms_contests_create
       parameters:
@@ -2429,12 +3060,64 @@ paths:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BoundContest'
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
   /api/v1/classrooms/{id}/cover/:
     post:
       operationId: v1_classrooms_cover_create
@@ -2465,8 +3148,65 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - cover_url
+                    properties:
+                      cover_url:
+                        type: string
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
   /api/v1/classrooms/{id}/gradebook/:
     get:
       operationId: v1_classrooms_gradebook_retrieve
@@ -2487,8 +3227,74 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - contests
+                    - students
+                    properties:
+                      contests:
+                        type: array
+                        items:
+                          type: object
+                          additionalProperties: true
+                      students:
+                        type: array
+                        items:
+                          type: object
+                          additionalProperties: true
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
   /api/v1/classrooms/{id}/gradebook/export/:
     get:
       operationId: v1_classrooms_gradebook_export_retrieve
@@ -2506,11 +3312,12 @@ paths:
       - jwtAuth: []
       responses:
         '200':
+          description: CSV download.
           content:
-            application/json:
+            text/csv:
               schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
+                type: string
+                format: binary
   /api/v1/classrooms/{id}/invite-code/:
     post:
       operationId: v1_classrooms_invite_code_create
@@ -2543,11 +3350,68 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - invite_code
+                    properties:
+                      invite_code:
+                        type: string
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
   /api/v1/classrooms/{id}/members/:
     get:
-      operationId: v1_classrooms_members_retrieve
+      operationId: v1_classrooms_members_list
       parameters:
       - in: path
         name: id
@@ -2555,6 +3419,18 @@ paths:
           type: string
           pattern: ^[0-9a-fA-F-]{36}$
         required: true
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - v1
       security:
@@ -2565,8 +3441,62 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ClassroomMember'
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
     post:
       operationId: v1_classrooms_members_create
       parameters:
@@ -2598,8 +3528,77 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - added
+                    - already_exists
+                    - not_found
+                    properties:
+                      added:
+                        type: array
+                        items:
+                          type: string
+                      already_exists:
+                        type: array
+                        items:
+                          type: string
+                      not_found:
+                        type: array
+                        items:
+                          type: string
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
   /api/v1/classrooms/{id}/members/{member_user_id}/:
     patch:
       operationId: v1_classrooms_members_partial_update
@@ -2637,8 +3636,65 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - detail
+                    properties:
+                      detail:
+                        type: string
+                  meta:
+                    type: object
+                    additionalProperties: true
+          description: Success envelope.
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
     delete:
       operationId: v1_classrooms_members_destroy
       parameters:
@@ -2660,8 +3716,66 @@ paths:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
-        '204':
-          description: No response body
+        '200':
+          description: Successful command with null data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                additionalProperties: false
+                properties:
+                  data:
+                    nullable: true
+                    enum:
+                    - null
+                  meta:
+                    type: object
+                    additionalProperties: true
+        '400':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '401':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '403':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '404':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '429':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '500':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
+        '503':
+          description: Error envelope. 503 may carry Retry-After and X-QJudge-Retryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIErrorEnvelope'
   /api/v1/contests/:
     get:
       operationId: v1_contests_list
@@ -7402,6 +8516,178 @@ paths:
                 $ref: '#/components/schemas/ApiErrorObject'
 components:
   schemas:
+    APIErrorEnvelope:
+      type: object
+      required:
+      - errors
+      - meta
+      additionalProperties: false
+      properties:
+        errors:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+            - code
+            - message
+            - field
+            - details
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+              field:
+                type: string
+                nullable: true
+              details:
+                type: object
+                additionalProperties: true
+        meta:
+          type: object
+          required:
+          - request_id
+          - timestamp
+          properties:
+            request_id:
+              type: string
+              nullable: true
+            timestamp:
+              type: string
+              format: date-time
+    BoundContest:
+      type: object
+      properties:
+        contest_id:
+          type: string
+          format: uuid
+          readOnly: true
+        contest_name:
+          type: string
+          readOnly: true
+        contest_description:
+          type: string
+          readOnly: true
+        contest_status:
+          type: string
+          readOnly: true
+        attendance_check_enabled:
+          type: boolean
+          readOnly: true
+        contest_type:
+          type: string
+          readOnly: true
+        contest_start_time:
+          type: string
+          format: date-time
+          readOnly: true
+        contest_end_time:
+          type: string
+          format: date-time
+          readOnly: true
+        contest_owner_username:
+          type: string
+          readOnly: true
+        results_published:
+          type: boolean
+          readOnly: true
+        participant_count:
+          type: string
+          readOnly: true
+        bound_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 綁定時間
+      required:
+      - attendance_check_enabled
+      - bound_at
+      - contest_description
+      - contest_end_time
+      - contest_id
+      - contest_name
+      - contest_owner_username
+      - contest_start_time
+      - contest_status
+      - contest_type
+      - participant_count
+      - results_published
+    ClassroomAnnouncement:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          title: 標題
+          maxLength: 255
+        content:
+          type: string
+          title: 內容
+        is_pinned:
+          type: boolean
+          title: 置頂
+        created_by_username:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 發布時間
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新時間
+      required:
+      - content
+      - created_at
+      - created_by_username
+      - id
+      - title
+      - updated_at
+    ClassroomMember:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        avatar_url:
+          type: string
+          readOnly: true
+        role:
+          allOf:
+          - $ref: '#/components/schemas/ClassroomMemberRoleEnum'
+          title: 角色
+        joined_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 加入時間
+      required:
+      - avatar_url
+      - email
+      - joined_at
+      - user_id
+      - username
+    ClassroomMemberRoleEnum:
+      enum:
+      - student
+      - ta
+      type: string
+      description: |-
+        * `student` - Student
+        * `ta` - TA
     AccessTokenObject:
       type: object
       properties:
@@ -9191,29 +10477,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AppealInput'
-    PaginatedClassroomListList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/ClassroomList'
     PaginatedContestListList:
       type: object
       required:
@@ -10458,7 +11721,7 @@ components:
       type: oauth2
       flows:
         authorizationCode:
-          authorizationUrl: null
-          tokenUrl: null
+          authorizationUrl: /o/authorize/
+          tokenUrl: /o/token/
           scopes:
             mcp: Access QJudge via MCP

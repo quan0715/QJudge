@@ -1,6 +1,8 @@
 """Strict success boundary for migrated application JSON endpoints."""
 from rest_framework.renderers import JSONRenderer
 
+from .envelope import EnvelopeResponse
+
 
 class ContractJSONRenderer(JSONRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
@@ -9,6 +11,8 @@ class ContractJSONRenderer(JSONRenderer):
         if 200 <= status_code < 300:
             if status_code == 204 and response is not None:
                 response.status_code = 200
+            if isinstance(response, EnvelopeResponse):
+                return super().render(data, accepted_media_type, renderer_context)
             meta = {}
             if isinstance(data, dict) and {"count", "next", "previous", "results"} <= data.keys():
                 meta["pagination"] = {key: data[key] for key in ("count", "next", "previous")}

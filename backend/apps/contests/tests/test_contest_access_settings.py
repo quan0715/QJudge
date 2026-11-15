@@ -119,7 +119,7 @@ def test_classroom_contest_create_rejects_password_fields(
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    details = response.data["error"]["details"]
+    details = {error["field"] for error in response.data["errors"]}
     assert "requires_password" in details
     assert "password" in details
 

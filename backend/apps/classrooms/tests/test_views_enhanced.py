@@ -66,7 +66,7 @@ class ClassroomViewsEnhancedTests(APITestCase):
         """Test that destroying a classroom actually archives it"""
         self.client.force_authenticate(user=self.teacher)
         response = self.client.delete(self.detail_url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         self.classroom.refresh_from_db()
         self.assertTrue(self.classroom.is_archived)
@@ -99,7 +99,7 @@ class ClassroomViewsEnhancedTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
         response = self.client.delete(member_url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(ClassroomMember.objects.filter(classroom=self.classroom, user=self.student).exists())
 
 
@@ -154,7 +154,7 @@ class ClassroomTaPermissionTests(APITestCase):
 
         self.assertEqual(added.status_code, status.HTTP_200_OK)
         self.assertEqual(added.data['added'], [self.newcomer.username])
-        self.assertEqual(removed.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(removed.status_code, status.HTTP_200_OK)
 
     def test_ta_can_update_classroom_settings(self):
         response = self.client.patch(self.detail_url, {'name': 'Renamed by TA'}, format='json')
@@ -170,4 +170,4 @@ class ClassroomTaPermissionTests(APITestCase):
         archived = self.client.delete(self.detail_url)
 
         self.assertEqual(promoted.status_code, status.HTTP_200_OK)
-        self.assertEqual(archived.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(archived.status_code, status.HTTP_200_OK)
