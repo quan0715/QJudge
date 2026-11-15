@@ -34,7 +34,10 @@ vi.mock(
   }),
 );
 
+const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+
 beforeAll(() => {
+  HTMLElement.prototype.scrollIntoView = vi.fn();
   Object.defineProperty(HTMLElement.prototype, "scrollTo", {
     configurable: true,
     value: vi.fn(),
@@ -42,6 +45,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
+  HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
   delete (HTMLElement.prototype as Partial<HTMLElement>).scrollTo;
 });
 
@@ -193,7 +197,7 @@ describe("QJudgeChatPanel", () => {
     expect(
       container.querySelector('input[class*="renameInput"]'),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "ui.newTask" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /history|歷史/i })).toHaveTextContent("ui.newTask");
 
     const input = screen.getByRole("textbox", { name: /message|輸入/i });
     await waitFor(() => expect(input).toBeEnabled());
@@ -215,7 +219,7 @@ describe("QJudgeChatPanel", () => {
 
     const input = await screen.findByRole("textbox", { name: /message|輸入/i });
     expect(
-      await screen.findByRole("button", { name: /new|新增/i }),
+      await screen.findByRole("button", { name: /addComment|新增/i }),
     ).toBeInTheDocument();
     fireEvent.change(input, { target: { value: "你好" } });
     fireEvent.click(screen.getByRole("button", { name: /send|送出/i }));
@@ -253,9 +257,10 @@ describe("QJudgeChatPanel", () => {
       location,
     );
 
-    const sessionMenu = await screen.findByRole("button", {
-      name: "Current chat",
+    const sessionMenu = await screen.findByRole("combobox", {
+      name: /history|歷史/i,
     });
+    await waitFor(() => expect(sessionMenu).toHaveTextContent("Current chat"));
     fireEvent.click(sessionMenu);
     fireEvent.click(screen.getByRole("option", { name: /Earlier chat/ }));
 
@@ -285,7 +290,7 @@ describe("QJudgeChatPanel", () => {
       catalog,
     );
 
-    const modelButton = await screen.findByRole("button", {
+    const modelButton = await screen.findByRole("combobox", {
       name: /model|模型/i,
     });
     await waitFor(() => expect(modelButton).toHaveTextContent("Fast model"));
@@ -344,7 +349,7 @@ describe("QJudgeChatPanel", () => {
       screen.getByRole("button", { name: /addAttachment|新增附件/i }),
     ).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: /model|模型/i }),
+      screen.getByRole("combobox", { name: /model|模型/i }),
     ).toBeDisabled();
     expect(
       screen.getByRole("button", { name: /send|送出/i }),
@@ -376,7 +381,7 @@ describe("QJudgeChatPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /send|送出/i }));
 
     await waitFor(() => expect(input).toBeDisabled());
-    expect(screen.getByRole("button", { name: /model|模型/i })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: /model|模型/i })).toBeDisabled();
     expect(
       screen.getByRole("button", { name: /addAttachment|新增附件/i }),
     ).toBeDisabled();
