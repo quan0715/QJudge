@@ -1,6 +1,5 @@
 @use "@carbon/layout";
 @use "@carbon/react/scss/type";
-// DocumentationScreen responsive styles
 
 .pageNav {
   display: flex;
@@ -36,57 +35,33 @@
   width: 256px;
   flex-shrink: 0;
   border-right: 1px solid var(--cds-border-subtle-01);
-  background-color: var(--cds-layer-01);
+  background-color: var(--cds-background);
   position: sticky;
   top: 3rem;
   height: calc(100vh - 3rem);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .sidebarContent {
   flex: 1;
-  padding-top: layout.$spacing-05;
-  overflow-y: auto;
-}
-
-// Settings section at bottom of sidebar
-.sidebarSettings {
-  flex-shrink: 0;
-  padding-bottom: layout.$spacing-03;
-}
-
-.settingsDivider {
-  height: 1px;
-  background-color: var(--cds-border-subtle-01);
-  margin: layout.$spacing-03 layout.$spacing-05;
-}
-
-.settingsSection {
-  padding: layout.$spacing-04 layout.$spacing-05;
-}
-
-.dashboardLink {
+  min-height: 0;
   display: flex;
-  align-items: center;
-  gap: layout.$spacing-04;
-  padding: layout.$spacing-04 layout.$spacing-05;
-  color: var(--cds-link-primary);
-  text-decoration: none;
-  font-size: 0.875rem;
-  transition: background 0.15s ease;
+  flex-direction: column;
+  padding-top: layout.$spacing-05;
+  overflow: hidden;
+}
 
-  &:hover {
-    background: var(--cds-layer-hover-01);
-  }
+.sidebarSkeleton {
+  padding: layout.$spacing-05;
 }
 
 .mainArea {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-width: 0; // Prevent flex item from overflowing
+  min-width: 0;
 }
 
 .pageHeader {
@@ -104,7 +79,14 @@
   flex: 1;
   padding: layout.$spacing-06 layout.$spacing-07;
   min-width: 0;
-  overflow-y: auto;
+}
+
+.errorState {
+  display: flex;
+  height: 40vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .rightSidebar {
@@ -113,7 +95,6 @@
   border-left: 1px solid var(--cds-border-subtle-01);
 }
 
-// Mobile responsive styles
 @media screen and (max-width: 768px) {
   .container {
     flex-direction: column;
@@ -145,7 +126,6 @@
   }
 }
 
-// Tablet responsive styles
 @media screen and (min-width: 769px) and (max-width: 1024px) {
   .leftSidebar {
     width: 220px;
@@ -156,10 +136,10 @@
   }
 
   .pageHeader {
-    padding: 1.25rem layout.$spacing-06;
+    padding: layout.$spacing-05 layout.$spacing-06;
   }
 
   .mainContent {
-    padding: 1.25rem layout.$spacing-06;
+    padding: layout.$spacing-05 layout.$spacing-06;
   }
 }

@@ -2,7 +2,11 @@ import { lazy } from "react";
 import { Route } from "react-router-dom";
 import { RouteLoadingBoundary } from "@/shared/ui/RouteLoadingBoundary";
 
-const DocumentationScreen = lazy(() => import("./screens/DocumentationScreen"));
+const DocumentationScreen = lazy(() =>
+  import("@/shared/docs").then((module) => ({
+    default: module.DocumentationScreen,
+  })),
+);
 
 const documentationScreen = (
   <RouteLoadingBoundary>

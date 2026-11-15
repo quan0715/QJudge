@@ -1,7 +1,10 @@
 {
+  "defaultDoc": "overview",
+  "fallbackLanguage": "zh-TW",
   "sections": [
     {
       "id": "getting-started",
+      "icon": "rocket",
       "items": [
         "overview",
         "quick-start"
@@ -9,12 +12,14 @@
     },
     {
       "id": "student-guide",
+      "icon": "document",
       "items": [
         "grade-appeal"
       ]
     },
     {
       "id": "deployment",
+      "icon": "server",
       "items": [
         "deployment",
         "deployment-storage",
@@ -26,6 +31,7 @@
     },
     {
       "id": "first-exam",
+      "icon": "document",
       "items": [
         "admin-account",
         "teacher-qualification",
@@ -37,6 +43,7 @@
     },
     {
       "id": "admin-guide",
+      "icon": "admin",
       "items": [
         "ai-setup",
         "mcp-setup",
@@ -45,11 +52,49 @@
     },
     {
       "id": "legal",
+      "icon": "document-blank",
       "items": [
         "privacy",
         "terms"
       ]
     }
   ],
-  "defaultDoc": "overview"
+  "quickLinks": [
+    {
+      "id": "deployment",
+      "icon": "server",
+      "tagType": "blue",
+      "links": [
+        "deployment",
+        "deployment-storage"
+      ]
+    },
+    {
+      "id": "administration",
+      "icon": "settings",
+      "tagType": "purple",
+      "links": [
+        "admin-account",
+        "teacher-qualification"
+      ]
+    },
+    {
+      "id": "classroom",
+      "icon": "users",
+      "tagType": "green",
+      "links": [
+        "classroom-setup",
+        "classroom-roster"
+      ]
+    },
+    {
+      "id": "exam",
+      "icon": "document",
+      "tagType": "magenta",
+      "links": [
+        "exam-preparation",
+        "exam-review"
+      ]
+    }
+  ]
 }

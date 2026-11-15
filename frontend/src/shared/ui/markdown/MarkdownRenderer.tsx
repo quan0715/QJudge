@@ -3,7 +3,6 @@ import {
   useEffect,
   useId,
   useState,
-  useCallback,
   useMemo,
   isValidElement,
   Children,
@@ -16,10 +15,8 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import rehypeSlug from "rehype-slug";
-import { Copy, Checkmark } from "@carbon/icons-react";
 import {
-  IconButton,
-  Tag,
+  CodeSnippet,
   Table,
   TableHead,
   TableBody,
@@ -28,8 +25,8 @@ import {
   TableCell,
 } from "@carbon/react";
 
-// Import highlight.js languages
-import hljs from "highlight.js/lib/core";
+// Import highlight.js languages (wired directly into rehype-highlight via HIGHLIGHT_LANGUAGES)
+import type { LanguageFn } from "highlight.js";
 import cpp from "highlight.js/lib/languages/cpp";
 import c from "highlight.js/lib/languages/c";
 import python from "highlight.js/lib/languages/python";
@@ -42,56 +39,80 @@ import json from "highlight.js/lib/languages/json";
 import sql from "highlight.js/lib/languages/sql";
 import cssLang from "highlight.js/lib/languages/css";
 import xml from "highlight.js/lib/languages/xml";
+import ini from "highlight.js/lib/languages/ini";
+import dockerfile from "highlight.js/lib/languages/dockerfile";
+import diff from "highlight.js/lib/languages/diff";
 
-// Register languages
-hljs.registerLanguage("cpp", cpp);
-hljs.registerLanguage("c", c);
-hljs.registerLanguage("python", python);
-hljs.registerLanguage("py", python);
-hljs.registerLanguage("java", java);
-hljs.registerLanguage("javascript", javascript);
-hljs.registerLanguage("js", javascript);
-hljs.registerLanguage("typescript", typescript);
-hljs.registerLanguage("ts", typescript);
-hljs.registerLanguage("bash", bash);
-hljs.registerLanguage("sh", bash);
-hljs.registerLanguage("shell", bash);
-hljs.registerLanguage("yaml", yaml);
-hljs.registerLanguage("yml", yaml);
-hljs.registerLanguage("json", json);
-hljs.registerLanguage("sql", sql);
-hljs.registerLanguage("css", cssLang);
-hljs.registerLanguage("html", xml);
-hljs.registerLanguage("xml", xml);
+// Extend highlight.js bash grammar with CLI tools, subcommands, flags, env assignments, and URLs
+const enhancedBash: LanguageFn = (hljs) => {
+  const lang = bash(hljs);
+  lang.contains.push(
+    {
+      className: "string",
+      begin: /https?:\/\/[^\s"'`\\]+/,
+      relevance: 0,
+    },
+    {
+      className: "attr",
+      begin: /\b[A-Z_][A-Z0-9_]*(?==)/,
+      relevance: 0,
+    },
+    {
+      className: "params",
+      begin: /(?:^|\s)--?[a-zA-Z0-9][\w-]*/,
+      relevance: 0,
+    },
+    {
+      className: "keyword",
+      begin:
+        /\b(?:git|docker|compose|npm|npx|pnpm|yarn|node|python3?|pip3?|pytest|uv|uvicorn|celery|alembic|curl|wget|ssh|scp|sudo|apt(?:-get)?|systemctl|journalctl|nginx|certbot|ufw|chmod|chown|mkdir|rm|cp|mv|ls|cat|grep|rg|sed|awk|tar|openssl|wrangler)\b|(?:\.\/)?deploy\/qjudge\b/,
+      relevance: 0,
+    },
+    {
+      className: "title",
+      begin:
+        /\b(?:init|up|down|start|stop|restart|status|logs|ps|exec|build|pull|push|clone|checkout|branch|merge|commit|install|uninstall|run|test|check|upgrade|rollback|addon|ingress|storage|media|create|deploy)\b/,
+      relevance: 0,
+    },
+  );
+  return lang;
+};
+
+const HIGHLIGHT_LANGUAGES: Record<string, LanguageFn> = {
+  cpp,
+  c,
+  python,
+  java,
+  javascript,
+  typescript,
+  bash: enhancedBash,
+  yaml,
+  json,
+  sql,
+  css: cssLang,
+  xml,
+  ini,
+  dockerfile,
+  diff,
+};
+
+const HIGHLIGHT_ALIASES: Record<string, string[]> = {
+  python: ["py"],
+  javascript: ["js", "jsx"],
+  typescript: ["ts", "tsx"],
+  bash: ["sh", "shell", "zsh"],
+  yaml: ["yml"],
+  xml: ["html"],
+  ini: ["env", "dotenv", "properties", "toml"],
+  dockerfile: ["docker"],
+};
+
+const PLAIN_TEXT_LANGUAGES = ["text", "txt", "plaintext", "csv", "mermaid"];
 
 import { normalizeMarkdownText } from "@/shared/utils/markdownText";
 
 import "katex/dist/katex.min.css";
-import "highlight.js/styles/github-dark.css";
 import "@/styles/markdown.scss";
-
-// Language display names
-const LANGUAGE_LABELS: Record<string, string> = {
-  cpp: "C++",
-  c: "C",
-  python: "Python",
-  py: "Python",
-  java: "Java",
-  javascript: "JavaScript",
-  js: "JavaScript",
-  typescript: "TypeScript",
-  ts: "TypeScript",
-  bash: "Bash",
-  sh: "Shell",
-  shell: "Shell",
-  yaml: "YAML",
-  yml: "YAML",
-  json: "JSON",
-  sql: "SQL",
-  css: "CSS",
-  html: "HTML",
-  xml: "XML",
-};
 
 interface MarkdownRendererProps {
   children: string;
@@ -219,71 +240,75 @@ const MermaidBlock: React.FC<{ chart: string }> = ({ chart }) => {
   );
 };
 
-// Code block with copy button and language label
+// Trim trailing newline added by markdown fenced code blocks so Carbon CodeSnippet
+// does not render an extra blank line.
+const trimTrailingNewline = (node: React.ReactNode): React.ReactNode => {
+  if (typeof node === "string") {
+    return node.replace(/\n$/, "");
+  }
+  if (Array.isArray(node) && node.length > 0) {
+    const next = [...node];
+    next[next.length - 1] = trimTrailingNewline(next[next.length - 1]);
+    return next;
+  }
+  return node;
+};
+
+// Code block rendered with Carbon CodeSnippet (or Mermaid diagram when enabled)
 const CodeBlock: React.FC<{
   children: React.ReactNode;
   enableCopy: boolean;
   enableMermaid: boolean;
 }> = ({ children, enableCopy, enableMermaid }) => {
-  const [copied, setCopied] = useState(false);
-
-  // Extract language from code element
-  const language: string | null = useMemo(() => {
+  const { language, codeChildren } = useMemo(() => {
     let foundLanguage: string | null = null;
+    let innerChildren: React.ReactNode = children;
     Children.forEach(children, (child) => {
       if (isValidElement(child)) {
-        const props = child.props as { className?: string };
+        const props = child.props as {
+          className?: string;
+          children?: React.ReactNode;
+        };
         if (props.className) {
           foundLanguage = getLanguageFromClassName(props.className);
         }
+        if (props.children !== undefined) {
+          innerChildren = props.children;
+        }
       }
     });
-    return foundLanguage;
+    return {
+      language: foundLanguage,
+      codeChildren: trimTrailingNewline(innerChildren),
+    };
   }, [children]);
 
-  // Get display label for language
-  const getDisplayLanguage = (lang: string | null): string | null => {
-    if (!lang) return null;
-    return LANGUAGE_LABELS[lang] || lang.toUpperCase();
-  };
-
-  const displayLanguage = getDisplayLanguage(language);
-  const codeContent = useMemo(() => extractTextContent(children), [children]);
-
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(codeContent).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }, [codeContent]);
+  const trimmedCode = useMemo(
+    () => extractTextContent(children).replace(/\n$/, ""),
+    [children],
+  );
 
   if (enableMermaid && language === "mermaid") {
-    return <MermaidBlock chart={codeContent.trim()} />;
+    return <MermaidBlock chart={trimmedCode.trim()} />;
   }
 
+  const isMultiLine = trimmedCode.includes("\n");
+
   return (
-    <div className="code-block-wrapper">
-      {/* Header with language label and copy button */}
-      <div className="code-block-header">
-        {displayLanguage && (
-          <Tag type="gray" size="sm" className="code-language-tag">
-            {displayLanguage}
-          </Tag>
-        )}
-        {enableCopy && (
-          <IconButton
-            kind="ghost"
-            size="sm"
-            label={copied ? "已複製" : "複製程式碼"}
-            onClick={handleCopy}
-            className={`code-copy-button ${copied ? "copied" : ""}`}
-          >
-            {copied ? <Checkmark size={16} /> : <Copy size={16} />}
-          </IconButton>
-        )}
-      </div>
-      <pre>{children}</pre>
-    </div>
+    <CodeSnippet
+      type={isMultiLine ? "multi" : "single"}
+      className="code-block-wrapper"
+      data-language={language || undefined}
+      copyText={trimmedCode}
+      hideCopyButton={!enableCopy}
+      feedback="已複製"
+      copyButtonDescription="複製程式碼"
+      showMoreText="展開更多"
+      showLessText="收合"
+      minCollapsedNumberOfRows={1}
+    >
+      {codeChildren}
+    </CodeSnippet>
   );
 };
 
@@ -319,7 +344,7 @@ const BASE_COMPONENTS: Record<
   React.ComponentType<{ children?: React.ReactNode }>
 > = {
   table: ({ children }) => (
-    <Table size="sm" aria-label="資料表格" className="markdown-table">
+    <Table size="md" aria-label="資料表格" className="markdown-table">
       {children}
     </Table>
   ),
@@ -358,14 +383,21 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({
     plugins.push(rehypeSlug);
     if (enableMath) plugins.push(rehypeKatex);
     if (enableHighlight) {
-      plugins.push([rehypeHighlight, { detect: true, ignoreMissing: true }]);
+      plugins.push([
+        rehypeHighlight,
+        {
+          languages: HIGHLIGHT_LANGUAGES,
+          aliases: HIGHLIGHT_ALIASES,
+          plainText: PLAIN_TEXT_LANGUAGES,
+          detect: true,
+          ignoreMissing: true,
+        },
+      ]);
     }
     return plugins;
   }, [allowRawHtml, enableMath, enableHighlight]);
 
   const components = useMemo(() => {
-    if (!enableCopy && !enableMermaid) return BASE_COMPONENTS;
-
     const PreBlock: React.ComponentType<{ children?: React.ReactNode }> = ({
       children: preChildren,
     }) => (

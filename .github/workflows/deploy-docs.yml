@@ -8,11 +8,16 @@ on:
     branches: [main]
     paths:
       - "frontend/public/docs/**"
+      - "frontend/src/core/docs/**"
+      - "frontend/src/shared/docs/**"
       - "frontend/src/features/docs/**"
+      - "frontend/src/i18n/languages.ts"
       - "frontend/src/i18n/locales/*/docs.json"
       - "frontend/docs.html"
       - "frontend/src/docs-main.tsx"
       - "frontend/vite.config.docs.ts"
+      - "frontend/scripts/docs-vite-plugin.ts"
+      - "frontend/scripts/check-docs-package-boundary.js"
       - "frontend/pages/docs-worker.js"
       - "frontend/package.json"
       - "frontend/package-lock.json"
@@ -62,6 +67,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        working-directory: frontend
+
+      - name: Check docs package boundary
+        run: npm run check:docs-boundary
         working-directory: frontend
 
       - name: Check translations

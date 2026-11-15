@@ -2,35 +2,30 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, InlineNotification } from "@carbon/react";
 import { ThumbsUp, ThumbsDown } from "@carbon/icons-react";
+import { useDocsFramework } from "../contexts/DocsFrameworkContext";
+import styles from "./DocFeedback.module.scss";
 
-interface DocFeedbackProps {
+export interface DocFeedbackProps {
   docSlug: string;
 }
 
 const DocFeedback: React.FC<DocFeedbackProps> = ({ docSlug }) => {
   const { t } = useTranslation("docs");
-  const [_feedback, setFeedback] = useState<"helpful" | "not-helpful" | null>(
-    null
-  );
+  const { onFeedback } = useDocsFramework();
   const [submitted, setSubmitted] = useState(false);
 
   const handleFeedback = (type: "helpful" | "not-helpful") => {
-    setFeedback(type);
     setSubmitted(true);
-
-    // Here you could send feedback to your analytics or backend
-    console.log(`Feedback for ${docSlug}: ${type}`);
+    if (onFeedback) {
+      onFeedback(docSlug, type);
+    } else {
+      console.log(`Feedback for ${docSlug}: ${type}`);
+    }
   };
 
   if (submitted) {
     return (
-      <div
-        style={{
-          marginTop: "3rem",
-          paddingTop: "1.5rem",
-          borderTop: "1px solid var(--cds-border-subtle-01)",
-        }}
-      >
+      <div className={styles.submittedContainer}>
         <InlineNotification
           kind="success"
           title={t("feedback.thanks")}
@@ -42,22 +37,10 @@ const DocFeedback: React.FC<DocFeedbackProps> = ({ docSlug }) => {
   }
 
   return (
-    <div
-      style={{
-        marginTop: "3rem",
-        paddingTop: "1.5rem",
-        borderTop: "1px solid var(--cds-border-subtle-01)",
-        display: "flex",
-        alignItems: "center",
-        gap: "1rem",
-        flexWrap: "wrap",
-      }}
-    >
-      <span style={{ color: "var(--cds-text-secondary)" }}>
-        {t("feedback.title")}
-      </span>
+    <div className={styles.promptContainer}>
+      <span className={styles.promptLabel}>{t("feedback.title")}</span>
 
-      <div style={{ display: "flex", gap: "0.5rem" }}>
+      <div className={styles.actions}>
         <Button
           kind="ghost"
           size="sm"
