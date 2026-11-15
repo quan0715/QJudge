@@ -27,7 +27,7 @@
   // 不會擋住內部垂直捲動。
   overscroll-behavior: contain;
   touch-action: pan-y;
-  padding: layout.$spacing-05 0 9rem;
+  padding: layout.$spacing-05 0 layout.$spacing-06;
 
   // Center message content within full-width scroll container
   display: flex;
@@ -57,13 +57,14 @@
   }
 }
 
-:global(.copilot-full-page) .list > * {
-  max-width: 100%;
+.wrapper .list > * {
+  width: calc(100% - #{2 * layout.$spacing-05});
+  max-width: $chat-content-max-width;
 }
 
 .scrollButton {
   position: absolute;
-  bottom: 8.5rem; // Keep distance from the composer input (desktop).
+  bottom: layout.$spacing-05;
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;

@@ -1,133 +1,30 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 @use "./variables" as *;
 
 .bar {
-  container-type: inline-size;
-  container-name: composer;
   flex-shrink: 0;
-  box-sizing: border-box;
-  max-width: $chat-content-max-width;
-  width: 100%;
+  width: var(--chat-composer-width, calc(100% - #{2 * layout.$spacing-05}));
   min-width: 0;
-  margin: 0 auto;
-  padding: layout.$spacing-04 layout.$spacing-05 1.25rem;
-  pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    color-mix(in srgb, var(--cds-background) 94%, transparent) 36%
-  );
-  overflow: visible;
+  max-width: var(--chat-composer-max-width, #{$chat-content-max-width});
+  margin-inline: auto;
+  background: var(--cds-layer);
+  margin-bottom: var(--chat-composer-bottom-space, calc(#{layout.$spacing-06} + env(safe-area-inset-bottom, 0px)));
 }
-
-:global(.copilot-full-page) .bar {
-  max-width: 100%;
-}
-
-.statusStack {
-  pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-03;
-  margin-bottom: layout.$spacing-04;
-}
-
-.dividerNotice {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-05;
-  width: 100%;
-}
-
-.line {
-  flex: 1;
-  height: 1px;
-  background-color: var(--cds-border-subtle-01);
-}
-
-.noticeText {
-  font-size: 0.875rem;
-  white-space: nowrap;
-  animation: breathingText 2s ease-in-out infinite;
-}
-
-@keyframes breathingText {
-  0%, 100% {
-    color: var(--cds-text-secondary);
-  }
-  50% {
-    color: var(--cds-text-primary);
-  }
-}
-
-.inputWrapper {
-  pointer-events: auto;
-  display: flex;
-  box-sizing: border-box;
-  min-width: 0;
-  max-width: 100%;
-  gap: layout.$spacing-03;
-  border-radius: 16px;
-  border: 1px solid var(--cds-border-subtle-01);
-  background: var(--cds-layer-02);
-  box-shadow: none;
-  padding: 0.6rem layout.$spacing-04 0.6rem;
-  transition: padding 160ms ease;
-  // Enable container queries so narrow chat panels (e.g. right-side split
-  // inside a desktop workspace) can collapse badge labels even when the
-  // viewport is wide.
-  overflow: visible;
-}
-
-// Compact mode: single visible row; everything inline.
-.inputWrapperCompact {
-  flex-direction: row;
-  align-items: center;
-  gap: layout.$spacing-03;
-  padding: 0.35rem 0.45rem 0.35rem 0.95rem;
-
-  .input {
-    flex: 1 1 auto;
-    min-height: 1.75rem;
-    padding: 0;
-  }
-
-  .toolbar {
-    flex: 0 0 auto;
-    width: auto;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.4rem;
-  }
-
-  .rightTools {
-    width: auto;
-    flex-wrap: nowrap;
-    gap: 0.4rem;
-  }
-
-}
-
-// Expanded mode (auto-grows when text wraps multiple lines):
-// toolbar moves below the textarea with model selector pinned to the left
-// and send button on the right.
-.inputWrapperExpanded {
-  flex-direction: column;
+.inputWrapper { width: 100%; min-width: 0; }
+.input { min-width: 0; }
+.toolbar {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 12rem) minmax(0, 1fr) 3rem;
   align-items: stretch;
-
-  .attachmentButton {
-    align-self: flex-start;
-  }
-
-  .toolbar {
-    width: 100%;
-    justify-content: space-between;
-    gap: layout.$spacing-04;
-  }
-
+  min-width: 0;
 }
-
+.modelControl { width: 100%; min-width: 0; }
+.uploadInput { display: none; }
+.statusStack { display: grid; gap: layout.$spacing-03; }
+.dividerNotice { display: flex; align-items: center; gap: layout.$spacing-03; }
+.line { flex: 1; height: 1px; background: var(--cds-border-subtle); }
+.noticeText { @include type.type-style("helper-text-01"); }
 .pendingFileList {
   display: flex;
   flex-wrap: wrap;
@@ -140,10 +37,6 @@
   min-width: 0;
   margin-bottom: 0.4rem;
 
-  // .bar overlays the conversation with pointer-events: none; only the tag is interactive.
-  > * {
-    pointer-events: auto;
-  }
 }
 
 .pendingFileTag {
@@ -252,209 +145,6 @@
   }
 }
 
-.input {
-  width: 100%;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--cds-text-primary);
-  font-size: 1rem;
-  line-height: 1.55;
-  resize: none;
-  min-height: 2rem;
-  max-height: $chat-textarea-max-height;
-  font-family: inherit;
 
-  &::placeholder {
-    color: var(--cds-text-placeholder);
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.62;
-  }
-}
-
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: layout.$spacing-04;
-  overflow: visible;
-}
-
-.leftTools {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.uploadInput {
-  display: none;
-}
-
-.attachmentButton {
-  flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
-  border: none;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  color: var(--cds-icon-secondary);
-  cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
-
-  &:hover:not(:disabled) {
-    background: var(--cds-layer-03);
-    color: var(--cds-text-primary);
-  }
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-}
-
-.rightTools {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  justify-content: flex-end;
-  flex-shrink: 0;
-  overflow: visible;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 0.95;
-  }
-}
-
-// Keep toolbar spacing compact in narrow panels.
-@container composer (max-width: 560px) {
-  .rightTools {
-    gap: 0.35rem;
-  }
-
-}
-
-.sendButton {
-  width: 2.25rem;
-  height: 2.25rem;
-  border: none;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--cds-button-primary);
-  color: var(--cds-text-on-color);
-  cursor: pointer;
-  transition: transform 120ms ease, filter 120ms ease, opacity 120ms ease;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    filter: brightness(1.06);
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.45;
-  }
-}
-
-.runningButton {
-  background: color-mix(in srgb, var(--cds-support-info) 88%, var(--cds-layer-01));
-  color: var(--cds-text-on-color);
-}
-
-.spinningIcon {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (max-width: $chat-mobile-breakpoint) {
-  .bar {
-    padding-top: 0.6rem;
-    padding-left: layout.$spacing-05;
-    padding-right: layout.$spacing-05;
-    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
-  }
-
-  .input {
-    min-height: 1.75rem;
-  }
-
-  .sendButton {
-    width: 2rem;
-    height: 2rem;
-  }
-
-  // Compact mode on mobile: chip 不縮到窄於可讀寬度；過長名稱仍靠 ellipsis
-  .inputWrapperCompact {
-    padding: 0.3rem 0.4rem 0.3rem 0.85rem;
-    gap: 0.4rem;
-
-  }
-
-  // Expanded mode on mobile: keep everything on a single toolbar row —
-  // [badges] [model selector] [send]. Badges hide their label (see
-  // SessionBadges mobile overrides) so the three elements always fit.
-  .inputWrapperExpanded {
-    padding: layout.$spacing-03 0.6rem;
-    gap: layout.$spacing-03;
-
-    .toolbar {
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.4rem;
-      flex-wrap: nowrap;
-    }
-
-    .leftTools {
-      flex: 1 1 auto;
-      min-width: 0;
-      // Keep badge popovers visible on narrow screens; hidden clips the
-      // absolute-positioned dropdown panel above the composer.
-      overflow: visible;
-    }
-
-    .rightTools {
-      width: auto;
-      flex-wrap: nowrap;
-      flex-shrink: 0;
-      gap: 0.4rem;
-    }
-
-  }
-}
-
-.modelControl { min-width: 0; max-width: 12rem; }
-
-@container composer (max-width: 560px) {
-  .modelControl { max-width: 8rem; }
-  .inputWrapperCompact { flex-wrap: wrap; }
-  .inputWrapperCompact .input { flex-basis: calc(100% - 3rem); }
-  .inputWrapperCompact .toolbar { width: 100%; }
-  .inputWrapperExpanded .toolbar { flex-wrap: wrap; }
-}
+.spinningIcon { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

@@ -153,6 +153,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
         ) : (
           <Dropdown
             id={`chat-session-${id}`}
+            type="inline"
             titleText={t("ui.history")}
             hideLabel
             label={displayTitle}

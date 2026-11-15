@@ -34,6 +34,10 @@
 
 // Sidebar mode: same gradient
 .sidebar {
+  --chat-composer-width: 100%;
+  --chat-composer-max-width: none;
+  --chat-composer-bottom-space: 0px;
+
   background:
     radial-gradient(
       ellipse at 15% 50%,

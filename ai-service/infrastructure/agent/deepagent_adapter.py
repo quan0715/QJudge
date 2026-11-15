@@ -27,7 +27,7 @@ from deepagents.backends.state import StateBackend
 from deepagents.middleware import summarization as _summarization_module
 from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
 from deepagents.middleware.summarization import SummarizationMiddleware
-from langchain.agents.middleware import ModelRetryMiddleware
+from langchain.agents.middleware import ModelRetryMiddleware, TodoListMiddleware
 from langchain_core.callbacks import AsyncCallbackHandler
 from langchain_core.tracers.context import register_configure_hook
 from langgraph.types import Command
@@ -474,7 +474,7 @@ class _DeepAgentRuntime:
         """Build a DeepAgent with tools around an already-built chat model.
 
         create_deep_agent already injects the standard DeepAgents stack
-        (TodoList, Skills, Filesystem, Summarization, etc.). Only append
+        (Skills, Filesystem, Summarization, etc.). TodoList is opt-in. Append
         custom middleware that is not already included.
         """
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
@@ -539,6 +539,7 @@ class _DeepAgentRuntime:
                 }
             ],
             "middleware": [
+                TodoListMiddleware(),
                 _model_stream_retry(),
                 ToolErrorFeedbackMiddleware(),
                 # Must be the last middleware: inspects the final tool_calls produced by

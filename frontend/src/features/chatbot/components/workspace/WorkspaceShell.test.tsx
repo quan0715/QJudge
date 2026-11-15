@@ -7,7 +7,7 @@ vi.mock("@/features/app/components/AppSidebar", () => ({ AppSidebar: () => null 
 vi.mock("@/features/app/components/workspace/WorkspaceTopNav", () => ({ WorkspaceTopNav: () => null }));
 vi.mock("../chat-ui/QJudgeChatPanel", () => ({ QJudgeChatPanel: () => <div>Chat</div> }));
 describe("WorkspaceShell resizing", () => {
-  it("supports keyboard limits and click resizing, and persists the width", () => {
+  it("supports keyboard limits, and persists the width", () => {
     render(<MemoryRouter><WorkspaceShell>Content</WorkspaceShell></MemoryRouter>);
     const handle = screen.getByRole("separator", {name: "調整面板寬度"});
     handle.focus();
@@ -19,7 +19,8 @@ describe("WorkspaceShell resizing", () => {
     expect(handle).toHaveAttribute("aria-valuenow", "320");
     fireEvent.keyDown(handle, {key: "End"});
     expect(handle).toHaveAttribute("aria-valuenow", "700");
-    fireEvent.click(screen.getByRole("button", {name: "縮小聊天面板"}));
+    expect(screen.queryByRole("button", {name: /縮小聊天面板|放大聊天面板/})).not.toBeInTheDocument();
+    fireEvent.keyDown(handle, {key: "ArrowRight"});
     expect(handle).toHaveAttribute("aria-valuenow", "684");
     expect(localStorage.setItem).toHaveBeenLastCalledWith("workspace_panel_width", "684");
   });
