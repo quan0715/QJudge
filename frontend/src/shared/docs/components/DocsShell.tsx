@@ -1,9 +1,9 @@
 import { Outlet } from "react-router-dom";
 import { Content } from "@carbon/react";
 import DocsHeader from "./DocsHeader";
-import styles from "./DocsLayout.module.scss";
+import styles from "./DocsShell.module.scss";
 
-const DocsLayout: React.FC = () => {
+const DocsShell: React.FC = () => {
   return (
     <div className={styles.layout}>
       <DocsHeader />
@@ -14,4 +14,4 @@ const DocsLayout: React.FC = () => {
   );
 };
 
-export default DocsLayout;
+export default DocsShell;

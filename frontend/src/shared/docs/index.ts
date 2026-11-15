@@ -25,7 +25,7 @@ export {
   DocsErrorBoundary,
   type DocsErrorBoundaryProps,
 } from "./components/DocsErrorBoundary";
-export { default as DocsLayout } from "./components/DocsLayout";
+export { default as DocsShell } from "./components/DocsShell";
 export { default as DocsHeader } from "./components/DocsHeader";
 export {
   default as DocSidebar,
