@@ -11,6 +11,7 @@ import "@/styles/globals.scss";
 
 const params = new URLSearchParams(location.search);
 const side = params.has("side");
+const mobile = params.has("mobile");
 const width = Number(params.get("width") || 400);
 const theme = params.get("theme") === "white" ? "white" : "g100";
 document.documentElement.dataset.carbonTheme = theme;
@@ -46,7 +47,7 @@ const panel = <QJudgeChatPanel mode={side ? "sidebar" : "full"} onClose={side ? 
 createRoot(document.getElementById("root")!).render(
   <Theme theme={theme} style={{height:"100dvh"}}>
     <QJudgeCopilotBoundary enabled transport={transport} location={new MemoryCopilotSessionLocation(session.id)} storage={new MemoryCopilotStorage()} translations={new DefaultCopilotTranslations()} modelCatalog={new MemoryCopilotModelCatalog([{id:"luna",displayName:"GPT-6 Luna",isDefault:true},{id:"deepseek",displayName:"DeepSeek V4.1 Flash"}])}>
-      {side ? <aside data-testid="chat-frame" className={`${workspace.panel} ${workspace.panelOpen}`} style={{width,maxWidth:"100vw",marginLeft:"auto",transition:"none"}}>
+      {side ? <aside data-testid="chat-frame" className={mobile ? workspace.mobileRightSheet : `${workspace.panel} ${workspace.panelOpen}`} style={{width,maxWidth:"100vw",marginLeft:"auto",transition:"none"}}>
         <div className={workspace.resizeHandle} data-testid="chat-divider" />
         <div className={workspace.panelContent}>{panel}</div>
       </aside> : <main data-testid="chat-frame" style={{height:"100%"}}>{panel}</main>}

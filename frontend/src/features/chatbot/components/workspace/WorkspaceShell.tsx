@@ -132,7 +132,7 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
   useEffect(() => {
     if (!showLeftMobileOverlay && !showRightMobileSheet) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
+      if (e.key !== "Escape" || e.defaultPrevented) return;
       if (showRightMobileSheet) right.close();
       else if (showLeftMobileOverlay) left.close();
     };

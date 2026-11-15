@@ -9,6 +9,7 @@
   max-width: var(--chat-composer-max-width, #{$chat-content-max-width});
   margin-inline: auto;
   background: var(--cds-layer);
+  padding-block-end: var(--chat-composer-safe-area, 0px);
   margin-bottom: var(--chat-composer-bottom-space, calc(#{layout.$spacing-06} + env(safe-area-inset-bottom, 0px)));
 }
 .inputWrapper { width: 100%; min-width: 0; }

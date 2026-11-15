@@ -78,3 +78,22 @@ for (const theme of ["g100", "white"]) for (const width of [320,400,700,1440]) {
     expect(errors).toEqual([]);
   });
 }
+
+test("mobile sheet keeps action buttons above the home indicator", async ({page}, info) => {
+  await page.setViewportSize({width:390,height:844});
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setSafeAreaInsetsOverride", {insets:{bottom:34}});
+  await page.goto("/tests/browser/fixtures/chat-composer.html?theme=g100&side&mobile&width=390");
+  await expect(page.getByRole("textbox",{name:"訊息輸入"})).toBeEnabled();
+  const toolbar = page.getByRole("group",{name:"訊息操作"});
+  const frame = (await page.getByTestId("chat-frame").boundingBox())!;
+  const actions = (await toolbar.boundingBox())!;
+  const composer = (await toolbar.locator("..").locator("..").boundingBox())!;
+  expect(frame.y+frame.height-actions.y-actions.height).toBeCloseTo(34,0);
+  expect(composer.y+composer.height).toBeCloseTo(frame.y+frame.height,0);
+  expect(composer.x).toBeCloseTo(frame.x,0);
+  expect(composer.width).toBeCloseTo(frame.width,0);
+  const screenshot = info.outputPath("mobile-safe-area.png");
+  await page.screenshot({path:screenshot});
+  await info.attach("mobile-safe-area",{path:screenshot,contentType:"image/png"});
+});

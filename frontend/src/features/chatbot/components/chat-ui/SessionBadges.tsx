@@ -58,10 +58,10 @@ export function SessionBadges({ messages, inline = false }: SessionBadgesProps) 
       triggerRef.current?.focus();
     };
     document.addEventListener("mousedown", onMouseDown);
-    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("keydown", onKeyDown, true);
     return () => {
       document.removeEventListener("mousedown", onMouseDown);
-      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("keydown", onKeyDown, true);
     };
   }, [openPanel]);
 

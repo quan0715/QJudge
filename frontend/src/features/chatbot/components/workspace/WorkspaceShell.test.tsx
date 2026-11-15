@@ -1,11 +1,14 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SessionBadges } from "../chat-ui/SessionBadges";
 import { WorkspaceShell } from "./WorkspaceShell";
-vi.mock("@/features/app/contexts/WorkspaceContext", () => ({ useWorkspace: () => ({ isMobile: false, left: { isOpen: false, close: vi.fn(), toggle: vi.fn() }, right: { isOpen: true, close: vi.fn() } }) }));
+const mobile = vi.hoisted(() => ({ enabled: false, close: vi.fn() }));
+beforeEach(() => { mobile.enabled = false; mobile.close.mockClear(); });
+vi.mock("@/features/app/contexts/WorkspaceContext", () => ({ useWorkspace: () => ({ isMobile: mobile.enabled, left: { isOpen: false, close: vi.fn(), toggle: vi.fn() }, right: { isOpen: true, close: mobile.close } }) }));
 vi.mock("@/features/app/components/AppSidebar", () => ({ AppSidebar: () => null }));
 vi.mock("@/features/app/components/workspace/WorkspaceTopNav", () => ({ WorkspaceTopNav: () => null }));
-vi.mock("../chat-ui/QJudgeChatPanel", () => ({ QJudgeChatPanel: () => <div>Chat</div> }));
+vi.mock("../chat-ui/QJudgeChatPanel", () => ({ QJudgeChatPanel: () => <SessionBadges messages={[{id:"todo",role:"assistant",createdAt:new Date(),parts:[{type:"data-todo-items",data:[{id:"one",label:"檢查題目",status:"pending"}]}]}]} /> }));
 describe("WorkspaceShell resizing", () => {
   it("supports keyboard limits, and persists the width", () => {
     render(<MemoryRouter><WorkspaceShell>Content</WorkspaceShell></MemoryRouter>);
@@ -38,4 +41,20 @@ describe("WorkspaceShell resizing", () => {
     expect(document.body.style.userSelect).toBe("");
   });
 
+});
+
+
+describe("Mobile chat Escape handling", () => {
+  it("dismisses the inner list before allowing Escape to close the sheet", () => {
+    mobile.enabled = true;
+    render(<MemoryRouter><WorkspaceShell omitAppSidebar>Content</WorkspaceShell></MemoryRouter>);
+    const trigger = screen.getByRole("button", {name:/任務列表/});
+    fireEvent.click(trigger);
+    fireEvent.keyDown(document, {key:"Escape"});
+    expect(screen.queryByRole("region", {name:/任務列表/})).not.toBeInTheDocument();
+    expect(mobile.close).not.toHaveBeenCalled();
+    expect(trigger).toHaveFocus();
+    fireEvent.keyDown(document, {key:"Escape"});
+    expect(mobile.close).toHaveBeenCalledOnce();
+  });
 });
