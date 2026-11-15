@@ -19,3 +19,12 @@ Additional states: [320px dock with focused resize handle](carbon-workspace-1280
 Confirmed: field/help text wrapping, readable compact composer input, no document horizontal overflow, visible focus/selected/disabled states, unfilled stroke icons, and session keyboard selection/Escape focus retention. At the minimum dock width the input remains about 224px wide.
 
 Review corrections include Carbon helperText associations for DatePickerInput/Select, a two-row narrow composer, and preserving unfilled SVG descendants inside Carbon IconButton.
+
+## Composer refinement
+
+The composer now uses the Carbon inline Dropdown variant: transparent resting surface, no separate field underline, and content-sized width. Standard form model selectors retain their field appearance. These screenshots supersede the model-picker appearance in the earlier chat/workspace captures. Keyboard selection and Escape focus retention passed for both variants.
+
+| Theme | Desktop | Mobile |
+| --- | --- | --- |
+| Light | [1280px](carbon-inline-light-1280.png) | [390px](carbon-inline-light-390.png) |
+| Dark | [1280px](carbon-inline-dark-1280.png) | [390px](carbon-inline-dark-390.png) |

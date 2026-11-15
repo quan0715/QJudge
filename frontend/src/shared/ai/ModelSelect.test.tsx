@@ -16,9 +16,9 @@ describe("ModelSelect", () => {
     );
     expect(trigger).not.toHaveTextContent("gpt-5-nano");
   });
-  it("selects with the keyboard and closes with Escape while retaining focus", () => {
+  it.each(["default", "inline"] as const)("%s selects with the keyboard and closes with Escape while retaining focus", (type) => {
     const onChange = vi.fn();
-    render(<ModelSelect models={[{id: "a", label: "Alpha"}, {id: "b", label: "Beta"}]} selectedModelId="a" onChange={onChange} />);
+    render(<ModelSelect type={type} models={[{id: "a", label: "Alpha"}, {id: "b", label: "Beta"}]} selectedModelId="a" onChange={onChange} />);
     const trigger = screen.getByRole("combobox", { name: /模型/ });
     trigger.focus();
     fireEvent.keyDown(trigger, { key: "ArrowDown" });

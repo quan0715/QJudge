@@ -449,10 +449,10 @@
   }
 }
 
-.modelControl { min-width: 0; width: 12rem; max-width: 100%; }
+.modelControl { min-width: 0; max-width: 12rem; }
 
 @container composer (max-width: 560px) {
-  .modelControl { width: 8rem; }
+  .modelControl { max-width: 8rem; }
   .inputWrapperCompact { flex-wrap: wrap; }
   .inputWrapperCompact .input { flex-basis: calc(100% - 3rem); }
   .inputWrapperCompact .toolbar { width: 100%; }

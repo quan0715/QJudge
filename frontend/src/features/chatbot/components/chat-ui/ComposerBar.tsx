@@ -336,6 +336,7 @@ export function ComposerBar({
           )}
           <div className={styles.rightTools}>
             <ModelSelect
+              type="inline"
               models={modelOptions}
               selectedModelId={selectedModelId}
               onChange={onModelChange}

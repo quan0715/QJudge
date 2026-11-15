@@ -14,6 +14,8 @@ export interface ModelSelectOption {
 
 interface ModelSelectProps {
   models: readonly ModelSelectOption[];
+  /** Inline controls blend into toolbars; forms keep the standard field surface. */
+  type?: "default" | "inline";
   selectedModelId: string | null;
   onChange: (modelId: string) => void;
   disabled?: boolean;
@@ -27,6 +29,7 @@ interface ModelSelectProps {
 
 export function ModelSelect({
   models,
+  type = "default",
   selectedModelId,
   onChange,
   disabled = false,
@@ -42,6 +45,7 @@ export function ModelSelect({
       {showStreamDot && <span className={styles.streamDot} aria-hidden />}
       <Dropdown
         id={`model-select-${id}`}
+        type={type}
         titleText={t("ui.modelLabel", "選擇模型")}
         hideLabel
         label={t("ui.modelUnavailable", "無可用模型")}
