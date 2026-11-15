@@ -1,48 +1,11 @@
-import { defineConfig, Plugin } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import fs from "fs";
+import { docsSitePlugin } from "./scripts/docs-vite-plugin";
 
 const docsPublicUrl = "https://docs.q-judge.com";
 const mainAppUrl = "https://q-judge.com";
-
-function getSitemapLastModified(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function docsSeoFiles(): Plugin {
-  return {
-    name: "docs-seo-files",
-    closeBundle() {
-      const outDir = path.resolve(__dirname, "dist-docs");
-      const lastModified = getSitemapLastModified();
-      fs.writeFileSync(
-        path.join(outDir, "robots.txt"),
-        [
-          "User-agent: *",
-          "Allow: /",
-          `Sitemap: ${docsPublicUrl}/sitemap.xml`,
-          "",
-        ].join("\n"),
-      );
-      fs.writeFileSync(
-        path.join(outDir, "sitemap.xml"),
-        [
-          '<?xml version="1.0" encoding="UTF-8"?>',
-          '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-          "  <url>",
-          `    <loc>${docsPublicUrl}/</loc>`,
-          `    <lastmod>${lastModified}</lastmod>`,
-          "    <changefreq>weekly</changefreq>",
-          "    <priority>1.0</priority>",
-          "  </url>",
-          "</urlset>",
-          "",
-        ].join("\n"),
-      );
-    },
-  };
-}
 
 function renameDocsToIndex(): Plugin {
   return {
@@ -73,7 +36,18 @@ function copyDocsWorker(): Plugin {
 
 // Vite config for standalone documentation build (Cloudflare Pages)
 export default defineConfig({
-  plugins: [react(), docsSeoFiles(), renameDocsToIndex(), copyDocsWorker()],
+  plugins: [
+    react(),
+    docsSitePlugin({
+      publicDir: path.resolve(__dirname, "public"),
+      outDir: path.resolve(__dirname, "dist-docs"),
+      publicUrl: docsPublicUrl,
+      siteTitle: "QJudge Docs",
+    }),
+    renameDocsToIndex(),
+    copyDocsWorker(),
+  ],
+  publicDir: false,
   base: "/",
   define: {
     "import.meta.env.VITE_DOCS_PUBLIC_URL": JSON.stringify(docsPublicUrl),
@@ -81,6 +55,7 @@ export default defineConfig({
   },
   build: {
     outDir: "dist-docs",
+    emptyOutDir: true,
     rollupOptions: {
       input: path.resolve(__dirname, "docs.html"),
     },

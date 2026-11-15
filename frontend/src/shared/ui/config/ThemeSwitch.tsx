@@ -1,6 +1,7 @@
 import { Dropdown } from "@carbon/react";
 import { Light, Asleep, Laptop } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import styles from "./SwitchDropdown.module.scss";
 
 export type ThemeValue = "light" | "dark" | "system";
 
@@ -60,8 +61,14 @@ export const ThemeSwitch: React.FC<ThemeSwitchProps> = ({
       selectedItem={selectedItem}
       onChange={handleChange}
       itemToString={(item: ThemeItem | null) => item?.label || ""}
+      renderSelectedItem={(item: ThemeItem) => (
+        <span className={styles.dropdownItem}>
+          {item.icon}
+          <span>{item.label}</span>
+        </span>
+      )}
       itemToElement={(item: ThemeItem) => (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+        <span className={styles.dropdownItem}>
           {item.icon}
           <span>{item.label}</span>
         </span>

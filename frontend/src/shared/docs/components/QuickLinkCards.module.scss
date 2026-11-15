@@ -1,0 +1,48 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: layout.$spacing-05;
+  margin-bottom: layout.$spacing-07;
+}
+
+.grid .card {
+  display: flex;
+  min-height: 140px;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-06;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardTitle {
+  margin: 0;
+}
+
+.cardDescription {
+  flex: 1;
+  margin: 0;
+  color: var(--cds-text-secondary);
+}
+
+.linkList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+  margin-top: auto;
+}
+
+.linkItem {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  color: var(--cds-link-primary);
+  @include type.type-style("body-compact-01");
+}

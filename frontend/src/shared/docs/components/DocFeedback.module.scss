@@ -1,0 +1,26 @@
+@use "@carbon/layout";
+
+.submittedContainer {
+  margin-top: layout.$spacing-09;
+  padding-top: layout.$spacing-06;
+  border-top: 1px solid var(--cds-border-subtle-01);
+}
+
+.promptContainer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: layout.$spacing-05;
+  margin-top: layout.$spacing-09;
+  padding-top: layout.$spacing-06;
+  border-top: 1px solid var(--cds-border-subtle-01);
+}
+
+.promptLabel {
+  color: var(--cds-text-secondary);
+}
+
+.actions {
+  display: flex;
+  gap: layout.$spacing-03;
+}

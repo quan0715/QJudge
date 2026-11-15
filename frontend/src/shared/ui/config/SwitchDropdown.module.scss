@@ -1,0 +1,7 @@
+@use "@carbon/layout";
+
+.dropdownItem {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+}

@@ -1,0 +1,49 @@
+@use "@carbon/layout";
+
+.nav {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav .items {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-top: 0;
+  overflow-y: auto;
+}
+
+.nav .items .menuSection {
+  margin-block-end: layout.$spacing-02;
+}
+
+.nav .items .menuSection > button {
+  block-size: auto;
+  min-block-size: layout.$spacing-08;
+  padding: layout.$spacing-04 layout.$spacing-05;
+}
+
+.nav .items .menuSection > button > div:first-child {
+  margin-inline-end: layout.$spacing-03;
+}
+
+.nav .items .menuSection > button[aria-expanded="true"] + ul {
+  padding-block: layout.$spacing-01;
+}
+
+.nav .items .menuSection .menuItem + .menuItem {
+  margin-block-start: layout.$spacing-01;
+}
+
+.nav .items .menuSection .menuItem > a {
+  block-size: auto;
+  min-block-size: layout.$spacing-08;
+  padding: layout.$spacing-03 layout.$spacing-05 layout.$spacing-03
+    layout.$spacing-08;
+}
+
+.nav .items .menuSection .menuItem > a[aria-current="page"] {
+  background-color: var(--cds-background-hover);
+}

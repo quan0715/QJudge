@@ -1,5 +1,10 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+export {
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguageOption,
+  type SupportedLanguage,
+} from "./languages";
 
 // Chinese Traditional
 import zhTWCommon from "./locales/zh-TW/common.json";
@@ -75,16 +80,6 @@ const resources = {
     chatbot: koChatbot,
   },
 };
-
-// Supported languages list for UI
-export const SUPPORTED_LANGUAGES = [
-  { id: "zh-TW", label: "繁體中文", shortLabel: "中" },
-  { id: "en", label: "English", shortLabel: "EN" },
-  { id: "ja", label: "日本語", shortLabel: "日" },
-  { id: "ko", label: "한국어", shortLabel: "한" },
-] as const;
-
-export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]["id"];
 
 i18n.use(initReactI18next).init({
   resources,
