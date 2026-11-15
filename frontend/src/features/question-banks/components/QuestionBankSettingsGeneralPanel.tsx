@@ -183,10 +183,12 @@ export const QuestionBankSettingsGeneralPanel: React.FC<
         <FieldRow
           label={t("questionBank.bankName", "題庫名稱")}
           description={t("questionBank.bankNameDesc", "顯示在題庫列表和頁首的名稱")}
+          descriptionId="bank-name-setting-help"
         >
           <TextInput
             id="bank-name-setting"
-            labelText=""
+            aria-describedby="bank-name-setting-help"
+            labelText={t("questionBank.bankName", "題庫名稱")}
             hideLabel
             value={settingName}
             onChange={handleNameChange}
@@ -194,11 +196,11 @@ export const QuestionBankSettingsGeneralPanel: React.FC<
         </FieldRow>
         <FieldRow
           label={t("questionBank.description", "題庫描述")}
-          description={t("questionBank.descriptionDesc", "簡短描述，出現在題庫概覽頁面")}
         >
           <TextArea
             id="bank-description-setting"
-            labelText=""
+            helperText={t("questionBank.descriptionDesc", "簡短描述，出現在題庫概覽頁面")}
+            labelText={t("questionBank.description", "題庫描述")}
             hideLabel
             value={settingDescription}
             onChange={handleDescriptionChange}

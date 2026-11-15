@@ -44,7 +44,7 @@ export function ExamWorkspaceIcon({ name, size = 18 }: { name: ExamWorkspaceIcon
       aria-hidden="true"
       focusable="false"
     >
-      {PATHS[name]}
+      <g fill="none">{PATHS[name]}</g>
     </svg>
   );
 }

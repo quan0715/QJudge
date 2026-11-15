@@ -55,58 +55,8 @@
   }
 }
 
-/* ---------- icon buttons, rail and tooltip ---------- */
-.iconButton {
-  position: relative;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--ex-text-secondary);
-  cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
-
-  &:hover { background: var(--ex-surface-hover); color: var(--ex-text); }
-  &:focus-visible { outline: 2px solid var(--ex-focus); outline-offset: 1px; }
-}
-
-.railButton {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-
-  &[aria-pressed="true"] {
-    background: var(--ex-surface);
-    color: var(--ex-text);
-    box-shadow: 0 0 0 1px var(--ex-border), var(--ex-shadow);
-  }
-}
-
-.tooltip {
-  position: absolute;
-  z-index: 100;
-  padding: 5px 9px;
-  border-radius: 6px;
-  background: var(--ex-tooltip);
-  color: var(--ex-on-tooltip);
-  font-size: 12px;
-  line-height: 1.4;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 100ms ease;
-
-  &[data-placement="right"] { top: 50%; left: calc(100% + 8px); transform: translateY(-50%); }
-  &[data-placement="bottom"] { top: calc(100% + 6px); left: 0; }
-}
-
-.iconButton:hover .tooltip,
-.iconButton:focus-visible .tooltip { opacity: 1; transition-delay: 250ms; }
+/* Carbon IconButton owns its size, focus, hover and tooltip states. */
+.railButton { flex-shrink: 0; }
 
 /* ---------- surfaces ---------- */
 .answerSurface {

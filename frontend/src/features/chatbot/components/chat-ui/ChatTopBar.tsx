@@ -1,15 +1,16 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useId, useCallback } from "react";
 import {
+  Dropdown,
+  TextInput,
   IconButton,
   OverflowMenu,
   OverflowMenuItem,
   SkeletonText,
 } from "@carbon/react";
-import { Add, Close, ChevronDown, Chat as ChatIcon, RecentlyViewed } from "@carbon/icons-react";
+import { Add, Close, RecentlyViewed } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
 import type { CopilotSessionSummary } from "@copilot";
-import { formatRelativeTime } from "@/shared/utils/relativeTime";
 import styles from "./ChatTopBar.module.scss";
 
 interface ChatTopBarFullProps {
@@ -44,29 +45,15 @@ type ChatTopBarProps = ChatTopBarFullProps | ChatTopBarSidebarProps;
 
 export function ChatTopBar(props: ChatTopBarProps) {
   const { t } = useTranslation("chatbot");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const id = useId();
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const closeDropdown = useCallback(() => setDropdownOpen(false), []);
   const triggerNewChat = useCallback((onNewChat: () => void) => {
-    setDropdownOpen(false);
     setRenamingId(null);
     setRenameValue("");
     onNewChat();
   }, []);
-
-  useEffect(() => {
-    if (!dropdownOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (!dropdownRef.current?.contains(e.target as Node)) {
-        closeDropdown();
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [dropdownOpen, closeDropdown]);
 
   // ── Sidebar mode ──
   if (!props.mode || props.mode === "sidebar") {
@@ -129,7 +116,6 @@ export function ChatTopBar(props: ChatTopBarProps) {
   const startRename = (session: CopilotSessionSummary) => {
     setRenamingId(session.id);
     setRenameValue(session.title || "");
-    setDropdownOpen(false);
   };
 
   const commitRename = () => {
@@ -145,11 +131,13 @@ export function ChatTopBar(props: ChatTopBarProps) {
       <SkeletonText width="10rem" />
     </div>
   ) : (
-    <div className={styles.titleArea} ref={dropdownRef}>
+    <div className={styles.titleArea}>
         {renamingId !== null && renamingId === currentSessionId ? (
-          <input
-            className={styles.renameInput}
-            aria-label={t("ui.renameTask", "重新命名工作")}
+          <TextInput
+            id={`rename-session-${id}`}
+            size="sm"
+            labelText={t("ui.renameTask", "重新命名工作")}
+            hideLabel
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}
             onBlur={commitRename}
@@ -163,45 +151,18 @@ export function ChatTopBar(props: ChatTopBarProps) {
             autoFocus
           />
         ) : (
-          <button
-            type="button"
-            className={styles.titleBtn}
-            onClick={() => setDropdownOpen((v) => !v)}
-            aria-haspopup="listbox"
-            aria-expanded={dropdownOpen}
-          >
-            <span className={styles.titleText}>{displayTitle}</span>
-            <ChevronDown
-              size={16}
-              className={`${styles.titleChevron} ${dropdownOpen ? styles.open : ""}`}
-            />
-          </button>
-        )}
-
-        {dropdownOpen && (
-          <div className={styles.dropdown} role="listbox">
-            {sessions.slice(0, 15).map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                role="option"
-                aria-selected={s.id === currentSessionId}
-                className={`${styles.dropdownItem} ${s.id === currentSessionId ? styles.dropdownItemActive : ""}`}
-                onClick={() => {
-                  onSelectSession(s.id);
-                  setDropdownOpen(false);
-                }}
-              >
-                <ChatIcon size={14} className={styles.dropdownItemIcon} />
-                <span className={styles.dropdownItemTitle}>
-                  {s.title || t("ui.newTask")}
-                </span>
-                <span className={styles.dropdownItemTime}>
-                  {formatRelativeTime(s.updatedAt)}
-                </span>
-              </button>
-            ))}
-          </div>
+          <Dropdown
+            id={`chat-session-${id}`}
+            titleText={t("ui.history")}
+            hideLabel
+            label={displayTitle}
+            items={sessions.slice(0, 15)}
+            selectedItem={sessions.find((session) => session.id === currentSessionId) ?? null}
+            itemToString={(session) => session?.title || t("ui.newTask")}
+            onChange={({ selectedItem }) => { if (selectedItem) onSelectSession(selectedItem.id); }}
+            size="sm"
+            className={styles.sessionSelect}
+          />
         )}
     </div>
   );

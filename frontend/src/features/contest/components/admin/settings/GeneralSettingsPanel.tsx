@@ -73,10 +73,12 @@ export default function GeneralSettingsPanel({
       <FieldRow
         label={t("settings.contestName")}
         description="顯示在競賽列表和頁首的名稱"
+        descriptionId="settings-name-help"
       >
         <TextInput
           id="settings-name"
-          labelText=""
+          aria-describedby="settings-name-help"
+          labelText={t("settings.contestName")}
           hideLabel
           value={(form.name as string) || ""}
           onChange={(e) => onChange("name", e.target.value)}
@@ -86,10 +88,12 @@ export default function GeneralSettingsPanel({
       <FieldRow
         label={t("settings.contestDescription")}
         description="簡短描述，出現在競賽概覽頁面"
+        descriptionId="settings-description-help"
       >
         <TextInput
           id="settings-description"
-          labelText=""
+          aria-describedby="settings-description-help"
+          labelText={t("settings.contestDescription")}
           hideLabel
           value={(form.description as string) || ""}
           onChange={(e) => onChange("description", e.target.value)}
@@ -98,7 +102,6 @@ export default function GeneralSettingsPanel({
 
       <FieldRow
         label={tc("form.startDate")}
-        description="競賽開始時間，學生只能在此時間後進入作答"
       >
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <DatePicker
@@ -109,14 +112,16 @@ export default function GeneralSettingsPanel({
           >
             <DatePickerInput
               id="settings-start-date"
-              labelText=""
+              helperText={<span id="settings-start-help">競賽開始時間，學生只能在此時間後進入作答</span>}
+              labelText={tc("form.startDate")}
               hideLabel
               placeholder="mm/dd/yyyy"
             />
           </DatePicker>
           <TimePicker
             id="settings-start-time"
-            labelText=""
+            aria-describedby="settings-start-help"
+            labelText={tc("form.startTime")}
             hideLabel
             placeholder="hh:mm"
             value={startTimeInput}
@@ -124,6 +129,8 @@ export default function GeneralSettingsPanel({
           >
             <TimePickerSelect
               id="settings-start-ampm"
+              aria-describedby="settings-start-help"
+              aria-label={tc("form.startTime") + " AM/PM"}
               value={startMeridiem}
               onChange={(e) => onStartMeridiemChange(e.target.value)}
             >
@@ -136,7 +143,6 @@ export default function GeneralSettingsPanel({
 
       <FieldRow
         label={tc("form.endDate")}
-        description="競賽結束時間，超過後將自動停止收卷"
       >
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <DatePicker
@@ -147,14 +153,16 @@ export default function GeneralSettingsPanel({
           >
             <DatePickerInput
               id="settings-end-date"
-              labelText=""
+              helperText={<span id="settings-end-help">競賽結束時間，超過後將自動停止收卷</span>}
+              labelText={tc("form.endDate")}
               hideLabel
               placeholder="mm/dd/yyyy"
             />
           </DatePicker>
           <TimePicker
             id="settings-end-time"
-            labelText=""
+            aria-describedby="settings-end-help"
+            labelText={tc("form.endTime")}
             hideLabel
             placeholder="hh:mm"
             value={endTimeInput}
@@ -162,6 +170,8 @@ export default function GeneralSettingsPanel({
           >
             <TimePickerSelect
               id="settings-end-ampm"
+              aria-describedby="settings-end-help"
+              aria-label={tc("form.endTime") + " AM/PM"}
               value={endMeridiem}
               onChange={(e) => onEndMeridiemChange(e.target.value)}
             >
