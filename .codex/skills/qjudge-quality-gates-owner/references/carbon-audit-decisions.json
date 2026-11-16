@@ -150,8 +150,6 @@
         "features/contest/screens/settings/grading/components/RedistributeTargetModal.tsx",
         "features/problems/components/edit/problemForm/sections/BasicInfoSection.tsx",
         "features/problems/components/solve/editorview/ProblemFullPageSolve.tsx",
-        "shared/docs/components/DocFeedback.tsx",
-        "shared/docs/components/DocsErrorBoundary.tsx",
         "shared/ui/submission/TestResultDetail.tsx"
       ],
       "reason": "Each notification reports state tied to the surrounding task, form, modal, or data panel and therefore follows Carbon inline-notification lifecycle guidance.",
