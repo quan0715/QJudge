@@ -41,7 +41,6 @@ import {
 import ContestWorkspaceLayout from "@/features/contest/components/layout/ContestWorkspaceLayout";
 import { dashboardRoute } from "@/features/dashboard/routes";
 import { docsRoutes } from "@/features/docs/routes";
-import DocsLayout from "@/features/docs/components/DocsLayout";
 import { errorRoutes, fallbackRoute } from "@/features/app/routes";
 import { adminRoutes } from "@/features/admin/routes";
 import AppEntryScreen from "@/features/app/screens/AppEntryScreen";
@@ -119,9 +118,7 @@ function App() {
                         </Route>
 
                         {/* Public Documentation Routes - no login required, custom layout */}
-                        <Route element={<DocsLayout />}>
-                          {docsRoutes}
-                        </Route>
+                        {docsRoutes}
 
                         {/* Public Landing Page */}
                         <Route path="/" element={<AppEntryScreen />} />

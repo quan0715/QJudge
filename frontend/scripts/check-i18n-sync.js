@@ -25,7 +25,6 @@ const NAMESPACES = [
   "classroom",
   "common",
   "contest",
-  "docs",
   "problem",
 ];
 

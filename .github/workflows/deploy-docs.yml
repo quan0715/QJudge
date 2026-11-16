@@ -10,7 +10,6 @@ on:
       - "docs-site/**"
       - "frontend/public/docs/**"
       - "frontend/public/brand/**"
-      - "frontend/src/i18n/locales/*/docs.json"
       - "frontend/pages/docs-worker.js"
       - ".github/workflows/deploy-docs.yml"
   # Allow manual trigger
