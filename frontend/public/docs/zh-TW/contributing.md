@@ -40,7 +40,7 @@ QJudge 的依賴與測試以 Compose 管理。前端與不需要資料庫的測�
 
 使用者可閱讀的內容以 `frontend/public/docs` 為正式來源；`docs` 只保存維護與營運所需的內部技術文件。若畫面、操作流程、部署需求或限制改變，請在同一個 PR 更新相對應的公開文件。
 
-新增登入來源前先看[身分登入擴充](#/docs/identity-auth-extension)；調整 Contest 頁面的 tab、panel、module 或 route 時，先看[Contest 頁面擴充架構指南](#/docs/contest-extension-architecture)。
+新增登入來源前先閱讀 repository 內的 `docs/identity-auth-extension.md`；調整 Contest 頁面的 tab、panel、module 或 route 時，先看[Contest 頁面擴充架構指南](#/docs/contest-extension-architecture)。
 
 ## 提交 Pull Request
 
