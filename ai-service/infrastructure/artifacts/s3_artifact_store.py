@@ -230,6 +230,10 @@ class S3ArtifactStore:
                 Bucket=self._bucket, Key=key, Body=content, ContentType=content_type
             )
         except Exception as exc:
+            if _provider_error_code(exc) == "XMinioStorageFull":
+                raise ArtifactStorageError(
+                    "Artifact storage is full. Ask an administrator to free storage space before retrying."
+                ) from exc
             raise ArtifactStorageError("Failed to upload artifact") from exc
 
     async def get(self, key: str) -> bytes:

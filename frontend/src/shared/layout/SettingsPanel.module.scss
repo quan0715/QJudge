@@ -74,3 +74,7 @@
   align-items: center;
   gap: $spacing-03;
 }
+
+.rowTitle { @include type-style("body-compact-01"); color: $text-primary; }
+.rowDescription, .fieldDescription { @include type-style("helper-text-01"); color: $text-helper; margin-top: $spacing-02; }
+.fieldDescription, .fieldRowHeaderOnly { margin-bottom: $spacing-03; }

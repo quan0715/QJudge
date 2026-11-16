@@ -28,8 +28,6 @@
         "features/contest/screens/settings/grading/GradingMobileNav.tsx",
         "features/contest/screens/settings/grading/GradingSplitPanelScreen.tsx",
         "features/contest/screens/settings/grading/QuestionSidebarScreen.tsx",
-        "features/docs/components/DocSidebar.tsx",
-        "features/docs/components/DocsSearchDropdown.tsx",
         "shared/ai/ModelSelect.tsx",
         "shared/ui/list/ListPanel.tsx",
         "shared/ui/navigation/TextModeSwitcher.tsx",
@@ -150,7 +148,6 @@
         "features/contest/screens/paperExam/PaperExamAnsweringScreen.tsx",
         "features/contest/screens/precheck/ExamPrecheckScreen.tsx",
         "features/contest/screens/settings/grading/components/RedistributeTargetModal.tsx",
-        "features/docs/components/DocFeedback.tsx",
         "features/problems/components/edit/problemForm/sections/BasicInfoSection.tsx",
         "features/problems/components/solve/editorview/ProblemFullPageSolve.tsx",
         "shared/ui/submission/TestResultDetail.tsx"

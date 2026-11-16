@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect, useLayoutEffect } from "react";
+import { useRef, useId, useCallback, useEffect, useLayoutEffect } from "react";
 import {
   Add,
   ArrowUp,
@@ -10,7 +10,7 @@ import {
   Warning,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { Callout, DismissibleTag } from "@carbon/react";
+import { Button, TextArea, Callout, DismissibleTag } from "@carbon/react";
 import type {
   CopilotMessage,
   CopilotModel,
@@ -75,20 +75,8 @@ export function ComposerBar({
   const { t } = useTranslation("chatbot");
   const displayPlaceholder = placeholder || t("ui.inputPlaceholder");
 
-  // Expanded layout: active when textarea wraps >= 2 visual lines OR the
-  // session has badges to show. New chats with a single-line draft and no
-  // badges stay in the compact pill layout.
-  const [isWrapped, setIsWrapped] = useState(false);
-  // Reconcile a cleared controlled value before commit so a following prop
-  // update cannot cancel the reset between renders.
-  if (value.length === 0 && isWrapped) {
-    setIsWrapped(false);
-  }
+  const inputId = useId();
   const badgeSummary = useSessionBadgeSummary(messages ?? []);
-  const isExpanded =
-    (value.length > 0 && isWrapped) ||
-    badgeSummary.hasAny ||
-    attachments.length > 0;
   const composingRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -99,12 +87,13 @@ export function ComposerBar({
   const handleSubmit = useCallback(async () => {
     if (
       (!value.trim() && attachments.length === 0) ||
+      !canSend ||
       disabled ||
       isStreaming ||
       hasUploadingAttachment
     ) return;
     await onSend();
-  }, [attachments.length, disabled, hasUploadingAttachment, isStreaming, onSend, value]);
+  }, [attachments.length, canSend, disabled, hasUploadingAttachment, isStreaming, onSend, value]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -123,9 +112,7 @@ export function ComposerBar({
     onValueChange(e.target.value);
   }, [onValueChange]);
 
-  // Adjusts textarea height only — never touches isExpanded.
-  // Used by both initial render and ResizeObserver so layout shifts
-  // (e.g. window/sidebar resize) won't toggle mode and cause flicker.
+  // Recalculate height when the draft or available width changes.
   const adjustTextareaHeight = useCallback(() => {
     const ta = textareaRef.current;
     if (!ta) return;
@@ -133,29 +120,9 @@ export function ComposerBar({
     ta.style.height = `${Math.min(ta.scrollHeight, TEXTAREA_MAX_HEIGHT)}px`;
   }, []);
 
-  // Auto-grow the textarea + detect wrap-to-multiline.
-  // One-way: enter wrapped state once content spans > 1.5 lines; exit only
-  // when value is fully cleared. Prevents width-change flicker when switching
-  // between compact and expanded layouts.
   useLayoutEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    ta.style.height = "auto";
-    const next = Math.min(ta.scrollHeight, TEXTAREA_MAX_HEIGHT);
-    ta.style.height = `${next}px`;
-
-    if (value.length === 0) return;
-    if (isWrapped) return;
-
-    const cs = window.getComputedStyle(ta);
-    const lineHeight = parseFloat(cs.lineHeight) || 22;
-    const paddingY =
-      (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
-    if (next - paddingY > lineHeight * 1.5) {
-      const frame = window.requestAnimationFrame(() => setIsWrapped(true));
-      return () => window.cancelAnimationFrame(frame);
-    }
-  }, [value, isWrapped]);
+    adjustTextareaHeight();
+  }, [value, adjustTextareaHeight]);
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -232,11 +199,7 @@ export function ComposerBar({
         </div>
       )}
 
-      <div
-        className={`${styles.inputWrapper} ${
-          isExpanded ? styles.inputWrapperExpanded : styles.inputWrapperCompact
-        }`}
-      >
+      <div className={styles.inputWrapper}>
         <input
           ref={uploadInputRef}
           type="file"
@@ -246,17 +209,6 @@ export function ComposerBar({
           tabIndex={-1}
           aria-hidden
         />
-        {!isExpanded && (
-          <button
-            type="button"
-            className={styles.attachmentButton}
-            onClick={handlePickFile}
-            disabled={!canUpload}
-            aria-label={t("ui.addAttachment")}
-          >
-            <Add size={16} />
-          </button>
-        )}
         {attachments.length > 0 && (
           <div className={styles.pendingFileList} aria-label={t("ui.pendingFiles", "待上傳檔案")}>
             {attachments.map((attachment) => (
@@ -292,87 +244,46 @@ export function ComposerBar({
             ))}
           </div>
         )}
-        <textarea
+        {badgeSummary.hasAny && messages && <SessionBadges messages={messages} inline />}
+        <TextArea
           ref={textareaRef}
-          className={styles.input}
           value={value}
-          onChange={handleChange}
           onKeyDown={handleKeyDown}
           onCompositionStart={() => { composingRef.current = true; }}
           onCompositionEnd={() => { composingRef.current = false; }}
+          hideLabel
+          style={{ resize: "none" }}
+          id={`chat-message-${inputId}`}
+          className={styles.input}
+          labelText={t("ui.inputAriaLabel", "輸入訊息")}
+          onChange={handleChange}
           placeholder={displayPlaceholder}
-          rows={1}
+          rows={2}
           disabled={disabled}
-          aria-label={t("ui.inputAriaLabel", "輸入訊息")}
         />
 
-        <div className={styles.toolbar}>
-          {isExpanded && badgeSummary.hasAny && messages && (
-            <div className={styles.leftTools}>
-              <button
-                type="button"
-                className={styles.attachmentButton}
-                onClick={handlePickFile}
-                disabled={!canUpload}
-                aria-label={t("ui.addAttachment")}
-              >
-                <Add size={16} />
-              </button>
-              <SessionBadges messages={messages} inline />
-            </div>
+        <div className={styles.toolbar} role="group" aria-label={t("ui.composerActions", "訊息操作")}>
+          <Button kind="ghost" size="lg" hasIconOnly renderIcon={Add}
+            iconDescription={t("ui.addAttachment")} tooltipAlignment="start"
+            onClick={handlePickFile} disabled={!canUpload} />
+          <ModelSelect
+            models={modelOptions}
+            selectedModelId={selectedModelId}
+            onChange={onModelChange}
+            disabled={disabled || isStreaming}
+            menuPlacement="top"
+            size="lg"
+            className={styles.modelControl}
+          />
+          <span aria-hidden />
+          {isStreaming ? (
+            <Button kind="primary" size="lg" hasIconOnly renderIcon={StopFilled}
+              iconDescription={t("ui.stopGenerating")} tooltipAlignment="end" onClick={onStop} />
+          ) : (
+            <Button kind="primary" size="lg" hasIconOnly renderIcon={ArrowUp}
+              iconDescription={t("ui.send", "送出")} tooltipAlignment="end"
+              onClick={handleSubmit} disabled={!canSubmit} />
           )}
-          {isExpanded && (!badgeSummary.hasAny || !messages) && (
-            <div className={styles.leftTools}>
-              <button
-                type="button"
-                className={styles.attachmentButton}
-                onClick={handlePickFile}
-                disabled={!canUpload}
-                aria-label={t("ui.addAttachment")}
-              >
-                <Add size={16} />
-              </button>
-            </div>
-          )}
-          <div className={styles.rightTools}>
-            <ModelSelect
-              models={modelOptions}
-              selectedModelId={selectedModelId}
-              onChange={onModelChange}
-              disabled={disabled || isStreaming}
-              showStreamDot={isStreaming}
-              menuPlacement="top"
-              classes={{
-                wrap: styles.modelSelectWrap,
-                button: styles.modelSelectButton,
-                menu: styles.modelMenu,
-                text: styles.modelText,
-                icon: styles.modelIcon,
-                chevron: styles.modelChevron,
-                streamDot: styles.streamDot,
-              }}
-            />
-            {isStreaming ? (
-              <button
-                type="button"
-                className={`${styles.sendButton} ${styles.runningButton}`}
-                onClick={onStop}
-                aria-label={t("ui.stopGenerating")}
-              >
-                <StopFilled size={16} aria-hidden />
-              </button>
-            ) : (
-              <button
-                type="button"
-                className={styles.sendButton}
-                onClick={handleSubmit}
-                disabled={!canSubmit}
-                aria-label={t("ui.send", "送出")}
-              >
-                <ArrowUp size={18} />
-              </button>
-            )}
-          </div>
         </div>
       </div>
     </div>

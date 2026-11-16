@@ -1,15 +1,19 @@
 import { Dropdown } from "@carbon/react";
 import { Language } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { SUPPORTED_LANGUAGES } from "@/i18n";
-
-type SupportedLanguageItem = (typeof SUPPORTED_LANGUAGES)[number];
+import {
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguageOption,
+} from "@/i18n/languages";
+import styles from "./SwitchDropdown.module.scss";
 
 export interface LanguageSwitchProps {
   /** 當前選中的語言 */
   value: string;
   /** 語言變更時的回調 */
   onChange: (value: string) => void;
+  /** 可用語言列表（預設為平台支援語言） */
+  languages?: ReadonlyArray<SupportedLanguageOption>;
   /** 顯示標籤 */
   showLabel?: boolean;
   /** 自訂標籤文字 */
@@ -23,6 +27,7 @@ export interface LanguageSwitchProps {
 export const LanguageSwitch: React.FC<LanguageSwitchProps> = ({
   value,
   onChange,
+  languages = SUPPORTED_LANGUAGES,
   showLabel = true,
   label,
   size = "sm",
@@ -30,9 +35,12 @@ export const LanguageSwitch: React.FC<LanguageSwitchProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const selectedItem = SUPPORTED_LANGUAGES.find((lang) => lang.id === value) || SUPPORTED_LANGUAGES[0];
+  const selectedItem =
+    languages.find((lang) => lang.id === value) || languages[0];
 
-  const handleChange = (data: { selectedItem: SupportedLanguageItem | null }) => {
+  const handleChange = (data: {
+    selectedItem: SupportedLanguageOption | null;
+  }) => {
     if (data.selectedItem) {
       onChange(data.selectedItem.id);
     }
@@ -45,12 +53,18 @@ export const LanguageSwitch: React.FC<LanguageSwitchProps> = ({
       titleText={showLabel ? (label || t("language.title")) : ""}
       label={t("language.select")}
       size={size}
-      items={[...SUPPORTED_LANGUAGES]}
+      items={[...languages]}
       selectedItem={selectedItem}
       onChange={handleChange}
-      itemToString={(item: SupportedLanguageItem | null) => item?.label || ""}
-      itemToElement={(item: SupportedLanguageItem) => (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+      itemToString={(item: SupportedLanguageOption | null) => item?.label || ""}
+      renderSelectedItem={(item: SupportedLanguageOption) => (
+        <span className={styles.dropdownItem}>
+          <Language size={16} />
+          <span>{item.label}</span>
+        </span>
+      )}
+      itemToElement={(item: SupportedLanguageOption) => (
+        <span className={styles.dropdownItem}>
           <Language size={16} />
           <span>{item.label}</span>
         </span>

@@ -188,13 +188,15 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ directEdit = false,
 
   return (
     <Section title="基本資訊">
-      <ActionRow label="題目標題" description="顯示於題目列表與題目頁面的標題">
+      <ActionRow label="題目標題" description="顯示於題目列表與題目頁面的標題" descriptionId="problem-title-help">
         <div style={{ width: "18rem" }}>
           <AutoSaveField name="title">
             {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
               <TextInput
                 id="problem-title"
-                labelText=""
+                aria-describedby="problem-title-help"
+                labelText="題目標題"
+                hideLabel
                 placeholder="例如: Two Sum"
                 invalid={invalid}
                 invalidText={error}
@@ -215,13 +217,15 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ directEdit = false,
 
       <HintField directEdit={directEdit} />
 
-      <ActionRow label="難度" description="顯示於題庫與競賽列表中">
+      <ActionRow label="難度">
         <div style={{ width: "10rem" }}>
           <AutoSaveField name="difficulty">
             {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
               <Select
                 id="difficulty-select"
-                labelText=""
+                helperText="顯示於題庫與競賽列表中"
+                labelText="難度"
+                hideLabel
                 invalid={invalid}
                 invalidText={error}
                 {...field}

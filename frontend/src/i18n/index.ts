@@ -1,12 +1,16 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+export {
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguageOption,
+  type SupportedLanguage,
+} from "./languages";
 
 // Chinese Traditional
 import zhTWCommon from "./locales/zh-TW/common.json";
 import zhTWProblem from "./locales/zh-TW/problem.json";
 import zhTWContest from "./locales/zh-TW/contest.json";
 import zhTWAdmin from "./locales/zh-TW/admin.json";
-import zhTWDocs from "./locales/zh-TW/docs.json";
 import zhTWClassroom from "./locales/zh-TW/classroom.json";
 import zhTWChatbot from "./locales/zh-TW/chatbot.json";
 
@@ -15,7 +19,6 @@ import enCommon from "./locales/en/common.json";
 import enProblem from "./locales/en/problem.json";
 import enContest from "./locales/en/contest.json";
 import enAdmin from "./locales/en/admin.json";
-import enDocs from "./locales/en/docs.json";
 import enClassroom from "./locales/en/classroom.json";
 import enChatbot from "./locales/en/chatbot.json";
 
@@ -24,7 +27,6 @@ import jaCommon from "./locales/ja/common.json";
 import jaProblem from "./locales/ja/problem.json";
 import jaContest from "./locales/ja/contest.json";
 import jaAdmin from "./locales/ja/admin.json";
-import jaDocs from "./locales/ja/docs.json";
 import jaClassroom from "./locales/ja/classroom.json";
 import jaChatbot from "./locales/ja/chatbot.json";
 
@@ -33,7 +35,6 @@ import koCommon from "./locales/ko/common.json";
 import koProblem from "./locales/ko/problem.json";
 import koContest from "./locales/ko/contest.json";
 import koAdmin from "./locales/ko/admin.json";
-import koDocs from "./locales/ko/docs.json";
 import koClassroom from "./locales/ko/classroom.json";
 import koChatbot from "./locales/ko/chatbot.json";
 
@@ -43,7 +44,6 @@ const resources = {
     problem: zhTWProblem,
     contest: zhTWContest,
     admin: zhTWAdmin,
-    docs: zhTWDocs,
     classroom: zhTWClassroom,
     chatbot: zhTWChatbot,
   },
@@ -52,7 +52,6 @@ const resources = {
     problem: enProblem,
     contest: enContest,
     admin: enAdmin,
-    docs: enDocs,
     classroom: enClassroom,
     chatbot: enChatbot,
   },
@@ -61,7 +60,6 @@ const resources = {
     problem: jaProblem,
     contest: jaContest,
     admin: jaAdmin,
-    docs: jaDocs,
     classroom: jaClassroom,
     chatbot: jaChatbot,
   },
@@ -70,27 +68,16 @@ const resources = {
     problem: koProblem,
     contest: koContest,
     admin: koAdmin,
-    docs: koDocs,
     classroom: koClassroom,
     chatbot: koChatbot,
   },
 };
 
-// Supported languages list for UI
-export const SUPPORTED_LANGUAGES = [
-  { id: "zh-TW", label: "繁體中文", shortLabel: "中" },
-  { id: "en", label: "English", shortLabel: "EN" },
-  { id: "ja", label: "日本語", shortLabel: "日" },
-  { id: "ko", label: "한국어", shortLabel: "한" },
-] as const;
-
-export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]["id"];
-
 i18n.use(initReactI18next).init({
   resources,
   lng: "zh-TW",
   fallbackLng: "zh-TW",
-  ns: ["common", "problem", "contest", "admin", "docs", "classroom", "chatbot"],
+  ns: ["common", "problem", "contest", "admin", "classroom", "chatbot"],
   defaultNS: "common",
   interpolation: {
     escapeValue: false,

@@ -1,158 +1,63 @@
 @use "@carbon/layout";
-@use "./variables" as *;
+@use "@carbon/type";
 
 .wrapper {
-  pointer-events: auto;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-03;
-  padding: 0 layout.$spacing-04 layout.$spacing-03;
-  max-width: 56rem;
-  margin: 0 auto;
+  border-bottom: 1px solid var(--cds-border-strong);
   width: 100%;
-}
-
-// Inline variant: used inside the composer toolbar. No outer padding/centering.
-.wrapperInline {
-  padding: 0;
-  max-width: none;
-  margin: 0;
-  width: auto;
-  flex-direction: row;
-  align-items: center;
   min-width: 0;
 }
-
-.badgeRow {
-  display: flex;
-  gap: 0.375rem;
-  flex-wrap: nowrap;
-  align-items: center;
-  min-width: 0;
-}
-
-// Shared pill style — mirrors the composer's model selector so
-// todo / artifact / model form a unified control family.
+.wrapperInline { width: 100%; }
+.badgeRow { display: flex; flex-wrap: wrap; min-width: 0; }
 .badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: layout.$spacing-02 0.625rem;
-  font-size: 0.8125rem;
-  line-height: 1.25;
-  color: var(--cds-text-primary);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background-color 120ms ease, border-color 120ms ease;
-
-  &:hover {
-    background-color: var(--cds-layer-hover);
-    border-color: var(--cds-border-subtle-00);
-  }
-
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  justify-content: flex-start;
+  gap: layout.$spacing-02;
 }
-
-.badgeActive {
-  background-color: var(--cds-layer-03);
-  border-color: var(--cds-border-subtle-00);
-}
-
-.badgeLabel {
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-// Popover floats up from the badge row so it never pushes the composer.
+.badge + .badge { border-inline-start: 1px solid var(--cds-border-strong); }
+.badgeActive { background: var(--cds-layer-selected); }
+.badgeLabel { white-space: nowrap; }
 .popover {
   position: absolute;
-  bottom: calc(100% + 0.5rem);
-  left: 0;
-  right: auto;
-  min-width: 18rem;
-  max-width: min(32rem, calc(100vw - 2rem));
-  background-color: var(--cds-layer);
-  border: 1px solid var(--cds-border-subtle);
-  border-radius: 12px;
-  max-height: 50vh;
+  bottom: 100%;
+  inset-inline-start: 0;
+  width: min(100%, 24rem);
+  min-width: 0;
+  max-height: min(50dvh, 20rem);
   overflow: auto;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  background: var(--cds-layer);
+  border: 1px solid var(--cds-border-strong);
   z-index: 20;
-  animation: slideIn 0.15s ease-out;
 }
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .popoverHeader {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 0.625rem 0.875rem;
-  border-bottom: 1px solid var(--cds-border-subtle);
+  padding: layout.$spacing-04;
+  border-bottom: 1px solid var(--cds-border-strong);
 }
-
-.popoverTitle {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--cds-text-primary);
+.popoverTitle { @include type.type-style("heading-compact-01"); }
+.popoverMeta { @include type.type-style("label-01"); color: var(--cds-text-secondary); }
+.list {
+  --cds-border-subtle: var(--cds-border-strong);
+  margin: 0;
+  width: 100%;
 }
-
-.popoverMeta {
-  font-size: 0.75rem;
-  color: var(--cds-text-secondary);
-}
-
-.artifactList {
-  display: flex;
-  flex-direction: column;
+.statusCell { width: 2rem; }
+.labelCell { overflow-wrap: anywhere; }
+.fileCell { padding: 0; }
+.fileButton {
+  width: 100%;
+  max-width: none;
+  min-height: 3rem;
+  justify-content: flex-start;
   gap: layout.$spacing-03;
-  padding: 0.625rem;
+  text-align: start;
 }
-
-.iconSuccess {
-  color: var(--cds-support-success);
-  flex-shrink: 0;
-  margin-top: layout.$spacing-01;
-}
-.iconFail {
-  color: var(--cds-support-error);
-  flex-shrink: 0;
-  margin-top: layout.$spacing-01;
-}
-.iconProgress {
-  color: var(--cds-support-info);
-  flex-shrink: 0;
-  margin-top: layout.$spacing-01;
-}
-
-// Narrow composer container (mobile viewport OR narrow desktop split panel):
-// hide the badge label, leaving icon + count chip so todo/artifact/model
-// all fit on a single toolbar row.
-@mixin narrow-badge {
-  .wrapperInline .badgeLabel {
-    display: none;
-  }
-  .wrapperInline .badge {
-    padding: 0.2rem 0.4rem;
-    gap: layout.$spacing-02;
-  }
-}
-
-@container composer (max-width: 520px) {
-  @include narrow-badge;
-}
-
-@media (max-width: $chat-mobile-breakpoint) {
-  @include narrow-badge;
-}
+.fileDetails { display: flex; flex-direction: column; min-width: 0; gap: layout.$spacing-02; }
+.filename { overflow-wrap: anywhere; @include type.type-style("body-compact-01"); }
+.iconSuccess { color: var(--cds-support-success); flex-shrink: 0; }
+.iconFail { color: var(--cds-support-error); flex-shrink: 0; }
+.iconProgress { color: var(--cds-support-info); flex-shrink: 0; }

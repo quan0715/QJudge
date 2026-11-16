@@ -1,3 +1,4 @@
+import { mimiDocs } from "@popcornt/mimi/vite";
 import { defineConfig, loadEnv, type ProxyOptions } from 'vite'
 import react from '@vitejs/plugin-react'
 import http from 'http'
@@ -40,6 +41,7 @@ export default defineConfig(({ mode }) => {
   } : {}
   return {
     plugins: [
+      mimiDocs({ contentDir: path.resolve(__dirname, "public/docs") }),
       react(),
       {
         name: 'storybook-trailing-slash-redirect',

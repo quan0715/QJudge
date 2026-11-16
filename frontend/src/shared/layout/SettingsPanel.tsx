@@ -1,20 +1,5 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import s from "./SettingsPanel.module.scss";
-
-export const TITLE_STYLE: CSSProperties = {
-  fontSize: "0.875rem",
-  fontWeight: 400,
-  lineHeight: "1.125rem",
-  color: "var(--cds-text-primary)",
-};
-
-export const DESC_STYLE: CSSProperties = {
-  fontSize: "0.75rem",
-  fontWeight: 400,
-  lineHeight: "1rem",
-  color: "var(--cds-text-helper)",
-  marginTop: "0.25rem",
-};
 
 export { s as settingsPanelStyles };
 
@@ -48,17 +33,19 @@ export const Section = ({
 export const FieldRow = ({
   label,
   description,
+  descriptionId,
   children,
 }: {
   label: string;
   description?: string;
+  descriptionId?: string;
   children: ReactNode;
 }) => (
   <div className={s.fieldRow}>
-    <div className={s.fieldRowHeader} style={{ marginBottom: description ? 0 : "0.5rem" }}>
-      <div style={TITLE_STYLE}>{label}</div>
+    <div className={[s.fieldRowHeader, !description && s.fieldRowHeaderOnly].filter(Boolean).join(" ")}>
+      <div className={s.rowTitle}>{label}</div>
     </div>
-    {description && <div style={{ ...DESC_STYLE, marginBottom: "0.5rem" }}>{description}</div>}
+    {description && <div id={descriptionId} className={s.fieldDescription}>{description}</div>}
     <div>{children}</div>
   </div>
 );
@@ -69,18 +56,20 @@ export const ActionRow = ({
   label,
   labelId,
   description,
+  descriptionId,
   children,
 }: {
   label: string;
   /** Lets the inline control name itself with `aria-labelledby` instead of repeating the label. */
   labelId?: string;
   description?: string;
+  descriptionId?: string;
   children: ReactNode;
 }) => (
   <div className={s.actionRow}>
     <div className={s.actionRowContent}>
-      <div id={labelId} style={TITLE_STYLE}>{label}</div>
-      {description && <div style={DESC_STYLE}>{description}</div>}
+      <div id={labelId} className={s.rowTitle}>{label}</div>
+      {description && <div id={descriptionId} className={s.rowDescription}>{description}</div>}
     </div>
     <div className={s.actionRowControl}>{children}</div>
   </div>

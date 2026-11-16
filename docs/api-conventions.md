@@ -1,301 +1,190 @@
-# QJudge API Conventions
+# QJudge API conventions
 
-**Status:** active. The first implementation is
-`contests/exam-answers/all-answers?projection=grading`. The migration table
-below records the current code state; it is not a roadmap.
+This document describes the current implementation. JSON response migration is
+incomplete: callers must use the contract of the specific endpoint, not infer it
+from the `/api/v1` prefix. See [Users API contract](api/users-contract.md) for the
+migrated users/auth/action-links domain.
 
-Jump to:
+## Current response shapes
 
-- [1. Response shapes](#1-response-shapes)
-- [2. When to use the envelope](#2-when-to-use-the-envelope)
-- [3. Backend contract](#3-backend-contract)
-- [4. Frontend contract](#4-frontend-contract)
-- [5. Query param conventions](#5-query-param-conventions)
-- [6. Migration status](#6-migration-status)
-- [7. Quick reference](#7-quick-reference)
-
----
-
-## 1. Response shapes
-
-### Success
+An envelope success contains exactly `data` and `meta`:
 
 ```json
-{ "data": <payload>, "meta": { ... } }
+{"data": {"id": 7}, "meta": {}}
 ```
 
-- `data`: main payload. Array, object, or `null`.
-- `meta`: optional hints. Always present as at least `{}`; do not omit.
-  Common keys: `count`, `projection`, filter echo (`question_id`),
-  `request_id`, `timestamp`. Extensions are opt-in per endpoint.
+`data` may be an object, array, or null. `meta` is required and must be an object;
+its contents depend on the endpoint. Success responses do not automatically
+include request IDs or timestamps.
 
-### Error
+An envelope error contains exactly `errors` and `meta`:
 
 ```json
 {
-  "errors": [
-    {
-      "code": "permission_denied",
-      "message": "Only contest staff can view all answers.",
-      "field": null,
-      "details": {}
-    }
-  ],
-  "meta": {
-    "request_id": "...",
-    "timestamp": "2026-04-22T..."
-  }
+  "errors": [{
+    "code": "permission_denied",
+    "message": "Permission denied.",
+    "field": null,
+    "details": {}
+  }],
+  "meta": {"request_id": "request-1", "timestamp": "2026-11-13T00:00:00Z"}
 }
 ```
 
-- `errors`: non-empty array. Validation errors may be multiple entries
-  with distinct `field` values.
-- Each entry:
-  - `code`: snake-case string (mirrors DRF `default_code`).
-  - `message`: human-readable.
-  - `field`: field name on validation errors, `null` otherwise.
-  - `details`: object for per-error extensions (retry-after, validator
-    data). Default `{}`.
-- `meta.request_id` + `meta.timestamp`: always emitted on error envelopes.
+`errors` is nonempty. The frontend requires each item to have string `code` and
+`message`, a null/string `field`, and object `details`. The users contract uses
+lower-case codes. The generic `envelope_error()` helper preserves the supplied
+code, so code casing is not yet globally normalized.
 
-### Paginated (unchanged)
+The exception handler adds `meta.request_id` and `meta.timestamp` for opted-in
+errors; `request_id` may be null. The manual `contract_error_response()` and
+`contract_validation_error_response()` helpers also add these fields. In
+contrast, `envelope_error()` / `envelope_errors()` default to `meta: {}` unless
+metadata is supplied. Do not assume every current manual error has correlation
+metadata merely because its envelope is structurally valid.
 
-DRF's native paginated list endpoints keep the legacy
-`{count, next, previous, results}` shape. **Do not** wrap them in the
-envelope — the pagination metadata already serves the same role as
-`meta`, and double-wrapping hurts both clients and schema generation.
+Unmigrated endpoints still return bare objects/arrays or DRF pagination. Their
+default DRF exception format is:
 
----
-
-## 2. When to use the envelope
-
-| Scenario | Shape |
-|---|---|
-| Non-paginated collection (custom action, filtered query) | ✅ Envelope |
-| Non-paginated single resource (retrieve) | ✅ Envelope |
-| Paginated DRF list | ❌ DRF native `{count, next, previous, results}` |
-| Boolean / command action (e.g. `POST /x/submit/`) | ✅ Envelope (`data: null` allowed) |
-| Streaming / binary / SSE / file download | ❌ unchanged |
-
----
-
-## 3. Backend contract
-
-### Success
-
-```python
-from apps.core.api.envelope import envelope
-
-return envelope(data, meta={"count": N, "projection": "grading"})
+```json
+{"success": false, "error": {"code": "PERMISSION_DENIED", "message": "..."}}
 ```
 
-Do **not** hand-assemble `Response({"data": ..., "meta": ...})`; always go
-through the helper to prevent shape drift.
+The handler also supplies request metadata and may include validation details
+inside `error`. Manually returned errors and upstream proxies have additional
+endpoint-specific shapes; the global exception handler does not rewrite an
+ordinary `Response(...)` returned by a view.
 
-### Errors (opt-in per action)
+## Pagination and empty responses
 
-Declare `envelope_error_actions` on the viewset:
+There are currently two pagination contracts:
 
-```python
-class MyViewSet(viewsets.GenericViewSet):
-    envelope_error_actions = {"my_action", "another_action"}
-```
+| Boundary | JSON shape |
+| --- | --- |
+| `ContractJSONRenderer` (currently users/auth/action-links) | `{data: [...], meta: {pagination: {count, next, previous}}}` |
+| Unmigrated DRF pagination | `{count, next, previous, results: [...]}` |
 
-For listed actions, the global handler in
-`apps/core/exceptions.custom_exception_handler` reshapes every
-`PermissionDenied` / `ValidationError` / `NotFound` / etc. into the
-envelope error format. All other actions keep the legacy
-`{success, error}` shape until migrated.
+`ContractJSONRenderer` converts successful HTTP 204 responses to HTTP 200 with
+`data: null`. This is not a global conversion: other endpoints can still return
+204, and `fetchEnvelope` rejects an empty body. Use `ensureOk` where the existing
+endpoint contract intentionally has no response body.
 
-Manual error paths:
+OAuth/OIDC protocol responses, health probes, signed internal integrity
+protocols, SSE, binary downloads and streaming responses are not application
+JSON envelope migration targets by default. Do not wrap them simply because
+some URLs contain `/api/`.
 
-```python
-from apps.core.api.envelope import envelope_error, envelope_errors
+## Backend implementation boundaries
 
-return envelope_error("resource_locked", "This resource is locked", status=423)
-return envelope_errors([
-    {"code": "field_required", "message": "...", "field": "name"},
-    {"code": "field_required", "message": "...", "field": "email"},
-], status=400)
-```
+Two mechanisms are in use:
 
-### Implementation locations
+1. Users views inherit `SchemaAPIView` in `backend/apps/users/views/common.py`.
+   It sets `api_contract_enabled = True` and uses `ContractJSONRenderer`.
+   Views return raw success data; the renderer wraps it. **Do not call
+   `envelope()` for a success already passing through this renderer:** the
+   current renderer would wrap it twice.
+2. Selected contest actions call `envelope()` explicitly and opt into exception
+   conversion with `envelope_error_actions`. That attribute controls exceptions,
+   not success rendering or manually constructed errors.
 
-- `backend/apps/core/api/envelope.py` — `envelope()`, `envelope_error()`,
-  `envelope_errors()` helpers.
-- `backend/apps/core/exceptions.py::custom_exception_handler` — exception
-  reshaping, opt-in via `envelope_error_actions`.
+For explicit envelope actions, use the helpers in
+`backend/apps/core/api/envelope.py`, rather than constructing envelope JSON by
+hand. For request-aware manual errors, prefer `contract_error_response()` or
+`contract_validation_error_response()`; preserve the endpoint's existing error
+codes and semantics until its contract migration is coordinated with callers.
 
----
+`backend/apps/core/exceptions.py` selects envelope errors when either the view
+has `api_contract_enabled` or its action is in `envelope_error_actions`.
+Unmarked views retain the legacy exception format. The production framework
+500 handler in `backend/apps/core/views/errors.py` currently covers only
+`/api/v1/users`, `/api/v1/auth`, and `/api/v1/action-links`; it is not a global
+JSON error boundary.
 
-## 4. Frontend contract
+## Frontend and other callers
 
-### Types
-
-See `frontend/src/infrastructure/api/envelope.ts`:
+`frontend/src/infrastructure/api/envelope.ts` provides:
 
 ```ts
 interface ApiEnvelope<TData, TMeta extends BaseMeta = BaseMeta> {
   data: TData;
-  meta?: TMeta;
-}
-
-interface ApiErrorItem { code, message, field?, details? }
-interface ApiErrorEnvelope { errors: ApiErrorItem[]; meta?: BaseMeta; }
-
-class EnvelopeError extends Error { status; errors; meta; code; }
-```
-
-### Repository functions
-
-Go through `fetchEnvelope` for every envelope-aware endpoint:
-
-```ts
-import { fetchEnvelope } from "@/infrastructure/api/envelope";
-
-export const getFoo = async (
-  id: string,
-  opts: { kind?: string } = {},
-): Promise<{ data: FooDto[]; meta: FooMeta }> => {
-  const search = new URLSearchParams();
-  if (opts.kind) search.set("kind", opts.kind);
-  const query = search.toString();
-  return fetchEnvelope<FooDto[], FooMeta>(
-    httpClient.get(`/api/v1/foo/${id}/${query ? `?${query}` : ""}`),
-    "Failed to fetch foo",
-  );
-};
-```
-
-- Success: returns `{ data, meta }` with the envelope unwrapped.
-- Failure: throws `EnvelopeError`. Legacy `{success, error}` payloads are
-  coerced into the same error class so UI error handling does not need
-  to fork during the migration window.
-
-### UI error handling
-
-```ts
-try {
-  const { data, meta } = await getFoo(id);
-  // ...
-} catch (err) {
-  if (err instanceof EnvelopeError) {
-    // err.status, err.errors, err.code, err.meta
-  } else {
-    // network / unexpected
-  }
+  meta: TMeta;
 }
 ```
 
-### Not to be used for envelope endpoints
+`fetchEnvelope<TData, TMeta>(request, fallbackMessage)` resolves to
+`{data, meta}`. It throws `EnvelopeError` for valid error envelopes. Legacy
+errors, missing/non-object `meta`, extra top-level keys, invalid error items,
+empty bodies and invalid JSON are rejected as `envelope_malformed`.
+**It does not silently translate legacy responses.** Network failures can still
+propagate independently of `EnvelopeError`.
 
-`requestJson` is retained only for endpoints that have not yet migrated.
-Do not use it for new envelope-aware functions.
-
----
-
-## 5. Query param conventions
-
-| Purpose | Param | Example |
-|---|---|---|
-| Slim projection | `projection` | `?projection=grading` |
-| Enum filter | `kind` | `?kind=subjective`, `?kind=short_answer,essay` |
-| ID filter | `<resource>_id` | `?question_id=...`, `?participant_id=...` |
-| Pagination (DRF) | `page` / `page_size` | unchanged |
-
-### `projection`
-
-- Values are canonical strings (`grading`, `summary`, `card`, `detail`).
-- Omitting the param returns the original/full shape (backward
-  compatibility).
-- `meta.projection` echoes the applied projection so clients can verify.
-
-### `kind`
-
-- Accepts aliases (`subjective`, `objective`) and CSVs of enum values
-  (`short_answer,essay`).
-- Unknown tokens are ignored (resulting in an empty set, not a 400) —
-  filter-only query params should tolerate client typos gracefully.
-- When two endpoints share `kind` semantics, they must define the same
-  alias map. Current shared map
-  (`ContestExamQuestionViewSet` + `ExamAnswerViewSet.dashboard_summary`):
-  - `subjective` → `{short_answer, essay}`
-  - `objective` → `{true_false, single_choice, multiple_choice}`
-
----
-
-## 6. Migration status
-
-### Migrated
-
-| Endpoint | Success envelope | Error envelope | Filters |
-|---|---|---|---|
-| `GET /contests/{id}/exam-answers/all-answers/?projection=grading` | ✅ | ✅ | `question_id`, `user_id`, `participant_id` |
-
-### Partial (filter added, envelope pending)
-
-| Endpoint | Notes |
-|---|---|
-| `GET /contests/{id}/exam-questions/?kind=...` | `kind` filter landed; still bare array. |
-| `GET /contests/{id}/exam-answers/dashboard-summary/?kind=...` | `kind` filter landed; still bare object. |
-
-### Legacy (no envelope)
-
-Everything else. Errors continue to use the legacy `{success, error}`
-shape served by `custom_exception_handler`.
-
----
-
-## 7. Quick reference
-
-**New view**
-
-```python
-from apps.core.api.envelope import envelope
-
-class FooViewSet(viewsets.GenericViewSet):
-    envelope_error_actions = {"list", "detail"}
-
-    @action(detail=False)
-    def list(self, request):
-        data = FooSerializer(queryset, many=True).data
-        return envelope(data, meta={"count": len(data)})
-```
-
-**New repository function**
+For example, the grading query is already migrated:
 
 ```ts
-export const getFoo = async (
-  id: string,
-  opts: { kind?: string } = {},
-): Promise<{ data: FooDto[]; meta: FooMeta }> =>
-  fetchEnvelope<FooDto[], FooMeta>(
-    httpClient.get(buildUrl("/api/v1/foo/", { id, ...opts })),
-    "Failed to fetch foo",
-  );
+const { data, meta } = await fetchEnvelope<ExamAnswerGradingDto[], GradingListMeta>(
+  httpClient.get(
+    `/api/v1/contests/${contestId}/exam-answers/all-answers/?projection=grading`,
+  ),
+  "Failed to fetch grading answers",
+);
 ```
 
-**UI error handling**
+Use the `ExamAnswerGradingDto` and `GradingListMeta` definitions/imports from the
+existing `examAnswers.repository.ts` implementation when extending this call.
+Catch `EnvelopeError` to inspect `status`, `errors`, `meta`, or the first `code`.
 
-```ts
-try {
-  const { data, meta } = await getFoo(id);
-} catch (err) {
-  if (err instanceof EnvelopeError) {
-    // err.status, err.errors, err.code
-  }
-}
-```
+`requestJson<T>` in `http.client.ts` returns the success body without unwrapping
+it. Its error message extractor currently reads `error.message`; an envelope
+error instead falls back to the caller's generic message. It attaches the raw
+body to `error.response.data`. Switching only a backend's response format can
+therefore lose error messages or break mapping, even when HTTP status is unchanged.
+Some repositories also parse JSON directly or use their own request helper.
+Migration inventory must include those, not only `requestJson` imports.
 
----
+MCP's `mcp-server/server.py` formats multiple error shapes but returns successful
+Django JSON as received. The paper CLI in `tools/qjudge-paper-cli` has separate
+bare-array, DRF-pagination and envelope readers. Neither is automatically
+migrated by changing the frontend helper.
 
-## Reference implementation
+## Verified migration status
 
-Landed with the 2026-04 AI grading performance work:
+This is a summary of known boundaries, not an exhaustive endpoint inventory.
 
-- Backend: `backend/apps/core/api/envelope.py`,
-  `backend/apps/core/exceptions.py`,
-  `backend/apps/contests/views/exam_answer.py` (`all_answers` action).
-- Frontend: `frontend/src/infrastructure/api/envelope.ts`,
-  `frontend/src/infrastructure/api/repositories/examAnswers.repository.ts`
-  (`getAllExamAnswersForGrading`).
+| Endpoint / domain | Current success | Current exception handling |
+| --- | --- | --- |
+| JSON users/auth/action-links views inheriting `SchemaAPIView` | Renderer envelope | Envelope |
+| `exam-answers/results/` | Explicit envelope | Envelope |
+| `exam-answers/all-answers/?projection=grading` | Explicit envelope | Envelope |
+| `exam-answers/all-answers/` without that projection | Bare array | Envelope (same action) |
+| Grade appeal list/create/retrieve/messages/close/reopen | Explicit envelope | Envelope |
+| `exam-questions/?kind=...` | Bare array | Legacy by default |
+| `exam-answers/dashboard-summary/?kind=...` | Bare object | Legacy by default |
+| Other classroom/problem/submission/exam/AI endpoints | Endpoint-specific; inspect view and caller | Legacy by default, with manual/proxy exceptions |
+
+Source owners: `backend/apps/contests/views/exam_answer.py`,
+`grade_appeal.py`, `exam_question.py`, and the matching frontend repositories.
+Do not treat the table as permission to change unrelated endpoints globally.
+
+## Query parameters
+
+- Use snake-case IDs such as `question_id`, `participant_id`, `user_id`.
+- `projection=grading` on `all-answers` selects both slim fields and an envelope;
+  omitting it currently changes the top-level shape as well.
+- `kind` supports aliases such as `subjective` and `objective`, and comma-separated
+  question types where implemented. Unknown tokens are ignored by these filters;
+  do not generalize that behavior to all API validation.
+- Preserve existing `page` / `page_size` behavior during response migration.
+
+## Verification and change discipline
+
+Relevant tests include `frontend/src/infrastructure/api/envelope.test.ts`,
+`backend/apps/core/tests/test_user_contract_boundary.py`,
+`backend/apps/users/tests/test_api_contract.py`, and per-domain repository/API tests.
+The generated schema is `backend/schema.yml`; users-domain schema wrapping is
+implemented in `backend/apps/users/schema.py`.
+
+Changing response shape requires coordinated backend, frontend, MCP/CLI and
+schema changes for the selected endpoints. Do not add permissive fallback
+parsing to `fetchEnvelope`, or enable the users renderer globally. Database
+migrations and `legacy_schema_alignment.py` are unrelated to this API work and
+remain unchanged.

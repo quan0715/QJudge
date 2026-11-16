@@ -1,28 +1,15 @@
-import { render } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { createMockContest } from "@/shared/mocks/contest.mock";
 import GeneralSettingsPanel from "./GeneralSettingsPanel";
 import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 
-vi.mock("@carbon/react", () => ({
+// Keep real Carbon inputs; the calendar integration is outside this label test.
+vi.mock("@carbon/react", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@carbon/react")>(),
   DatePicker: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  DatePickerInput: ({ id }: { id: string }) => <div id={id} />,
-  SelectItem: ({ value, text }: { value: string; text: string }) => (
-    <option value={value}>{text}</option>
-  ),
-  Tag: ({ children }: { children: ReactNode }) => <span>{children}</span>,
-  TextInput: ({ id }: { id: string }) => <div id={id} />,
-  TimePicker: ({ id, children }: { id: string; children: ReactNode }) => (
-    <div>
-      <div id={id} />
-      {children}
-    </div>
-  ),
-  TimePickerSelect: ({ id, children }: { id: string; children: ReactNode }) => (
-    <div id={id}>{children}</div>
-  ),
 }));
 
 vi.mock("@/shared/ui/markdown/markdownEditor", () => ({
@@ -40,6 +27,7 @@ const isBefore = (first: Element, second: Element) =>
 
 describe("GeneralSettingsPanel", () => {
   it("places the contest window immediately after the description", () => {
+    const onChange = vi.fn();
     render(
       <GeneralSettingsPanel
         t={t}
@@ -48,7 +36,7 @@ describe("GeneralSettingsPanel", () => {
         form={{ name: "期中考", description: "題目說明", rules: "請遵守規則" }}
         getState={() => undefined}
         onRetry={() => {}}
-        onChange={() => {}}
+        onChange={onChange}
         onConfirmedChange={() => {}}
         startDateInput={new Date("2026-09-08T09:00:00")}
         endDateInput={new Date("2026-09-08T11:00:00")}
@@ -65,6 +53,12 @@ describe("GeneralSettingsPanel", () => {
       />,
     );
 
+    const name = screen.getByRole("textbox", { name: "settings.contestName" });
+    fireEvent.change(name, { target: { value: "New exam" } });
+    expect(onChange).toHaveBeenCalledWith("name", "New exam");
+    expect(screen.getByRole("textbox", { name: "settings.contestDescription" })).toHaveAccessibleDescription("簡短描述，出現在競賽概覽頁面");
+    expect(screen.getByLabelText("form.startDate")).toHaveAccessibleDescription("競賽開始時間，學生只能在此時間後進入作答");
+    expect(screen.getByLabelText("form.endDate")).toHaveAccessibleDescription("競賽結束時間，超過後將自動停止收卷");
     const description = document.getElementById("settings-description");
     const startDate = document.getElementById("settings-start-date");
     const endDate = document.getElementById("settings-end-date");

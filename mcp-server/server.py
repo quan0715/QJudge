@@ -192,6 +192,7 @@ async def django_api(
     *,
     json_body: dict | None = None,
     timeout: float = 30.0,
+    expect_envelope: bool = False,
 ) -> Any:
     """Call Django API with OAuth token passthrough.
 
@@ -221,15 +222,29 @@ async def django_api(
         return _error(f"Django HTTP request failed: {e!r}", status=502)
 
     if response.status_code == 204:
-        return {"status": "success"}
+        return _error("Invalid API response contract: empty body", status=502) if expect_envelope else {"status": "success"}
 
     try:
         body = response.json()
     except Exception:
         body = {"raw": response.text}
 
+    if expect_envelope:
+        key = "errors" if response.status_code >= 400 else "data"
+        valid = isinstance(body, dict) and set(body) == {key, "meta"} and isinstance(body["meta"], dict)
+        if valid and key == "errors":
+            valid = isinstance(body["errors"], list) and bool(body["errors"]) and all(
+                isinstance(item, dict) and isinstance(item.get("code"), str)
+                and isinstance(item.get("message"), str) and "field" in item
+                and (item["field"] is None or isinstance(item["field"], str))
+                and isinstance(item.get("details"), dict)
+                for item in body["errors"]
+            )
+        if not valid:
+            return _error("Invalid API response contract", status=502)
+
     if response.status_code >= 400:
-        result = _format_django_errors(body)
+        result = _APIError(_format_django_errors(body))
         result["status"] = response.status_code
         return result
 
@@ -237,8 +252,12 @@ async def django_api(
 
 
 
+class _APIError(dict):
+    """Locally generated tool failure, never inferred from an untrusted body."""
+
+
 def _error(detail: str, *, status: int | None = None) -> dict[str, Any]:
-    payload: dict[str, Any] = {"error": True, "detail": detail}
+    payload: dict[str, Any] = _APIError(error=True, detail=detail)
     if status is not None:
         payload["status"] = status
     return payload
@@ -325,6 +344,38 @@ async def _get_all_rows(path: str, ctx: Context, *, max_pages: int = 20) -> list
         if not (isinstance(payload, dict) and payload.get("next")):
             break
     return rows
+
+
+def _unwrap_envelope(payload: Any) -> Any:
+    if isinstance(payload, _APIError):
+        return payload
+    if not isinstance(payload, dict) or set(payload) != {"data", "meta"} or not isinstance(payload["meta"], dict):
+        return _error("Invalid API response contract", status=502)
+    return payload["data"]
+
+
+async def _get_envelope_rows(path: str, ctx: Context, *, paginated: bool = False) -> Any:
+    rows = []
+    separator = "&" if "?" in path else "?"
+    for page in range(1, 21):
+        payload = await django_api("GET", path if page == 1 else f"{path}{separator}page={page}", ctx, expect_envelope=True)
+        data = _unwrap_envelope(payload)
+        if isinstance(data, dict) and data.get("error"):
+            return data
+        if not isinstance(data, list) or not all(isinstance(row, dict) for row in data):
+            return _error("Invalid collection response contract", status=502)
+        rows.extend(data)
+        if not paginated:
+            return rows
+        pagination = payload["meta"].get("pagination")
+        if (not isinstance(pagination, dict) or not {"count", "next", "previous"} <= pagination.keys()
+                or type(pagination["count"]) is not int or pagination["count"] < 0
+                or any(pagination[key] is not None and not isinstance(pagination[key], str)
+                       for key in ("next", "previous"))):
+            return _error("Invalid pagination response contract", status=502)
+        if pagination["next"] is None:
+            return rows
+    return _error("Pagination exceeded 20 pages; refusing incomplete results", status=502)
 
 
 def _quote(value: Any) -> str:
@@ -812,11 +863,11 @@ async def qjudge_browse(
         query = {"scope": "manage"}
         if search:
             query["search"] = search
-        classrooms = await _get_all_rows(f"/api/v1/classrooms/?{urlencode(query)}", ctx)
+        classrooms = await _get_envelope_rows(f"/api/v1/classrooms/?{urlencode(query)}", ctx, paginated=True)
         if isinstance(classrooms, dict):
             return classrooms
         if search and not classrooms:
-            all_classrooms = await _get_all_rows("/api/v1/classrooms/?scope=manage", ctx)
+            all_classrooms = await _get_envelope_rows("/api/v1/classrooms/?scope=manage", ctx, paginated=True)
             if isinstance(all_classrooms, dict):
                 return all_classrooms
             classrooms = [
@@ -834,7 +885,7 @@ async def qjudge_browse(
         )
         if uuid_error:
             return uuid_error
-        classroom = await django_api("GET", f"/api/v1/classrooms/{classroom_id}/", ctx)
+        classroom = _unwrap_envelope(await django_api("GET", f"/api/v1/classrooms/{classroom_id}/", ctx, expect_envelope=True))
         if isinstance(classroom, dict) and classroom.get("error"):
             return classroom
         if not isinstance(classroom, dict):
@@ -850,7 +901,7 @@ async def qjudge_browse(
         )
         if uuid_error:
             return uuid_error
-        contests = await _get_all_rows(f"/api/v1/classrooms/{classroom_id}/contests/", ctx)
+        contests = await _get_envelope_rows(f"/api/v1/classrooms/{classroom_id}/contests/", ctx)
         if isinstance(contests, dict):
             return contests
         if status:
@@ -874,7 +925,7 @@ async def qjudge_browse(
 
         # If backend name-only search misses, fallback to classroom contests and match name/description.
         if search and not contests:
-            rooms = await _get_all_rows("/api/v1/classrooms/?scope=manage", ctx)
+            rooms = await _get_envelope_rows("/api/v1/classrooms/?scope=manage", ctx, paginated=True)
             if isinstance(rooms, dict):
                 return rooms
             merged: dict[str, dict[str, Any]] = {}
@@ -882,7 +933,7 @@ async def qjudge_browse(
                 cid = room.get("uuid")
                 if not isinstance(cid, str) or not _is_uuid(cid):
                     continue
-                room_contests = await _get_all_rows(f"/api/v1/classrooms/{cid}/contests/", ctx)
+                room_contests = await _get_envelope_rows(f"/api/v1/classrooms/{cid}/contests/", ctx)
                 if isinstance(room_contests, dict):
                     continue
                 for row in room_contests:
@@ -1041,12 +1092,13 @@ async def qjudge_contest_manager(
             "cheat_detection_enabled": cheat_detection_enabled,
             "allow_multiple_joins": allow_multiple_joins,
         }
-        return await django_api(
+        return _unwrap_envelope(await django_api(
             "POST",
             f"/api/v1/classrooms/{classroom_id}/contests/",
             ctx,
+            expect_envelope=True,
             json_body={key: value for key, value in fields.items() if value is not None},
-        )
+        ))
 
     if classroom_id is not None or contest_type is not None:
         return _tool_error(

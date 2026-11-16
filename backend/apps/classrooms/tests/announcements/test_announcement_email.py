@@ -91,5 +91,5 @@ def test_api_notifies_current_members_and_publisher_once(
     detail = f'{url}{response.data["id"]}/'
     with django_capture_on_commit_callbacks(execute=True):
         assert client.patch(detail, {'title': 'Correction', 'is_pinned': True}, format='json').status_code == 200
-        assert client.delete(detail).status_code == 204
+        assert client.delete(detail).status_code == 200
     assert mail.outbox == []

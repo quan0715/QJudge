@@ -1,20 +1,26 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import styles from "./ExamWorkspaceShell.module.scss";
+import { IconButton } from "@carbon/react";
 
 interface ExamIconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
   label: string;
-  /** Tooltip text when it differs from the accessible name. */
-  tooltip?: string;
   tooltipPlacement?: "right" | "bottom";
   children: ReactNode;
 }
 
 /** Icon-only control with a hover/focus tooltip shared by the header and rail. */
-export function ExamIconButton({ label, tooltip, tooltipPlacement = "bottom", className, children, ...props }: ExamIconButtonProps) {
+export function ExamIconButton({ label, tooltipPlacement = "bottom", className, children, ...props }: ExamIconButtonProps) {
   return (
-    <button type="button" aria-label={label} className={[styles.iconButton, className].filter(Boolean).join(" ")} {...props}>
+    <IconButton
+      type="button"
+      kind="ghost"
+      size="sm"
+      align={tooltipPlacement}
+      isSelected={props["aria-pressed"] === true || props["aria-pressed"] === "true"}
+      label={label}
+      className={className}
+      {...props}
+    >
       {children}
-      <span className={styles.tooltip} data-placement={tooltipPlacement} aria-hidden="true">{tooltip ?? label}</span>
-    </button>
+    </IconButton>
   );
 }

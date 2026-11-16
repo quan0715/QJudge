@@ -1,51 +1,23 @@
-"""Standard API envelope helpers.
+"""Explicit success/error envelope helpers.
 
-Shape contract
---------------
-
-**Success**::
-
-    {"data": <payload>, "meta": {...}}
-
-- ``data``: main payload; may be an array, object, or null.
-- ``meta``: optional hints (count, projection, filters applied, timing).
-
-**Error**::
-
-    {
-      "errors": [
-        {"code": "PERMISSION_DENIED", "message": "...", "field": null, "details": {}}
-      ],
-      "meta": {"request_id": "...", "timestamp": "..."}
-    }
-
-- ``errors``: non-empty array; one entry per distinct error (validation may be
-  multiple).
-- ``meta.request_id`` / ``meta.timestamp``: always present on error envelopes;
-  lifted from the legacy ``{success, error}`` shape so they live at the same
-  path as success-case meta.
-
-When to use
------------
-- Non-paginated collection endpoints and custom actions.
-- DRF's native paginated list endpoints keep ``{count, next, previous, results}``.
-- Opt-in per action via ``envelope_error_actions`` on the view:
-
-    class FooViewSet(...):
-        envelope_error_actions = {"my_action"}
-
-  The custom exception handler only produces envelope errors for actions in
-  that set; all other actions keep the legacy ``{success, error}`` shape for
-  backward compatibility.
+Both shapes require object ``meta``. Generic helpers preserve supplied codes
+and metadata; request-aware contract helpers add request_id/timestamp and
+normalize codes. ContractJSONRenderer recognizes EnvelopeResponse so it can
+wrap raw resources without double-wrapping helper responses. Native DRF
+pagination remains unchanged outside a migrated/negotiated JSON boundary.
 """
 from typing import Any, Iterable, Mapping
 
 from rest_framework.response import Response
 
 
+class EnvelopeResponse(Response):
+    """Explicit envelope, distinguishable from a resource with data/meta fields."""
+
+
 def envelope(data: Any, *, meta: Mapping[str, Any] | None = None, status: int = 200) -> Response:
     """Wrap a success payload in the standard envelope."""
-    return Response({"data": data, "meta": dict(meta or {})}, status=status)
+    return EnvelopeResponse({"data": data, "meta": dict(meta or {})}, status=status)
 
 
 def envelope_error(
@@ -76,7 +48,7 @@ def envelope_errors(
     meta: Mapping[str, Any] | None = None,
 ) -> Response:
     """Return a multi-error envelope response."""
-    return Response(
+    return EnvelopeResponse(
         {"errors": list(errors), "meta": dict(meta or {})},
         status=status,
     )

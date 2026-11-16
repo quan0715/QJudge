@@ -1,20 +1,57 @@
 {
-  "sections": [
+  "title": "QJudge Docs",
+  "siteUrl": "https://docs.q-judge.com",
+  "defaultLocale": "zh-TW",
+  "fallbackLocale": "zh-TW",
+  "locales": [
+    "zh-TW",
+    "en",
+    "ja",
+    "ko"
+  ],
+  "brand": {
+    "homeHref": "https://q-judge.com",
+    "logo": "/brand/qjudge-logo-square.png"
+  },
+  "defaultDoc": "overview",
+  "feedback": true,
+  "navigation": [
     {
-      "id": "getting-started",
+      "title": "快速開始",
+      "labels": {
+        "zh-TW": "快速開始",
+        "en": "Getting Started",
+        "ja": "はじめに",
+        "ko": "시작하기"
+      },
+      "icon": "rocket",
       "items": [
         "overview",
         "quick-start"
       ]
     },
     {
-      "id": "student-guide",
+      "title": "學生指南",
+      "labels": {
+        "zh-TW": "學生指南",
+        "en": "student-guide",
+        "ja": "student-guide",
+        "ko": "student-guide"
+      },
+      "icon": "document",
       "items": [
         "grade-appeal"
       ]
     },
     {
-      "id": "deployment",
+      "title": "架設與部署",
+      "labels": {
+        "zh-TW": "架設與部署",
+        "en": "Setup and Deployment",
+        "ja": "構築とデプロイ",
+        "ko": "구축 및 배포"
+      },
+      "icon": "server",
       "items": [
         "deployment",
         "deployment-storage",
@@ -25,7 +62,14 @@
       ]
     },
     {
-      "id": "first-exam",
+      "title": "準備第一場考試",
+      "labels": {
+        "zh-TW": "準備第一場考試",
+        "en": "Prepare Your First Exam",
+        "ja": "最初の試験を準備",
+        "ko": "첫 시험 준비"
+      },
+      "icon": "document",
       "items": [
         "admin-account",
         "teacher-qualification",
@@ -36,7 +80,14 @@
       ]
     },
     {
-      "id": "admin-guide",
+      "title": "管理員指南",
+      "labels": {
+        "zh-TW": "管理員指南",
+        "en": "Admin Guide",
+        "ja": "管理者ガイド",
+        "ko": "관리자 가이드"
+      },
+      "icon": "admin",
       "items": [
         "ai-setup",
         "mcp-setup",
@@ -44,12 +95,128 @@
       ]
     },
     {
-      "id": "legal",
+      "title": "法律與隱私",
+      "labels": {
+        "zh-TW": "法律與隱私",
+        "en": "Legal",
+        "ja": "法的情報",
+        "ko": "법적 정보"
+      },
+      "icon": "document-blank",
       "items": [
         "privacy",
         "terms"
       ]
     }
   ],
-  "defaultDoc": "overview"
+  "quickLinks": [
+    {
+      "id": "deployment",
+      "icon": "server",
+      "tagType": "blue",
+      "items": [
+        "deployment",
+        "deployment-storage"
+      ],
+      "title": {
+        "zh-TW": "架設與部署",
+        "en": "Set up and deploy",
+        "ja": "構築とデプロイ",
+        "ko": "구축 및 배포"
+      },
+      "description": {
+        "zh-TW": "從一台 Ubuntu 主機完成最小可行部署，再依需要加入 HTTPS 與外部服務",
+        "en": "Complete a minimal deployment on one Ubuntu host, then add HTTPS and external services as needed",
+        "ja": "1台の Ubuntu ホストに最小構成でデプロイし、必要に応じて HTTPS と外部サービスを追加します",
+        "ko": "Ubuntu 호스트 한 대에 최소 구성으로 배포한 뒤 필요에 따라 HTTPS와 외부 서비스를 추가합니다"
+      },
+      "tag": {
+        "zh-TW": "步驟 1",
+        "en": "Step 1",
+        "ja": "ステップ 1",
+        "ko": "단계 1"
+      }
+    },
+    {
+      "id": "administration",
+      "icon": "settings",
+      "tagType": "purple",
+      "items": [
+        "admin-account",
+        "teacher-qualification"
+      ],
+      "title": {
+        "zh-TW": "建立管理者與教師資格",
+        "en": "Set up administrators and teacher access",
+        "ja": "管理者と教員資格を設定",
+        "ko": "관리자 및 교사 자격 설정"
+      },
+      "description": {
+        "zh-TW": "建立第一個管理者帳號，並決定哪些帳號可以使用教師功能",
+        "en": "Create the first administrator account and decide which accounts can use teacher features",
+        "ja": "最初の管理者アカウントを作成し、教員機能を利用できるアカウントを決めます",
+        "ko": "첫 관리자 계정을 만들고 교사 기능을 사용할 계정을 지정합니다"
+      },
+      "tag": {
+        "zh-TW": "步驟 2",
+        "en": "Step 2",
+        "ja": "ステップ 2",
+        "ko": "단계 2"
+      }
+    },
+    {
+      "id": "classroom",
+      "icon": "users",
+      "tagType": "green",
+      "items": [
+        "classroom-setup",
+        "classroom-roster"
+      ],
+      "title": {
+        "zh-TW": "準備教室與名冊",
+        "en": "Prepare a classroom and roster",
+        "ja": "クラスルームと名簿を準備",
+        "ko": "클래스룸 및 명단 준비"
+      },
+      "description": {
+        "zh-TW": "用教師帳號建立教室，再加入或匯入本學期的學生名冊",
+        "en": "Create a classroom with a teacher account, then add or import this term's student roster",
+        "ja": "教員アカウントでクラスルームを作成し、今学期の学生名簿を追加またはインポートします",
+        "ko": "교사 계정으로 클래스룸을 만들고 이번 학기의 학생 명단을 추가하거나 가져옵니다"
+      },
+      "tag": {
+        "zh-TW": "步驟 3",
+        "en": "Step 3",
+        "ja": "ステップ 3",
+        "ko": "단계 3"
+      }
+    },
+    {
+      "id": "exam",
+      "icon": "document",
+      "tagType": "magenta",
+      "items": [
+        "exam-preparation",
+        "exam-review"
+      ],
+      "title": {
+        "zh-TW": "準備第一場考試",
+        "en": "Prepare the first exam",
+        "ja": "最初の試験を準備",
+        "ko": "첫 시험 준비"
+      },
+      "description": {
+        "zh-TW": "建立考試、安排題目與時間，發布前再依檢查表逐項確認",
+        "en": "Create an exam, arrange its questions and schedule, then verify each checklist item before publishing",
+        "ja": "試験を作成して問題と日程を設定し、公開前にチェックリストを項目ごとに確認します",
+        "ko": "시험을 만들고 문제와 일정을 구성한 뒤 게시 전에 체크리스트를 항목별로 확인합니다"
+      },
+      "tag": {
+        "zh-TW": "步驟 4",
+        "en": "Step 4",
+        "ja": "ステップ 4",
+        "ko": "단계 4"
+      }
+    }
+  ]
 }

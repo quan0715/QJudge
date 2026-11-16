@@ -1,0 +1,26 @@
+name: Documentation Site CI
+on:
+  pull_request:
+    paths:
+      - 'docs-site/**'
+      - 'frontend/public/docs/**'
+      - 'frontend/public/brand/**'
+      - 'frontend/pages/docs-worker.js'
+      - '.github/workflows/docs-site-ci.yml'
+      - '.github/workflows/deploy-docs.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.22.1'
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+      - run: npm ci
+        working-directory: docs-site
+      - run: npm run typecheck && npm run build && node scripts/check-output.mjs
+        working-directory: docs-site

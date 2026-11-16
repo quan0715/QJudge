@@ -44,17 +44,34 @@ class QJudgeApiClient:
     def patch_json(self, path: str, payload: dict[str, Any]) -> Any:
         return self.request("PATCH", path, json=payload).json()
 
+    def _get_envelope(self, path: str, **kwargs: Any) -> tuple[Any, dict]:
+        body = self.get_json(path, **kwargs)
+        if not isinstance(body, dict) or set(body) != {"data", "meta"} or not isinstance(body["meta"], dict):
+            raise ValueError("Invalid API response contract")
+        return body["data"], body["meta"]
+
     def list_classrooms(self, scope: str = "teaching") -> list[dict[str, Any]]:
-        data = self.get_json(f"/api/v1/classrooms/?scope={scope}")
-        if isinstance(data, list):
-            return data
-        if isinstance(data, dict) and isinstance(data.get("results"), list):
-            return data["results"]
-        return []
+        rows = []
+        for page in range(1, 101):
+            data, meta = self._get_envelope("/api/v1/classrooms/", params={"scope": scope, "page": page})
+            pagination = meta.get("pagination")
+            if (not isinstance(data, list) or not all(isinstance(row, dict) for row in data)
+                    or not isinstance(pagination, dict)
+                    or not {"count", "next", "previous"} <= pagination.keys()
+                    or type(pagination["count"]) is not int or pagination["count"] < 0
+                    or any(pagination[key] is not None and not isinstance(pagination[key], str)
+                           for key in ("next", "previous"))):
+                raise ValueError("Invalid classroom list response contract")
+            rows.extend(data)
+            if pagination["next"] is None:
+                return rows
+        raise ValueError("Classroom pagination exceeded 100 pages; refusing incomplete results")
 
     def list_classroom_exams(self, classroom_id: str) -> list[dict[str, Any]]:
-        data = self.get_json(f"/api/v1/classrooms/{classroom_id}/contests/")
-        return data if isinstance(data, list) else []
+        data, _ = self._get_envelope(f"/api/v1/classrooms/{classroom_id}/contests/")
+        if not isinstance(data, list) or not all(isinstance(row, dict) for row in data):
+            raise ValueError("Invalid classroom exams response contract")
+        return data
 
     def list_subjective_questions(self, contest_id: str) -> list[dict[str, Any]]:
         data = self.get_json(
