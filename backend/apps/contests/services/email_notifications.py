@@ -56,6 +56,13 @@ def manager_ids(contest):
     return ids
 
 
+def ta_ids(contest):
+    classroom = get_contest_classroom(contest)
+    if classroom is None:
+        return set()
+    return set(classroom.memberships.filter(role='ta').values_list('user_id', flat=True))
+
+
 def notify_appeal(ticket, actor_id, event='message'):
     participant = ticket.exam_answer.participant
     contest = participant.contest
@@ -88,7 +95,7 @@ def notify_appeal(ticket, actor_id, event='message'):
     queue_emails(recipients, subject, body)
 
 
-def queue_publication_email(contest, event):
+def queue_publication_email(contest, event, actor_id=None):
     label = '競賽已發布' if event == 'contest_published' else '成績已發布'
     body = f'「{contest.name}」{label}。\n\n請登入 QJudge 查看：\n{contest_url(contest)}\n\n'
     if event == 'results_published':
@@ -96,13 +103,16 @@ def queue_publication_email(contest, event):
     body += '此信為系統通知，請勿直接回覆。'
     # Include classroom students who have not entered the contest yet, and
     # existing attempts (including staff attempts), matching the teacher roster.
-    queue_emails(roster_user_ids(contest), f'[QJudge] {label}', body)
+    # Like a classroom announcement, the TAs and the publisher get the same
+    # notice the students do. queue_emails drops a missing actor.
+    recipients = set(roster_user_ids(contest)) | ta_ids(contest) | {actor_id}
+    queue_emails(recipients, f'[QJudge] {label}', body)
 
 
-def notify_publication_changes(contest, previous_status, previous_results):
+def notify_publication_changes(contest, previous_status, previous_results, actor_id=None):
     if contest.status != 'published':
         return
     if previous_status != 'published':
-        queue_publication_email(contest, 'contest_published')
+        queue_publication_email(contest, 'contest_published', actor_id=actor_id)
     if contest.results_published and not previous_results:
-        queue_publication_email(contest, 'results_published')
+        queue_publication_email(contest, 'results_published', actor_id=actor_id)

@@ -196,7 +196,9 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             if "webcam_required" in serializer.validated_data:
                 apply_webcam_setting_to_prepared_run(instance.id)
             prepare_integrity_session(instance.id, actor_id=self.request.user.id)
-            notify_publication_changes(instance, previous_status, previous_results)
+            notify_publication_changes(
+                instance, previous_status, previous_results, actor_id=self.request.user.id,
+            )
         cache.delete(f"contest_anticheat_config:{instance.id}")
 
         # Log activity - record what fields were changed
@@ -276,7 +278,9 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             contest.status = 'published'
         contest.save(update_fields=['status', 'results_published'])
         prepare_integrity_session(contest.id, actor_id=request.user.id)
-        notify_publication_changes(contest, previous_status, previous_results)
+        notify_publication_changes(
+            contest, previous_status, previous_results, actor_id=request.user.id,
+        )
 
         # Log activity
         log_contest_activity(
