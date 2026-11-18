@@ -44,16 +44,18 @@ def test_publish_and_results_notify_entire_student_roster_once(case, django_capt
     users, contest, _ = case
     url = f'/api/v1/contests/{contest.pk}/'
     client = api(users['teacher'])
+    # Students with or without an attempt, the TA, and the publisher.
+    expected = sorted(users[name].pk for name in ['student', 'unstarted', 'ta', 'teacher'])
     with patch('apps.contests.tasks.deliver_contest_email.delay') as send:
         with django_capture_on_commit_callbacks(execute=True):
             response = (client.patch(url, {'status': 'published'}, format='json') if method == 'patch'
                         else client.post(url+'toggle_status/'))
             assert response.status_code == 200, response.data
-        assert sorted(c.args[0] for c in send.call_args_list) == sorted([users['student'].pk, users['unstarted'].pk])
+        assert sorted(c.args[0] for c in send.call_args_list) == expected
         send.reset_mock()
         with django_capture_on_commit_callbacks(execute=True):
             assert client.patch(url, {'results_published': True}, format='json').status_code == 200
-        assert send.call_count == 2
+        assert sorted(c.args[0] for c in send.call_args_list) == expected
         send.reset_mock()
         with django_capture_on_commit_callbacks(execute=True):
             assert client.patch(url, {'results_published': True}, format='json').status_code == 200

@@ -107,10 +107,37 @@ def test_links_use_public_classroom_uuid():
 
 def test_publication_includes_students_without_attempts():
     with patch.object(notifications, 'roster_user_ids', return_value=[2, 3]), \
+         patch.object(notifications, 'ta_ids', return_value=set()), \
          patch.object(notifications, 'contest_url', return_value='https://qjudge.test/contest'), \
          patch.object(notifications, 'queue_emails') as queue:
         notifications.queue_publication_email(contest(), 'results_published')
-    assert queue.call_args.args[0] == [2, 3]
+    assert sorted(queue.call_args.args[0] - {None}) == [2, 3]
+
+
+@pytest.mark.parametrize('event', ['contest_published', 'results_published'])
+def test_publication_also_notifies_tas_and_publisher(event):
+    with patch.object(notifications, 'roster_user_ids', return_value=[2, 3]), \
+         patch.object(notifications, 'ta_ids', return_value={3, 5}), \
+         patch.object(notifications, 'contest_url', return_value='https://qjudge.test/contest'), \
+         patch.object(notifications, 'queue_emails') as queue:
+        notifications.queue_publication_email(contest(), event, actor_id=9)
+    assert sorted(queue.call_args.args[0]) == [2, 3, 5, 9]
+
+
+def test_publication_change_passes_the_publisher():
+    with patch.object(notifications, 'queue_publication_email') as queue:
+        notifications.notify_publication_changes(contest('published', True), 'draft', False, actor_id=9)
+    assert [call.kwargs for call in queue.call_args_list] == [{'actor_id': 9}, {'actor_id': 9}]
+
+
+def test_tas_come_from_the_contest_classroom():
+    classroom = SimpleNamespace(owner_id=4, memberships=Mock())
+    classroom.memberships.filter.return_value.values_list.return_value = [3, 5]
+    with patch.object(notifications, 'get_contest_classroom', return_value=classroom):
+        assert notifications.ta_ids(contest()) == {3, 5}
+    classroom.memberships.filter.assert_called_once_with(role='ta')
+    with patch.object(notifications, 'get_contest_classroom', return_value=None):
+        assert notifications.ta_ids(contest()) == set()
 
 
 def test_smtp_failure_retries_only_failed_recipient():
