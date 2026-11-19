@@ -134,7 +134,7 @@ const AuthLayout = () => {
         />
 
         <div className="auth-login-brand">
-          <BrandLockup className="auth-login-brand__lockup" size={24} />
+          <BrandLockup />
         </div>
 
         <div className="auth-toolbar">

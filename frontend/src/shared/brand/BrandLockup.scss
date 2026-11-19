@@ -4,14 +4,18 @@
   align-items: center;
   gap: layout.$spacing-03;
   min-width: 0;
+  flex-shrink: 0;
   color: inherit;
 }
 
-.brand-lockup__mark {
+.brand-lockup > img {
   display: block;
   flex-shrink: 0;
-  object-fit: cover;
-  border-radius: 0.5rem;
+}
+
+.brand-lockup__wordmark {
+  width: auto;
+  aspect-ratio: 5724.8 / 954;
 }
 
 .brand-lockup__label {

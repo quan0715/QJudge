@@ -2,7 +2,6 @@
 @use "@carbon/react/scss/theme" as *;
 @use "@carbon/react/scss/spacing" as *;
 @use "@carbon/react/scss/type";
-@use "@carbon/react/scss/colors" as *;
 
 .auth-split-wrapper {
   min-height: 100vh;
@@ -19,16 +18,30 @@
   background-color: $background;
 }
 
+.auth-login-visual-shell[data-auth-theme="dark"] {
+  --auth-illustration-shade: linear-gradient(
+    to bottom,
+    color-mix(in srgb, #{$background} 82%, transparent),
+    color-mix(in srgb, #{$background} 75%, transparent) 3rem,
+    transparent 10rem
+  );
+}
+
+.auth-visual-background,
+.auth-login-visual-panel {
+  background-image: var(--auth-illustration-shade, none),
+    url("/illustrations/qjudge-exam-hall-carbon-illustration.webp");
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
 .auth-visual-background {
   display: none;
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-image: url("/illustrations/qjudge-exam-hall-carbon-illustration.webp");
-  background-repeat: no-repeat;
   background-position: center bottom;
-  background-size: cover;
 }
 
 .auth-login-brand {
@@ -36,12 +49,7 @@
   top: $spacing-06;
   left: clamp(1rem, 4vw, 3rem);
   z-index: 2;
-}
-
-.auth-login-brand__lockup {
-  .brand-lockup__label {
-    color: $gray-100;
-  }
+  display: flex;
 }
 
 .auth-login-main {
@@ -69,10 +77,7 @@
   overflow: hidden;
   padding: clamp(8rem, 16vh, 11rem) clamp($spacing-06, 5vw, $spacing-09) clamp($spacing-07, 8vh, $spacing-09);
   background-color: $layer-02;
-  background-image: url("/illustrations/qjudge-exam-hall-carbon-illustration.webp");
-  background-repeat: no-repeat;
   background-position: center center;
-  background-size: cover;
   border-inline-end: 1px solid $border-subtle-01;
 }
 
@@ -161,6 +166,12 @@
   z-index: 3;
 }
 
+@media (max-width: 24rem) {
+  .auth-login-visual-shell .auth-toolbar {
+    top: $spacing-10;
+  }
+}
+
 @media (max-width: 65.99rem) {
   .auth-split-wrapper {
     height: 100svh;
@@ -185,7 +196,6 @@
     inset: 0 0 auto;
     height: calc(var(--auth-mobile-sheet-offset) + clamp(4rem, 10svh, 6rem));
     background-position: 56% bottom;
-    background-size: cover;
   }
 
   .auth-login-brand {
