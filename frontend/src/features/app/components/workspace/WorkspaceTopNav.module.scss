@@ -24,6 +24,10 @@
   flex-shrink: 0;
 }
 
+.brand {
+  margin-inline-end: layout.$spacing-03;
+}
+
 .context {
   display: flex;
   align-items: center;
